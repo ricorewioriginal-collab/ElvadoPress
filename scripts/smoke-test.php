@@ -93,6 +93,12 @@ $themes=json_decode(http('GET',"$B/cms/api.php?action=theme_catalog",[],$H)['bod
 t('Keine RicoReWi-Portal-Themes im Katalog',empty($themes['themes']??[]));
 $r=http('GET',"$B/cms/");
 t('Verwaltung lädt',$r['code']===200&&str_contains($r['body'],'panel-settings'));
+$hl=json_decode(http('GET',"$B/cms/api.php?action=health",[],$H)['body'],true)?:[];
+t('Dateisystem-Prüfung meldet keine Portal-Dateien (Startseite/Feed)',($hl['healthy']??false)===true&&!isset($hl['checks']['index_file'])&&!isset($hl['checks']['rss_file']),json_encode($hl));
+$pv=$r['body'];
+t('Verwaltung: Soziale Profile neutral beschriftet',!str_contains($pv,'AnMaCha · TikTok')&&!str_contains($pv,'RicoReWi · TikTok'));
+foreach(['news-editor.js','alexa-manager.js','apps-manager.js','theme-manager.js'] as $jsf){ $js=(string)@file_get_contents($pkg.'/cms/assets/'.$jsf);
+    t("$jsf: RicoReWi-/AnMaCha-Texte nur hinter der Portal-Prüfung",$js!==''&&preg_match_all('/(?:RicoReWi|AnMaCha)[^\n]{0,60}/',$js,$mm)>=0&&!preg_match('/>AnMaCha Redaktion<|\bname\s*=\s*[\'"]RicoReWi Radio[\'"]/',$js)); }
 
 /* KI-Assistent als neutrale App-Erweiterung */
 $as=$cfg['assistant']??[];

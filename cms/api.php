@@ -106,7 +106,7 @@ function rrw_auth(bool $super=false): array {
     // Sammelidentität abzubilden. Der Fallback bleibt als Schutz, falls eine ältere Control-Center-
     // Version (vor diesem Feld) im Einsatz ist.
     $d['role']=!empty($d['superadmin'])?'admin':'autor';
-    $d['user']=(string)($d['user']??$d['username']??'AnMaCha Redaktion');
+    $d['user']=(string)($d['user']??$d['username']??(rrw_pack_available()?'AnMaCha Redaktion':rrw_product_name()));
     $d['display_name']=(string)($d['display_name']??$d['user']);
     $d['source']='control-center';
     return $d;
@@ -874,6 +874,8 @@ if($action==='health'){
         'index_file'=>['path'=>$root.'/index.html','exists'=>is_file($root.'/index.html'),'writable'=>is_file($root.'/index.html')&&is_writable($root.'/index.html')],
         'rss_file'=>['path'=>$root.'/web/rss.php','exists'=>is_file($root.'/web/rss.php'),'writable'=>is_file($root.'/web/rss.php')&&is_writable($root.'/web/rss.php')],
     ];
+    // Eigenständiges CMS ohne Portal: Startseite und Feed liefert die WordPress-Schicht aus, es gibt keine Dateien dazu
+    if(!rrw_pack_available())unset($checks['index_file'],$checks['rss_file']);
     $ok=true;foreach($checks as $x){if(empty($x['writable'])){$ok=false;break;}}
     rrw_json(['status'=>'ok','healthy'=>$ok,'checks'=>$checks,'storage'=>'/cms/data/site.json','news'=>'/cms/data/news.json']);
 }

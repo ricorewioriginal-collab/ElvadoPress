@@ -131,7 +131,9 @@ const RRW_DEMO_WP_AJAX='#^(upload-attachment|save-attachment|save-attachment-com
 function rrw_demo_deny(string $why=''): never {
     if(!headers_sent())header('Content-Type: application/json; charset=utf-8');
     http_response_code(403);
-    echo json_encode(['status'=>'error','message'=>RRW_DEMO_MSG,'demo'=>true],JSON_UNESCAPED_UNICODE);exit;
+    // Plugins/Themes sind fremder PHP-Code: auf der gemeinsamen Demo-Instanz nie, in einer eigenen Installation mit einem Klick
+    $msg=preg_match('/(plugin|theme)_(install|upload|delete)$/',$why)?'In der Demo gesperrt: Plugins und Themes aus dem WordPress-Verzeichnis oder per ZIP lassen sich nur in einer eigenen ElvadoPress-Installation installieren (die Demo teilt sich den Server mit anderen Besuchern).':RRW_DEMO_MSG;
+    echo json_encode(['status'=>'error','message'=>$msg,'demo'=>true],JSON_UNESCAPED_UNICODE);exit;
 }
 /** Prüfung vor der Verarbeitung einer API-Anfrage (cms/api.php). */
 function rrw_demo_guard(string $action,array $body): void {

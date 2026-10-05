@@ -87,7 +87,7 @@ window.AlexaManager=(()=>{
   return `<div class="ap-h">Dateien für Amazon</div>
    <p class="hint">Immer mit dem aktuellen Stand der Einstellungen erzeugt. <b>Neu bei Amazon einspielen</b> musst du nur das Sprachmodell (bei neuen Sendern oder Aussprachen); Texte, Reihenfolge, Ein/Aus, Standardsender und Wartung wirken sofort.</p>${w}<div class="dm-list">${items}</div>
    <details class="ap-det" style="margin-top:10px"><summary><b>So reichst du den Skill ein</b> <span class="dm-meta">Kurzfassung – ausführlich in README.md im ZIP</span></summary><div class="ap-body"><ol class="alx-steps">
-    <li>Konto auf <b>developer.amazon.com/alexa/console/ask</b> → <i>Create Skill</i> → Name „${esc(S.d.app_name||'RicoReWi Radio')}“, Sprache Deutsch (DE), Typ Custom, Hosting <b>Alexa-hosted (Node.js)</b>, Region EU.</li>
+    <li>Konto auf <b>developer.amazon.com/alexa/console/ask</b> → <i>Create Skill</i> → Name „${esc(S.d.app_name||((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'RicoReWi Radio':'Mein Radio'))}“, Sprache Deutsch (DE), Typ Custom, Hosting <b>Alexa-hosted (Node.js)</b>, Region EU.</li>
     <li><i>Build → Interaction Model → JSON Editor</i>: Inhalt von <code>de-DE.json</code> einfügen, speichern, <i>Build Skill</i>.</li>
     <li><i>Build → Interfaces → Audio Player</i> einschalten.</li>
     <li><i>Code</i>: <code>index.js</code>, <code>package.json</code>, <code>fallback.json</code> und <code>cms.json</code> aus dem ZIP (Ordner <code>lambda</code>) einfügen, <i>Deploy</i>.</li>

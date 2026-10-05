@@ -14,7 +14,8 @@ require_once __DIR__.'/legal-defaults.php';
 const RRW_CMS_MARKER = '<!-- RRW-CMS-GENERATED -->';
 
 function rrw_ensure_dirs(): void {
-    foreach([__DIR__.'/data',__DIR__.'/generated',__DIR__.'/media',__DIR__.'/media/content',__DIR__.'/media/branding',__DIR__.'/media/news',__DIR__.'/media/library',__DIR__.'/themes'] as $d){
+    $cms=dirname(__DIR__);   // cms/ (nicht cms/lib/): hier liegen Daten, Veröffentlichtes und Medien
+    foreach([$cms.'/data',$cms.'/generated',$cms.'/media',$cms.'/media/content',$cms.'/media/branding',$cms.'/media/news',$cms.'/media/library',$cms.'/themes'] as $d){
         if(!is_dir($d))@mkdir($d,0755,true);
     }
     // Einstellungen (inkl. API-Schlüssel), Beiträge, Protokolle und Backups gehören nie in den öffentlichen Abruf

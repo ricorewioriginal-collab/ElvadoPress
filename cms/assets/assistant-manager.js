@@ -36,7 +36,7 @@
    <div class="section-grid">
     ${feat('nowplaying','Jetzt läuft','Aktueller Titel und zuletzt gespielte Songs je Sender (laut.fm).')}
     ${feat('schedule','Sendeplan','Laufende Sendung, nächste Sendungen, Tagesprogramm.')}
-    ${feat('stations','Sender','Alle Sender des Netzwerks vorstellen und empfehlen.')}
+    ${feat('stations','Sender',own?'Deine Sender vorstellen und empfehlen.':'Alle Sender des Netzwerks vorstellen und empfehlen.')}
     ${own?'':feat('podcast','Podcast','AnMaCha – Der Podcast mit den neuesten Folgen.')}
     ${feat('news','News & Events','Veröffentlichte Beiträge aus dem Magazin.')}
     ${feat('favorites','Favoriten','Lieblingssender des Hörers als Kontext nutzen.')}

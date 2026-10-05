@@ -47,7 +47,7 @@
   async function act(i,what){
     var p=plugins[i];if(!p)return;
     if(what==='delete'&&!confirm('Plugin „'+p.name+'“ endgültig löschen?'))return;
-    try{var r=await post('wp_plugin_'+what,{file:p.file});plugins=r.plugins||plugins;pmapOk=false;drawInst();if(what==='activate')toast('Aktiviert – die Einstellungen des Plugins erscheinen gleich an seiner Karte.');loadMenu()}catch(e){toast(e.message,true);load()}
+    try{var r=await post('wp_plugin_'+what,{file:p.file});plugins=r.plugins||plugins;pmapOk=false;drawInst();if(items.length)drawResults();if(what==='activate')toast('Aktiviert – die Einstellungen des Plugins erscheinen gleich an seiner Karte.');loadMenu()}catch(e){toast(e.message,true);load()}
   }
   async function post(action,body){
     var r=await fetch('api.php?action='+action+'&_='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':token()},body:JSON.stringify(body||{})}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
@@ -59,20 +59,28 @@
     catch(e){box.innerHTML='<div class="hint">'+esc(e.message)+'</div>'}
   }
   function stars(r){return r==null?'':' · ★ '+esc(r)}
+  /* Installationsstand eines Suchtreffers: nicht installiert / installiert (inaktiv, mit Aktivieren) / aktiv */
+  function findPlugin(slug){for(var k=0;k<plugins.length;k++){if(String(plugins[k].file).split('/')[0]===slug)return k}return -1}
+  function stateBtn(it,i){
+    if(!it.installed)return '<button class="btn-a" onclick="WpPlugins.install('+i+',this)"><i class="fas fa-download"></i> Installieren</button>';
+    var k=findPlugin(it.slug),p=k>=0?plugins[k]:null;
+    if(p&&p.active)return '<span class="hint" style="color:var(--ok,#34d399)"><i class="fas fa-circle-check"></i> Installiert und aktiv</span>';
+    return '<span class="hint" style="color:var(--ok,#34d399)"><i class="fas fa-circle-check"></i> Installiert</span>'+(p?'<div style="margin-top:6px"><button class="btn-g" onclick="WpPlugins.act('+k+',\'activate\')">Aktivieren</button></div>':'');
+  }
   function drawResults(){
     $('wpResults').innerHTML=items.length?items.map(function(it,i){
       return '<div style="display:flex;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px">'+(it.icon?'<img src="'+esc(it.icon)+'" alt="" width="56" height="56" loading="lazy" referrerpolicy="no-referrer" style="border-radius:10px;flex:none">':'')
         +'<div style="flex:1;min-width:0"><b>'+esc(it.name)+'</b> <span class="hint">v'+esc(it.version)+' · '+esc(it.author)+stars(it.rating)+(it.installs?' · '+esc(it.installs.toLocaleString('de-DE'))+'+ Installationen':'')+'</span><div class="hint" style="margin-top:3px">'+esc(it.description)+'</div><div class="hint" style="margin-top:3px;font-size:.74rem">'+(it.tested?'Getestet bis WordPress '+esc(it.tested):'')+(it.requires_php?' · PHP ab '+esc(it.requires_php):'')+'</div></div>'
-        +'<div style="flex:none">'+(it.installed?'<span class="hint">Installiert</span>':'<button class="btn-a" onclick="WpPlugins.install('+i+',this)"><i class="fas fa-download"></i> Installieren</button>')+'</div></div>';
+        +'<div style="flex:none;text-align:right">'+stateBtn(it,i)+'</div></div>';
     }).join(''):'<div class="hint">Keine Plugins gefunden.</div>';
     $('wpPager').innerHTML=pages>1?'<button class="btn-g" '+(page<=1?'disabled':'')+' onclick="WpPlugins.search('+(page-1)+')">‹</button><span class="hint">Seite '+page+' / '+pages+'</span><button class="btn-g" '+(page>=pages?'disabled':'')+' onclick="WpPlugins.search('+(page+1)+')">›</button>':'';
   }
   async function install(i,btn){
     var it=items[i];if(!it)return;
     if(!confirm('Plugin „'+it.name+'“ installieren? Es ist fremder PHP-Code, der mit den Rechten des CMS läuft.'))return;
-    if(btn)btn.disabled=true;
-    try{var r=await post('wp_plugin_install',{slug:it.slug});plugins=r.plugins||plugins;items[i].installed=true;drawResults();drawInst();toast('Installiert – jetzt unter „Installiert“ aktivieren.')}
-    catch(e){toast(e.message,true);if(btn)btn.disabled=false}
+    if(btn){btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Installiere …'}
+    try{toast('„'+it.name+'“ wird heruntergeladen und installiert …');var r=await post('wp_plugin_install',{slug:it.slug});plugins=r.plugins||plugins;items[i].installed=true;drawResults();drawInst();toast('Installiert – jetzt unter „Installiert“ aktivieren.')}
+    catch(e){toast(e.message,true);if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-download"></i> Installieren'}}
   }
   async function upload(file){
     if(!file)return;var fd=new FormData();fd.append('file',file);
