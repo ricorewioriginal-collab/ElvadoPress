@@ -127,6 +127,16 @@ foreach(['directory_admin_get'=>true,'directory_search'=>false,'directory_random
 t('Radioverzeichnis: Reiter nur mit Paket sichtbar',str_contains($pv,'data-pack="ricorewi-radio" data-tab="directory"')&&!str_contains($pv,'data-pack-app="ricorewi-radio" data-tab="directory"'));
 t('Radioverzeichnis: keine Marke hat es aktiviert',(function() use($cfg){ foreach((array)($cfg['brands']['items']??[]) as $b)if(!empty($b['directory']))return false;return true; })());
 
+/* Verbundene Dienste: eigene Dienste statt der festen Liste des Herstellers */
+$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'services','value'=>['radio_portal'=>'https://x.example.org','items'=>[['name'=>'Meine Cloud','url'=>'https://cloud.example.org','kind'=>'media'],['name'=>'Intern','url'=>'http://127.0.0.1/status','kind'=>'api'],['name'=>'Aus','url'=>'/hilfe/','check'=>false]]]])],array_merge($H,['Content-Type: application/json']));
+t('Dienste: eigene Dienste speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
+$g2=json_decode(http('GET',"$B/cms/api.php?action=get",[],$H)['body'],true)['config']['services']??[];
+t('Dienste: nur eigene Einträge gespeichert (keine Felder des Herstellers)',array_keys($g2)===['items']&&array_column($g2['items'],'id')===['meine-cloud','intern','aus'],json_encode($g2));
+$ss=http('GET',"$B/cms/api.php?action=services_status",[],$H);$sj=json_decode($ss['body'],true)?:[];$by=[];foreach($sj['services']??[] as $x)$by[$x['id']]=$x;
+t('Dienste: Prüfung liefert Zustand je Dienst (lokal gesperrt, abgeschaltet übersprungen)',$ss['code']===200&&($by['intern']['state']??'')==='blocked'&&($by['aus']['state']??'')==='skipped'&&isset($by['meine-cloud']['state']),$ss['body']);
+t('Dienste: Prüfung nur für angemeldete Administratoren',http('GET',"$B/cms/api.php?action=services_status")['code']===401||http('GET',"$B/cms/api.php?action=services_status")['code']===403);
+$ar=json_decode(http('GET',"$B/cms/api.php?action=architecture",[],$H)['body'],true)?:[];
+t('Systemübersicht: neutrale Website-Bezeichnung, keine Core-Sender (Produktnamen folgen dem Paket)',($ar['components'][0]['name']??'')==='Website'&&($ar['core_stations']??null)===[],json_encode($ar));
 /* Alexa-Skill als Baukasten (ohne RicoReWi-Katalog) */
 $ax=json_decode(http('GET',"$B/cms/api.php?action=alexa_get",[],$H)['body'],true)?:[];
 t('Alexa: Baukasten-Modus ohne Sender',($ax['neutral']??null)===true&&($ax['stations']??null)===[],json_encode($ax));

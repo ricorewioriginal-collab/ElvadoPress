@@ -120,7 +120,7 @@ const RRW_DEMO_BLOCKED=[
     'wp_sandbox_create','wp_sandbox_delete','wp_sandbox_publish','wp_sandbox_reset','wp_sandbox_rollback','wp_sandbox_rotate',
     // Zugangsdaten, Dienste, externe Anfragen, Mailversand
     'app_build_save','app_build_start','app_build_check','app_build_download','app_build_brand_save','app_build_brand_delete','alexa_token_reset',
-    'assistant_chat','assistant_send','assistant_voice','assistant_test','feed_test','directory_admin_save','apps_geo_update',
+    'assistant_chat','assistant_send','assistant_voice','assistant_test','feed_test','services_status','directory_admin_save','apps_geo_update',
     'member_register','member_reset_request','member_reset',
 ];
 /** WordPress-Verwaltungsseiten, die in der Demo gesperrt sind. */

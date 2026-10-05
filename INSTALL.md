@@ -85,6 +85,12 @@ Radio-Widgets, Portal-Seiten, Alexa-Skill, Radioverzeichnis, Sender-Netzwerk, Ap
 - **Bauen:** `php scripts/build-standalone.php <Zielordner> [--zip=<Datei.zip>]` nimmt nur verfolgte Dateien aus `cms/`, lässt die Portal-Themes, den RicoReWi-Skill-Katalog, Daten und Marken-Doku weg und legt `index.php`/`.htaccess` für die WordPress-Theme-Auslieferung dazu. Der Workflow „Standalone CMS“ prüft das bei jeder Änderung an `cms/` mit einer echten Testinstallation (`scripts/test-standalone-build.php`) und veröffentlicht bei einem Tag `cms-v<Version>` das ZIP als Release.
 - **Einrichtung:** Der Assistent schaltet bei fehlendem Paket das neutrale Theme `rrw-classic` ein; die Website erscheint sofort, weitere Themes installierst du im CMS.
 
+### Verbundene Dienste (eigene Dienste)
+
+Unter **System → Verbundene Dienste** trägst du die Dienste ein, die zu deiner Website gehören (Cloud, Podcast, Livestream, Webmail, Statistik, Shop, Wiki, eigene Schnittstellen). Pro Dienst: Name, Adresse (`https://…` oder ein Pfad auf der Website), Art, Notiz und die Option „Erreichbarkeit prüfen“. Mit Vorlagen legst du Einträge schnell an, Reihenfolge und Links lassen sich ändern.
+
+„Status prüfen“ fragt die Dienste auf dem Server parallel ab (nur Administratoren, höchstens 120 Prüfungen pro Stunde). Erreichbar sind Antworten mit 2xx/3xx sowie 401/403 (Zugriff geschützt); Weiterleitungen werden nicht verfolgt. Geprüft werden nur öffentliche Adressen – lokale und private Adressen zeigt das CMS als „nicht prüfbar“. Bis zu 30 Dienste; in der öffentlichen Demo ist die Prüfung gesperrt. Die Liste liegt in `cms/data/site.json` (Abschnitt `services.items`).
+
 ### App-Erweiterungen (ohne RicoReWi-Inhalte)
 
 Funktionen, die zu den eigenen Apps gehören, bleiben im eigenständigen CMS erhalten – ohne RicoReWi-Inhalte:

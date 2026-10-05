@@ -277,6 +277,7 @@ function rrw_clean_section(string $section,$value){
     if($section==='social'){foreach(['ricorewi_tiktok','ricorewi_instagram','anmacha_tiktok','anmacha_instagram'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,120);return $o??[];}
     if($section==='branding'){foreach(['portal_logo','portal_icon','favicon','android_inapp_logo','android_startscreen','android_app_icon','windows_logo'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
+    if($section==='services'&&!rrw_pack_available()){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';return rrw_services_clean($value); }
     if($section==='services'){foreach(['radio_portal','control_center','public_api','news_api','tracker','apps_page','nextcloud','owncast','castopod','airdeck'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='pages'){
         $out=[];$sys=['start','sender','senderdetail','sendeplan','voting','podcast','news','hilfe','apps','fanshop'];
@@ -591,6 +592,7 @@ function rrw_ensure_site_defaults(array $site): array {
     if(function_exists('rrw_assistant_clean'))$site['assistant']=rrw_assistant_clean($site['assistant']??[]);
     $GLOBALS['RRW_SITE']=$site;
     if(function_exists('rrw_alexa_clean'))$site['alexa']=rrw_alexa_clean($site['alexa']??[]);
+    if(!rrw_pack_available()){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';$site['services']=rrw_services_clean(is_array($site['services']??null)?$site['services']:[]); }   // eigene Dienste (eigenständiges CMS)
     $site['menus']=is_array($site['menus']??null)?$site['menus']:[];
     $site['menus']['top']=is_array($site['menus']['top']??null)?$site['menus']['top']:[];
     $site['menus']['bottom']=is_array($site['menus']['bottom']??null)?$site['menus']['bottom']:[];
