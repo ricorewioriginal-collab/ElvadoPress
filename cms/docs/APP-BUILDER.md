@@ -26,6 +26,19 @@ Die App fragt beim Start deine Website (`app_config`) nach Funktionen, Startseit
 ## Signatur und Play Store
 Ohne Schlüssel entsteht eine **Entwickler-APK** (Debug-Signatur). Für gleichbleibende Signatur und Updates lege diese Repository-Secrets an: `ANDROID_DEVELOPER_KEYSTORE_BASE64`, `ANDROID_DEVELOPER_KEYSTORE_PASSWORD`, `ANDROID_DEVELOPER_KEY_ALIAS`, `ANDROID_DEVELOPER_KEY_PASSWORD`. Pakete für den Play Store (AAB, Release-Schlüssel) werden mit dem Workflow „Android APK / AAB“ im Repository auf Knopfdruck erzeugt.
 
+## Branding (für alle App-Typen)
+Beim Anlegen oder Bearbeiten einer App gibt es – für Radio-Apps genauso wie für Website-Apps – diese optionalen Angaben aus der Mediathek:
+* **App-Icon** und **Icon-Hintergrund** (Farbe für runde/adaptive Icons, `iconBg` in `android/brands.json`).
+* **Farbe** der Statusleiste/des Fensters (`themeColor`).
+* **Startbild** (`brands/<id>/app_splash.png`, höchstens 1080 px, Eintrag `splash: true`).
+* **Store-Screenshots** (bis zu 8, `brands/<id>/store/screenshot-<n>.png`) sowie **Kurz- und Langbeschreibung** (`brands/<id>/store/listing-de.md`) für Play Store und Microsoft Store.
+
+Nur angegebene Werte werden ins Repository geschrieben; Apps ohne diese Angaben bauen wie bisher. Die App-Vorlage muss `iconBg`, `splash` und die Store-Dateien auswerten bzw. verwenden.
+
+## Eigene Sender und beliebige Streams
+* **App:** Im Builder (Apps → Layout) trägst du die Sender selbst ein – auch laut.fm-Sender: unter **Eigene Sender** bis zu 20 Stück mit **https-Stream-Adresse oder laut.fm-Kennung** (Name, Stream, optional Logo-Adresse). Eine laut.fm-Kennung (oder `laut.fm/<kennung>`) wird zur Stream-Adresse `https://<kennung>.stream.laut.fm/<kennung>` und zusätzlich als `laut` mitgegeben. Sie stehen in der Konfiguration `layout.stations.custom` (`id`, `title`, `stream`, optional `logo`) und erscheinen zusätzlich zu den Sendern des Core-Netzwerks; Reihenfolge und Sichtbarkeit gelten über `order`/`hidden` auch für sie. Ohne eigene Sender fehlt der Schlüssel `custom`, die Ausgabe bleibt wie bisher.
+* **Alexa:** Im Bereich Alexa-Skill kann jeder Sender eine eigene https-Stream-Adresse bekommen (leer = laut.fm). Alexa spielt nur https. Bei eigenen Streams gibt es keine Titel- und Sendeplan-Auskunft (die kommt von laut.fm).
+
 ## Alexa-Skill
 Für Radio-Apps erzeugt das CMS im Bereich **Alexa-Skill** das einreichfertige Paket (Sprachmodell, Skill-Angaben, Backend, Anleitung) passend zu deinen Sendern. Einreichen musst du es selbst bei Amazon (Developer-Konto, Zertifizierung); der Skill selbst braucht kein Control Center. Für Website-Apps ist kein Skill vorgesehen.
 

@@ -43,6 +43,6 @@ function render(){
   'random-station':['Überrasch mich','/'],'favorites':['Meine Favoriten','/'],'voting':['Netzwerk-Voting','/#voting'],'song-voting':['Song-Voting','/#voting'],
   'studiomail':['Studiomail','/'],'voicemail':['Voicemail','/'],'wunsch':['Musikwunsch','/'],'poll':['Umfrage','/']
  };
- const x=labels[w.builtin]||[title,'/'];root.innerHTML='<section class="widget"><h3>'+esc(title)+'</h3><p>Live-Vorschau für <b>'+esc(x[0])+'</b>. Die Funktion wird im Portal mit der bestehenden Radio-/AnMaCha-Logik ausgeführt.</p><a class="btn" href="'+esc(x[1])+'" target="_blank" rel="noopener">Im Portal öffnen</a></section>';
+ const x=labels[w.builtin]||[title,'/'];root.innerHTML='<section class="widget"><h3>'+esc(title)+'</h3><p>Live-Vorschau für <b>'+esc(x[0])+'</b>. Die Funktion wird auf der Website ausgeführt.</p><a class="btn" href="'+esc(x[1])+'" target="_blank" rel="noopener">Im Portal öffnen</a></section>';
 }
 loadCfg().catch(e=>root.innerHTML='<div class="empty">Vorschau konnte nicht geladen werden.</div>');

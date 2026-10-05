@@ -19,7 +19,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <meta name="robots" content="noindex,nofollow">
 <title><?=$ph('title')?></title>
 <?php if($pr['logo']!==''): ?><link rel="icon" href="<?=$ph('logo')?>"><?php endif; ?>
-<script>window.RRW_PRODUCT=<?=json_encode(rrw_product_public()+['standalone'=>$sa],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script>
+<script>window.RRW_PRODUCT=<?=json_encode(rrw_product_public()+['standalone'=>$sa],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;window.CMS_PACKS_AVAILABLE=<?=json_encode([RRW_PACK_RADIO=>rrw_pack_available()])?>;</script>
 <?php if(defined('RRW_DEMO')): ?><script>window.RRW_DEMO=<?=json_encode(rrw_demo_public(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="assets/demo.js?v=1" defer></script><?php endif; ?>
 <script src="assets/auth-guard.js?v=5"></script>
 <script src="assets/cms-toast.js?v=2"></script>
@@ -138,8 +138,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/theme-manager.js?v=7"></script>
 <script src="assets/brands-manager.js?v=3"></script>
 <script src="assets/directory-manager.js?v=1"></script>
-<script src="assets/app-build.js?v=4"></script><script src="assets/app-builder.js?v=1"></script><script src="assets/apps-manager.js?v=4"></script>
-<script src="assets/assistant-manager.js?v=6"></script><script src="assets/alexa-manager.js?v=2"></script>
+<script src="assets/app-build.js?v=5"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=4"></script>
+<script src="assets/assistant-manager.js?v=6"></script><script src="assets/alexa-manager.js?v=3"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script>
 <script src="assets/system-manager.js?v=2"></script>
@@ -159,7 +159,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/sandbox.js?v=1"></script>
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
-<script src="assets/cms-app.js?v=37"></script>
+<script src="assets/cms-app.js?v=38"></script>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
 </body>

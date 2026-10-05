@@ -5,20 +5,21 @@ header('Content-Type: application/rss+xml; charset=UTF-8');
 header('Cache-Control: public, max-age=300');
 
 require_once __DIR__.'/lib/product.php';
+require_once __DIR__.'/lib/pack.php';
 function rrw_xml(string $s): string {
     return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
 }
 function rrw_cdata(string $s): string {
     return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $s) . ']]>';
 }
-// Multi-Brand: Links im Feed zeigen auf die Domain, über die der Feed abonniert wurde
-// (ricorewi-radio.de bzw. senderwelt.de); Inhalte sind für alle Marken dieselben.
-$rrwBase='https://www.ricorewi-radio.de';
+// Multi-Brand: Links im Feed zeigen auf die Domain, über die der Feed abonniert wurde; Inhalte sind für alle Marken dieselben.
+$rrwBase=rtrim(rrw_default_canonical_base(),'/');$rrwBrandName='';
 try{
     require_once __DIR__.'/lib/seo.php';
     require_once __DIR__.'/lib/brand.php';
     $rrwBrandSite=rrw_read_json(__DIR__.'/data/site.json',[]);
-    $rrwBase=rtrim(rrw_brand_resolve($rrwBrandSite,(string)($_SERVER['HTTP_HOST']??''),null)['origin'],'/');
+    $rrwBrand=rrw_brand_resolve($rrwBrandSite,(string)($_SERVER['HTTP_HOST']??''),null);
+    $rrwBase=rtrim($rrwBrand['origin'],'/');$rrwBrandName=(string)($rrwBrand['name']??'');
 }catch(Throwable $e){}
 header('Vary: Host');
 function rrw_cfg(): array {
@@ -27,8 +28,24 @@ function rrw_cfg(): array {
     $j=json_decode((string)file_get_contents($f),true);
     return is_array($j)?$j:[];
 }
-function rrw_public_news(): array {
-    $url='https://www.ricorewi-radio.de/cms/api.php?action=news_public&_='.time();
+// Mit RicoReWi-Paket wie bisher über die öffentliche Schnittstelle der Hauptseite (enthält auch externe Feeds);
+// sonst und als Rückfall direkt aus den eigenen Beiträgen plus den eingestellten externen Quellen.
+function rrw_public_news(array $cfg): array {
+    if(rrw_pack_available())$j=rrw_public_news_remote('https://www.ricorewi-radio.de/cms/api.php?action=news_public&_='.time());
+    if(isset($j)&&is_array($j)&&is_array($j['articles']??null))return $j['articles'];
+    $f=__DIR__.'/data/news.json';$rows=[];
+    if(is_file($f)){$x=json_decode((string)file_get_contents($f),true);if(is_array($x))$rows=$x;}
+    $rows=array_values(array_filter($rows,function($a){
+        if(!is_array($a)||($a['status']??'draft')!=='published'||!empty($a['deleted_at']))return false;
+        $publishedAt=trim((string)($a['published_at']??''));
+        return $publishedAt===''||$publishedAt<=date('Y-m-d H:i:s');
+    }));
+    if(!rrw_pack_available()&&!empty($cfg['feed_sources'])){
+        try{ require_once __DIR__.'/lib/feeds.php';$rows=array_merge($rows,rrw_external_feed_articles($cfg)); }catch(Throwable $e){}
+    }
+    return $rows;
+}
+function rrw_public_news_remote(string $url): ?array {
     $raw='';
     if(function_exists('curl_init')){
         $ch=curl_init($url);
@@ -36,14 +53,7 @@ function rrw_public_news(): array {
         $raw=(string)curl_exec($ch);curl_close($ch);
     } else $raw=(string)(@file_get_contents($url)?:'');
     $j=json_decode($raw,true);
-    if(is_array($j)&&is_array($j['articles']??null))return $j['articles'];
-    $f=__DIR__.'/data/news.json';$rows=[];
-    if(is_file($f)){$x=json_decode((string)file_get_contents($f),true);if(is_array($x))$rows=$x;}
-    return array_values(array_filter($rows,function($a){
-        if(($a['status']??'draft')!=='published'||!empty($a['deleted_at']))return false;
-        $publishedAt=trim((string)($a['published_at']??''));
-        return $publishedAt===''||$publishedAt<=date('Y-m-d H:i:s');
-    }));
+    return is_array($j)?$j:null;
 }
 
 $cfg=rrw_cfg();
@@ -53,11 +63,12 @@ if(array_key_exists('enabled',$set) && !$set['enabled']){
     echo '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Feed deaktiviert</title></channel></rss>';
     exit;
 }
-$title=(string)($set['title']??'RicoReWi Radio – News & Magazin');
-$description=(string)($set['description']??'News, Magazin, Musik, Radio und Community aus dem RicoReWi × AnMaCha Netzwerk.');
+$rrwSiteName=trim((string)($cfg['portal']['site_name']??''))?:($rrwBrandName!==''?$rrwBrandName:rrw_product()['name']);
+$title=trim((string)($set['title']??''))?:(rrw_pack_available()?'RicoReWi Radio – News & Magazin':$rrwSiteName.' – News & Magazin');
+$description=(string)($set['description']??(rrw_pack_available()?'News, Magazin, Musik, Radio und Community aus dem RicoReWi × AnMaCha Netzwerk.':'Aktuelle Beiträge von '.$rrwSiteName.'.'));
 $max=max(5,min(100,(int)($set['max_items']??50)));
 $includeExternal=!array_key_exists('include_external',$set)||!empty($set['include_external']);
-$rows=rrw_public_news();
+$rows=rrw_public_news($cfg);
 if(!$includeExternal)$rows=array_values(array_filter($rows,fn($a)=>empty($a['is_external'])));
 usort($rows,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
 $rows=array_slice($rows,0,$max);

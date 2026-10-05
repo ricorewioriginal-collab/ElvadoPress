@@ -67,6 +67,9 @@ t('Theme „rrw-classic“ gewählt',isset($opts['stylesheet']['v'])&&@unseriali
 $r=http('GET',"$B/");
 t('Startseite wird vom Theme ausgeliefert',$r['code']===200&&str_contains($r['body'],'Mein Test-Radio'),'HTTP '.$r['code']);
 t('Startseite ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',$r['body']));
+$r=http('GET',"$B/cms/rss.php");
+t('RSS-Feed: eigener Titel und eigene Beiträge',$r['code']===200&&str_contains($r['body'],'<title>Mein Test-Radio – News &amp; Magazin</title>')&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),substr($r['body'],0,600));
+t('RSS-Feed ohne RicoReWi-Inhalte (Generator-Angabe folgt dem Produktnamen des Pakets)',!preg_match('/ricorewi|anmacha|senderwelt/i',(string)preg_replace('~<generator>.*?</generator>~s','',$r['body'])));
 $r=http('GET',"$B/willkommen/");
 t('Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),'HTTP '.$r['code']);
 $r=http('GET',"$B/gibt-es-nicht/");
@@ -96,6 +99,7 @@ t('Verwaltung lädt',$r['code']===200&&str_contains($r['body'],'panel-settings')
 $hl=json_decode(http('GET',"$B/cms/api.php?action=health",[],$H)['body'],true)?:[];
 t('Dateisystem-Prüfung meldet keine Portal-Dateien (Startseite/Feed)',($hl['healthy']??false)===true&&!isset($hl['checks']['index_file'])&&!isset($hl['checks']['rss_file']),json_encode($hl));
 $pv=$r['body'];
+t('Verwaltung: Paket als nicht vorhanden gemeldet',str_contains($pv,'window.CMS_PACKS_AVAILABLE={"ricorewi-radio":false}'));
 t('Verwaltung: Soziale Profile neutral beschriftet',!str_contains($pv,'AnMaCha · TikTok')&&!str_contains($pv,'RicoReWi · TikTok'));
 foreach(['news-editor.js','alexa-manager.js','apps-manager.js','theme-manager.js'] as $jsf){ $js=(string)@file_get_contents($pkg.'/cms/assets/'.$jsf);
     t("$jsf: RicoReWi-/AnMaCha-Texte nur hinter der Portal-Prüfung",$js!==''&&preg_match_all('/(?:RicoReWi|AnMaCha)[^\n]{0,60}/',$js,$mm)>=0&&!preg_match('/>AnMaCha Redaktion<|\bname\s*=\s*[\'"]RicoReWi Radio[\'"]/',$js)); }
@@ -124,10 +128,13 @@ t('Radioverzeichnis: Kennung nach außen neutral',(function() use($pkg){ return 
 $ax=json_decode(http('GET',"$B/cms/api.php?action=alexa_get",[],$H)['body'],true)?:[];
 t('Alexa: Baukasten-Modus ohne Sender',($ax['neutral']??null)===true&&($ax['stations']??null)===[],json_encode($ax));
 t('Alexa: Aufrufname aus dem Website-Namen',($ax['invocation']??'')==='mein test radio',(string)($ax['invocation']??''));
-$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'alexa','value'=>['default_station'=>'meinradio','stations'=>['meinradio'=>['enabled'=>true,'title'=>'Mein Radio','extra'=>['meins']],'zweites-24'=>['enabled'=>true,'title'=>'','extra'=>[]]],'order'=>['meinradio','zweites-24']]])],array_merge($H,['Content-Type: application/json']));
+$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'alexa','value'=>['default_station'=>'meinradio','stations'=>['meinradio'=>['enabled'=>true,'title'=>'Mein Radio','extra'=>['meins']],'zweites-24'=>['enabled'=>true,'title'=>'','extra'=>[]],'eigener-stream'=>['enabled'=>true,'title'=>'Eigener Stream','extra'=>[],'stream'=>'https://stream.example.org/live.mp3'],'unsicher'=>['enabled'=>true,'title'=>'Unsicher','extra'=>[],'stream'=>'http://stream.example.org/live.mp3']],'order'=>['meinradio','zweites-24','eigener-stream','unsicher']]])],array_merge($H,['Content-Type: application/json']));
 t('Alexa: Einstellungen speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
 $pub=json_decode(http('GET',"$B/cms/api.php?action=alexa_config")['body'],true)?:[];
-t('Alexa: öffentliche Konfiguration mit eigenen Sendern',($pub['default']??'')==='meinradio'&&count($pub['stations']??[])===2&&($pub['name']??'')==='Mein Test-Radio',json_encode($pub));
+t('Alexa: öffentliche Konfiguration mit eigenen Sendern',($pub['default']??'')==='meinradio'&&count($pub['stations']??[])===4&&($pub['name']??'')==='Mein Test-Radio',json_encode($pub));
+$byid=[];foreach($pub['stations']??[] as $x)$byid[$x['id']]=$x;
+t('Alexa: eigene https-Stream-Adresse wird übernommen',($byid['eigener-stream']['stream']??'')==='https://stream.example.org/live.mp3'&&!isset($byid['meinradio']['stream']),json_encode($pub['stations']??[]));
+t('Alexa: Stream ohne https wird verworfen',!isset($byid['unsicher']['stream']));
 t('Alexa: Marken-Zuordnung für den Skill',($pub['brand_map']['main']??'')==='meinradio');
 t('Alexa: Begrüßung nennt den Namen der Website',str_contains((string)($pub['texts']['welcome']??''),'Mein Test-Radio'));
 t('Alexa: keine RicoReWi-Texte in der öffentlichen Konfiguration',!preg_match('/ricorewi|rico rewi|anmacha|senderwelt/i',json_encode($pub)));

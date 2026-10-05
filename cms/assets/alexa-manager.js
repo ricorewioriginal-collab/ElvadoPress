@@ -52,10 +52,11 @@ window.AlexaManager=(()=>{
     <label class="ap-check"><input type="checkbox" ${s.enabled?'checked':''} onchange="AlexaManager.station('${esc(s.id)}','enabled',this.checked)"> <b>${esc(s.id)}</b></label>
     <input class="fc" maxlength="60" placeholder="Anzeigename (${esc(s.title)})" value="${esc(o.title||'')}" oninput="AlexaManager.station('${esc(s.id)}','title',this.value)">
     <input class="fc" placeholder="weitere Aussprachen, mit Komma trennen" value="${esc((o.extra||[]).join(', '))}" onchange="AlexaManager.extra('${esc(s.id)}',this.value)">
+    ${S.d.neutral?`<input class="fc" style="grid-column:1/-1" placeholder="eigene Stream-Adresse (https://…), leer = laut.fm/${esc(s.id)}" value="${esc(o.stream||s.stream||'')}" onchange="AlexaManager.stream('${esc(s.id)}',this.value)">`:''}
     <span class="ap-ctl">${S.d.neutral?`<button class="btn-g" title="Sender entfernen" onclick="AlexaManager.removeStation('${esc(s.id)}')"><i class="fas fa-trash"></i></button>`:''}<button class="btn-g" ${i<=0?'disabled':''} onclick="AlexaManager.move(${i},-1)"><i class="fas fa-arrow-up"></i></button><button class="btn-g" ${i>=list.length-1?'disabled':''} onclick="AlexaManager.move(${i},1)"><i class="fas fa-arrow-down"></i></button></span>
     <div class="dm-meta" style="grid-column:1/-1">Alexa versteht z. B.: ${s.speakable.map(x=>`„${esc(x)}“`).join(', ')}</div></div>`;}).join('');
-  const add=S.d.neutral?`<div class="alx-add" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><input id="alxNewId" class="fc" maxlength="60" placeholder="laut.fm-Kennung, z. B. meinradio" style="max-width:260px"><input id="alxNewTitle" class="fc" maxlength="60" placeholder="Anzeigename (optional)" style="max-width:260px"><button class="btn-a" onclick="AlexaManager.addStation()"><i class="fas fa-plus"></i> Sender hinzufügen</button></div>`:'';
-  const intro=S.d.neutral?'Füge die laut.fm-Sender hinzu, die Alexa spielen soll (die Kennung steht in der Adresse deines Senders: laut.fm/<b>kennung</b>). Abgeschaltete':'Die Senderliste kommt aus dem Core-Netzwerk. Abgeschaltete'
+  const add=S.d.neutral?`<div class="alx-add" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><input id="alxNewId" class="fc" maxlength="60" placeholder="laut.fm-Kennung oder https://-Stream-Adresse" style="max-width:340px"><input id="alxNewTitle" class="fc" maxlength="60" placeholder="Anzeigename (optional)" style="max-width:260px"><button class="btn-a" onclick="AlexaManager.addStation()"><i class="fas fa-plus"></i> Sender hinzufügen</button></div>`:'';
+  const intro=S.d.neutral?'Füge die Sender hinzu, die Alexa spielen soll: entweder die laut.fm-Kennung (laut.fm/<b>kennung</b>) oder die https-Adresse eines beliebigen Streams (Alexa spielt nur https; bei eigenen Streams gibt es keine Titel- und Sendeplan-Auskunft). Abgeschaltete':'Die Senderliste kommt aus dem Core-Netzwerk. Abgeschaltete'
   return `<div class="ap-h">Sender</div><p class="hint">${intro} Sender spielt der Skill nicht mehr (auch nicht bei „nächster Sender“). Die Reihenfolge gilt für „nächster/vorheriger Sender“ und die Senderliste. Neue Aussprachen und neue Sender betreffen das Sprachmodell – danach bitte neu einspielen.</p>
    <div class="ap-grid"><div><label class="news-lbl">Beim Start spielen</label><select class="fc w-100" onchange="AlexaManager.set('default_station',this.value)">${opts}</select></div>
    <div style="align-self:end">${chk('daily','Sender des Tages: jeden Tag ein anderer Sender (statt fest)',c.daily)}</div></div>
@@ -108,13 +109,22 @@ window.AlexaManager=(()=>{
   if(key==='enabled'){const f=S.d.stations.find(x=>x.id===id);if(f)f.enabled=!!val;const row=document.activeElement?.closest('.alx-st');row&&row.classList.toggle('off',!val);}
  }
  function addStation(){
-  const id=(document.getElementById('alxNewId')?.value||'').trim().toLowerCase().replace(/^.*laut\.fm\//,'').replace(/[^a-z0-9_-]/g,'');
-  if(id.length<2)return toast('Bitte die laut.fm-Kennung des Senders eingeben',true);
+  const raw=(document.getElementById('alxNewId')?.value||'').trim(),title=(document.getElementById('alxNewTitle')?.value||'').trim();
+  const isUrl=/^https?:\/\//i.test(raw);let id,stream='';
+  if(isUrl){
+   if(!/^https:\/\//i.test(raw))return toast('Alexa spielt nur Streams mit https:// – bitte die https-Adresse eingeben',true);
+   stream=raw;let host='';try{host=new URL(raw).hostname.replace(/^www\./,'')}catch(e){return toast('Die Stream-Adresse ist ungültig',true)}
+   id=(title||host).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+  }else id=raw.toLowerCase().replace(/^.*laut\.fm\//,'').replace(/[^a-z0-9_-]/g,'');
+  if(id.length<2)return toast('Bitte die laut.fm-Kennung oder eine https-Stream-Adresse eingeben',true);
   if(S.d.stations.some(s=>s.id===id))return toast('Dieser Sender ist schon in der Liste',true);
-  const title=(document.getElementById('alxNewTitle')?.value||'').trim();
-  S.cfg.stations=Array.isArray(S.cfg.stations)?{}:S.cfg.stations;S.cfg.stations[id]={enabled:true,title,extra:[]};
-  S.d.stations.push({id,title:title||id.replace(/[-_]+/g,' '),enabled:true,extra:[],speakable:[]});
+  S.cfg.stations=Array.isArray(S.cfg.stations)?{}:S.cfg.stations;S.cfg.stations[id]={enabled:true,title,extra:[],...(stream?{stream}:{})};
+  S.d.stations.push({id,title:title||id.replace(/[-_]+/g,' '),enabled:true,extra:[],speakable:[],stream});
   S.cfg.order=S.d.stations.map(s=>s.id);if(!S.cfg.default_station)S.cfg.default_station=id;draw();
+ }
+ function stream(id,v){
+  v=String(v).trim();if(v!==''&&!/^https:\/\//i.test(v)){toast('Alexa spielt nur https://-Adressen',true);return draw();}
+  station(id,'stream',v);const f=S.d.stations.find(x=>x.id===id);if(f)f.stream=v;
  }
  function removeStation(id){
   if(!confirm('Sender „'+id+'“ aus dem Skill entfernen?'))return;
@@ -138,5 +148,5 @@ window.AlexaManager=(()=>{
  }
  async function clearStats(){if(!confirm('Alle Alexa-Zahlen löschen?'))return;try{await api('alexa_stats_clear',{});toast('Gelöscht');await render();}catch(e){toast(e.message,true);}}
  async function resetToken(){if(!confirm('Neues Token erzeugen? Der laufende Skill kann dann bis zum erneuten Einspielen von cms.json nichts mehr zählen.'))return;try{await api('alexa_token_reset',{});toast('Token erneuert – bitte das Paket neu laden');await render();}catch(e){toast(e.message,true);}}
- return {render,save,set,station,extra,move,clearStats,resetToken,addStation,removeStation};
+ return {render,save,set,station,stream,extra,move,clearStats,resetToken,addStation,removeStation};
 })();

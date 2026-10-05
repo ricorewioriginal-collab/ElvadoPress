@@ -4,7 +4,7 @@
         <div class="th"><div><div class="wp-page-title">Feeds & RSS</div><div class="wp-subtitle">Eigener RSS-Feed für das Magazin und externe RSS-/Atom-Quellen, die automatisch in die News-Übersicht gemischt werden.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><a class="btn-g" href="/cms/rss.php" target="_blank" rel="noopener"><i class="fas fa-rss"></i> Live-RSS öffnen</a><a class="btn-g" href="/feed/" target="_blank" rel="noopener"><i class="fas fa-link"></i> /feed/</a><a class="btn-g" href="/rss.xml" target="_blank" rel="noopener"><i class="fas fa-file-code"></i> RSS.xml-Mirror</a><button class="btn-a" onclick="saveFeeds()"><i class="fas fa-floppy-disk"></i> Speichern</button></div></div>
         <div class="section-grid">
           <div style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px"><input id="rssEnabled" class="switch" type="checkbox"> Eigenen RSS-Feed aktivieren</label></div>
-          <div><label class="news-lbl">Feed-Titel</label><input id="rssTitle" class="fc w-100"></div>
+          <div><label class="news-lbl">Feed-Titel</label><input id="rssTitle" class="fc w-100" placeholder="leer = Name der Website – News &amp; Magazin"></div>
           <div><label class="news-lbl">Max. Einträge</label><input id="rssMaxItems" class="fc w-100" type="number" min="5" max="100"></div>
           <div style="grid-column:1/-1"><label class="news-lbl">Beschreibung</label><textarea id="rssDescription" class="fc w-100" rows="3"></textarea></div>
           <div style="grid-column:1/-1"><label style="display:flex;align-items:center;gap:8px"><input id="rssIncludeExternal" class="switch" type="checkbox"> Externe Feed-Beiträge auch im eigenen RSS ausgeben (Link führt zur Originalquelle)</label></div>
