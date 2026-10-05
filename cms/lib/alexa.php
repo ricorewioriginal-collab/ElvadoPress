@@ -96,7 +96,7 @@ function rrw_alexa_clean($v): array {
         'schedule'=>!array_key_exists('schedule',$v)||!empty($v['schedule']),
         'stats'=>!empty($v['stats'])
     ];
-    if(rrw_alexa_neutral()){$out['app_name']=rrw_alexa_text($v['app_name']??'',40);$out['invocation']=rrw_alexa_invocation_clean($v['invocation']??'');}
+    if(rrw_alexa_neutral()){$out['app_name']=rrw_alexa_text($v['app_name']??'',40);$out['invocation']=rrw_alexa_invocation_clean($v['invocation']??'');if(array_key_exists('radio_sync',$v))$out['radio_sync']=!empty($v['radio_sync']);}
     foreach($d['texts'] as $k=>$def){$x=rrw_alexa_text($t[$k]??'',400);$out['texts'][$k]=$x!==''?$x:$def;}
     foreach(array_slice((array)($v['stations']??[]),0,80,true) as $id=>$s){
         $id=rrw_alexa_id($id);if($id===''||!is_array($s))continue;
@@ -114,19 +114,55 @@ function rrw_alexa_pretty(string $id): string {
     $s=preg_replace('/([a-z])(\d)/','$1 $2',str_replace(['-','_'],' ',$id));return mb_convert_case($s,MB_CASE_TITLE);
 }
 
+
+/* ───────── Verdrahtung mit der Radio-Erweiterung (Radio-Theme) ─────────
+   Mit aktivem Radio-Theme (oder gesetztem Schalter radio_sync) werden die Sender aus dem CMS-Menü „Radio“ automatisch zu Skill-Sendern:
+   laut.fm-Sender über ihre laut.fm-Kennung (Stream, Titel und Sendeplan wie bisher), alle anderen als eigener Stream; Titel und Sendeplan
+   liefert dann der öffentliche Endpunkt cms/radio.php. Alexa spielt nur https-Streams – andere Sender werden übersprungen und gemeldet. */
+function rrw_alexa_data_dir(): string { return function_exists('rrw_data_dir')?rrw_data_dir():dirname(__DIR__).'/data'; }
+function rrw_alexa_radio_load(): array {
+    if(!is_file(__DIR__.'/radio.php'))return ['stations'=>[],'default'=>''];
+    require_once __DIR__.'/radio.php';return rrw_radio_load(rrw_alexa_data_dir());
+}
+/** Ist die Verdrahtung wirksam? Nur im Baukasten-Modus und nur, wenn im Radio-Menü Sender eingerichtet sind. */
+function rrw_alexa_radio_sync(array $site): bool {
+    if(!rrw_alexa_neutral()||!rrw_alexa_radio_load()['stations'])return false;
+    $c=(array)($site['alexa']??[]);
+    if(array_key_exists('radio_sync',$c))return !empty($c['radio_sync']);
+    return rrw_radio_theme_active(rrw_alexa_data_dir());
+}
+/** Skill-Sender aus den Radio-Sendern: [id => Definition]; $skipped = Sender, die Alexa nicht spielen kann (mit Grund). */
+function rrw_alexa_radio_defs(array $site,?array &$skipped=null): array {
+    $skipped=[];$defs=[];if(!rrw_alexa_radio_sync($site))return [];
+    $cfg=rrw_alexa_radio_load();$list=$cfg['stations'];
+    usort($list,fn($a,$b)=>($b['id']===$cfg['default'])<=>($a['id']===$cfg['default']));   // Standardsender zuerst
+    foreach($list as $st){
+        $name=$st['name'];
+        if($st['source']==='lautfm'&&$st['lautfm_id']!==''){
+            $id=rrw_alexa_id($st['lautfm_id']);if($id===''||isset($defs[$id])){ $skipped[]=['name'=>$name,'reason'=>'Kennung unzulässig oder doppelt'];continue; }
+            $defs[$id]=['id'=>$id,'title'=>$name,'names'=>[mb_strtolower($name)],'from_radio'=>true];continue;
+        }
+        $stream=rrw_alexa_stream_clean($st['stream_url']);
+        if($stream===''){ $skipped[]=['name'=>$name,'reason'=>'Alexa spielt nur Streams mit https-Adresse'];continue; }
+        $id=rrw_alexa_id($st['id']);if($id===''||isset($defs[$id])){ $skipped[]=['name'=>$name,'reason'=>'Kennung unzulässig oder doppelt'];continue; }
+        $defs[$id]=['id'=>$id,'title'=>$name,'names'=>[mb_strtolower($name)],'stream'=>$stream,'radio'=>$st['id'],'from_radio'=>true];
+    }
+    return $defs;
+}
 /** Effektive Senderliste: Core-Netzwerk (Katalog als Rückfall), Katalogwerte, CMS-Überschreibungen, Reihenfolge. */
 function rrw_alexa_station_defs(array $site): array {
     $cat=rrw_alexa_catalog();$cfg=rrw_alexa_clean($site['alexa']??[]);$bycat=[];
     foreach($cat['stations'] as $s)$bycat[$s['id']]=$s;
     $ids=[];
-    if(rrw_alexa_neutral()){ foreach(array_merge((array)$cfg['order'],array_keys((array)$cfg['stations'])) as $x){$x=rrw_alexa_id($x);if($x!==''&&!in_array($x,$ids,true)&&isset(((array)$cfg['stations'])[$x]))$ids[]=$x;} }   // nur Sender, die der Betreiber selbst hinzugefügt hat
+    $radio=rrw_alexa_radio_defs($site);
+    if(rrw_alexa_neutral()){ foreach(array_merge(array_keys($radio),(array)$cfg['order'],array_keys((array)$cfg['stations'])) as $x){$x=rrw_alexa_id($x);if($x!==''&&!in_array($x,$ids,true)&&(isset($radio[$x])||isset(((array)$cfg['stations'])[$x])))$ids[]=$x;} }   // nur Sender, die der Betreiber selbst hinzugefügt hat
     else{
         foreach((array)($site['core_network']['stations']??[]) as $x){$x=rrw_alexa_id($x);if($x!==''&&!in_array($x,$ids,true))$ids[]=$x;}
         if(!$ids)$ids=array_map(fn($s)=>$s['id'],$cat['stations']);
     }
     $over=(array)$cfg['stations'];$defs=[];
     foreach($ids as $id){
-        $s=$bycat[$id]??null;
+        $s=$bycat[$id]??($radio[$id]??null);
         if(!$s){
             $s=['id'=>$id,'title'=>rrw_alexa_pretty($id)];
             if(preg_match('/^([a-z][a-z0-9_-]*?)-?24$/',$id,$m))$s['bases']=rrw_alexa_uniq([str_replace(['-','_'],'',$m[1]),str_replace(['-','_'],' ',$m[1])]);
@@ -136,7 +172,7 @@ function rrw_alexa_station_defs(array $site): array {
         $s['enabled']=!array_key_exists('enabled',$o)||!empty($o['enabled']);
         if(!empty($o['title']))$s['title']=$o['title'];
         $s['extra']=(array)($o['extra']??[]);
-        if(!empty($o['stream']))$s['stream']=$o['stream'];
+        if(!empty($o['stream'])&&empty($s['from_radio']))$s['stream']=$o['stream'];
         $defs[$id]=$s;
     }
     $ordered=[];foreach($cfg['order'] as $id)if(isset($defs[$id])){$ordered[$id]=$defs[$id];unset($defs[$id]);}
@@ -208,7 +244,8 @@ function rrw_alexa_token(string $dataDir,bool $reset=false): string {
 function rrw_alexa_public(array $site,string $dataDir,string $origin): array {
     $cat=rrw_alexa_catalog();$cfg=rrw_alexa_clean($site['alexa']??[]);$defs=rrw_alexa_station_defs($site);
     $stations=[];$enabled=[];
-    foreach($defs as $id=>$s){$stations[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled']]+(!empty($s['stream'])?['stream'=>$s['stream']]:[]);if($s['enabled'])$enabled[]=$id;}
+    $hasRadio=false;
+    foreach($defs as $id=>$s){$stations[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled']]+(!empty($s['stream'])?['stream'=>$s['stream']]:[])+(!empty($s['radio'])?['radio'=>$s['radio']]:[]);if(!empty($s['radio']))$hasRadio=true;if($s['enabled'])$enabled[]=$id;}
     $default=in_array($cfg['default_station'],$enabled,true)?$cfg['default_station']:($enabled[0]??$cfg['default_station']);
     if($cfg['daily']&&$enabled)$default=$enabled[(int)date('z')%count($enabled)];
     $out=['status'=>'ok','enabled'=>$cfg['enabled'],'maintenance'=>$cfg['maintenance']['enabled']?$cfg['maintenance']['text']:null,
@@ -217,6 +254,7 @@ function rrw_alexa_public(array $site,string $dataDir,string $origin): array {
     // Marke → Sender (für „Spiele <Marke>“): Marken mit dem Standardsender spielen den aktuellen Standard, andere ihren eigenen Sender
     $bm=[];foreach($cat['brands'] as $b)$bm[$b['id']]=($b['station']===($cat['brand']['defaultStation']??''))?$default:$b['station'];$out['brand_map']=$bm;
     if(rrw_alexa_neutral()){ $bm=[];foreach($cat['brands'] as $b)$bm[$b['id']]=$default;$out['brand_map']=$bm;$ic=(string)($site['branding']['portal_icon']??'');$out['art']=preg_match('~^/~',$ic)?rtrim($origin,'/').$ic:(preg_match('~^https://~',$ic)?$ic:''); }
+    if($hasRadio&&str_starts_with($origin,'https://'))$out['radio_api']=rtrim($origin,'/').'/cms/radio.php';   // Der Skill läuft bei Amazon und ruft nur https auf
     $out['rev']=substr(md5(json_encode($out)),0,10);
     return $out;
 }

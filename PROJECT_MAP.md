@@ -11,11 +11,12 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/rebuild.php` | Rebuild-/Publizierungs-Einstieg. |
 | `cms/rss.php` | RSS-Ausgabe. |
 | `cms/lib/` | Serverseitige Fachlogik: Auth, Storage, Inhalte, Themes/Plugins, Branding, Apps, Assistant, Community, Demo usw. |
+| `cms/lib/radio.php`, `cms/radio.php` | Radio-Erweiterung: Sender/Quellen (laut.fm, Icecast, Shoutcast), Jetzt läuft, Sendeplan; öffentlicher JSON-Endpunkt. |
+| `cms/themes/` | mitgelieferte Themes: `rrw-classic` (Standard), `elvado-baukasten` (Homepage-Baukasten), `elvado-radio` (Radio). |
 | `cms/views/` | PHP-Panels/Teilansichten der Verwaltung. |
 | `cms/assets/` | JavaScript, CSS, Branding und statische Verwaltungsassets. |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |
 | `cms/data/` | Laufzeitdaten einer Installation; überwiegend nicht versioniert. |
-| `cms/themes/` | mitgelieferte CMS-/Theme-Dateien. |
 | `cms/docs/` | bestehende Fach- und Funktionsdokumentation; vor neuer Doku zuerst hier suchen. |
 | `scripts/` | Smoke-, Funktions-, Demo-, Datenbank- und Build-/Packaging-Tests/Skripte. |
 | `.github/workflows/ci.yml` | CI: Syntax, Smoke-Test, alle Tests. |
