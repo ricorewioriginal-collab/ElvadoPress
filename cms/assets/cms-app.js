@@ -688,12 +688,14 @@ const SERVICE_FIELDS=[
  ['apps_page','App-Seite'],['nextcloud','Nextcloud / Medien-Cloud'],['owncast','Owncast / Video'],['castopod','Castopod / Podcast'],['airdeck','AirDeck']
 ];
 function renderServices(){
+ if(window.ServicesManager?.active()){ServicesManager.render();return}
  const h=document.getElementById('servicesEditor');if(!h)return;const s=CMS?.services||{};
  h.innerHTML=SERVICE_FIELDS.map(([k,l])=>`<div class="service-row"><label for="svc-${k}">${escCms(l)}</label><input id="svc-${k}" class="fc w-100" value="${escCms(s[k]||'')}" placeholder="URL oder relativer Pfad"><button class="btn-g" onclick="openService('${k}')"><i class="fas fa-arrow-up-right-from-square"></i></button></div>`).join('');
 }
 function normalizeServiceUrl(v){v=String(v||'').trim();if(!v)return'';if(v.startsWith('/'))return location.origin+v;return v}
 function openService(k){const v=document.getElementById('svc-'+k)?.value.trim()||'';const u=normalizeServiceUrl(v);if(!u)return cmsToast('Für diesen Dienst ist keine Adresse hinterlegt',true);window.open(u,'_blank','noopener')}
 async function loadServiceStatus(){
+ if(window.ServicesManager?.active())return ServicesManager.check();
  const h=document.getElementById('serviceStatusHost');if(!h)return;
  h.innerHTML='<div class="empty" style="grid-column:1/-1"><i class="fas fa-spinner fa-spin"></i>Dienste werden geprüft…</div>';
  try{
@@ -703,13 +705,14 @@ async function loadServiceStatus(){
 }
 function openStatusService(id){const s=SERVICE_STATUS.find(x=>x.id===id);const u=normalizeServiceUrl(s?.url||'');if(!u)return cmsToast('Keine Adresse hinterlegt',true);window.open(u,'_blank','noopener')}
 function saveServices(){
+ if(window.ServicesManager?.active())return ServicesManager.save();
  const v={};SERVICE_FIELDS.forEach(([k])=>v[k]=document.getElementById('svc-'+k)?.value.trim()||'');saveSection('services',v);
 }
 async function loadArchitecture(){
  const h=document.getElementById('architectureHost');if(!h)return;h.innerHTML='<div class="empty"><i class="fas fa-spinner fa-spin"></i>Lade Architektur…</div>';
  try{
   const d=await cmsApi('architecture');
-  h.innerHTML='<div class="grid" style="margin-bottom:12px"><div class="stat"><div class="l">Komponenten</div><div class="v">'+d.components.length+'</div></div><div class="stat"><div class="l">Core-Sender</div><div class="v">'+d.core_stations.length+'</div></div></div><div class="arch-grid">'+d.components.map(x=>`<div class="arch-card"><b><i class="fas fa-cube" style="color:var(--accent);margin-right:6px"></i>${escCms(x.name)} ${x.health?'<span class="svc-dot '+(x.health.online?'ok':'bad')+'" title="'+(x.health.online?'erreichbar':'nicht erreichbar')+'"></span>':''}</b><div class="hint">${escCms(x.type)}</div><code>${escCms(x.path)}</code><div class="arch-deps">${x.depends_on?.length?'Abhängig von: '+x.depends_on.map(escCms).join(', '):'Keine internen Abhängigkeiten'}${x.health?' · HTTP '+(x.health.http||0)+' · '+(x.health.ms||0)+' ms':''}</div></div>`).join('')+'</div><div class="hint" style="margin-top:12px">Stand: '+new Date(d.updated_at).toLocaleString('de-DE')+'</div>';
+  h.innerHTML='<div class="grid" style="margin-bottom:12px"><div class="stat"><div class="l">Komponenten</div><div class="v">'+d.components.length+'</div></div>'+(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']===false?'':'<div class="stat"><div class="l">Core-Sender</div><div class="v">'+d.core_stations.length+'</div></div>')+'</div><div class="arch-grid">'+d.components.map(x=>`<div class="arch-card"><b><i class="fas fa-cube" style="color:var(--accent);margin-right:6px"></i>${escCms(x.name)} ${x.health?'<span class="svc-dot '+(x.health.online?'ok':'bad')+'" title="'+(x.health.online?'erreichbar':'nicht erreichbar')+'"></span>':''}</b><div class="hint">${escCms(x.type)}</div><code>${escCms(x.path)}</code><div class="arch-deps">${x.depends_on?.length?'Abhängig von: '+x.depends_on.map(escCms).join(', '):'Keine internen Abhängigkeiten'}${x.health?' · HTTP '+(x.health.http||0)+' · '+(x.health.ms||0)+' ms':''}</div></div>`).join('')+'</div><div class="hint" style="margin-top:12px">Stand: '+new Date(d.updated_at).toLocaleString('de-DE')+'</div>';
  }catch(e){h.innerHTML='<div class="empty" style="color:var(--bad)">'+escCms(e.message)+'</div>'}
 }
 
