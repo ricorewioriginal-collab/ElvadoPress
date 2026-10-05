@@ -25,7 +25,7 @@ Alle Radio-Erweiterungen sind optional und arbeiten mit deinen eigenen Inhalten.
 
 **<https://elvadopress.ricorewi-radio.de>** – Verwaltung: <https://elvadopress.ricorewi-radio.de/cms/?demo=1> (automatische Anmeldung; Benutzer `demo`, Passwort `ElvadoPress-Demo1`).
 
-Eine öffentliche Testinstanz mit Demo-Benutzer läuft als Demo-Build (`--demo`): Daten werden alle 10 Minuten zurückgesetzt, Uploads, Plugin-/Theme-Installation und Systemänderungen sind gesperrt. Einrichtung und Betrieb: `cms/docs/ELVADOPRESS.md` im Entwicklungsprojekt.
+Die öffentliche Testinstanz mit Demo-Benutzer setzt ihre Daten alle 10 Minuten zurück; Uploads, Plugin-/Theme-Installation und Systemänderungen sind gesperrt. Eigene Demo: `php scripts/make-demo.php <Kopie>` – Details in `cms/docs/ELVADOPRESS.md`.
 
 ## Installation
 
@@ -37,12 +37,12 @@ Ausführliche Hinweise stehen in [INSTALL.md](INSTALL.md) und in `cms/docs/`.
 
 ## Qualität
 
-- `php scripts/smoke-test.php` richtet das CMS in einem temporären Ordner ein und prüft Einrichtung, Auslieferung, Verwaltung, Alexa-Baukasten, Radioverzeichnis und KI-Assistent.
-- Der Workflow *CI* führt PHP-Syntaxprüfung und diesen Test bei jedem Push aus.
+- `php scripts/smoke-test.php` richtet das CMS in einem temporären Ordner ein und prüft Einrichtung, Auslieferung, Verwaltung, Alexa-Baukasten, Radioverzeichnis und KI-Assistent; die übrigen Tests liegen in `scripts/test-*.php`.
+- Der Workflow *CI* führt PHP-Syntaxprüfung, diesen Test und alle weiteren Tests bei jedem Push und Pull Request aus.
 
-## Herkunft und Entwicklung
+## Entwicklung
 
-ElvadoPress wird aus dem Entwicklungsprojekt *ricorewi-radio* veröffentlicht. Dort werden CMS-, Radio- und RicoReWi-Funktionen getrennt entwickelt; diese Veröffentlichung enthält **keine** RicoReWi-Inhalte. Änderungen an diesem Repository werden bei der nächsten Veröffentlichung überschrieben – Beiträge bitte im Entwicklungsprojekt einreichen.
+Dieses Repository ist die **Hauptquelle** von ElvadoPress: Änderungen per Pull Request, die CI führt alle Tests aus (siehe [DEVELOPMENT.md](DEVELOPMENT.md)). Marken-spezifische Teile eines Betreibers (z. B. das RicoReWi-Portal) liegen in eigenen Repositories und binden ElvadoPress ein.
 
 ## Lizenz
 

@@ -171,3 +171,20 @@ function rrw_demo_inject(string $html): string {
     $pos=strripos($html,'</body>');
     return substr($html,0,$pos).$tag.substr($html,$pos);
 }
+
+/**
+ * Ein fertiges Paket (Ordner mit cms/) zur Demo machen: Demo-Einstellungen, Startseite /demo/, Zustandsordner und Schutzdateien.
+ * Wird von scripts/make-demo.php (ElvadoPress) und scripts/build-standalone.php --demo (Entwicklungsprojekt) genutzt.
+ */
+function rrw_demo_make(string $dir, int $minutes=10): void {
+    $dir=rtrim($dir,'/');$minutes=max(1,min(1440,$minutes));
+    $w=function(string $rel,string $content,bool $append=false)use($dir){ $f=$dir.'/'.$rel;if(!is_dir(dirname($f)))mkdir(dirname($f),0775,true);file_put_contents($f,$content,$append?FILE_APPEND:0); };
+    $w('cms/lib/demo.json',json_encode(['user'=>'demo','password'=>'ElvadoPress-Demo1','minutes'=>$minutes,'site_name'=>'ElvadoPress Demo','display_name'=>'Demo-Benutzer'],JSON_PRETTY_PRINT)."\n");
+    $landing=$dir.'/cms/assets/demo-landing.html';
+    if(!is_file($landing))throw new RuntimeException('cms/assets/demo-landing.html fehlt');
+    $w('demo/index.html',(string)file_get_contents($landing));
+    $w('demo/.htaccess',"DirectoryIndex index.html\n");
+    $w('cms/demo-state/.htaccess',"Require all denied\n");
+    // Die Demo-Konfiguration gehört nicht ins Netz (PHP-Dateien in cms/lib sind ohnehin gesperrt)
+    $w('cms/lib/.htaccess',"<Files \"demo.json\">\nRequire all denied\n</Files>\n",true);
+}

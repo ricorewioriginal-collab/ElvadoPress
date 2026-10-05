@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ElvadoPress – Live-Demo</title><meta name="description" content="Teste ElvadoPress, das WordPress-kompatible CMS mit Radio-Erweiterungen, in einer öffentlichen Demo.">
+<link rel="icon" href="/cms/assets/brand/icon-192.png">
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#06080f;color:#e8edf7;line-height:1.5}
+main{max-width:860px;margin:0 auto;padding:40px 18px 90px}img.logo{width:96px;height:96px;display:block;margin:0 0 14px}
+h1{font-size:2rem;margin:0 0 6px}h2{font-size:1.1rem;margin:0 0 10px}p.lead{color:#a9b4cc;font-size:1.05rem;margin:0 0 24px}
+.card{background:#0e1424;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:18px;margin:0 0 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:640px){.grid{grid-template-columns:1fr}}
+a.btn{display:inline-block;background:#2fb8ff;color:#021018;border-radius:10px;padding:11px 18px;font-weight:800;text-decoration:none;margin:4px 8px 4px 0}a.btn.g{background:transparent;color:#cfe9ff;border:1px solid rgba(255,255,255,.3)}
+code{background:rgba(255,255,255,.1);padding:2px 7px;border-radius:6px}ul{padding-left:20px;margin:6px 0}li{margin:3px 0}
+.t{font-variant-numeric:tabular-nums;font-weight:800;color:#2fb8ff}small{color:#8793ad}
+</style></head><body><main>
+<img class="logo" src="/cms/assets/brand/icon-192.png" alt="ElvadoPress">
+<h1>ElvadoPress – Live-Demo</h1>
+<p class="lead">Probiere das WordPress-kompatible CMS mit Radio-Erweiterungen direkt im Browser aus – ohne Registrierung.</p>
+<div class="card"><h2>So geht's</h2>
+<p><a class="btn" href="/cms/?demo=1">Verwaltung öffnen (Auto-Anmeldung)</a><a class="btn g" href="/">Beispiel-Website ansehen</a></p>
+<p>Zugang (falls manuell): Benutzer <code id="u">demo</code> · Passwort <code id="p">…</code></p>
+<p>Zurücksetzen in <span class="t" id="t">--:--</span> · <small>Alle Änderungen werden alle <span id="m">10</span> Minuten automatisch verworfen.</small></p></div>
+<div class="grid">
+<div class="card"><h2>Das kannst du ausprobieren</h2><ul><li>Beiträge, Seiten, Menüs und Kommentare</li><li>Design: Themes wechseln, Widgets, Customizer</li><li>WordPress-Einstellungen wie im Original</li><li>Radio: App-Baukasten, Alexa-Skill, Radioverzeichnis</li></ul></div>
+<div class="card"><h2>In der Demo gesperrt</h2><ul><li>Uploads von Dateien, Plugins und Themes</li><li>Benutzer-, System- und Datenbankänderungen</li><li>Mailversand und externe Dienste (KI, GitHub)</li></ul><small>Zum Schutz der gemeinsamen Testinstanz.</small></div>
+</div>
+<div class="card"><h2>Selbst betreiben</h2><p>ElvadoPress ist freie Software (GPL-2.0-or-later). Code, Installation und Dokumentation: <a style="color:#2fb8ff" href="https://github.com/ricorewioriginal-collab/ElvadoPress">github.com/ricorewioriginal-collab/ElvadoPress</a></p></div>
+</main>
+<script>
+fetch('/cms/api.php?action=demo_status',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+  if(d.status!=='ok')return;document.getElementById('u').textContent=d.user;document.getElementById('p').textContent=d.password;document.getElementById('m').textContent=d.minutes;
+  var off=d.now*1000-Date.now();function tick(){var s=Math.max(0,Math.ceil((d.reset_at*1000-(Date.now()+off))/1000));document.getElementById('t').textContent=('0'+Math.floor(s/60)).slice(-2)+':'+('0'+s%60).slice(-2);if(s<=0)setTimeout(function(){location.reload()},1500)}
+  tick();setInterval(tick,1000);
+}).catch(function(){});
+</script></body></html>
