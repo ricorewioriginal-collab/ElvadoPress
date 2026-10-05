@@ -133,5 +133,25 @@
     host.addEventListener('drop',function(e){if(!dragId)return;e.preventDefault();var s=e.target.closest('.hb-sec');if(s&&s.dataset.id!==dragId)move(find(dragId),find(s.dataset.id));dragId=null});
     window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
   }
-  window.HomeBuilder={pickImage:function(cb){picker(cb)},load:function(){bind();load()},save:save,reset:reset,preview:preview,customizer:customizer};
+  /* Layout aus der KI: nur bekannte Typen und Felder übernehmen (die endgültige Bereinigung erfolgt serverseitig beim Speichern) */
+  function applyAiLayout(sections){
+    if(!Array.isArray(sections)||!sections.length)return;
+    var fresh=[];
+    sections.forEach(function(x){
+      if(!x||!schema[x.type])return;var props=defaults(x.type),known={};
+      (schema[x.type].fields||[]).forEach(function(f){known[f.k]=f});
+      Object.keys(x.props||{}).forEach(function(k){var f=known[k],v=x.props[k];if(!f)return;
+        if(f.type==='items')props[k]=Array.isArray(v)?v.slice(0,f.max||6).map(function(i){return {title:String((i&&i.title)||''),text:String((i&&i.text)||'')}}):[];
+        else if(f.type==='checkbox')props[k]=!!v;else if(f.type==='number')props[k]=parseInt(v,10)||0;
+        else if(f.type==='select')props[k]=f.options&&f.options[String(v)]!==undefined?String(v):props[k];
+        else if(f.type==='image'||f.type==='url')props[k]=/^(https:\/\/|\/)/.test(String(v))?String(v):'';
+        else props[k]=String(v==null?'':v)});
+      fresh.push({id:uid(),type:x.type,hidden:false,props:props});
+    });
+    if(!fresh.length){msg('Die KI hat keine verwertbaren Abschnitte geliefert.',true);return}
+    if(layout.length&&confirm('Das bestehende Layout durch den KI-Entwurf ersetzen?\n\nOK = ersetzen, Abbrechen = unten anhängen.'))layout=fresh;else layout=layout.concat(fresh);
+    open={};mark(true);draw();msg('KI-Entwurf übernommen – prüfen, anpassen und speichern.');
+  }
+  function aiLayout(){if(!window.EpAi)return msg('KI-Oberfläche nicht verfügbar',true);EpAi.layoutAssistant(applyAiLayout)}
+  window.HomeBuilder={aiLayout:aiLayout,applyAiLayout:applyAiLayout,pickImage:function(cb){picker(cb)},load:function(){bind();load()},save:save,reset:reset,preview:preview,customizer:customizer};
 })();

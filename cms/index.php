@@ -72,6 +72,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 
     <?php require __DIR__.'/views/panel-themeconf.php'; ?>
 
+    <?php require __DIR__.'/views/panel-ai.php'; ?>
+
     <?php require __DIR__.'/views/panel-contents.php'; ?>
 
     <?php require __DIR__.'/views/panel-forms.php'; ?>
@@ -140,7 +142,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/news-editor.js?v=16"></script>
+<script src="assets/news-editor.js?v=17"></script>
 <script src="assets/stock-media.js?v=1"></script>
 <script src="assets/media-manager.js?v=6"></script>
 <script src="assets/theme-manager.js?v=7"></script>
@@ -156,9 +158,10 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>
-<script src="assets/home-builder.js?v=3"></script>
+<script src="assets/home-builder.js?v=4"></script>
 <script src="assets/radio-manager.js?v=1"></script>
 <script src="assets/theme-config.js?v=1"></script>
+<script src="assets/ai-lovable-admin.js?v=1"></script>
 <script src="assets/contents-manager.js?v=1"></script>
 <script src="assets/forms-manager.js?v=1"></script>
 <script src="assets/polls-manager.js?v=1"></script>

@@ -41,6 +41,9 @@ exit $fail
 
 Für eine konkrete Änderung bevorzugt nur die betroffenen `scripts/test-*.php` plus ggf. Smoke-Test ausführen. CI führt Syntaxprüfung, Smoke-Test und alle Tests aus.
 
+## React-Bündel
+Quellen in `frontend/`; nach Änderungen `cd frontend && npm install && npm run build` (schreibt `cms/assets/react/`, wird eingecheckt). Das CMS selbst braucht keinen Build.
+
 ## Demo
 Demo-Kopie vorbereiten:
 ```sh

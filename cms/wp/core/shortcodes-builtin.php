@@ -10,6 +10,24 @@ function rrw_sc_widget(string $type, array $settings=[], string $title=''): stri
     $w=['type'=>$type,'title'=>mb_substr($title,0,120),'settings'=>$settings];
     return '<div class="rrw-sc" data-rrw-widget="'.esc_attr(wp_json_encode($w,JSON_UNESCAPED_UNICODE)).'"></div>';
 }
+/** [lovable widget="news-grid" project="…"]: hängt ein in „KI & Lovable“ eingerichtetes Lovable-Widget ein (React-Bridge cms/assets/react/elvado-react.js, Daten von cms/api-lovable-provider.php). */
+function rrw_sc_lovable(string $name, string $project=''): string {
+    $cms=dirname(__DIR__,2);
+    if(!is_file($cms.'/src/autoload.php')||!class_exists('PDO'))return '';
+    require_once $cms.'/src/autoload.php';
+    if(!\Elvado\Repository\LovableWidgetRepository::validComponent($name))return '';
+    $data=dirname(RRW_WP_DATA);
+    try{
+        $db=\Elvado\Database\DatabaseConnection::fromCmsSettings($data);$db->migrateCore();
+        $w=(new \Elvado\Repository\LovableWidgetRepository($db))->findByComponent($name,\Elvado\Repository\LovableWidgetRepository::validProject($project)?$project:null);
+    }catch(Throwable $e){ return ''; }
+    if(!$w||!$w['enabled'])return '';
+    $set=\Elvado\Lovable\LovableSettings::load($data);
+    $cfg=['projectId'=>$w['project_id'],'componentName'=>$w['component_name'],'dataSourceUrl'=>'/cms/api-lovable-provider.php?widget='.rawurlencode($w['component_name']).'&project='.rawurlencode($w['project_id']),
+        'scriptUrl'=>$set->scriptUrl($w['project_id'],(string)$w['config']['script_url']),'allowedHosts'=>$set->bridge()['script_hosts'],'attributes'=>(object)$w['config']['attributes']];
+    wp_enqueue_script('elvado-react',home_url('/cms/assets/react/elvado-react.js'),[],'1',true);
+    return '<div class="ep-lovable" data-elvado-lovable="'.esc_attr(wp_json_encode($cfg,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)).'"></div>';
+}
 function rrw_sc_register_builtin(): void {
     $alias=['forum'=>'community-forum','community'=>'community-account','mitglieder'=>'community-account','netzwerk'=>'community-social','social'=>'community-social','video'=>null];
     foreach(['forum','community','mitglieder','netzwerk','social'] as $tag){
@@ -21,6 +39,7 @@ function rrw_sc_register_builtin(): void {
     add_shortcode('karte',function($atts){ $a=shortcode_atts(['lat'=>'','lon'=>'','zoom'=>'14','height'=>'320','label'=>'','title'=>''],$atts,'karte'); return rrw_sc_widget('map',['lat'=>$a['lat'],'lon'=>$a['lon'],'zoom'=>$a['zoom'],'height'=>$a['height'],'label'=>$a['label']],$a['title']); });
     add_shortcode('kontakt',function($atts){ $a=shortcode_atts(['title'=>''],$atts,'kontakt'); return rrw_sc_widget('contact-form',[],$a['title']); });
     add_shortcode('newsletter',function($atts){ $a=shortcode_atts(['title'=>''],$atts,'newsletter'); return rrw_sc_widget('newsletter',[],$a['title']); });
+    add_shortcode('lovable',function($atts){ $a=shortcode_atts(['widget'=>'','project'=>''],$atts,'lovable'); return rrw_sc_lovable((string)$a['widget'],(string)$a['project']); });
     // Allgemein: [widget type="faq" items="…"] – jedes CMS-Widget
     add_shortcode('widget',function($atts){ $atts=(array)$atts;$type=sanitize_key($atts['type']??'');$title=(string)($atts['title']??'');unset($atts['type'],$atts['title']);return $type===''?'':rrw_sc_widget($type,$atts,$title); });
     // WordPress-Standard

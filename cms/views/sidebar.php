@@ -60,6 +60,12 @@
         </div>
       </div>
       <div id="tcMenuHost"></div>
+      <div class="tab-group single">
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI &amp; Lovable</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-body">
+          <button class="tab" data-tab="ai" onclick="cmsTab('ai',this);window.EpAi?.hub()"><i class="fas fa-robot"></i>KI-Assistent &amp; Lovable</button>
+        </div>
+      </div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-plug"></i><span>Plugins</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">

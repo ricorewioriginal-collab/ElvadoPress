@@ -1,0 +1,4 @@
+/* frontend/src/styles.css – Tailwind-Ebenen (ohne Preflight, siehe tailwind.config.js) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
