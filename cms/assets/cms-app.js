@@ -236,7 +236,7 @@ async function cmsShowLogin(){
  document.getElementById('cmsLoginForm').dataset.mode=configured?'login':'setup';
  document.getElementById('cmsLoginTitle').textContent=configured?'Anmeldung erforderlich':'Ersten CMS-Zugang einrichten';
  document.getElementById('cmsLoginDesc').textContent=configured
-   ?(RRW_P.standalone?'Melde dich mit deinem lokalen '+RRW_P.access_name+'-Zugang an.':'Melde dich mit dem lokalen '+RRW_P.access_name+'-Zugang an oder nutze das '+RRW_P.control_center+'.')
+   ?(RRW_P.standalone||!(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio'])?'Melde dich mit deinem lokalen '+RRW_P.access_name+'-Zugang an.':'Melde dich mit dem lokalen '+RRW_P.access_name+'-Zugang an oder nutze das '+RRW_P.control_center+'.')
    :'Es ist noch kein lokaler CMS-Zugang eingerichtet. Lege jetzt Benutzername und Passwort (mind. 8 Zeichen) fest.';
  document.getElementById('cmsLoginSubmit').innerHTML=configured?'<i class="fas fa-right-to-bracket"></i> Anmelden':'<i class="fas fa-user-plus"></i> Zugang einrichten';
  const msg=document.getElementById('cmsLoginMsg');if(msg)msg.textContent='';

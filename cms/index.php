@@ -42,14 +42,14 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
     <i class="fas fa-right-to-bracket"></i>
     <h2 id="cmsLoginTitle">Anmeldung erforderlich</h2>
     <?php if($pr['logo']!==''): ?><img src="<?=$ph('logo')?>" alt="" style="max-width:220px;max-height:80px;margin:0 auto 10px;display:block"><?php endif; ?>
-    <p id="cmsLoginDesc"><?=$sa?'Melde dich mit deinem lokalen '.$ph('access_name').'-Zugang an.':'Melde dich mit dem lokalen '.$ph('access_name').'-Zugang an oder nutze das '.$ph('control_center').'.'?></p>
+    <p id="cmsLoginDesc"><?=($sa||!rrw_pack_available())?'Melde dich mit deinem lokalen '.$ph('access_name').'-Zugang an.':'Melde dich mit dem lokalen '.$ph('access_name').'-Zugang an oder nutze das '.$ph('control_center').'.'?></p>
     <form id="cmsLoginForm" class="cms-login-form" data-mode="login" onsubmit="return cmsHandleLogin(event)">
       <input type="text" id="cmsLoginUser" class="fc" placeholder="Benutzername" autocomplete="username" required>
       <input type="password" id="cmsLoginPass" class="fc" placeholder="Passwort" autocomplete="current-password" required minlength="1">
       <button type="submit" id="cmsLoginSubmit" class="btn-a"><i class="fas fa-right-to-bracket"></i> Anmelden</button>
     </form>
     <p id="cmsLoginMsg" class="cms-login-msg"></p>
-    <?php if(!$sa): ?><a class="btn-g" href="#" onclick="cmsLoginRedirect();return false"><i class="fas fa-arrow-up-right-from-square"></i> Mit <?=$ph('control_center')?> anmelden</a><?php endif; ?>
+    <?php if(!$sa&&rrw_pack_available()): ?><a class="btn-g" href="#" onclick="cmsLoginRedirect();return false"><i class="fas fa-arrow-up-right-from-square"></i> Mit <?=$ph('control_center')?> anmelden</a><?php endif; ?>
   </div>
   <div id="cmsApp" style="display:none">
     <section class="hero">
