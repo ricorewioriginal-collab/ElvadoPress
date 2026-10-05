@@ -8,6 +8,14 @@ require __DIR__.'/../cms/lib/system.php';require __DIR__.'/../cms/lib/alexa.php'
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 $site=['portal'=>['site_name'=>'Mein Radio'],'alexa'=>[]];$GLOBALS['RRW_SITE']=$site;
+if(!rrw_alexa_neutral()){
+    // Mit Herstellerpaket (ricorewi-radio) gilt der Bestand: keine Verdrahtung, auch nicht mit Radio-Sendern, aktivem Radio-Theme oder Schalter
+    rrw_radio_save($tmp,['stations'=>[['id'=>'main','name'=>'Test FM','source'=>'lautfm','lautfm_id'=>'testfm']],'default'=>'main']);
+    touch($tmp.'/.wp/front-on');file_put_contents($tmp.'/.wp/options.json',json_encode(['stylesheet'=>['v'=>serialize('elvado-radio')]]));
+    t('Herstellerpaket: keine Radio-Verdrahtung (Bestandsschutz)',!rrw_alexa_radio_sync($site)&&!rrw_alexa_radio_sync(['alexa'=>['radio_sync'=>true]])&&rrw_alexa_radio_defs(['alexa'=>['radio_sync'=>true]])===[]);
+    system('rm -rf '.escapeshellarg($tmp));
+    echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden (Rest gilt nur im Baukasten-Modus)\n";exit($fail?1:0);
+}
 t('Baukasten-Modus (kein Paket)',rrw_alexa_neutral());
 t('Ohne Radio-Konfiguration: keine Verdrahtung',!rrw_alexa_radio_sync($site)&&rrw_alexa_radio_defs($site)===[]);
 rrw_radio_save($tmp,['stations'=>[

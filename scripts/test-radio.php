@@ -121,7 +121,7 @@ $bp=page('/')['body'];t('Plugin-Haken auf der Startseite (nach Hero, nach Abschn
 // Alexa-Hinweis nur, wenn der Skill läuft (hat die Einstellungen abgerufen)
 t('Kein Alexa-Hinweis ohne verbundenen Skill',!str_contains(page('/')['body'],'rd-alexa'));
 require_once __DIR__.'/../cms/lib/alexa.php';$GLOBALS['RRW_SITE']['alexa']=['invocation'=>'mein radio'];rrw_alexa_note_fetch($data);
-t('Alexa-Hinweis mit Aufrufname bei verbundenem Skill',str_contains(page('/')['body'],'Alexa, öffne mein radio'));
+t('Alexa-Hinweis mit Aufrufname bei verbundenem Skill (nur Baukasten-Modus; mit Herstellerpaket bleibt der Bestand)',!rrw_alexa_neutral()||str_contains(page('/')['body'],'Alexa, öffne mein radio'));
 $GLOBALS['RRW_SITE']['alexa']['enabled']=false;t('Kein Hinweis bei abgeschaltetem Skill',!str_contains(page('/')['body'],'rd-alexa'));unset($GLOBALS['RRW_SITE']['alexa']);
 // Schalter
 rrw_radio_save($data,['stations'=>$saved['stations'],'default'=>'main','schedule'=>$saved['schedule'],'show'=>['news'=>false,'schedule'=>false,'history'=>false,'stations'=>false]]);
