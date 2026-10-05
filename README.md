@@ -1,6 +1,21 @@
 <p align="center"><img src="cms/assets/brand/elvadopress-logo.png" alt="ElvadoPress" width="560"></p>
 
-# ElvadoPress
+<h1 align="center">ElvadoPress</h1>
+
+<p align="center"><strong>Modernes, erweiterbares Content-Management-System für Websites, Themes, Plugins und eigene Web-Projekte.</strong></p>
+
+<p align="center">
+  <img alt="PHP 8.1+" src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php&logoColor=white">
+  <img alt="License GPL-2.0-or-later" src="https://img.shields.io/badge/License-GPL--2.0--or--later-blue">
+  <img alt="CI" src="https://github.com/ricorewioriginal-collab/ElvadoPress/actions/workflows/ci.yml/badge.svg">
+  <img alt="No build step" src="https://img.shields.io/badge/Build%20step-not%20required-success">
+</p>
+
+<p align="center">
+  <a href="https://elvadopress.ricorewi-radio.de">Live-Demo</a> ·
+  <a href="INSTALL.md">Installation</a> ·
+  <a href="cms/docs/">Dokumentation</a>
+</p>
 
 ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung von Websites – mit Themes, Plugins, visueller Bearbeitung, Medienverwaltung und entwicklerfreundlicher API. Es läuft auf normalem PHP-Webhosting, speichert Inhalte in Dateien (optional zusätzlich in SQLite, MySQL, MariaDB oder PostgreSQL) und braucht keinen Build-Schritt.
 
