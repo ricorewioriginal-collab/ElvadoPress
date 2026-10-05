@@ -68,6 +68,24 @@ t('Änderungsprotokoll fasst Änderungen zusammen (und schweigt bei keiner)',fun
     $s=rrw_apps_change_summary('apps',$a,$b);foreach(['Rollout 100 % → 20 %','Wartungsmodus an','3.0.1'] as $x)if(strpos($s,$x)===false)throw new RuntimeException("fehlt '$x' in: $s");
     eq(rrw_apps_change_summary('apps',$a,$a),'');
 });
+t('App-Builder: eigene Sender (https-Stream) werden bereinigt und ausgeliefert',function(){
+    $bld=fn($custom)=>rrw_apps_clean(['managed'=>['meinradio:android'=>['builder'=>['enabled'=>true,'stations'=>['order'=>['aa'],'custom'=>$custom]]]]])['managed']['meinradio:android']['builder']['stations'];
+    $c=$bld([
+        ['title'=>'Mein Stream','stream'=>'https://stream.example.org/live.mp3','logo'=>'https://example.org/l.png'],
+        ['title'=>'Ohne https','stream'=>'http://stream.example.org/live'],
+        ['title'=>'','stream'=>'https://stream.example.org/x'],
+        ['title'=>'Mein Stream','stream'=>'https://stream.example.org/zwei'],   // gleiche Kennung: entfällt
+        ['id'=>'../x','title'=>'Böse','stream'=>'https://stream.example.org/y'],
+        'kein Array',
+    ])['custom'];
+    eq(count($c),1);eq($c[0]['id'],'mein-stream');eq($c[0]['stream'],'https://stream.example.org/live.mp3');eq($c[0]['logo'],'https://example.org/l.png');
+    eq(count($bld(array_fill(0,40,['title'=>'xx','stream'=>'https://a.example.org/s']))['custom']),1,'doppelte Kennungen');
+    $many=[];for($i=0;$i<40;$i++)$many[]=['title'=>"Sender $i",'stream'=>"https://a.example.org/$i"];eq(count($bld($many)['custom']),20,'höchstens 20');
+});
+t('App-Builder: ohne eigene Sender bleibt die Ausgabe unverändert (kein custom-Schlüssel)',function(){
+    $st=rrw_apps_clean(['managed'=>['meinradio:android'=>['builder'=>['enabled'=>true,'stations'=>['order'=>['aa'],'hidden'=>['bb']]]]]])['managed']['meinradio:android']['builder']['stations'];
+    eq($st,['order'=>['aa'],'hidden'=>['bb']]);
+});
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exec('rm -rf '.escapeshellarg($root));
 exit($fail?1:0);

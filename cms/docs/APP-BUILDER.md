@@ -26,6 +26,10 @@ Die App fragt beim Start deine Website (`app_config`) nach Funktionen, Startseit
 ## Signatur und Play Store
 Ohne Schlüssel entsteht eine **Entwickler-APK** (Debug-Signatur). Für gleichbleibende Signatur und Updates lege diese Repository-Secrets an: `ANDROID_DEVELOPER_KEYSTORE_BASE64`, `ANDROID_DEVELOPER_KEYSTORE_PASSWORD`, `ANDROID_DEVELOPER_KEY_ALIAS`, `ANDROID_DEVELOPER_KEY_PASSWORD`. Pakete für den Play Store (AAB, Release-Schlüssel) werden mit dem Workflow „Android APK / AAB“ im Repository auf Knopfdruck erzeugt.
 
+## Eigene Sender und beliebige Streams
+* **App:** Im Builder (Apps → Layout) legst du unter **Eigene Sender** bis zu 20 Sender mit beliebiger **https-Stream-Adresse** an (Name, Stream, optional Logo-Adresse). Sie stehen in der Konfiguration `layout.stations.custom` (`id`, `title`, `stream`, optional `logo`) und erscheinen zusätzlich zu den Sendern des Core-Netzwerks; Reihenfolge und Sichtbarkeit gelten über `order`/`hidden` auch für sie. Ohne eigene Sender fehlt der Schlüssel `custom`, die Ausgabe bleibt wie bisher.
+* **Alexa:** Im Bereich Alexa-Skill kann jeder Sender eine eigene https-Stream-Adresse bekommen (leer = laut.fm). Alexa spielt nur https. Bei eigenen Streams gibt es keine Titel- und Sendeplan-Auskunft (die kommt von laut.fm).
+
 ## Alexa-Skill
 Für Radio-Apps erzeugt das CMS im Bereich **Alexa-Skill** das einreichfertige Paket (Sprachmodell, Skill-Angaben, Backend, Anleitung) passend zu deinen Sendern. Einreichen musst du es selbst bei Amazon (Developer-Konto, Zertifizierung); der Skill selbst braucht kein Control Center. Für Website-Apps ist kein Skill vorgesehen.
 

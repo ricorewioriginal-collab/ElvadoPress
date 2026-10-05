@@ -47,7 +47,9 @@ async function loadConfig() {
 const cfgOf = (h) => h.attributesManager.getRequestAttributes().cfg;
 const enabledStations = (cfg) => cfg.stations.filter((s) => s.enabled);
 const byId = (cfg, id) => cfg.stations.find((s) => s.id === id) || null;
-const streamUrl = (cfg, id) => cfg.stream_url.split('{id}').join(id);
+const streamUrl = (cfg, id) => { const st = byId(cfg, id); return (st && st.stream) || cfg.stream_url.split('{id}').join(id); };
+// Eigene Stream-Adressen haben keine laut.fm-Schnittstelle (Titel, Sendeplan)
+const isCustom = (cfg, id) => { const st = byId(cfg, id); return !!(st && st.stream); };
 
 // Dynamische Texte gehören in SSML: Sonderzeichen entschärfen, Zahlen im Sendernamen ausschreiben
 const tidy = (s) => s.replace(/\s+/g, ' ').trim();
@@ -129,6 +131,7 @@ function berlinNow(date) {
 
 let scheduleCache = new Map();
 async function loadSchedule(cfg, id) {
+  if (isCustom(cfg, id)) throw new Error('eigener Stream');
   const hit = scheduleCache.get(id);
   if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.list;
   // Zuerst der Sendeplan-Dienst des Portals (gemeinsamer Zwischenspeicher, nur eigene Sender); sonst direkt laut.fm
@@ -249,6 +252,7 @@ const NowPlayingHandler = {
     const id = pickStation(h);
     if (!id) return h.responseBuilder.speak(`Gerade läuft nichts. Sag zum Beispiel: Spiele ${examples(cfg)}.`).getResponse();
     try {
+      if (isCustom(cfg, id)) throw new Error('eigener Stream');
       const d = await fetchJson(`${cfg.api_base}${id}/current_song`);
       const title = (d && d.title) || '';
       const artist = (d && d.artist && d.artist.name) || '';

@@ -128,10 +128,13 @@ t('Radioverzeichnis: Kennung nach außen neutral',(function() use($pkg){ return 
 $ax=json_decode(http('GET',"$B/cms/api.php?action=alexa_get",[],$H)['body'],true)?:[];
 t('Alexa: Baukasten-Modus ohne Sender',($ax['neutral']??null)===true&&($ax['stations']??null)===[],json_encode($ax));
 t('Alexa: Aufrufname aus dem Website-Namen',($ax['invocation']??'')==='mein test radio',(string)($ax['invocation']??''));
-$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'alexa','value'=>['default_station'=>'meinradio','stations'=>['meinradio'=>['enabled'=>true,'title'=>'Mein Radio','extra'=>['meins']],'zweites-24'=>['enabled'=>true,'title'=>'','extra'=>[]]],'order'=>['meinradio','zweites-24']]])],array_merge($H,['Content-Type: application/json']));
+$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'alexa','value'=>['default_station'=>'meinradio','stations'=>['meinradio'=>['enabled'=>true,'title'=>'Mein Radio','extra'=>['meins']],'zweites-24'=>['enabled'=>true,'title'=>'','extra'=>[]],'eigener-stream'=>['enabled'=>true,'title'=>'Eigener Stream','extra'=>[],'stream'=>'https://stream.example.org/live.mp3'],'unsicher'=>['enabled'=>true,'title'=>'Unsicher','extra'=>[],'stream'=>'http://stream.example.org/live.mp3']],'order'=>['meinradio','zweites-24','eigener-stream','unsicher']]])],array_merge($H,['Content-Type: application/json']));
 t('Alexa: Einstellungen speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
 $pub=json_decode(http('GET',"$B/cms/api.php?action=alexa_config")['body'],true)?:[];
-t('Alexa: öffentliche Konfiguration mit eigenen Sendern',($pub['default']??'')==='meinradio'&&count($pub['stations']??[])===2&&($pub['name']??'')==='Mein Test-Radio',json_encode($pub));
+t('Alexa: öffentliche Konfiguration mit eigenen Sendern',($pub['default']??'')==='meinradio'&&count($pub['stations']??[])===4&&($pub['name']??'')==='Mein Test-Radio',json_encode($pub));
+$byid=[];foreach($pub['stations']??[] as $x)$byid[$x['id']]=$x;
+t('Alexa: eigene https-Stream-Adresse wird übernommen',($byid['eigener-stream']['stream']??'')==='https://stream.example.org/live.mp3'&&!isset($byid['meinradio']['stream']),json_encode($pub['stations']??[]));
+t('Alexa: Stream ohne https wird verworfen',!isset($byid['unsicher']['stream']));
 t('Alexa: Marken-Zuordnung für den Skill',($pub['brand_map']['main']??'')==='meinradio');
 t('Alexa: Begrüßung nennt den Namen der Website',str_contains((string)($pub['texts']['welcome']??''),'Mein Test-Radio'));
 t('Alexa: keine RicoReWi-Texte in der öffentlichen Konfiguration',!preg_match('/ricorewi|rico rewi|anmacha|senderwelt/i',json_encode($pub)));

@@ -40,6 +40,11 @@ window.AppBuilder=(()=>{
   const o=order(b);if(!o.length)return '<p class="hint">Keine Core-Sender vorhanden.</p>';
   return o.map((s,i)=>`<div class="ap-st"><label class="ap-check"><input type="checkbox" ${b.stations.hidden.includes(s)?'':'checked'} onchange="AppBuilder.toggleStation(${A(k)},'${esc(s)}',this.checked)"> ${esc(s)}</label>${ctl(k,i,o.length,'moveStation')}</div>`).join('');
  }
+ function customEditor(k,b){
+  const c=b.stations.custom=b.stations.custom||[];
+  const rows=c.map((x,i)=>`<div class="ap-tile"><input class="fc" maxlength="40" placeholder="Sendername" value="${esc(x.title||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.title',this.value)"><input class="fc" placeholder="Stream-Adresse https://…" value="${esc(x.stream||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.stream',this.value)"><input class="fc" placeholder="Logo-Adresse https://… (optional)" value="${esc(x.logo||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.logo',this.value)"><button class="btn-g" onclick="AppBuilder.delCustom(${A(k)},${i})" title="Entfernen"><i class="fas fa-trash"></i></button></div>`).join('');
+  return `<div class="ap-sub">Eigene Sender (beliebige https-Streams, max. 20)</div>${rows||'<p class="hint">Noch keine eigenen Sender.</p>'}<button class="btn-g" onclick="AppBuilder.addCustom(${A(k)})" ${c.length>=20?'disabled':''}><i class="fas fa-plus"></i> Sender</button>`;
+ }
  function menuEditor(k,b){
   const MENU=menu(),hide=Object.keys(MENU).map(m=>`<label class="ap-check"><input type="checkbox" ${b.more_menu.hide.includes(m)?'':'checked'} onchange="AppBuilder.toggleMenu(${A(k)},'${m}',this.checked)"> ${esc(MENU[m])}</label>`).join('');
   const cu=b.more_menu.custom.map((c,i)=>`<div class="ap-tile"><input class="fc" maxlength="40" placeholder="Titel" value="${esc(c.title||'')}" oninput="AppBuilder.set(${A(k)},'more_menu.custom.${i}.title',this.value)"><input class="fc" placeholder="https://…" value="${esc(c.url||'')}" oninput="AppBuilder.set(${A(k)},'more_menu.custom.${i}.url',this.value)"><input class="fc" maxlength="60" placeholder="Untertitel (optional)" value="${esc(c.sub||'')}" oninput="AppBuilder.set(${A(k)},'more_menu.custom.${i}.sub',this.value)"><button class="btn-g" onclick="AppBuilder.delMenu(${A(k)},${i})"><i class="fas fa-xmark"></i></button></div>`).join('');
@@ -47,7 +52,7 @@ window.AppBuilder=(()=>{
  }
  function preview(b){
   const ac=b.theme.accent||DEF.accent,f=b.theme.hero_from||DEF.from,t=b.theme.hero_to||DEF.to;
-  const o=order(b).filter(s=>!b.stations.hidden.includes(s));
+  const o=order(b).filter(s=>!b.stations.hidden.includes(s)).concat((b.stations.custom||[]).filter(c=>c.title&&c.stream).map(c=>c.title));
   const parts=b.home.map(x=>{
    if(x.type==='hero')return `<div class="pv-hero" style="background:linear-gradient(135deg,${esc(f)},${esc(t)})"><small>${esc(x.eyebrow||'')}</small><b>${esc(x.title||'Willkommen')}</b><span>${esc(x.text||'')}</span><i style="background:${esc(ac)}">▶ Jetzt hören</i></div>`;
    if(x.type==='tiles')return `${x.title?`<div class="pv-h">${esc(x.title)}</div>`:''}<div class="pv-tiles">${(x.tiles||[]).map(tl=>`<div>${esc(tl.title||TILES[tl.id]||tl.id)}</div>`).join('')}</div>`;
@@ -65,7 +70,7 @@ window.AppBuilder=(()=>{
    <label class="ap-check"><input type="checkbox" ${b.enabled?'checked':''} onchange="AppBuilder.set(${A(k)},'enabled',this.checked,true)"> <b>Builder aktiv</b> – die App übernimmt Farben, Startseite, Sender und Menü aus dem CMS (aus = Standard-Layout)</label>
    <div class="ap-sub">Farben</div><div class="ap-grid">${color('Akzentfarbe (Buttons, Highlights)',b.theme.accent,'theme.accent',k,DEF.accent)}${color('Karte von',b.theme.hero_from,'theme.hero_from',k,DEF.from)}${color('Karte bis',b.theme.hero_to,'theme.hero_to',k,DEF.to)}</div>
    <div class="ap-sub">Startseite (von oben nach unten; leer = Standard-Startseite)</div>${b.home.map((x,i)=>block(k,x,i,b.home.length)).join('')}<div class="ap-add">${add}</div>
-   <div class="ap-sub">Sender: Reihenfolge &amp; Sichtbarkeit (Core-Netzwerk)</div>${stationsEditor(k,b)}
+   <div class="ap-sub">Sender: Reihenfolge &amp; Sichtbarkeit (Core-Netzwerk)</div>${stationsEditor(k,b)}${customEditor(k,b)}
    <div class="ap-sub">„Mehr“-Menü</div>${menuEditor(k,b)}
   </div><div class="ap-bright">${preview(b)}</div></div></div>`;
  }
@@ -83,6 +88,8 @@ window.AppBuilder=(()=>{
   moveStation(k,i,d){const b=cfg(k),o=order(b),j=i+d;if(j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];b.stations.order=o;redraw(k);},
   toggleStation(k,s,on){const b=cfg(k),h=b.stations.hidden.filter(x=>x!==s);if(!on)h.push(s);b.stations.hidden=h;refreshPreview(k);},
   toggleMenu(k,m,on){const b=cfg(k),h=b.more_menu.hide.filter(x=>x!==m);if(!on)h.push(m);b.more_menu.hide=h;},
+  addCustom(k){const b=cfg(k),c=b.stations.custom=b.stations.custom||[];if(c.length>=20)return;c.push({title:'',stream:'',logo:''});redraw(k);},
+  delCustom(k,i){cfg(k).stations.custom.splice(i,1);redraw(k);},
   addMenu(k){const b=cfg(k);if(b.more_menu.custom.length>=6)return;b.more_menu.custom.push({title:'',sub:'',url:''});redraw(k);},
   delMenu(k,i){cfg(k).more_menu.custom.splice(i,1);redraw(k);}
  };

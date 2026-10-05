@@ -42,6 +42,8 @@ function rrw_alexa_catalog(): array {
         'brands'=>[['id'=>'main','station'=>$default,'names'=>array_values(array_unique([$nm,$inv])),'syn'=>[]]]];
 }
 function rrw_alexa_text($v,int $max): string { return mb_substr(trim(strip_tags((string)$v)),0,$max); }
+/** Eigene Stream-Adresse eines Senders (nur Baukasten-Modus): Alexa spielt Streams ausschließlich über https. */
+function rrw_alexa_stream_clean($v): string { $v=trim((string)$v);return preg_match('~^https://[^\s"\'<>]{4,400}$~i',$v)&&filter_var($v,FILTER_VALIDATE_URL)?$v:''; }
 function rrw_alexa_id($v): string { $v=strtolower(trim((string)$v));return preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$v)?$v:''; }
 
 function rrw_alexa_defaults(): array {
@@ -100,6 +102,7 @@ function rrw_alexa_clean($v): array {
         $id=rrw_alexa_id($id);if($id===''||!is_array($s))continue;
         $extra=[];foreach(array_slice((array)($s['extra']??[]),0,30) as $x){$x=mb_strtolower(preg_replace('/[^\p{L}\p{N} ]+/u',' ',rrw_alexa_text($x,60)));$x=trim(preg_replace('/\s+/',' ',$x));if($x!==''&&!in_array($x,$extra,true))$extra[]=$x;}
         $out['stations'][$id]=['enabled'=>!array_key_exists('enabled',$s)||!empty($s['enabled']),'title'=>rrw_alexa_text($s['title']??'',60),'extra'=>$extra];
+        if(rrw_alexa_neutral()&&($u=rrw_alexa_stream_clean($s['stream']??''))!=='')$out['stations'][$id]['stream']=$u;
     }
     if(!$out['stations'])$out['stations']=new stdClass();
     foreach(array_slice((array)($v['order']??[]),0,80) as $id){$id=rrw_alexa_id($id);if($id!==''&&!in_array($id,$out['order'],true))$out['order'][]=$id;}
@@ -133,6 +136,7 @@ function rrw_alexa_station_defs(array $site): array {
         $s['enabled']=!array_key_exists('enabled',$o)||!empty($o['enabled']);
         if(!empty($o['title']))$s['title']=$o['title'];
         $s['extra']=(array)($o['extra']??[]);
+        if(!empty($o['stream']))$s['stream']=$o['stream'];
         $defs[$id]=$s;
     }
     $ordered=[];foreach($cfg['order'] as $id)if(isset($defs[$id])){$ordered[$id]=$defs[$id];unset($defs[$id]);}
@@ -204,7 +208,7 @@ function rrw_alexa_token(string $dataDir,bool $reset=false): string {
 function rrw_alexa_public(array $site,string $dataDir,string $origin): array {
     $cat=rrw_alexa_catalog();$cfg=rrw_alexa_clean($site['alexa']??[]);$defs=rrw_alexa_station_defs($site);
     $stations=[];$enabled=[];
-    foreach($defs as $id=>$s){$stations[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled']];if($s['enabled'])$enabled[]=$id;}
+    foreach($defs as $id=>$s){$stations[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled']]+(!empty($s['stream'])?['stream'=>$s['stream']]:[]);if($s['enabled'])$enabled[]=$id;}
     $default=in_array($cfg['default_station'],$enabled,true)?$cfg['default_station']:($enabled[0]??$cfg['default_station']);
     if($cfg['daily']&&$enabled)$default=$enabled[(int)date('z')%count($enabled)];
     $out=['status'=>'ok','enabled'=>$cfg['enabled'],'maintenance'=>$cfg['maintenance']['enabled']?$cfg['maintenance']['text']:null,
