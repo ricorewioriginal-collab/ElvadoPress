@@ -15,6 +15,7 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/lib/radio.php`, `cms/radio.php` | Radio-Erweiterung: Sender/Quellen (laut.fm, Icecast, Shoutcast), Jetzt läuft, Sendeplan; öffentlicher JSON-Endpunkt. |
 | `cms/themes/` | mitgelieferte Themes: `rrw-classic` (Standard), `elvado-baukasten` (Homepage-Baukasten), `elvado-radio` (Radio), `elvado-band` (Band/Musiker), `elvado-creator` (Creator/Influencer). |
 | `cms/lib/themeconf.php`, `cms/lib/band.php`, `cms/lib/creator.php` | Theme-Menüs aus Schema (Editor, Speichern, Bereinigung); Band-Schema. |
+| `cms/src/`, `frontend/`, `cms/assets/react/` | Kern-Infrastruktur (DB, KI-Gateway, Lovable, GitHub-Sync) und React-Quellen/Bündel; Doku `cms/docs/KI-LOVABLE.md`. |
 | `cms/views/` | PHP-Panels/Teilansichten der Verwaltung. |
 | `cms/assets/` | JavaScript, CSS, Branding und statische Verwaltungsassets. |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |

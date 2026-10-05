@@ -1026,6 +1026,44 @@ if($action==='media_library_delete'){
     else rrw_json(['status'=>'error','message'=>'Medium nicht gefunden'],404);
     rrw_json(['status'=>'ok']);
 }
+// KI-Gateway (EvoLink, OpenAI, Anthropic, Google, OpenRouter, DeepSeek) und Lovable/GitHub-Anbindung (Menü „KI & Lovable“): Dienste in cms/src/ (Namensraum Elvado\)
+if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action==='core_posts_mirror'){
+    require_once __DIR__.'/src/autoload.php';
+    $kUser=in_array($action,['ai_status','ai_generate'],true)?rrw_auth(false):rrw_auth(true);$kB=rrw_body();
+    $kDb=function() use($dataDir){ $db=\Elvado\Database\DatabaseConnection::fromCmsSettings($dataDir);$db->migrateCore();return $db; };
+    try{
+        if(str_starts_with($action,'ai_')){
+            $aiCfg=\Elvado\Ai\AiGatewayConfig::load($dataDir,$site);
+            if($action==='ai_status')rrw_json(['status'=>'ok','providers'=>(new \Elvado\Ai\AiGatewayService($aiCfg))->usableProviders(),'tasks'=>\Elvado\Ai\AiGatewayService::TASKS,'default'=>$aiCfg->defaultProvider()]);
+            if($action==='ai_config_get')rrw_json(['status'=>'ok','config'=>$aiCfg->adminView(),'tasks'=>\Elvado\Ai\AiGatewayService::TASKS]);
+            if($action==='ai_config_save'){ $aiCfg->save(is_array($kB['config']??null)?$kB['config']:[]);rrw_log_activity($activityLogFile,$kUser,'ai_config','KI-Gateway: Einstellungen gespeichert');rrw_json(['status'=>'ok','config'=>$aiCfg->adminView()]); }
+            if($action==='ai_logs'){ $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){} rrw_json(['status'=>'ok','available'=>$lg!==null,'summary'=>$lg?$lg->summary(30):[],'recent'=>$lg?$lg->recent(30):[]]); }
+            if($action==='ai_generate'){
+                $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}   // Protokoll ist optional (ohne Datenbank/SQLite-Erweiterung entfällt es)
+                $svc=new \Elvado\Ai\AiGatewayService($aiCfg,$lg,new \Elvado\Support\RateLimiter($dataDir.'/.ai/ratelimit'));
+                $res=$svc->generate(['provider'=>(string)($kB['provider']??''),'task'=>(string)($kB['task']??'text'),'prompt'=>(string)($kB['prompt']??''),'text'=>(string)($kB['text']??''),'language'=>(string)($kB['language']??''),'model'=>(string)($kB['model']??''),
+                    'temperature'=>isset($kB['temperature'])?(float)$kB['temperature']:null,'max_tokens'=>isset($kB['max_tokens'])?(int)$kB['max_tokens']:1200,'user'=>(string)($kUser['user']??'')]+[]);
+                rrw_json(['status'=>'ok']+$res->toArray());
+            }
+        }
+        if($action==='core_posts_mirror'){ $n=(new \Elvado\Repository\PostRepository($kDb()))->mirror(rrw_read_json($newsFile,[]));rrw_log_activity($activityLogFile,$kUser,'core_posts','Beiträge in die Kern-Datenbank gespiegelt ('.$n.')');rrw_json(['status'=>'ok','posts'=>$n]); }
+        if(str_starts_with($action,'lovable_')){
+            $lvSet=\Elvado\Lovable\LovableSettings::load($dataDir);$origin=rrw_site_origin($site);
+            $lvSync=new \Elvado\GitHub\GitHubSyncService($lvSet,__DIR__.'/frontend/lovable',$dataDir);
+            $lvWidgets=function() use($kDb){ try{ return (new \Elvado\Repository\LovableWidgetRepository($kDb()))->all(); }catch(Throwable $e){ return null; } };
+            $lvView=fn()=>['settings'=>$lvSet->adminView(),'widgets'=>$lvWidgets(),'sync'=>$lvSync->status(),'webhook_url'=>$origin.'/cms/github-webhook.php','provider_url'=>$origin.'/cms/api-lovable-provider.php','origin'=>$origin];
+            if($action==='lovable_get')rrw_json(['status'=>'ok']+$lvView());
+            if($action==='lovable_save'){ $lvSet->save(is_array($kB['settings']??null)?$kB['settings']:[]);rrw_log_activity($activityLogFile,$kUser,'lovable_save','Lovable/GitHub: Einstellungen gespeichert');$lvSet=\Elvado\Lovable\LovableSettings::load($dataDir);rrw_json(['status'=>'ok']+$lvView()); }
+            if($action==='lovable_secret_rotate'){ $sec=$lvSet->rotateSecret();rrw_log_activity($activityLogFile,$kUser,'lovable_secret','GitHub-Webhook-Geheimnis erneuert');rrw_json(['status'=>'ok','secret'=>$sec]+$lvView()); }   // Klartext nur in dieser Antwort
+            if($action==='lovable_widget_save'){ $w=(new \Elvado\Repository\LovableWidgetRepository($kDb()))->save(is_array($kB['widget']??null)?$kB['widget']:[]);rrw_log_activity($activityLogFile,$kUser,'lovable_widget','Lovable-Widget „'.$w['component_name'].'“ gespeichert');rrw_json(['status'=>'ok','widget'=>$w,'widgets'=>$lvWidgets()]); }
+            if($action==='lovable_widget_delete'){ (new \Elvado\Repository\LovableWidgetRepository($kDb()))->delete((int)($kB['id']??0));rrw_json(['status'=>'ok','widgets'=>$lvWidgets()]); }
+            if($action==='lovable_sync'){ @set_time_limit(180);$r=$lvSync->sync(!empty($kB['force']));rrw_log_activity($activityLogFile,$kUser,'lovable_sync','GitHub-Synchronisation: '.$r['status'].' ('.substr($r['sha'],0,7).')');rrw_json(['status'=>'ok','result'=>$r]+$lvView()); }
+        }
+    }catch(\Elvado\Ai\AiGatewayException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],$e->httpStatus());
+    }catch(\Elvado\GitHub\GitHubSyncException|\Elvado\Database\DatabaseException|\RuntimeException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422);
+    }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>'Unerwarteter Fehler ('.get_class($e).')'],500); }
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
+}
 // Freie Bildquellen (Pixabay, Pexels, Unsplash, Openverse, Wikimedia Commons) für die Mediathek: Status, Einstellungen (Schlüssel nur schreibend), Suche, Übernahme
 if(str_starts_with($action,'stock_')){
     require_once __DIR__.'/lib/stockmedia.php';
@@ -1442,7 +1480,7 @@ if($action==='database_config_save'){
     rrw_auth(true);$b=rrw_body();try{rrw_db_write_config((array)($b['database']??[]));$site['storage']=rrw_clean_section('storage',(array)($b['storage']??[]));rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','database'=>rrw_db_status(),'storage'=>$site['storage']]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
 }
 if($action==='database_push'){
-    rrw_auth(true);try{$x=rrw_db_push($site,rrw_read_json($newsFile,[]));rrw_json(['status'=>'ok','synced'=>$x,'database'=>rrw_db_status()]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
+    rrw_auth(true);try{$x=rrw_db_push($site,rrw_read_json($newsFile,[]));try{ require_once __DIR__.'/src/autoload.php';$cdb=\Elvado\Database\DatabaseConnection::fromCmsSettings($dataDir);$cdb->migrateCore();$x['core_posts']=(new \Elvado\Repository\PostRepository($cdb))->mirror(rrw_read_json($newsFile,[])); }catch(Throwable $e){}rrw_json(['status'=>'ok','synced'=>$x,'database'=>rrw_db_status()]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
 }
 if($action==='database_pull'){
     rrw_auth(true);$b=rrw_body();if(($b['confirm']??'')!=='DATENBANK IMPORTIEREN')rrw_json(['status'=>'error','message'=>'Bestätigung fehlt'],400);
