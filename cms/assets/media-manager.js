@@ -83,6 +83,7 @@ window.MediaHub=(()=>{
   h.innerHTML='<div class="th"><div><div class="tt"><i class="fas fa-photo-film"></i>'+esc(selected.name)+'</div><div class="hint">'+esc(selected.mime||'')+' · '+formatBytes(selected.size)+(selected.width&&selected.height?' · '+selected.width+'×'+selected.height:'')+'</div></div><button class="btn-d" onclick="MediaHub.remove()"><i class="fas fa-trash"></i> Löschen</button></div>'+
    '<div class="media-detail"><div class="asset-preview" style="height:220px">'+(original?'<img src="'+esc(original)+'?m='+encodeURIComponent(selected.mtime||'')+'" alt="">':'')+'</div><div>'+
    '<label class="news-lbl">Original-URL</label><div style="display:flex;gap:6px"><input id="mediaHubUrl" class="fc w-100" readonly value="'+esc(original)+'"><button class="btn-g" onclick="navigator.clipboard.writeText(document.getElementById(\'mediaHubUrl\').value);cmsToast(\'URL kopiert ✓\')"><i class="fas fa-copy"></i></button></div>'+
+   (selected.credit?'<div class="hint" style="margin:10px 0"><i class="fas fa-copyright"></i> Bildnachweis: <b>'+esc(selected.credit.text||'')+'</b>'+(selected.credit.license?' · '+esc(selected.credit.license):'')+(selected.credit.source_url?' · <a href="'+esc(selected.credit.source_url)+'" target="_blank" rel="noopener">Quelle</a>':'')+'</div>':'')+
    (usageText(selected)?'<div class="danger-note" style="margin:10px 0"><i class="fas fa-link"></i> Verwendet als: <b>'+esc(usageText(selected))+'</b></div>':'')+
    '<label class="news-lbl" style="margin-top:10px">Erzeugte Größen</label>'+variantList(selected)+
    '<p class="hint" style="margin-top:8px">Original und Varianten gehören zu einem Medium. Die Website kann für Branding automatisch die passende Größe wählen.</p></div></div>'+
@@ -121,6 +122,6 @@ window.MediaHub=(()=>{
   load(true).then(()=>{const h=document.getElementById('mediaHubDetail');if(h){h.style.display='';h.innerHTML='<div class="empty"><i class="fas fa-photo-film"></i>Wähle links ein Medium für <b>'+esc(label)+'</b>.</div>';}}); 
  }
  function cancelBrandingPick(){brandingPick=null;if(selected)select(items.indexOf(selected));}
- async function load(force=false){bind();try{const d=await api('media_library_list');items=d.items||[];render()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
+ async function load(force=false){bind();window.StockMedia?.settings?.();try{const d=await api('media_library_list');items=d.items||[];render()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
  return {load,select,remove,copyVariant,assignBranding,beginBrandingPick,cancelBrandingPick,uploadFiles};
 })();

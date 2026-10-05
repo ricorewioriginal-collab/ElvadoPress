@@ -313,7 +313,7 @@ function editorHtml(){
           <div class="col-12">
             <label class="news-lbl">Artikel</label>
             <div style="display:flex;gap:5px;flex-wrap:wrap;padding:7px;background:var(--surface3);border:1px solid var(--border);border-bottom:0;border-radius:9px 9px 0 0;">
-              <button class="sp-tool-btn" onclick="newsFmt('bold')"><b>B</b></button><button class="sp-tool-btn" onclick="newsFmt('italic')"><i>I</i></button><button class="sp-tool-btn" onclick="newsFmt('formatBlock','h2')">H2</button><button class="sp-tool-btn" onclick="newsFmt('formatBlock','h3')">H3</button><button class="sp-tool-btn" onclick="newsFmt('insertUnorderedList')"><i class="fas fa-list-ul"></i></button><button class="sp-tool-btn" onclick="newsFmt('insertOrderedList')"><i class="fas fa-list-ol"></i></button><button class="sp-tool-btn" onclick="newsFmt('createLink')"><i class="fas fa-link"></i></button>
+              <button class="sp-tool-btn" onclick="newsFmt('bold')"><b>B</b></button><button class="sp-tool-btn" onclick="newsFmt('italic')"><i>I</i></button><button class="sp-tool-btn" onclick="newsFmt('formatBlock','h2')">H2</button><button class="sp-tool-btn" onclick="newsFmt('formatBlock','h3')">H3</button><button class="sp-tool-btn" onclick="newsFmt('insertUnorderedList')"><i class="fas fa-list-ul"></i></button><button class="sp-tool-btn" onclick="newsFmt('insertOrderedList')"><i class="fas fa-list-ol"></i></button><button class="sp-tool-btn" onclick="NewsMagazine.insertImage()" title="Bild einfügen (Mediathek oder freie Bilder)"><i class="fas fa-image"></i></button><button class="sp-tool-btn" onclick="newsFmt('createLink')"><i class="fas fa-link"></i></button>
             </div>
             <div id="newsBody" contenteditable="true" style="min-height:260px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:0 0 9px 9px;padding:14px;line-height:1.65;outline:none;"></div>
           </div>
@@ -350,7 +350,7 @@ function editorHtml(){
           <div class="tt" style="font-size:.85rem"><i class="fas fa-image"></i> Beitragsbild</div>
           <div style="display:flex;gap:7px;align-items:center;margin-top:10px">
             <input id="newsImage" class="fc w-100" placeholder="Bild-URL oder Upload">
-            <button type="button" class="btn-g" onclick="NewsMagazine.openMediaPicker()" title="Aus Mediathek wählen"><i class="fas fa-photo-film"></i></button>
+            <button type="button" class="btn-g" onclick="NewsMagazine.openMediaPicker()" title="Aus Mediathek wählen"><i class="fas fa-photo-film"></i></button><button type="button" class="btn-g" onclick="NewsMagazine.pickFeatured()" title="Freie Bilder (Pixabay, Pexels, Unsplash …)"><i class="fas fa-images"></i></button>
             <button type="button" class="btn-g" onclick="document.getElementById('newsThumbFile').click()" title="Thumbnail hochladen"><i class="fas fa-upload"></i></button>
             <input id="newsThumbFile" type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="NewsMagazine.uploadThumb(this)">
           </div>
@@ -667,5 +667,28 @@ async function importPrompt(){
   };
   inp.click();
 }
-window.NewsMagazine={importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
+
+/* Bild in den Artikeltext einfügen (Mediathek oder freie Bilder); bei Namensnennungspflicht mit Bildunterschrift */
+let savedRange=null;
+function rememberRange(){const sel=window.getSelection();if(sel&&sel.rangeCount){const r=sel.getRangeAt(0);const ed=document.getElementById('newsBody');if(ed&&ed.contains(r.commonAncestorContainer))savedRange=r.cloneRange()}}
+function insertImage(){
+  if(!window.StockMedia){say('Bildauswahl nicht verfügbar','error');return}
+  rememberRange();
+  StockMedia.open({onPick:(item,info)=>{
+    const ed=document.getElementById('newsBody');if(!ed)return;ed.focus();
+    const fig=document.createElement('figure'),img=document.createElement('img');img.src=info.urlFor(1024);img.alt=info.alt||'';fig.appendChild(img);
+    if(info.credit){const c=document.createElement('figcaption');c.textContent=info.credit;fig.appendChild(c)}
+    // hinter den Block einfügen, in dem der Cursor stand (oder ans Ende); ein leerer Absatz danach erlaubt weiteres Schreiben
+    let node=savedRange?savedRange.startContainer:null;while(node&&node.parentNode&&node.parentNode!==ed)node=node.parentNode;
+    const after=document.createElement('p');after.innerHTML='<br>';
+    if(node&&node.parentNode===ed){ed.insertBefore(fig,node.nextSibling)}else ed.appendChild(fig);
+    fig.after(after);ed.dispatchEvent(new Event('input',{bubbles:true}));
+    if(info.attribution&&!info.credit)say('Bitte den Bildnachweis ergänzen.','info');
+  }});
+}
+function pickFeatured(){
+  if(!window.StockMedia){say('Bildauswahl nicht verfügbar','error');return}
+  StockMedia.open({tab:'stock',onPick:(item,info)=>{document.getElementById('newsImage').value=info.url;renderThumbPreview()}});
+}
+window.NewsMagazine={insertImage,pickFeatured,importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
 })();

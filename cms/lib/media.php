@@ -35,9 +35,9 @@ function rrw_media_sizes($raw): array {
 }
 /**
  * Legt ein hochgeladenes Bild in der Bibliothek ab (Ordner library/<id>/ mit Original, Varianten und meta.json).
- * $f = Eintrag aus $_FILES; $mover = Funktion zum Verschieben (Standard move_uploaded_file; Tests/CLI: rename). Fehler als RuntimeException (Code = HTTP-Status).
+ * $credit = optionaler Bildnachweis (wird im meta.json gespeichert). $f = Eintrag aus $_FILES; $mover = Funktion zum Verschieben (Standard move_uploaded_file; Tests/CLI: rename). Fehler als RuntimeException (Code = HTTP-Status).
  */
-function rrw_media_library_store(array $f,array $sizes,int $quality=86,string $mover='move_uploaded_file'): array {
+function rrw_media_library_store(array $f,array $sizes,int $quality=86,string $mover='move_uploaded_file',array $credit=[]): array {
     if(($f['size']??0)<=0||$f['size']>20*1024*1024)throw new RuntimeException('Datei darf maximal 20 MB groß sein',400);
     if(!is_file((string)($f['tmp_name']??'')))throw new RuntimeException('Keine Datei',400);
     $mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
@@ -58,6 +58,7 @@ function rrw_media_library_store(array $f,array $sizes,int $quality=86,string $m
         if(!$variants&&$sizes)$warnings[]='Server kann für dieses Bild keine WebP-Varianten erzeugen; Original bleibt verfügbar.';
     } elseif($sizes&&in_array($ext,['jpg','jpeg','png','webp','gif'],true))$warnings[]='GD-Bildbibliothek ist auf dem Server nicht verfügbar; Original wurde gespeichert.';
     $meta=['id'=>$id,'name'=>mb_substr((string)($f['name']??('Bild '.$id)),0,200),'mime'=>$mime,'original'=>['url'=>'/cms/media/library/'.$id.'/original.'.$ext,'path'=>'library/'.$id.'/original.'.$ext,'size'=>(int)($f['size']??0)],'width'=>$sw??0,'height'=>$sh??0,'variants'=>$variants,'created_at'=>date(DATE_ATOM)];
+    if($credit)$meta['credit']=$credit;   // Bildnachweis bei übernommenen freien Bildern (Urheber, Quelle, Lizenz)
     rrw_write_atomic($dir.'/meta.json',json_encode($meta,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
     return ['item'=>$meta,'warnings'=>$warnings];
 }
@@ -106,7 +107,7 @@ function rrw_media_library_items(array $site=[]): array {
         foreach(glob($library.'/*',GLOB_ONLYDIR)?:[] as $dir){
             $meta=$dir.'/meta.json';if(!is_file($meta))continue;$m=json_decode((string)file_get_contents($meta),true);if(!is_array($m))continue;
             $orig=$m['original']??[];$url=(string)($orig['url']??'');$path='library/'.basename($dir);
-            $out[]=['id'=>(string)($m['id']??basename($dir)),'path'=>$path,'url'=>$url,'name'=>(string)($m['name']??basename($dir)),'bucket'=>'library','mime'=>(string)($m['mime']??''),'size'=>(int)($orig['size']??0),'mtime'=>(int)@filemtime($meta),'width'=>(int)($m['width']??0),'height'=>(int)($m['height']??0),'variants'=>(array)($m['variants']??[]),'original'=>$orig];
+            $out[]=['id'=>(string)($m['id']??basename($dir)),'path'=>$path,'url'=>$url,'name'=>(string)($m['name']??basename($dir)),'bucket'=>'library','credit'=>$m['credit']??null,'mime'=>(string)($m['mime']??''),'size'=>(int)($orig['size']??0),'mtime'=>(int)@filemtime($meta),'width'=>(int)($m['width']??0),'height'=>(int)($m['height']??0),'variants'=>(array)($m['variants']??[]),'original'=>$orig];
         }
         foreach(glob($library.'/*')?:[] as $file){
             if(!is_file($file))continue;$ext=strtolower(pathinfo($file,PATHINFO_EXTENSION));if(!in_array($ext,['png','jpg','jpeg','webp','gif','svg','ico'],true))continue;

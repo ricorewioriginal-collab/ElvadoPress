@@ -27,7 +27,7 @@ t('ZIP erzeugt',is_file($tmp.'/cms.zip')&&filesize($tmp.'/cms.zip')>100000);
 }
 
 /* Inhalt */
-t('Nur neutrale Themes im Paket (kein Portal-Design)',array_values(array_diff(scandir($pkg.'/cms/themes'),['.','..']))===['elvado-band','elvado-baukasten','elvado-radio','rrw-classic']);
+t('Nur neutrale Themes im Paket (kein Portal-Design)',array_values(array_diff(scandir($pkg.'/cms/themes'),['.','..']))===['elvado-band','elvado-baukasten','elvado-creator','elvado-radio','rrw-classic']);
 foreach(['index.html','news.html','sender.html','assets','android','windows-native','alexa','brands','downloads','app-screenshots','cms/lib/alexa-skill/lambda/node_modules','cms/standalone','cms/content/pages/partner','cms/docs/BRANDS.md','cms/docs/PARTNER.md'] as $x)t("Fehlt im Paket: $x",!file_exists("$pkg/$x"));
 foreach(['index.php','.htaccess','INSTALL.md','cms/api.php','cms/install.php','cms/wp-front.php','cms/lib/pack.php','cms/themes/rrw-classic/style.css','cms/data/.htaccess'] as $x)t("Im Paket: $x",file_exists("$pkg/$x"));
 t('Datenordner leer (nur Schutzdateien)',(function() use($pkg){ foreach(scandir($pkg.'/cms/data') as $f)if($f!=='.'&&$f!=='..'&&$f!=='.htaccess'&&!str_ends_with($f,'.example'))return false;return true; })());

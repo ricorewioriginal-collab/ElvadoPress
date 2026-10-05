@@ -19,7 +19,7 @@ function rrw_wp_cms_media_reset(): void { unset($GLOBALS['rrw_wp_cms_media_map']
 function rrw_wp_cms_media_post(int $id): ?WP_Post {
     $it=rrw_wp_cms_media_map()[$id]??null;if(!$it)return null;
     $url=rrw_wp_cms_media_url($it);$title=(string)pathinfo((string)($it['name']??basename($url)),PATHINFO_FILENAME);$d=date('Y-m-d H:i:s',(int)($it['mtime']??time()));
-    $p=new WP_Post((object)['ID'=>$id,'post_author'=>'1','post_date'=>$d,'post_date_gmt'=>$d,'post_content'=>'','post_title'=>esc_html($title),'post_excerpt'=>'','post_status'=>'inherit','comment_status'=>'closed','ping_status'=>'closed',
+    $p=new WP_Post((object)['ID'=>$id,'post_author'=>'1','post_date'=>$d,'post_date_gmt'=>$d,'post_content'=>'','post_title'=>esc_html($title),'post_excerpt'=>esc_html((string)($it['credit']['text']??'')),'post_status'=>'inherit','comment_status'=>'closed','ping_status'=>'closed',
         'post_name'=>sanitize_title($title),'post_modified'=>$d,'post_modified_gmt'=>$d,'post_parent'=>0,'guid'=>home_url($url),'menu_order'=>0,'post_type'=>'attachment','post_mime_type'=>(string)($it['mime']??''),'filter'=>'raw']);
     $p->rrw_source='media';$p->rrw_data=$it;return $p;
 }

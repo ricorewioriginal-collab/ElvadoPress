@@ -16,6 +16,10 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 
 - Band-Theme `cms/themes/elvado-band` (Poster-Stil) + generische Theme-Konfiguration `cms/lib/themeconf.php`/`band.php` (Menü „Band“ nur bei aktivem Theme, Editor aus Schema `cms/assets/theme-config.js`, API `themeconf_*`). Plugin-Haken in allen drei Themes (Radio, Baukasten, Band). Doku `cms/docs/THEMES.md`, Test `scripts/test-band.php`. Im Browser geprüft (Startseite, Player-Klick, Mobil, Band-Menü/Editor). Smoke-Test erwartet jetzt vier neutrale Themes.
 
+- Freie Bilder in der Mediathek (Pixabay, Pexels, Unsplash, Openverse, Wikimedia Commons): `cms/lib/stockmedia.php`, `cms/assets/stock-media.js` (zentrale Bildauswahl), API `stock_*`, Bildnachweis in `meta.json`, Bild-Knopf im Beitrags-Editor, Anbindung an alle Bildauswahlen. Doku `cms/docs/MEDIA.md`, Test `scripts/test-stockmedia.php`. Echte Anbieter-APIs nur mit Fake-Abruf getestet; Schlüssel für Pixabay/Pexels/Unsplash legt der Betreiber unter Medien an.
+
+- Creator-Theme `cms/themes/elvado-creator` (Influencer: Profil, Link-in-Bio `/links/`, Highlights, Feed, Empfehlungen mit Rabattcodes + Werbekennzeichnung, Drops mit Countdown, Mediakit, FAQ) + Schema `cms/lib/creator.php` (Menü „Creator“ über `themeconf.php`). Neuer Router-Filter `rrw_wp_404_status` (`cms/wp/router.php`) für virtuelle Theme-Seiten. Doku `cms/docs/THEMES.md`, Test `scripts/test-creator.php`. Smoke-Test erwartet jetzt fünf neutrale Themes.
+
 ## Aktuell in Arbeit
 Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokumentiert.
 
