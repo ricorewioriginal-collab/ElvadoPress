@@ -153,6 +153,13 @@ t('Dienste: Prüfung liefert Zustand je Dienst (lokal gesperrt, abgeschaltet üb
 t('Dienste: Prüfung nur für angemeldete Administratoren',http('GET',"$B/cms/api.php?action=services_status")['code']===401||http('GET',"$B/cms/api.php?action=services_status")['code']===403);
 $ar=json_decode(http('GET',"$B/cms/api.php?action=architecture",[],$H)['body'],true)?:[];
 t('Systemübersicht: neutrale Website-Bezeichnung, keine Core-Sender (Produktnamen folgen dem Paket)',($ar['components'][0]['name']??'')==='Website'&&($ar['core_stations']??null)===[],json_encode($ar));
+/* Speichern von Bereichen, die eine frische Installation noch nicht angelegt hat (Seiten, Soziale Profile, Rechtliches) */
+foreach(['pages'=>[],'social'=>['ricorewi_tiktok'=>''],'legal'=>['imprint_mode'=>'shared']] as $sec=>$val){
+    $r=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>$sec,'value'=>$val])],array_merge($H,['Content-Type: application/json']));
+    t("Bereich ‚".$sec."‘ lässt sich in einer frischen Installation speichern",(json_decode($r['body'],true)['status']??'')==='ok',$r['body']);
+}
+$r=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'rss','value'=>['enabled'=>true]])],array_merge($H,['Content-Type: application/json']));
+t('Feed-Titel ohne Angabe folgt dem Website-Namen (nicht dem des Herstellers)',str_contains((string)(json_decode($r['body'],true)['value']['title']??''),'Mein Test-Radio'),$r['body']);
 /* Alexa-Skill als Baukasten (ohne RicoReWi-Katalog) */
 $ax=json_decode(http('GET',"$B/cms/api.php?action=alexa_get",[],$H)['body'],true)?:[];
 t('Alexa: Baukasten-Modus ohne Sender',($ax['neutral']??null)===true&&($ax['stations']??null)===[],json_encode($ax));
