@@ -17,3 +17,11 @@
 .hb-picker-grid button{border:1px solid var(--border);background:transparent;border-radius:8px;padding:4px;cursor:pointer;color:var(--text);font-size:.7rem}.hb-picker-grid img{width:100%;height:70px;object-fit:cover;border-radius:6px}
 .hb-field .fc:not([type=checkbox]):not([type=number]){width:100%}.hb-img .fc{flex:1}
 [data-feature][hidden]{display:none!important}
+.tc-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}.tc-tabs button{display:inline-flex;gap:6px;align-items:center}
+.tc-tabs button.on{background:var(--accent);color:#04121f}
+.tc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.tc-grid .wide{grid-column:1/-1}
+.tc-item{border:1px solid var(--border);border-radius:12px;background:var(--surface);margin-bottom:8px;overflow:hidden}
+.tc-item-head{display:flex;gap:8px;align-items:center;padding:8px 10px;cursor:pointer}.tc-item-head b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc-item-body{display:none;padding:10px 12px 12px;border-top:1px solid var(--border)}.tc-item.open .tc-item-body{display:block}
+.tc-item .tools{display:flex;gap:4px}.tc-item .tools button{padding:4px 8px}
+.tc-img{display:flex;gap:8px;align-items:center}.tc-img img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}.tc-img .fc{flex:1}

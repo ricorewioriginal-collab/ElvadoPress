@@ -115,6 +115,9 @@ t('News-Abschnitt',str_contains($b,'Aktuelles')&&str_contains($b,'Beitrag 5'));
 t('Seitenaufbau ohne Netzabruf (Cache leer → Browser lädt nach)',true);
 set_theme_mod('rd_accent','#ff0000');set_theme_mod('rd_title','Mein <b>Radio</b>');
 $b=page('/')['body'];t('Farbe und Überschrift aus dem Customizer',str_contains($b,'--accent:#ff0000')&&str_contains($b,'Mein &lt;b&gt;Radio&lt;/b&gt;'));
+// Erweiterbarkeit: Plugin-Haken und Zusatzbereich
+add_action('elvado_rd_after_hero',function(){ echo '<!--rd-plugin-hero-->'; });add_action('elvado_rd_after_sections',function(){ echo '<!--rd-plugin-ende-->'; });
+$bp=page('/')['body'];t('Plugin-Haken auf der Startseite (nach Hero, nach Abschnitten)',str_contains($bp,'<!--rd-plugin-hero-->')&&strpos($bp,'<!--rd-plugin-hero-->')<strpos($bp,'<!--rd-plugin-ende-->')&&isset($GLOBALS['wp_registered_sidebars']['front-extra']));
 // Alexa-Hinweis nur, wenn der Skill läuft (hat die Einstellungen abgerufen)
 t('Kein Alexa-Hinweis ohne verbundenen Skill',!str_contains(page('/')['body'],'rd-alexa'));
 require_once __DIR__.'/../cms/lib/alexa.php';$GLOBALS['RRW_SITE']['alexa']=['invocation'=>'mein radio'];rrw_alexa_note_fetch($data);

@@ -78,5 +78,9 @@ update_option('elvado_bk_layout',[]);
 t('Leeres gespeichertes Layout: Startseite im Normallayout',str_contains(page('/')['body'],'site-content'));
 delete_option('elvado_bk_layout');
 t('Ohne gespeichertes Layout gelten die Positionen wieder',str_contains(page('/')['body'],'bk-hero'));
+// Erweiterbarkeit: Plugin-Haken je Abschnitt
+$hk=[];add_action('elvado_bk_after_section',function($sec) use(&$hk){ $hk[]=$sec['type']; });add_action('elvado_bk_after_sections',function(){ echo '<!--bk-plugin-->'; });
+update_option('elvado_bk_layout',elvado_bk_clean_layout([['type'=>'text','props'=>['body'=>'Hallo']],['type'=>'cta','props'=>['title'=>'X']]]));
+$bq=page('/')['body'];t('Plugin-Haken je Abschnitt und am Ende',$hk===['text','cta']&&str_contains($bq,'<!--bk-plugin-->'));
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

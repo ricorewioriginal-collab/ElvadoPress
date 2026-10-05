@@ -8,7 +8,9 @@ add_action('after_setup_theme',function(){
     register_nav_menus(['primary'=>'Hauptmenü','footer'=>'Fußmenü']);
 });
 add_action('widgets_init',function(){
-    register_sidebar(['name'=>'Seitenleiste','id'=>'sidebar-1','description'=>'Erscheint neben dem Inhalt.','before_widget'=>'<section id="%1$s" class="widget %2$s">','after_widget'=>'</section>','before_title'=>'<h2 class="widget-title">','after_title'=>'</h2>']);
+    $w=['before_widget'=>'<section id="%1$s" class="widget %2$s">','after_widget'=>'</section>','before_title'=>'<h2 class="widget-title">','after_title'=>'</h2>'];
+    register_sidebar(['name'=>'Seitenleiste','id'=>'sidebar-1','description'=>'Erscheint neben dem Inhalt.']+$w);
+    register_sidebar(['name'=>'Startseite: Zusatzbereich','id'=>'front-extra','description'=>'Erscheint auf der Startseite nach den Abschnitten – für Plugins und Widgets.']+$w);
 });
 add_action('wp_enqueue_scripts',function(){
     $v=wp_get_theme()->get('Version');

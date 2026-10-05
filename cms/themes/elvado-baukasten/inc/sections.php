@@ -89,6 +89,11 @@ function elvado_bk_section(array $s,int $n=0): void {
     }
 }
 function elvado_bk_render_front(): void {
-    $i=0;foreach(elvado_bk_active_layout() as $s){ if(empty($s['hidden']))elvado_bk_section($s,$i++); }
+    $i=0;
+    foreach(elvado_bk_active_layout() as $s){
+        if(!empty($s['hidden']))continue;
+        do_action('elvado_bk_before_section',$s);elvado_bk_section($s,$i++);do_action('elvado_bk_after_section',$s);   // Haken für Plugins
+    }
+    do_action('elvado_bk_after_sections');
 }
 function elvado_bk_is_builder_page(): bool { if(!is_front_page()||is_paged())return false;foreach(elvado_bk_active_layout() as $s)if(empty($s['hidden']))return true;return false; }
