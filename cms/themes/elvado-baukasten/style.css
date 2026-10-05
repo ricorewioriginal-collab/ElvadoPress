@@ -1,0 +1,56 @@
+/*
+Theme Name: ElvadoPress Baukasten
+Theme URI: https://github.com/ricorewioriginal-collab/ElvadoPress
+Description: Freier Homepage-Baukasten: Startseite aus Abschnitten (Hero, Text, Vorteile, Bild+Text, Beiträge, Aufruf, HTML) zusammenstellen; Farben, Schriften, Breiten, Kopf- und Fußbereich im Live-Customizer einstellen.
+Author: ElvadoPress
+Version: 1.0
+Text Domain: elvado-baukasten
+Requires PHP: 7.4
+*/
+:root{--bg:#f6f7fb;--card:#fff;--text:#1b2230;--muted:#5d6779;--line:#e3e7ef;--accent:#2563eb;--accent-d:#1d4ed8;--on-accent:#fff;--hero-bg:#1e3a8a;--hero-text:#fff;--radius:14px;--max:1120px;--sidebar:300px;--head-font:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--body-font:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;--fs:16px}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:var(--fs)/1.65 var(--body-font)}
+h1,h2,h3,h4,.site-title{font-family:var(--head-font);line-height:1.25}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent-d);text-decoration:underline}
+img,video,iframe{max-width:100%;height:auto}
+.screen-reader-text{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+.skip-link{position:absolute;left:-999px}.skip-link:focus{left:12px;top:12px;background:var(--card);padding:8px 12px;border-radius:8px;z-index:99}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+.site-header{background:var(--card);border-bottom:1px solid var(--line)}
+.header-sticky .site-header{position:sticky;top:0;z-index:50}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 0}
+.header-center .header-inner{flex-direction:column;text-align:center}
+.site-title{margin:0;font-size:1.35rem}.site-title a{color:var(--text)}.site-description{margin:0;color:var(--muted);font-size:.9rem}
+.site-branding{display:flex;align-items:center;gap:12px}
+.main-navigation ul{list-style:none;margin:0;padding:0;display:flex;gap:6px 18px;flex-wrap:wrap}
+.main-navigation a{color:var(--text);font-weight:600}.main-navigation .current-menu-item>a{color:var(--accent)}
+.site-content{display:grid;grid-template-columns:minmax(0,1fr) var(--sidebar);gap:32px;padding:28px 0}
+.site-content.no-sidebar{grid-template-columns:minmax(0,1fr)}
+.sidebar-left .site-content:not(.no-sidebar){grid-template-columns:var(--sidebar) minmax(0,1fr)}
+.sidebar-left .site-content:not(.no-sidebar) #sidebar{order:-1}
+@media(max-width:860px){.site-content,.sidebar-left .site-content:not(.no-sidebar){grid-template-columns:1fr}.sidebar-left .site-content #sidebar{order:0}}
+.post-card,.entry,.widget{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin:0 0 20px}
+.post-thumbnail img{border-radius:calc(var(--radius) - 4px);display:block}
+.entry-title{margin:.2em 0}.entry-title a{color:var(--text)}.entry-meta{color:var(--muted);font-size:.85rem}
+.widget-title{font-size:1rem;margin:0 0 10px}.widget ul{margin:0;padding-left:18px}
+.btn,.read-more,input[type=submit]{display:inline-block;background:var(--accent);color:var(--on-accent);padding:.6em 1.2em;border-radius:calc(var(--radius) - 4px);font-weight:700;border:0;cursor:pointer}
+.btn:hover,input[type=submit]:hover{background:var(--accent-d);color:var(--on-accent);text-decoration:none}
+.btn-ghost{background:transparent;color:inherit;border:2px solid currentColor}
+.site-footer{background:var(--card);border-top:1px solid var(--line);padding:22px 0;color:var(--muted);font-size:.9rem;text-align:center}
+.footer-navigation ul{list-style:none;margin:0 0 8px;padding:0;display:flex;gap:6px 16px;flex-wrap:wrap;justify-content:center}
+/* Baukasten-Abschnitte */
+.bk-section{padding:var(--bk-pad,56px) 0}
+.bk-wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+.bk-title{margin:0 0 .4em;font-size:clamp(1.5rem,3vw,2.1rem)}.bk-center{text-align:center}
+.bk-hero{background:var(--hero-bg) center/cover no-repeat;color:var(--hero-text);padding:calc(var(--bk-pad,56px)*1.6) 0}
+.bk-hero h1{margin:0 0 .3em;font-size:clamp(2rem,5vw,3.2rem)}.bk-hero p{margin:0 0 1.2em;font-size:1.15rem;opacity:.92}
+.bk-hero.has-overlay{position:relative}.bk-hero.has-overlay:before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45)}.bk-hero.has-overlay>*{position:relative}
+.bk-hero .btn{background:var(--on-accent);color:var(--accent)}
+.bk-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.bk-feature{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}.bk-feature h3{margin:0 0 .4em}
+.bk-split{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}.bk-split.rev .bk-split-img{order:2}
+.bk-split-img img{border-radius:var(--radius);display:block;width:100%}
+@media(max-width:760px){.bk-split{grid-template-columns:1fr}.bk-split.rev .bk-split-img{order:0}}
+.bk-posts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.bk-posts .post-card{margin:0}
+.bk-cta{background:var(--accent);color:var(--on-accent);text-align:center}.bk-cta .btn{background:var(--on-accent);color:var(--accent)}
+.bk-alt{background:var(--card)}
