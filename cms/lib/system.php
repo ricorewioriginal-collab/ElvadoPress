@@ -40,7 +40,9 @@ function rrw_system_save(array $in): array {
 
 /** Nicht verfügbar im eigenständigen Betrieb: einheitlicher Hinweistext. */
 function rrw_standalone_notice(string $what=''): string {
-    return ($what!==''?$what.' ist ':'Diese Funktion ist ').'im eigenständigen Betrieb nicht verfügbar (Control-Center-Anbindung ausgeschaltet).';
+    $w=($what!==''?$what.' ist ':'Diese Funktion ist ');
+    if(function_exists('rrw_pack_available')&&!rrw_pack_available())return $w.'in dieser Installation nicht verfügbar.';   // ohne Herstellerpaket gibt es kein Control Center
+    return $w.'im eigenständigen Betrieb nicht verfügbar (Control-Center-Anbindung ausgeschaltet).';
 }
 
 // ---------------------------------------------------------------- Ersteinrichtung (Status)

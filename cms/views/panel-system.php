@@ -5,8 +5,8 @@
       </div>
       <div class="card">
         <div class="tt"><i class="fas fa-plug-circle-xmark"></i>Betriebsmodus</div>
-        <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input id="sysControlCenter" type="checkbox"> Control-Center-Anbindung aktiv (Standard)</label>
-        <div class="hint" style="margin-top:6px">Ausgeschaltet = eigenständiger Betrieb: Anmeldung nur lokal, keine Anfragen an das Control Center. Funktionen, die es brauchen (Altdaten-Übernahme, Studiomail/Voicemail des Assistenten), sind dann nicht verfügbar. Vorher muss ein lokaler Administrator unter „Redakteure“ existieren.</div>
+        <label data-pack="ricorewi-radio" style="display:flex;align-items:center;gap:8px;margin-top:12px"><input id="sysControlCenter" type="checkbox"> Control-Center-Anbindung aktiv (Standard)</label>
+        <div class="hint" data-pack="ricorewi-radio" style="margin-top:6px">Ausgeschaltet = eigenständiger Betrieb: Anmeldung nur lokal, keine Anfragen an das Control Center. Funktionen, die es brauchen (Altdaten-Übernahme, Studiomail/Voicemail des Assistenten), sind dann nicht verfügbar. Vorher muss ein lokaler Administrator unter „Redakteure“ existieren.</div>
         <div class="section-grid" style="margin-top:10px">
           <div><label class="news-lbl">Sprache</label><select id="sysLanguage" class="fc w-100"><option value="">Standard</option><option value="de">Deutsch</option><option value="en">English</option></select></div>
           <div><label class="news-lbl">Zeitzone (z. B. Europe/Berlin, leer = Server)</label><input id="sysTimezone" class="fc w-100" placeholder="Europe/Berlin"></div>
@@ -20,7 +20,7 @@
           <div><label class="news-lbl">Produktname</label><input id="prodName" class="fc w-100" maxlength="60"></div>
           <div><label class="news-lbl">Kurzname (Slug)</label><input id="prodSlug" class="fc w-100" maxlength="40" placeholder="wird aus dem Namen abgeleitet"></div>
           <div><label class="news-lbl">Logo (Pfad oder https-Adresse, optional)</label><input id="prodLogo" class="fc w-100" maxlength="300" placeholder="/assets/logo.png"></div>
-          <div><label class="news-lbl">Control-Center-Bezeichnung</label><input id="prodCc" class="fc w-100" maxlength="60"></div>
+          <div data-pack="ricorewi-radio"><label class="news-lbl">Control-Center-Bezeichnung</label><input id="prodCc" class="fc w-100" maxlength="60"></div>
           <div><label class="news-lbl">Fenstertitel</label><input id="prodTitle" class="fc w-100" maxlength="80"></div>
           <div><label class="news-lbl">Überschrift</label><input id="prodHeading" class="fc w-100" maxlength="80"></div>
           <div><label class="news-lbl">Name im Anmeldetext</label><input id="prodAccess" class="fc w-100" maxlength="60"></div>
