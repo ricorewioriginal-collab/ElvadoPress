@@ -188,3 +188,82 @@ function rrw_demo_make(string $dir, int $minutes=10): void {
     // Die Demo-Konfiguration gehört nicht ins Netz (PHP-Dateien in cms/lib sind ohnehin gesperrt)
     $w('cms/lib/.htaccess',"<Files \"demo.json\">\nRequire all denied\n</Files>\n",true);
 }
+
+// ---------- Vorinstallierte WordPress-Themes und -Plugins (Kompatibilität ausprobieren) ----------
+/** Bekannte Themes und Plugins aus dem WordPress.org-Verzeichnis, die die Demo mitliefert (Kennung => Anzeigename). Aktiviert wird nichts: Besucher probieren sie selbst aus. */
+const RRW_DEMO_EXTRAS=[
+    'themes'=>['twentytwentyfour'=>'Twenty Twenty-Four','astra'=>'Astra','generatepress'=>'GeneratePress'],
+    'plugins'=>['contact-form-7'=>'Contact Form 7','wordpress-seo'=>'Yoast SEO','classic-editor'=>'Classic Editor'],
+];
+/** ZIP von wordpress.org laden (null bei Fehler). */
+function rrw_demo_extras_fetch(string $url): ?string {
+    for($try=0;$try<3;$try++){
+        $ch=curl_init($url);
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>3,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>180,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_REDIR_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_USERAGENT=>'ElvadoPress-Demo/1.0']);
+        $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);curl_close($ch);
+        if($raw!==false&&$code===200&&is_string($raw)&&strlen($raw)>1000&&strlen($raw)<120*1048576)return $raw;
+        sleep(2);
+    }
+    return null;
+}
+function rrw_demo_extras_rmdir(string $d): void {
+    if(!is_dir($d)||is_link($d))return;
+    foreach(scandir($d)?:[] as $f){ if($f==='.'||$f==='..')continue;$p=$d.'/'.$f;is_dir($p)&&!is_link($p)?rrw_demo_extras_rmdir($p):@unlink($p); }
+    @rmdir($d);
+}
+/** ZIP sicher nach $targetDir/<slug>/ entpacken: nur Einträge unter "<slug>/", keine Umwege (..), keine absoluten Pfade, keine Symlinks. Rückgabe Fehlertext oder null. */
+function rrw_demo_extras_unzip(string $zipBytes,string $slug,string $targetDir): ?string {
+    if(!class_exists('ZipArchive'))return 'PHP-Erweiterung zip fehlt';
+    $tmp=tempnam(sys_get_temp_dir(),'dx');file_put_contents($tmp,$zipBytes);
+    $z=new ZipArchive();if($z->open($tmp)!==true){@unlink($tmp);return 'ZIP nicht lesbar'; }
+    $dest=$targetDir.'/'.$slug;$stage=$targetDir.'/.stage-'.$slug.'-'.bin2hex(random_bytes(3));$total=0;$err=null;
+    for($i=0;$i<$z->numFiles&&$err===null;$i++){
+        $st=$z->statIndex($i);$name=str_replace('\\','/',(string)$st['name']);
+        if($name===''||str_starts_with($name,'/')||str_contains($name,'../')||str_contains($name,"\0")||preg_match('~^[A-Za-z]:~',$name)){ $err='unsicherer Pfad im ZIP: '.$name;break; }
+        if(!str_starts_with($name,$slug.'/'))continue;
+        $z->getExternalAttributesIndex($i,$opsys,$attr);if($opsys===ZipArchive::OPSYS_UNIX&&((($attr>>16)&0170000)===0120000))continue;   // Symlink
+        $rel=substr($name,strlen($slug)+1);$path=$stage.'/'.$rel;
+        if(str_ends_with($name,'/')){ if(!is_dir($path)&&!@mkdir($path,0775,true))$err='Ordner nicht anlegbar';continue; }
+        $total+=(int)$st['size'];if($total>300*1048576){ $err='ZIP zu groß';break; }
+        if(!is_dir(dirname($path))&&!@mkdir(dirname($path),0775,true)){ $err='Ordner nicht anlegbar';break; }
+        $data=$z->getFromIndex($i);if($data===false||file_put_contents($path,$data)===false){ $err='Datei nicht schreibbar: '.$rel;break; }
+    }
+    $z->close();@unlink($tmp);
+    if($err===null&&!is_dir($stage))$err='ZIP enthält kein Verzeichnis "'.$slug.'"';
+    if($err!==null){ rrw_demo_extras_rmdir($stage);return $err; }
+    rrw_demo_extras_rmdir($dest);
+    if(!@rename($stage,$dest)){ rrw_demo_extras_rmdir($stage);return 'Zielordner nicht anlegbar'; }
+    return null;
+}
+/**
+ * Themes und Plugins aus RRW_DEMO_EXTRAS ins Demo-Paket legen (cms/wp-content/themes|plugins) und die Startseite der Demo ergänzen.
+ * $fetch ersetzt den Download (Tests): fn(string $url): ?string. Rückgabe: ['ok'=>[…Namen], 'failed'=>[Name=>Grund]]. Einzelne Fehler stoppen nichts.
+ */
+function rrw_demo_extras(string $dir,?callable $fetch=null,?array $extras=null): array {
+    $dir=rtrim($dir,'/');$extras=$extras??RRW_DEMO_EXTRAS;$fetch=$fetch??'rrw_demo_extras_fetch';$ok=['themes'=>[],'plugins'=>[]];$failed=[];
+    foreach(['themes'=>'theme','plugins'=>'plugin'] as $group=>$kind){
+        $target=$dir.'/cms/wp-content/'.$group;if(!is_dir($target)&&!@mkdir($target,0775,true)){ $failed[$group]='Ordner fehlt';continue; }
+        foreach((array)($extras[$group]??[]) as $slug=>$name){
+            $slug=(string)$slug;
+            if(!preg_match('/^[a-z0-9][a-z0-9-]{1,60}$/',$slug)){ $failed[$name]='ungültige Kennung';continue; }
+            $zip=$fetch('https://downloads.wordpress.org/'.$kind.'/'.$slug.'.zip');
+            if(!is_string($zip)||$zip===''){ $failed[$name]='Download fehlgeschlagen';continue; }
+            $err=rrw_demo_extras_unzip($zip,$slug,$target);
+            if($err===null){   // Pflichtdatei prüfen: Theme-Stylesheet bzw. Plugin-Hauptdatei mit Kopfzeile
+                $good=false;
+                if($kind==='theme')$good=is_file($target.'/'.$slug.'/style.css')&&str_contains((string)file_get_contents($target.'/'.$slug.'/style.css',false,null,0,8192),'Theme Name:');
+                else foreach(glob($target.'/'.$slug.'/*.php')?:[] as $f)if(str_contains((string)file_get_contents($f,false,null,0,8192),'Plugin Name:')){ $good=true;break; }
+                if(!$good){ $err='Hauptdatei fehlt';rrw_demo_extras_rmdir($target.'/'.$slug); }
+            }
+            if($err!==null){ $failed[$name]=$err;continue; }
+            $ok[$group][]=$name;
+        }
+    }
+    $landing=$dir.'/demo/index.html';
+    if(is_file($landing)&&($ok['themes']||$ok['plugins'])){
+        $parts=[];if($ok['themes'])$parts[]='Themes '.implode(', ',array_map('htmlspecialchars',$ok['themes']));if($ok['plugins'])$parts[]='Plugins '.implode(', ',array_map('htmlspecialchars',$ok['plugins']));
+        $li='<li>Vorinstallierte WordPress-'.implode(' und ',$parts).' – zum Testen der Kompatibilität in der Verwaltung aktivieren</li>';
+        file_put_contents($landing,str_replace('<!--demo-extras-->',$li,(string)file_get_contents($landing)));
+    }
+    return ['ok'=>array_merge($ok['themes'],$ok['plugins']),'failed'=>$failed];
+}
