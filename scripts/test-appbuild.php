@@ -29,6 +29,10 @@ t('Ungültige Branding-Angaben werden abgelehnt',function() use($base){
 t('Texte werden begrenzt',function() use($base){
     [$b]=clean(['shortDescription'=>str_repeat('k',200),'fullDescription'=>str_repeat('l',9000)]+$base);eq(mb_strlen($b['shortDescription']),80);eq(mb_strlen($b['fullDescription']),4000);
 });
+t('Radioverzeichnis in der App nur mit RicoReWi-Paket',function() use($base){
+    [$b]=clean(['type'=>'radio','directory'=>true]+$base);eq($b['directory'],rrw_pack_available());
+    [$b]=clean(['type'=>'web','directory'=>true]+$base);eq($b['directory'],false);
+});
 t('Store-Texte als Markdown',function(){
     $md=rrw_ab_listing_md(['appName'=>'Meine App','shortDescription'=>'Kurz','fullDescription'=>'Lang']);
     foreach(['# Meine App','## Kurzbeschreibung','Kurz','## Beschreibung','Lang'] as $x)if(!str_contains($md,$x))throw new RuntimeException("fehlt: $x");

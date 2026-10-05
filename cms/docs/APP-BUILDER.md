@@ -3,7 +3,7 @@
 Im CMS unter **Apps → Eigene App bauen** erstellst du aus deiner Website installierbare Apps für **Android** und **Windows** mit eigenem Namen, Icon und Paketnamen – ohne Control Center und ohne Entwicklungsumgebung auf dem eigenen Rechner. Dazu kommt auf Wunsch der **Alexa-Skill** (Sprachsteuerung für Radio-Apps).
 
 ## App-Typen
-* **Radio-App** – die volle Radio-App: Sender, Player, Sendeplan, Podcast, News, Community, KI-Assistent, optional Radioverzeichnis.
+* **Radio-App** – die volle Radio-App: Sender, Player, Sendeplan, Podcast, News, Community, KI-Assistent.
 * **Website-App** – deine Website als eigene App, **für jedes Thema** (Shop, Verein, Magazin, Portfolio …): Vollbild, interne Links bleiben in der App, fremde Adressen/E-Mail/Telefon öffnen extern, Offline-Seite mit „Erneut versuchen“, eigene Farbe für Statusleiste/Fenster. Android: WebView; Windows: WebView2 (die Microsoft-Edge-WebView2-Runtime ist unter Windows 11 und aktuellem Windows 10 vorhanden).
 
 Beides gibt es für **Android** und **Windows**; pro App wählst du die Plattformen.
@@ -17,7 +17,7 @@ Android-Apps werden mit Gradle und dem Android-SDK gebaut. Das läuft nicht auf 
 3. Im CMS **Repository** (`besitzer/name`) und **Token** eintragen, speichern und **Verbindung prüfen**. Das Token bleibt auf deinem Server (`cms/data/.apps/build.json`, nicht öffentlich) und wird nie an den Browser zurückgegeben.
 
 ## Eine App anlegen und bauen
-1. **Neue App**: App-Name, Paketname (`de.meinradio.app` – später nicht mehr ändern, wenn die App im Store ist), Website (`https://…`, ohne Pfad), Icon aus der Mediathek, optional Radioverzeichnis.
+1. **Neue App**: App-Name, Paketname (`de.meinradio.app` – später nicht mehr ändern, wenn die App im Store ist), Website (`https://…`, ohne Pfad), Icon aus der Mediathek.
 2. **Android bauen / Windows bauen**: Das CMS legt (falls nötig) den Branch `app-builder` aus dem Standard-Branch an, ergänzt die App in `android/brands.json`, lädt das Icon als PNG nach `brands/<id>/app_logo.png` und startet den Workflow. Das dauert etwa 5–10 Minuten.
 3. Die fertigen Pakete erscheinen im CMS zum Download: Android als **APK** (Pre-Release `app-<id>-<nr>`), Windows als **Installer und portable EXE** (Pre-Release `app-<id>-win-<nr>`). Android zum Testen auf dem Handy installieren („Unbekannte Quellen“ erlauben). Die Windows-Dateien sind nicht signiert – SmartScreen kann eine Warnung zeigen („Weitere Informationen → Trotzdem ausführen“).
 

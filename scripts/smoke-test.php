@@ -119,10 +119,13 @@ t('Assistent: Antwort ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|send
 $sm=http('POST',"$B/cms/api.php?action=assistant_send",['__json'=>json_encode(['name'=>'x','message'=>'Hallo Studio'])],['Content-Type: application/json']);
 t('Assistent: Studiomail des Herstellers nicht verfügbar',in_array($sm['code'],[403,503],true),(string)$sm['code']);
 
-/* Radioverzeichnis für eigene Radio-Apps */
-$dr=json_decode(http('GET',"$B/cms/api.php?action=directory_admin_get",[],$H)['body'],true)?:[];
-t('Radioverzeichnis: Verwaltung erreichbar',($dr['status']??'')==='ok'&&isset($dr['settings']),json_encode(array_keys($dr)));
-t('Radioverzeichnis: Kennung nach außen neutral',(function() use($pkg){ return !str_contains((string)file_get_contents($pkg.'/cms/lib/directory.php'),"'SenderWelt-Radioverzeichnis/1.0 (+https://senderwelt.de)'")||str_contains((string)file_get_contents($pkg.'/cms/lib/directory.php'),'rrw_pack_available()?'); })());
+/* Radioverzeichnis gehört zum RicoReWi-Paket und fehlt im eigenständigen CMS */
+foreach(['directory_admin_get'=>true,'directory_search'=>false,'directory_random'=>false] as $act=>$auth){
+    $dr=http('GET',"$B/cms/api.php?action=$act",[],$auth?$H:[]);
+    t("Radioverzeichnis: Aktion $act ist nicht verfügbar",$dr['code']===404&&(json_decode($dr['body'],true)['status']??'')==='error','HTTP '.$dr['code']);
+}
+t('Radioverzeichnis: Reiter nur mit Paket sichtbar',str_contains($pv,'data-pack="ricorewi-radio" data-tab="directory"')&&!str_contains($pv,'data-pack-app="ricorewi-radio" data-tab="directory"'));
+t('Radioverzeichnis: keine Marke hat es aktiviert',(function() use($cfg){ foreach((array)($cfg['brands']['items']??[]) as $b)if(!empty($b['directory']))return false;return true; })());
 
 /* Alexa-Skill als Baukasten (ohne RicoReWi-Katalog) */
 $ax=json_decode(http('GET',"$B/cms/api.php?action=alexa_get",[],$H)['body'],true)?:[];

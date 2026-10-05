@@ -70,7 +70,7 @@ function rrw_brands_clean($value): array {
             'colors'=>['theme'=>$col($colors['theme']??''),'accent'=>$col($colors['accent']??'')],
             'app_prefix'=>preg_replace('/[^A-Za-z0-9-]/','',(string)($b['app_prefix']??'')),
             // Radioverzeichnis (Suchfeld im Header, Verzeichnis-Seite); SenderWelt hat es standardmäßig
-            'directory'=>array_key_exists('directory',$b)?!empty($b['directory']):($id==='senderwelt'),
+            'directory'=>rrw_pack_available()&&(array_key_exists('directory',$b)?!empty($b['directory']):($id==='senderwelt')),
             'canonical_mode'=>in_array(($b['canonical_mode']??'own'),['own','main','custom'],true)?(string)($b['canonical_mode']??'own'):'own','canonical_base'=>preg_match('#^https://[a-z0-9.-]+$#i',(string)($b['canonical_base']??''))?strtolower((string)$b['canonical_base']):'',
             'legal'=>['imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>mb_substr(trim((string)($legal['imprint_url']??'')),0,1200),'imprint_content'=>$safe((string)($legal['imprint_content']??'')),'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>mb_substr(trim((string)($legal['privacy_url']??'')),0,1200),'privacy_content'=>$safe((string)($legal['privacy_content']??''))],
             'overrides'=>['portal'=>['site_name'=>mb_substr(trim((string)($ov['site_name']??'')),0,80),'hero_eyebrow'=>mb_substr(trim((string)($ov['hero_eyebrow']??'')),0,80),'hero_title'=>mb_substr(trim((string)($ov['hero_title']??'')),0,220),'hero_text'=>mb_substr(trim((string)($ov['hero_text']??'')),0,1200),'news_title'=>mb_substr(trim((string)($ov['news_title']??'')),0,140),'news_intro'=>mb_substr(trim((string)($ov['news_intro']??'')),0,600),'footer_text'=>mb_substr(trim((string)($ov['footer_text']??'')),0,220),'legal_notice'=>mb_substr(trim((string)($ov['legal_notice']??'')),0,2400)]],
@@ -142,7 +142,7 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
             'imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>(string)($legal['imprint_url']??''),'imprint_content'=>(string)($legal['imprint_content']??''),
             'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>(string)($legal['privacy_url']??''),'privacy_content'=>(string)($legal['privacy_content']??''),
         ],
-        'directory'=>!empty($b['directory']),
+        'directory'=>rrw_pack_available()&&!empty($b['directory']),
         'overrides'=>['portal'=>rrw_brand_portal_overrides($b,$isDefault)],
         'partners'=>rrw_brand_partners($reg,$id,$branding,$mainBase),
     ];

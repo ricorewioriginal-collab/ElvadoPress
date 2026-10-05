@@ -6,8 +6,8 @@ ElvadoPress ist das eigenständige CMS mit optionalen Radio-Erweiterungen. **Hau
 | Art | Wo entwickelt |
 |---|---|
 | CMS (Beiträge, Seiten, WordPress-Schicht, Benutzer, Formulare, Community …) | ElvadoPress |
-| Radio-Erweiterungen (App-Baukasten, Alexa-Skill, Radioverzeichnis, KI-Assistent – neutral) | ElvadoPress |
-| RicoReWi (Portal, Portal-Themes, Core-Netzwerk, Partnerseite, SenderWelt …) | nur ricorewi-radio |
+| Radio-Erweiterungen (App-Baukasten, Alexa-Skill, KI-Assistent – neutral) | ElvadoPress |
+| RicoReWi (Portal, Portal-Themes, Radioverzeichnis (nur mit Paket aktiv), Core-Netzwerk, Partnerseite, SenderWelt …) | nur ricorewi-radio |
 
 ## Ablauf
 1. Änderung in ElvadoPress per Pull Request (CI: Syntax, `scripts/smoke-test.php`, alle `scripts/test-*.php`).

@@ -6,8 +6,8 @@ Hier wird das CMS **entwickelt**. Das Entwicklungsprojekt *ricorewi-radio* (Rico
 | Art | Beispiele | Repository |
 |---|---|---|
 | **CMS** | Beiträge, Seiten, Medien, Kommentare, Einstellungen, WordPress-Schicht, Themes/Plugins, Benutzer, Formulare, Community, Demo-Betrieb | **hier** |
-| **Radio-Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, Radioverzeichnis, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
-| **RicoReWi** | Portal (`index.html`, `assets/`), Portal-Themes (`"pack":"ricorewi-radio"`), Radio-Widgets des Portals, Core-Netzwerk, Partnerseite, Rechtstexte-Vorlagen, Apps/Alexa-Katalog des Herstellers, SenderWelt, Studiomail | **nur ricorewi-radio** |
+| **Radio-Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
+| **RicoReWi** | Portal (`index.html`, `assets/`), Portal-Themes (`"pack":"ricorewi-radio"`), Radio-Widgets des Portals, **Radioverzeichnis** (Code liegt geteilt unter `cms/`, ist aber nur mit Paket aktiv: `rrw_pack_available()`), Core-Netzwerk, Partnerseite, Rechtstexte-Vorlagen, Apps/Alexa-Katalog des Herstellers, SenderWelt, Studiomail | **nur ricorewi-radio** |
 
 ## Regeln
 - **Keine RicoReWi-Inhalte** in diesem Repository (Texte, Namen, Adressen, Sender, Themes). Vorgaben sind neutral. Wo das RicoReWi-Paket abweichen soll, gibt es Haken: `rrw_pack_available()` / `rrw_pack_active()` (`cms/lib/pack.php`), in der Oberfläche `data-pack` (nur mit Paket sichtbar) und `data-pack-app` (Radio-Erweiterung, bleibt sichtbar). In JavaScript: `window.CMS_PACKS['ricorewi-radio']`.
