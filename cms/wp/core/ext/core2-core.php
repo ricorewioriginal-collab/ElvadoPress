@@ -247,6 +247,8 @@ class WP {
     }
 }
 }
+// Globales $wp (Plugins schreiben den Typ vor, z. B. WooCommerce: WCAdminHelper::get_url_from_wp(WP $wp)); Anfragepfad wie in WordPress
+if(!isset($GLOBALS['wp'])||!($GLOBALS['wp'] instanceof WP)){ $GLOBALS['wp']=new WP();$GLOBALS['wp']->request=trim((string)parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH),'/'); }
 
 /* ───────── WP_Site, WP_Site_Query (Einzelseite: genau eine Website) ───────── */
 // WP_Site: vollständigere Fassung in multisite-site.php

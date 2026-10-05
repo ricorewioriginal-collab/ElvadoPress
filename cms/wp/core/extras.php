@@ -233,7 +233,7 @@ function rest_get_avatar_sizes() { return [24,48,96]; } function rest_get_avatar
 function rest_is_field_included($field,$fields) { return empty($fields)||in_array($field,(array)$fields,true); }
 function rest_convert_error_to_response($error) { $st=(int)((array)$error->get_error_data())['status']??500;return new WP_REST_Response(['code'=>$error->get_error_code(),'message'=>$error->get_error_message(),'data'=>$error->get_error_data()],$st?:500); }
 function rest_get_combining_operation_error($value,$param,$errors) { return new WP_Error('rest_no_matching_schema',$param.' ist ungültig.'); }
-function register_rest_field($object_type,$attribute,$args=[]) { $GLOBALS['wp_rest_additional_fields'][(string)(is_array($object_type)?implode(',',$object_type):$object_type)][$attribute]=$args; }
+function register_rest_field($object_type,$attribute,$args=[]) { $GLOBALS['wp_rest_additional_fields'][(string)(is_array($object_type)?implode(',',$object_type):$object_type)][$attribute]=array_merge(['get_callback'=>null,'update_callback'=>null,'schema'=>null],(array)$args); }
 function rest_validate_value_from_schema($value,$args,$param='') {
     $types=(array)($args['type']??[]);if(!$types)return true;
     foreach($types as $t){ $ok=match($t){'integer'=>rest_is_integer($value),'number'=>is_numeric($value),'boolean'=>rest_is_boolean($value),'array'=>is_array($value),'object'=>is_array($value)||is_object($value),'string'=>is_scalar($value),'null'=>$value===null,default=>true};if($ok)break; }
