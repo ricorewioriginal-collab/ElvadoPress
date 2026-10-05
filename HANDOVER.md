@@ -11,6 +11,7 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 - Visueller Abschnitts-Editor „Homepage-Baukasten“ im CMS (Design-Menü): `cms/views/panel-baukasten.php`, `cms/assets/home-builder.js`/`baukasten.css`, API `wp_bk_get`/`wp_bk_save` (Option `elvado_bk_layout`, Schema in `cms/themes/elvado-baukasten/inc/layout.php`). Im Browser geprüft (Hinzufügen, Drag & Drop, Speichern, Vorschau).
 
 - Radio-Erweiterung + Theme `cms/themes/elvado-radio` (laut.fm / Icecast / Shoutcast, Jetzt läuft, Verlauf, Sendeplan, Player-Leiste, Shortcodes). Menü „Radio“ im CMS nur bei aktivem Theme. Doku `cms/docs/THEMES.md`, Test `scripts/test-radio.php`. Im Browser geprüft (Theme, Menü sichtbar/versteckt, Panel); echte laut.fm-/Icecast-Server nur mit Fake-Abruf getestet.
+- Alexa-Verdrahtung: Radio-Sender → Skill-Sender (`cms/lib/alexa.php`: `rrw_alexa_radio_*`, `radio_sync`), Skill-Backend nutzt `radio_api` für Titel/Sendeplan eigener Streams, Alexa-Menü mit Block „Radio-Theme“, Test `scripts/test-alexa-radio.php`. Das geänderte Backend (`lambda/index.js`) muss bei Amazon neu eingespielt werden.
 - Sync nach ricorewi-radio: dort wird `scripts/smoke-test.php` als `test-standalone-build.php` übernommen (Erwartung: drei neutrale Themes). Nichts RicoReWi-Spezifisches im neuen Code.
 
 ## Aktuell in Arbeit

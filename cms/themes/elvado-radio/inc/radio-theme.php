@@ -16,6 +16,16 @@ function elvado_rd_now(array $s): array {
     $GLOBALS['rrw_radio_cache_only']=true;
     try{ return rrw_radio_now(elvado_rd_data_dir(),elvado_rd_cfg(),$s); } finally { unset($GLOBALS['rrw_radio_cache_only']); }
 }
+/** Hinweis auf den Alexa-Skill der Website – nur, wenn der Skill im CMS aktiv ist und seine Einstellungen schon abgerufen hat (also wirklich bei Amazon läuft). */
+function elvado_rd_alexa_line(): string {
+    $f=(defined('RRW_WP_NATIVE_THEMES')?dirname(RRW_WP_NATIVE_THEMES):dirname(__DIR__,3)).'/lib/alexa.php';
+    if(!is_file($f))return '';
+    require_once $f;
+    $site=is_array($GLOBALS['RRW_SITE']??null)?$GLOBALS['RRW_SITE']:[];
+    if(!rrw_alexa_neutral()||empty(rrw_alexa_clean($site['alexa']??[])['enabled'])||rrw_alexa_last_fetch(elvado_rd_data_dir())<=0)return '';
+    $inv=(string)rrw_alexa_catalog()['brand']['invocationName'];
+    return $inv!==''?'<p class="rd-alexa">Auch per Sprachbefehl: „Alexa, öffne '.esc_html($inv).'“</p>':'';
+}
 function elvado_rd_endpoint(): string { return home_url('/cms/radio.php'); }
 function elvado_rd_icon(string $n): string {
     return $n==='play'?'<svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>':'';

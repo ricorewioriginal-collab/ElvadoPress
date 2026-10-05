@@ -7,6 +7,7 @@ $title=(string)get_theme_mod('rd_title','')?:get_bloginfo('name');$text=(string)
   <section class="rd-hero">
     <div><div class="rd-eyebrow"><?php echo esc_html((string)get_theme_mod('rd_eyebrow','Live Radio')); ?></div>
       <h1><?php echo esc_html($title); ?></h1><?php if($text!==''): ?><p><?php echo esc_html($text); ?></p><?php endif; ?>
+      <?php echo elvado_rd_alexa_line(); ?>
       <?php if($c['links']): ?><div class="link-pills"><?php foreach($c['links'] as $l): ?><a class="btn btn-ghost" href="<?php echo esc_url($l['url']); ?>" rel="noopener"><?php echo esc_html($l['label']); ?></a><?php endforeach; ?></div><?php endif; ?></div>
     <div><?php echo $s?elvado_rd_np_card($s,$np):'<div class="card"><b>Noch kein Sender eingerichtet.</b><p style="margin:.4em 0 0;color:var(--muted)">Im CMS unter „Radio“ Sender und Datenquelle eintragen.</p></div>'; ?></div>
   </section>

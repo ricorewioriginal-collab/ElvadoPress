@@ -115,6 +115,11 @@ t('News-Abschnitt',str_contains($b,'Aktuelles')&&str_contains($b,'Beitrag 5'));
 t('Seitenaufbau ohne Netzabruf (Cache leer → Browser lädt nach)',true);
 set_theme_mod('rd_accent','#ff0000');set_theme_mod('rd_title','Mein <b>Radio</b>');
 $b=page('/')['body'];t('Farbe und Überschrift aus dem Customizer',str_contains($b,'--accent:#ff0000')&&str_contains($b,'Mein &lt;b&gt;Radio&lt;/b&gt;'));
+// Alexa-Hinweis nur, wenn der Skill läuft (hat die Einstellungen abgerufen)
+t('Kein Alexa-Hinweis ohne verbundenen Skill',!str_contains(page('/')['body'],'rd-alexa'));
+require_once __DIR__.'/../cms/lib/alexa.php';$GLOBALS['RRW_SITE']['alexa']=['invocation'=>'mein radio'];rrw_alexa_note_fetch($data);
+t('Alexa-Hinweis mit Aufrufname bei verbundenem Skill',str_contains(page('/')['body'],'Alexa, öffne mein radio'));
+$GLOBALS['RRW_SITE']['alexa']['enabled']=false;t('Kein Hinweis bei abgeschaltetem Skill',!str_contains(page('/')['body'],'rd-alexa'));unset($GLOBALS['RRW_SITE']['alexa']);
 // Schalter
 rrw_radio_save($data,['stations'=>$saved['stations'],'default'=>'main','schedule'=>$saved['schedule'],'show'=>['news'=>false,'schedule'=>false,'history'=>false,'stations'=>false]]);
 elvado_rd_cfg(true);

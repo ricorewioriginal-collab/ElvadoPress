@@ -37,6 +37,14 @@ window.AlexaManager=(()=>{
   return `<div class="ap-h">Dein Skill</div><p class="hint">Name und Aufrufname gehören zu deinem Skill bei Amazon. Der Aufrufname darf keine Ziffern enthalten und wird so geschrieben, wie man ihn spricht (z. B. „mein radio“). Eine Änderung betrifft das Sprachmodell.</p>
    <div class="ap-grid">${inp('app_name','Name des Skills',c.app_name,40,S.d.app_name)}${inp('invocation','Aufrufname („Alexa, öffne …“)',c.invocation,50,S.d.invocation)}</div>`;
  }
+ function radio(){
+  const r=S.d.radio;if(!S.d.neutral||!r||!r.available)return '';
+  const skipped=(r.skipped||[]).map(x=>`<li><b>${esc(x.name)}</b>: ${esc(x.reason)}</li>`).join('');
+  return `<div class="ap-h">Radio-Theme</div>
+   <div class="ap-checks">${chk('radio_sync','Sender aus dem Menü „Radio“ übernehmen (laut.fm, Icecast, Shoutcast)',r.sync)}</div>
+   <p class="hint">Mit aktivem Radio-Theme ist das automatisch an: Die Sender, die du unter „Radio“ einrichtest, spielt der Skill. Titelansage („Was läuft gerade?“) und Sendeplan kommen bei eigenen Servern aus dem Radio-Menü; das setzt voraus, dass deine Website über <b>https</b> erreichbar ist${r.https?' (ist sie)':' – <b>derzeit ist sie es nicht</b>, dann bleibt die Ansage bei eigenen Streams aus'}. Änderungen an den Sendern betreffen das Sprachmodell – danach neu bei Amazon einspielen (siehe Hinweis oben).</p>
+   ${skipped?`<div class="alx-warn"><i class="fas fa-triangle-exclamation"></i> Nicht für Alexa verwendbar:<ul style="margin:4px 0 0 18px">${skipped}</ul></div>`:''}`;
+ }
  function ops(){
   const c=S.cfg;
   return `<div class="ap-h">Betrieb</div>
@@ -52,11 +60,11 @@ window.AlexaManager=(()=>{
     <label class="ap-check"><input type="checkbox" ${s.enabled?'checked':''} onchange="AlexaManager.station('${esc(s.id)}','enabled',this.checked)"> <b>${esc(s.id)}</b></label>
     <input class="fc" maxlength="60" placeholder="Anzeigename (${esc(s.title)})" value="${esc(o.title||'')}" oninput="AlexaManager.station('${esc(s.id)}','title',this.value)">
     <input class="fc" placeholder="weitere Aussprachen, mit Komma trennen" value="${esc((o.extra||[]).join(', '))}" onchange="AlexaManager.extra('${esc(s.id)}',this.value)">
-    ${S.d.neutral?`<input class="fc" style="grid-column:1/-1" placeholder="eigene Stream-Adresse (https://…), leer = laut.fm/${esc(s.id)}" value="${esc(o.stream||s.stream||'')}" onchange="AlexaManager.stream('${esc(s.id)}',this.value)">`:''}
-    <span class="ap-ctl">${S.d.neutral?`<button class="btn-g" title="Sender entfernen" onclick="AlexaManager.removeStation('${esc(s.id)}')"><i class="fas fa-trash"></i></button>`:''}<button class="btn-g" ${i<=0?'disabled':''} onclick="AlexaManager.move(${i},-1)"><i class="fas fa-arrow-up"></i></button><button class="btn-g" ${i>=list.length-1?'disabled':''} onclick="AlexaManager.move(${i},1)"><i class="fas fa-arrow-down"></i></button></span>
-    <div class="dm-meta" style="grid-column:1/-1">Alexa versteht z. B.: ${s.speakable.map(x=>`„${esc(x)}“`).join(', ')}</div></div>`;}).join('');
+    ${S.d.neutral&&!s.from_radio?`<input class="fc" style="grid-column:1/-1" placeholder="eigene Stream-Adresse (https://…), leer = laut.fm/${esc(s.id)}" value="${esc(o.stream||s.stream||'')}" onchange="AlexaManager.stream('${esc(s.id)}',this.value)">`:''}
+    <span class="ap-ctl">${S.d.neutral&&!s.from_radio?`<button class="btn-g" title="Sender entfernen" onclick="AlexaManager.removeStation('${esc(s.id)}')"><i class="fas fa-trash"></i></button>`:''}<button class="btn-g" ${i<=0?'disabled':''} onclick="AlexaManager.move(${i},-1)"><i class="fas fa-arrow-up"></i></button><button class="btn-g" ${i>=list.length-1?'disabled':''} onclick="AlexaManager.move(${i},1)"><i class="fas fa-arrow-down"></i></button></span>
+    ${s.from_radio?'<div class="dm-meta" style="grid-column:1/-1"><i class="fas fa-radio"></i> kommt aus dem Menü „Radio“ (Stream und Adresse dort ändern)</div>':''}<div class="dm-meta" style="grid-column:1/-1">Alexa versteht z. B.: ${s.speakable.map(x=>`„${esc(x)}“`).join(', ')}</div></div>`;}).join('');
   const add=S.d.neutral?`<div class="alx-add" style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><input id="alxNewId" class="fc" maxlength="60" placeholder="laut.fm-Kennung oder https://-Stream-Adresse" style="max-width:340px"><input id="alxNewTitle" class="fc" maxlength="60" placeholder="Anzeigename (optional)" style="max-width:260px"><button class="btn-a" onclick="AlexaManager.addStation()"><i class="fas fa-plus"></i> Sender hinzufügen</button></div>`:'';
-  const intro=S.d.neutral?'Füge die Sender hinzu, die Alexa spielen soll: entweder die laut.fm-Kennung (laut.fm/<b>kennung</b>) oder die https-Adresse eines beliebigen Streams (Alexa spielt nur https; bei eigenen Streams gibt es keine Titel- und Sendeplan-Auskunft). Abgeschaltete':'Die Senderliste kommt aus dem Core-Netzwerk. Abgeschaltete'
+  const intro=S.d.neutral?'Füge die Sender hinzu, die Alexa spielen soll: entweder die laut.fm-Kennung (laut.fm/<b>kennung</b>) oder die https-Adresse eines beliebigen Streams (Alexa spielt nur https; bei eigenen Streams gibt es keine Titel- und Sendeplan-Auskunft, außer sie stammen aus dem Menü „Radio“). Abgeschaltete':'Die Senderliste kommt aus dem Core-Netzwerk. Abgeschaltete'
   return `<div class="ap-h">Sender</div><p class="hint">${intro} Sender spielt der Skill nicht mehr (auch nicht bei „nächster Sender“). Die Reihenfolge gilt für „nächster/vorheriger Sender“ und die Senderliste. Neue Aussprachen und neue Sender betreffen das Sprachmodell – danach bitte neu einspielen.</p>
    <div class="ap-grid"><div><label class="news-lbl">Beim Start spielen</label><select class="fc w-100" onchange="AlexaManager.set('default_station',this.value)">${opts}</select></div>
    <div style="align-self:end">${chk('daily','Sender des Tages: jeden Tag ein anderer Sender (statt fest)',c.daily)}</div></div>
@@ -98,7 +106,7 @@ window.AlexaManager=(()=>{
  function draw(){
   const host=document.getElementById('alexaManager');if(!host)return;
   if(!S.d){host.innerHTML=`<div class="dm-empty">${esc(S.err||'Lädt …')}</div>`;return;}
-  host.innerHTML=status()+own()+ops()+stations()+texts()+stats()+downloads();
+  host.innerHTML=status()+own()+radio()+ops()+stations()+texts()+stats()+downloads();
  }
  function set(path,val){
   const p=path.split('.');let o=S.cfg;for(let i=0;i<p.length-1;i++)o=o[p[i]]=o[p[i]]||{};o[p[p.length-1]]=val;

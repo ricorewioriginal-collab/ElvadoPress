@@ -70,7 +70,8 @@ Das mitgelieferte Theme `cms/themes/elvado-baukasten` ist ein WordPress-Theme (l
 - **Öffentlicher Endpunkt** `cms/radio.php`: `?a=now&station=<id>`, `?a=schedule`, `?a=stations` (nur lesend, keine Zugangsdaten).
 - **Shortcodes:** `[radio_player]`, `[radio_nowplaying]`, `[radio_history]`, `[radio_schedule today="1"]`, `[radio_stations]` (jeweils optional `station="<id>"`), nutzbar in Beiträgen, Seiten und im Homepage-Baukasten (HTML-Abschnitt).
 - **Grenzen:** Beim Seitenwechsel startet der Browser den Stream neu (kein durchgehender Player über Seiten hinweg). Eine Streamadresse im Heimnetz/auf `localhost` wird nicht abgefragt (Titelanzeige); der Stream selbst spielt trotzdem im Browser.
-- Config: `cms/data/.tools/radio.json`. Test: `php scripts/test-radio.php`.
+- **Alexa-Skill (verdrahtet):** Mit aktivem Radio-Theme übernimmt der Alexa-Skill-Baukasten die Sender aus dem Menü „Radio“ automatisch (Schalter `radio_sync` im Alexa-Menü, Block „Radio-Theme“): laut.fm-Sender über ihre Kennung (wie bisher), Icecast/Shoutcast/Nur-Stream als eigener Stream. Alexa spielt nur **https**-Streams; andere Sender werden übersprungen und im Alexa-Menü gemeldet. „Was läuft gerade?“ und der Sendeplan eigener Streams kommen über `cms/radio.php` (`radio_api` in der Skill-Konfiguration, nur wenn die Website über https erreichbar ist; Skill-Backend `cms/lib/alexa-skill/lambda/index.js` neu bei Amazon einspielen). Das Radio-Theme zeigt auf der Startseite „Alexa, öffne …“, sobald der Skill aktiv ist und seine Einstellungen abgerufen hat. Sender-Änderungen ändern das Sprachmodell (Hinweis „neu einspielen“).
+- Config: `cms/data/.tools/radio.json`. Tests: `php scripts/test-radio.php`, `php scripts/test-alexa-radio.php`.
 
 ## Live-Customizer
 

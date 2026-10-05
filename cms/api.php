@@ -647,9 +647,11 @@ if($action==='alexa_stat'){
 if($action==='alexa_get'){
     rrw_auth(true);$origin=rrw_site_origin($site);
     $defs=rrw_alexa_station_defs($site);$st=[];
-    foreach($defs as $id=>$s){$v=rrw_alexa_station_value($s,rrw_alexa_catalog()['suffixes']);$st[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled'],'extra'=>$s['extra'],'speakable'=>array_merge([$v['name']['value']],array_slice($v['name']['synonyms'],0,6)),'custom_title'=>(string)(((array)(($site['alexa']['stations']??[])))[$id]['title']??''),'stream'=>(string)($s['stream']??'')];}
+    foreach($defs as $id=>$s){$v=rrw_alexa_station_value($s,rrw_alexa_catalog()['suffixes']);$st[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled'],'extra'=>$s['extra'],'speakable'=>array_merge([$v['name']['value']],array_slice($v['name']['synonyms'],0,6)),'custom_title'=>(string)(((array)(($site['alexa']['stations']??[])))[$id]['title']??''),'stream'=>(string)($s['stream']??''),'from_radio'=>!empty($s['from_radio'])];}
     rrw_alexa_model($site,$warn);
-    rrw_json(['status'=>'ok','config'=>rrw_alexa_clean($site['alexa']??[]),'stations'=>$st,'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>rrw_alexa_catalog()['brand']['invocationName'],'neutral'=>rrw_alexa_neutral(),'app_name'=>rrw_alexa_catalog()['brand']['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
+    $rdSkipped=[];rrw_alexa_radio_defs($site,$rdSkipped);
+    $rdHas=rrw_alexa_neutral()&&(bool)rrw_alexa_radio_load()['stations'];
+    rrw_json(['radio'=>['available'=>$rdHas,'sync'=>rrw_alexa_radio_sync($site),'skipped'=>$rdSkipped,'https'=>str_starts_with($origin,'https://')],'status'=>'ok','config'=>rrw_alexa_clean($site['alexa']??[]),'stations'=>$st,'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>rrw_alexa_catalog()['brand']['invocationName'],'neutral'=>rrw_alexa_neutral(),'app_name'=>rrw_alexa_catalog()['brand']['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
 }
 if($action==='alexa_token_reset'){ rrw_auth(true);rrw_alexa_token($dataDir,true);rrw_json(['status'=>'ok']); }
 if($action==='alexa_stats_clear'){ rrw_auth(true);rrw_alexa_stats_clear($dataDir);rrw_json(['status'=>'ok']); }
