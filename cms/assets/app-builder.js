@@ -37,13 +37,13 @@ window.AppBuilder=(()=>{
   return `<div class="ap-blk"><div class="ap-blk-h"><b>${esc(BLOCKS[blk.type]||blk.type)}</b>${ctl(k,i,n,'moveBlock')}<button class="btn-g" onclick="AppBuilder.delBlock(${A(k)},${i})" title="Entfernen"><i class="fas fa-trash"></i></button></div><div class="ap-grid">${body}</div></div>`;
  }
  function stationsEditor(k,b){
-  const o=order(b);if(!o.length)return '<p class="hint">Keine Core-Sender vorhanden.</p>';
+  const o=order(b);if(!o.length)return '<p class="hint">Keine Sender aus dem Netzwerk – trage deine Sender unten selbst ein.</p>';
   return o.map((s,i)=>`<div class="ap-st"><label class="ap-check"><input type="checkbox" ${b.stations.hidden.includes(s)?'':'checked'} onchange="AppBuilder.toggleStation(${A(k)},'${esc(s)}',this.checked)"> ${esc(s)}</label>${ctl(k,i,o.length,'moveStation')}</div>`).join('');
  }
  function customEditor(k,b){
   const c=b.stations.custom=b.stations.custom||[];
-  const rows=c.map((x,i)=>`<div class="ap-tile"><input class="fc" maxlength="40" placeholder="Sendername" value="${esc(x.title||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.title',this.value)"><input class="fc" placeholder="Stream-Adresse https://…" value="${esc(x.stream||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.stream',this.value)"><input class="fc" placeholder="Logo-Adresse https://… (optional)" value="${esc(x.logo||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.logo',this.value)"><button class="btn-g" onclick="AppBuilder.delCustom(${A(k)},${i})" title="Entfernen"><i class="fas fa-trash"></i></button></div>`).join('');
-  return `<div class="ap-sub">Eigene Sender (beliebige https-Streams, max. 20)</div>${rows||'<p class="hint">Noch keine eigenen Sender.</p>'}<button class="btn-g" onclick="AppBuilder.addCustom(${A(k)})" ${c.length>=20?'disabled':''}><i class="fas fa-plus"></i> Sender</button>`;
+  const rows=c.map((x,i)=>`<div class="ap-tile"><input class="fc" maxlength="40" placeholder="Sendername" value="${esc(x.title||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.title',this.value)"><input class="fc" placeholder="https://-Stream-Adresse oder laut.fm-Kennung" value="${esc(x.laut||x.stream||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.stream',this.value)"><input class="fc" placeholder="Logo-Adresse https://… (optional)" value="${esc(x.logo||'')}" oninput="AppBuilder.set(${A(k)},'stations.custom.${i}.logo',this.value)"><button class="btn-g" onclick="AppBuilder.delCustom(${A(k)},${i})" title="Entfernen"><i class="fas fa-trash"></i></button></div>`).join('');
+  return `<div class="ap-sub">Eigene Sender (https-Stream oder laut.fm-Kennung, max. 20)</div>${rows||'<p class="hint">Noch keine eigenen Sender.</p>'}<button class="btn-g" onclick="AppBuilder.addCustom(${A(k)})" ${c.length>=20?'disabled':''}><i class="fas fa-plus"></i> Sender</button>`;
  }
  function menuEditor(k,b){
   const MENU=menu(),hide=Object.keys(MENU).map(m=>`<label class="ap-check"><input type="checkbox" ${b.more_menu.hide.includes(m)?'':'checked'} onchange="AppBuilder.toggleMenu(${A(k)},'${m}',this.checked)"> ${esc(MENU[m])}</label>`).join('');

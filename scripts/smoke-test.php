@@ -69,7 +69,7 @@ t('Startseite wird vom Theme ausgeliefert',$r['code']===200&&str_contains($r['bo
 t('Startseite ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',$r['body']));
 $r=http('GET',"$B/cms/rss.php");
 t('RSS-Feed: eigener Titel und eigene Beiträge',$r['code']===200&&str_contains($r['body'],'<title>Mein Test-Radio – News &amp; Magazin</title>')&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),substr($r['body'],0,600));
-t('RSS-Feed ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',$r['body']));
+t('RSS-Feed ohne RicoReWi-Inhalte (Generator-Angabe folgt dem Produktnamen des Pakets)',!preg_match('/ricorewi|anmacha|senderwelt/i',(string)preg_replace('~<generator>.*?</generator>~s','',$r['body'])));
 $r=http('GET',"$B/willkommen/");
 t('Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),'HTTP '.$r['code']);
 $r=http('GET',"$B/gibt-es-nicht/");

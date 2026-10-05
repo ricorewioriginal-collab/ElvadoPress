@@ -29,16 +29,20 @@ function rrw_apps_builder_defaults(): array {
 }
 function rrw_apps_color_clean($c): string { $c=strtolower(trim((string)$c));return preg_match('/^#[0-9a-f]{6}$/',$c)?$c:''; }
 function rrw_apps_text($v,int $max): string { return mb_substr(trim(strip_tags((string)$v)),0,$max); }
-/** Eigene Sender der App: Kennung, Name und https-Stream (Pflicht), optional Logo (https). Doppelte Kennungen entfallen. */
+/** Eigene Sender der App: Kennung, Name und Stream (Pflicht; https-Adresse oder laut.fm-Kennung), optional Logo (https). Doppelte Kennungen entfallen. */
 function rrw_apps_custom_stations($list,int $max=20): array {
     $out=[];$seen=[];
     foreach(array_slice((array)$list,0,$max*2) as $c){
         if(!is_array($c))continue;
-        $title=rrw_apps_text($c['title']??'',40);$stream=rrw_apps_url_clean((string)($c['stream']??''));
+        $title=rrw_apps_text($c['title']??'',40);
+        // Stream: beliebige https-Adresse oder die laut.fm-Kennung (auch als laut.fm-Adresse) – laut.fm-Sender trägt man genauso selbst ein
+        $raw=trim((string)($c['stream']??''));$laut='';
+        if(preg_match('~^(?:https?://(?:www\.)?laut\.fm/|laut\.fm/)?([a-z0-9][a-z0-9_-]{1,62})/?$~i',$raw,$m)){ $laut=strtolower($m[1]);$stream='https://'.$laut.'.stream.laut.fm/'.$laut; }
+        else $stream=rrw_apps_url_clean($raw);
         $id=strtolower(trim((string)($c['id']??'')));if($id==='')$id=trim((string)preg_replace('/[^a-z0-9]+/','-',strtolower($title)),'-');
         $id=substr($id,0,40);
         if($title===''||$stream===''||!preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$id)||isset($seen[$id]))continue;
-        $seen[$id]=1;$row=['id'=>$id,'title'=>$title,'stream'=>$stream];
+        $seen[$id]=1;$row=['id'=>$id,'title'=>$title,'stream'=>$stream];if($laut!=='')$row['laut']=$laut;
         $logo=rrw_apps_url_clean((string)($c['logo']??''));if($logo!=='')$row['logo']=$logo;
         $out[]=$row;if(count($out)>=$max)break;
     }
