@@ -1,8 +1,13 @@
 name: Release
 
-# Ein Tag "v<Version>" (z. B. v1.0.1) erzeugt das ZIP zum Installieren und hängt es an das Release.
+# Neue Version veröffentlichen:
+#   • Die Datei cms/VERSION wird auf main auf eine neue Version gesetzt (z. B. 1.2.0) → es entsteht automatisch Tag v1.2.0 mit Release und ZIP
+#     (ohne neue Version passiert bei einem Push auf main nichts), ODER
+#   • ein Tag "v<Version>" wird gepusht (muss zu cms/VERSION passen).
+# Das ZIP (mit .sha256-Prüfsumme) wird an das Release gehängt; installierte CMS finden es über „System → Version & Update“ (Webhook „Releases“ oder Cron).
 on:
   push:
+    branches: [ main ]
     tags: [ 'v*' ]
 
 permissions:
@@ -13,11 +18,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: ZIP bauen
+      - name: Version bestimmen und prüfen
+        id: v
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="$(tr -d '[:space:]' < cms/VERSION)"
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then echo "cms/VERSION ist keine gültige Version: $VERSION"; exit 1; fi
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$VERSION" ]; then echo "Tag ${GITHUB_REF_NAME} passt nicht zu cms/VERSION ($VERSION)"; exit 1; fi
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] && git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" > /dev/null 2>&1; then echo "Tag v${VERSION} existiert bereits – nichts zu tun."; echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          case "$VERSION" in *-*) echo "pre=true" >> "$GITHUB_OUTPUT";; *) echo "pre=false" >> "$GITHUB_OUTPUT";; esac
+      - name: ZIP bauen
+        if: steps.v.outputs.skip != 'true'
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
           mkdir -p dist
           git archive --format=zip --prefix="elvadopress-${VERSION}/" -o "dist/elvadopress-${VERSION}.zip" HEAD
+          (cd dist && sha256sum "elvadopress-${VERSION}.zip" > "elvadopress-${VERSION}.zip.sha256")
       - uses: softprops/action-gh-release@v2
+        if: steps.v.outputs.skip != 'true'
         with:
-          files: dist/*.zip
+          tag_name: v${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ steps.v.outputs.pre == 'true' }}
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+            dist/*.sha256

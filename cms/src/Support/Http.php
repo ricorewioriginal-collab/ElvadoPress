@@ -115,7 +115,7 @@ final class Http
     /** @return list<string> Hosts, auf die Weiterleitungen führen dürfen (z. B. codeload.github.com für api.github.com). */
     private static function redirectHosts(array $hosts): array
     {
-        return array_merge($hosts, ['codeload.github.com', 'objects.githubusercontent.com']);
+        return array_merge($hosts, ['codeload.github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
     }
 
     /** Löst der Host auf öffentliche Adressen auf? (Private, lokale und reservierte Bereiche sind gesperrt.) */
