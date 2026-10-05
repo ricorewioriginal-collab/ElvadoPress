@@ -60,6 +60,18 @@ Das mitgelieferte Theme `cms/themes/elvado-baukasten` ist ein WordPress-Theme (l
 - Alle Werte werden serverseitig begrenzt/bereinigt (Farben als Hex, Zahlen mit Grenzen, HTML über `wp_kses_post`, URLs über `esc_url`); eigenes CSS kann den Style-Tag nicht verlassen.
 - Test: `php scripts/test-baukasten.php`.
 
+## Radio-Theme „ElvadoPress Radio“ (mitgeliefert)
+
+`cms/themes/elvado-radio` ist ein WordPress-Theme für Webradios. Es wird **mitgeliefert** (nicht separat installiert), weil Verwaltungsmenü, Datenquellen-Abruf und Endpunkt zum CMS gehören und das Theme nur die Darstellung liefert. Es ist neutral: keine Marken, Sender oder Adressen vorgegeben.
+
+- **Aussehen:** dunkles Neon-Design (Violett/Cyan), Glas-Kopfzeile, Hero mit Live-Player, „Jetzt läuft“ mit Cover, Titelverlauf, Sendeplan (heute/Woche), Senderliste, News, feste Player-Leiste am unteren Rand (Lautstärke, Media-Session für Sperrbildschirm). Farben, Überschrift und News-Anzahl im Customizer („Radio: …“).
+- **Menü „Radio“ im CMS:** erscheint automatisch (Panel `cms/views/panel-radio.php`, `cms/assets/radio-manager.js`), sobald dieses Theme die Website ausliefert (`radio_state` prüft Flag `front-on` + Option `stylesheet`), und verschwindet beim Wechsel zu einem anderen Theme. Eingerichtet werden Sender (bis 12), Datenquelle, Anzeige-Schalter, Links und ein eigener Sendeplan. „Verbindung testen“ ruft die Quelle ab.
+- **Datenquellen** (`cms/lib/radio.php`): **laut.fm** (`api.laut.fm`: aktueller Titel, Verlauf, Playlists → Sendeplan, Stream `stream.laut.fm/<name>` automatisch), **Icecast** (`status-json.xsl` + Mount), **Shoutcast** (v2 `stats?json=1`, v1 `7.html`), **Nur Stream**. Cover optional über die iTunes-Suche. Abrufe laufen serverseitig (SSRF-geschützt: nur öffentliche Adressen), werden kurz zwischengespeichert (Standard 15 s, Cover 7 Tage, Sendeplan 15 min) und fallen bei Ausfall auf den letzten Stand zurück. Beim Seitenaufbau wartet das Theme nie auf externe Server; der Browser holt den Stand danach.
+- **Öffentlicher Endpunkt** `cms/radio.php`: `?a=now&station=<id>`, `?a=schedule`, `?a=stations` (nur lesend, keine Zugangsdaten).
+- **Shortcodes:** `[radio_player]`, `[radio_nowplaying]`, `[radio_history]`, `[radio_schedule today="1"]`, `[radio_stations]` (jeweils optional `station="<id>"`), nutzbar in Beiträgen, Seiten und im Homepage-Baukasten (HTML-Abschnitt).
+- **Grenzen:** Beim Seitenwechsel startet der Browser den Stream neu (kein durchgehender Player über Seiten hinweg). Eine Streamadresse im Heimnetz/auf `localhost` wird nicht abgefragt (Titelanzeige); der Stream selbst spielt trotzdem im Browser.
+- Config: `cms/data/.tools/radio.json`. Test: `php scripts/test-radio.php`.
+
 ## Live-Customizer
 
 Der Customizer unterstützt unter anderem:

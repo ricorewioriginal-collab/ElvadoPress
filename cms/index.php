@@ -68,6 +68,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 
     <?php require __DIR__.'/views/panel-baukasten.php'; ?>
 
+    <?php require __DIR__.'/views/panel-radio.php'; ?>
+
     <?php require __DIR__.'/views/panel-contents.php'; ?>
 
     <?php require __DIR__.'/views/panel-forms.php'; ?>
@@ -151,7 +153,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>
-<script src="assets/home-builder.js?v=1"></script>
+<script src="assets/home-builder.js?v=2"></script>
+<script src="assets/radio-manager.js?v=1"></script>
 <script src="assets/contents-manager.js?v=1"></script>
 <script src="assets/forms-manager.js?v=1"></script>
 <script src="assets/polls-manager.js?v=1"></script>
@@ -163,7 +166,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/sandbox.js?v=1"></script>
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
-<script src="assets/cms-app.js?v=39"></script>
+<script src="assets/cms-app.js?v=40"></script>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
 </body>

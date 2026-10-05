@@ -86,7 +86,7 @@
     var m=document.createElement('div');m.className='hb-picker';
     m.innerHTML='<div class="hb-picker-box"><div style="display:flex;gap:8px;align-items:center"><b style="flex:1">Mediathek</b><label class="btn-a" style="margin:0;cursor:pointer"><i class="fas fa-file-arrow-up"></i> Hochladen<input type="file" accept="image/*" hidden id="hbUp"></label><button type="button" class="btn-g" id="hbPX" aria-label="Schließen"><i class="fas fa-xmark"></i></button></div><div class="hb-picker-grid" id="hbGrid"><div class="hint">Lade…</div></div></div>';
     document.body.appendChild(m);var items=[];
-    function pick(u){var i=find(sid);if(i>=0){layout[i].props[k]=u;mark(true);draw()}m.remove()}
+    function pick(u){if(typeof sid==='function'){sid(u);m.remove();return}var i=find(sid);if(i>=0){layout[i].props[k]=u;mark(true);draw()}m.remove()}
     function drawGrid(){$('hbGrid').innerHTML=items.length?items.map(function(i){return '<button type="button" data-u="'+esc(i.url)+'" title="'+esc(i.name||'')+'"><img loading="lazy" src="'+esc(i.url)+'" alt=""></button>'}).join(''):'<div class="hint">Keine Bilder. Lade eines hoch.</div>'}
     m.addEventListener('click',function(e){if(e.target===m||e.target.closest('#hbPX')){m.remove();return}var b=e.target.closest('[data-u]');if(b)pick(b.getAttribute('data-u'))});
     $('hbUp').onchange=async function(){
@@ -132,5 +132,5 @@
     host.addEventListener('drop',function(e){if(!dragId)return;e.preventDefault();var s=e.target.closest('.hb-sec');if(s&&s.dataset.id!==dragId)move(find(dragId),find(s.dataset.id));dragId=null});
     window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
   }
-  window.HomeBuilder={load:function(){bind();load()},save:save,reset:reset,preview:preview,customizer:customizer};
+  window.HomeBuilder={pickImage:function(cb){picker(cb)},load:function(){bind();load()},save:save,reset:reset,preview:preview,customizer:customizer};
 })();

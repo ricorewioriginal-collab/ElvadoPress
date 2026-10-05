@@ -1024,6 +1024,24 @@ if($action==='media_library_delete'){
     else rrw_json(['status'=>'error','message'=>'Medium nicht gefunden'],404);
     rrw_json(['status'=>'ok']);
 }
+// Radio-Erweiterung (Menü „Radio“, erscheint bei aktivem Radio-Theme): Sender, Datenquelle, Sendeplan. Konfiguration in cms/data/.tools/radio.json
+if(str_starts_with($action,'radio_')){
+    require_once __DIR__.'/lib/radio.php';
+    if($action==='radio_state'){ rrw_auth(false);rrw_json(['status'=>'ok','active'=>rrw_radio_theme_active($dataDir),'theme'=>RRW_RADIO_THEME]); }
+    $rdUser=rrw_auth(true);
+    if($action==='radio_get')rrw_json(['status'=>'ok','config'=>rrw_radio_load($dataDir),'sources'=>RRW_RADIO_SOURCES,'active'=>rrw_radio_theme_active($dataDir)]);
+    if($action==='radio_save'){
+        $rb=rrw_body();if(!is_array($rb['config']??null))rrw_json(['status'=>'error','message'=>'Konfiguration fehlt'],400);
+        try{ $c=rrw_radio_save($dataDir,$rb['config']); }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],500); }
+        rrw_log_activity($activityLogFile,$rdUser,'radio_save','Radio-Einstellungen gespeichert ('.count($c['stations']).' Sender)');
+        rrw_json(['status'=>'ok','config'=>$c]);
+    }
+    if($action==='radio_test'){
+        $rb=rrw_body();$c=rrw_radio_clean(['stations'=>[is_array($rb['station']??null)?$rb['station']:[]]]);if(!$c['stations'])rrw_json(['status'=>'error','message'=>'Kein Sender angegeben'],400);
+        rrw_json(['status'=>'ok']+rrw_radio_test($c['stations'][0]));
+    }
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
+}
 // WordPress-Plugins (PHP): Laufzeit unter cms/wp, Plugins unter cms/wp-content/plugins. Nur Superadmins.
 if(str_starts_with($action,'wp_')){
     $wpUser=rrw_auth(true);
