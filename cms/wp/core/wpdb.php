@@ -227,7 +227,7 @@ class RRW_SQL_Translator {
     /** @return string[] SQLite-Anweisungen für eine MySQL-Anweisung */
     public function translate(string $sql): array {
         $q=trim($sql);$q=rtrim($q,';');
-        if(preg_match('/^\s*SHOW\s+TABLES(?:\s+LIKE\s+(\'[^\']*\'))?\s*$/i',$q,$m))return ["SELECT name AS Tables_in_db FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'".(isset($m[1])?" AND name LIKE $m[1]":'')];
+        if(preg_match('/^\s*SHOW\s+TABLES(?:\s+LIKE\s+(\'[^\']*\'))?\s*$/i',$q,$m))return ["SELECT name AS Tables_in_db FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'".(isset($m[1])?" AND name LIKE $m[1] ESCAPE '\\'":'')];
         if(preg_match('/^\s*SHOW\s+(?:FULL\s+)?COLUMNS\s+FROM\s+`?(\w+)`?/i',$q,$m)||preg_match('/^\s*(?:DESCRIBE|DESC)\s+`?(\w+)`?/i',$q,$m))return ["SELECT name AS Field, type AS Type, CASE WHEN \"notnull\"=1 THEN 'NO' ELSE 'YES' END AS \"Null\", CASE WHEN pk>0 THEN 'PRI' ELSE '' END AS \"Key\", dflt_value AS \"Default\", '' AS Extra FROM pragma_table_info('".str_replace("'","''",$m[1])."')"];
         if(preg_match('/^\s*SHOW\s+(?:INDEX|INDEXES|KEYS)\s+FROM\s+`?(\w+)`?/i',$q,$m))return ["SELECT '".$m[1]."' AS \"Table\", il.\"unique\"=0 AS Non_unique, il.name AS Key_name, ii.seqno+1 AS Seq_in_index, ii.name AS Column_name FROM pragma_index_list('".$m[1]."') il JOIN pragma_index_info(il.name) ii"];
         if(preg_match('/^\s*(?:SET\s+(?:NAMES|SESSION|@@|time_zone|sql_mode)|LOCK\s+TABLES|UNLOCK\s+TABLES|START\s+TRANSACTION|SET\s+autocommit)/i',$q))return ['SELECT 1'];

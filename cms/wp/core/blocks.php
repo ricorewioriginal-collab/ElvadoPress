@@ -212,7 +212,7 @@ if(!class_exists('WP_List_Table',false)){
 class WP_List_Table {
     public $items=[];public $_args=[];public $_pagination_args=[];protected $screen=null;public $_column_headers;
     public function __construct($args=[]) { $this->_args=wp_parse_args($args,['plural'=>'','singular'=>'','ajax'=>false,'screen'=>null]); }
-    public function ajax_user_can() { return true; } public function prepare_items() {} public function get_columns() { return []; } public function get_sortable_columns() { return []; } protected function get_default_primary_column_name() { return ''; } protected function get_views() { return []; } protected function get_bulk_actions() { return []; }
+    public function ajax_user_can() { return true; } public function prepare_items() {} public function get_columns() { return []; } protected function get_sortable_columns() { return []; } protected function get_default_primary_column_name() { return ''; } protected function get_views() { return []; } protected function get_bulk_actions() { return []; }
     public function set_pagination_args($args) { $this->_pagination_args=$args; } public function get_pagination_arg($k) { return $this->_pagination_args[$k]??0; }
     public function has_items() { return !empty($this->items); } public function no_items() { echo 'Keine Einträge gefunden.'; }
     public function search_box($text,$input_id) {} public function views() {} public function pagination($which) {} public function current_action() { return $_REQUEST['action']??false; } public function get_pagenum() { return max(1,(int)($_REQUEST['paged']??1)); }
@@ -220,6 +220,12 @@ class WP_List_Table {
     public function display_rows_or_placeholder() { if($this->has_items())$this->display_rows();else{ echo '<tr><td colspan="'.count($this->get_columns()).'">';$this->no_items();echo '</td></tr>'; } }
     public function display_rows() { foreach($this->items as $item){ echo '<tr>';foreach($this->get_columns() as $k=>$_){ echo '<td>';if(method_exists($this,'column_'.$k))echo $this->{'column_'.$k}($item);elseif(method_exists($this,'column_default'))echo $this->column_default($item,$k);echo '</td>'; }echo '</tr>'; } }
     public function get_column_info() { return [$this->get_columns(),[],$this->get_sortable_columns(),'']; }
+    // Von Plugin-Listen häufig genutzt (wie in WordPress): Einträge pro Seite, Zeilenaktionen, Massenaktionen, Tabellenklassen
+    protected function get_items_per_page($option,$default_value=20) { $v=(int)get_user_option($option);if($v<1)$v=(int)$default_value;return (int)apply_filters($option,$v); }
+    protected function get_table_classes() { return ['widefat','fixed','striped',$this->_args['plural']??'']; }
+    protected function row_actions($actions,$always_visible=false) { $o=[];foreach((array)$actions as $k=>$a)$o[]="<span class='".esc_attr((string)$k)."'>$a</span>";return $o?'<div class="row-actions">'.implode(' | ',$o).'</div>':''; }
+    protected function bulk_actions($which='') {} protected function extra_tablenav($which) {} protected function display_tablenav($which) {} public function print_column_headers($with_id=true) {}
+    public function single_row($item) { echo '<tr>';foreach($this->get_columns() as $k=>$_){ echo '<td>';if(method_exists($this,'column_'.$k))echo $this->{'column_'.$k}($item);elseif(method_exists($this,'column_default'))echo $this->column_default($item,$k);echo '</td>'; }echo '</tr>'; }
 }
 }
 class WP_Importer { public function __construct() {} public function dispatch() {} }

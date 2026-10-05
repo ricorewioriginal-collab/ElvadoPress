@@ -5,7 +5,8 @@
 
 /** admin_menu/admin_init einmal auslösen. */
 require_once __DIR__.'/site-editor.php';
-class RRW_WP_Screen {
+// Von WP_Screen abgeleitet: Plugins schreiben den Typ vor (z. B. Contact Form 7: WPCF7_Help_Tabs::__construct(WP_Screen $screen))
+class RRW_WP_Screen extends WP_Screen {
     public $id='';public $base='';public $post_type='';public $action='';public $taxonomy='';public $parent_base='';public $parent_file='';public $is_network=false;public $is_user=false;public $in_admin='site';public $columns=0;public $is_block_editor=false;
     public function is_block_editor() { return false; } public function in_admin($admin=null) { return true; }
     public function add_help_tab($a) { return $this; } public function remove_help_tab($id) { return $this; } public function remove_help_tabs() {} public function get_help_tabs() { return []; } public function get_help_tab($id) { return null; } public function set_help_sidebar($c) {} public function get_help_sidebar() { return ''; }
