@@ -713,7 +713,8 @@ if($action==='directory_admin_save'){
     rrw_json(!empty($r['ok'])?['status'=>'ok']+rrw_dir_admin_view($dataDir):['status'=>'error','message'=>(string)($r['message']??'Speichern nicht möglich.')],!empty($r['ok'])?200:400);
 }
 if($action==='assistant_status'){ rrw_auth(false);rrw_json(['status'=>'ok']+rrw_assistant_status($site,$dataDir)); }
-if($action==='assistant_test'){ rrw_auth(false);$b=rrw_body();rrw_json(['status'=>'ok']+rrw_assistant_test($site,(string)($b['provider']??''),$dataDir)); }
+if($action==='assistant_test'){ rrw_auth(false);$b=rrw_body();rrw_json(['status'=>'ok']+rrw_assistant_test($site,(string)($b['provider']??''),$dataDir,(string)($b['model']??''))); }
+if($action==='assistant_models'){ rrw_auth(true);rrw_json(['status'=>'ok']+rrw_assistant_models_list($site,rrw_body(),$dataDir)); }
 if($action==='brands_public'){$reg=rrw_brands_registry($site);rrw_json(['status'=>'ok','default'=>$reg['default'],'brands'=>array_map(fn($b)=>['id'=>$b['id'],'name'=>$b['name'],'short_name'=>$b['short_name'],'primary_domain'=>$b['primary_domain'],'domains'=>$b['domains'],'enabled'=>!empty($b['enabled'])],$reg['items'])]);}
 if($action==='schedule'){
     // Öffentlich, nur lesend: Sendeplan der Kernsender (aufgeräumt, zwischengespeichert, "jetzt/als Nächstes" in Sender-Zeitzone)

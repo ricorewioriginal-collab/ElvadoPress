@@ -139,7 +139,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/brands-manager.js?v=4"></script>
 <script src="assets/directory-manager.js?v=2"></script><script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=6"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=4"></script>
-<script src="assets/assistant-manager.js?v=6"></script><script src="assets/alexa-manager.js?v=3"></script>
+<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=3"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script>
 <script src="assets/system-manager.js?v=2"></script>

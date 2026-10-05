@@ -1,57 +1,98 @@
-// CMS: KI-Assistent konfigurieren (Sektion "assistant") – Anbieter-Kette, Texte, Funktionen, Tests
+// CMS: KI-Assistent konfigurieren (Sektion "assistant") – Modus, Anbieter- und Modellkette, Texte, Funktionen, Tests
 (function(){
  'use strict';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- let model=null;
+ let model=null;const loaded={};   // geladene Modelllisten je Anbieter (nur im Browser)
+ // Vorlagen für neue Anbieter (OpenAI-kompatible Schnittstellen); Modellnamen sind Vorschläge – „Modelle laden“ zeigt, was der Anbieter wirklich anbietet
+ const TEMPLATES=[
+  ['Eigener OpenAI-kompatibler Anbieter','Eigener Anbieter','','',true,false],
+  ['OpenAI','OpenAI (GPT)','https://api.openai.com/v1','gpt-4o-mini',true,false],
+  ['Anthropic Claude','Anthropic Claude','https://api.anthropic.com/v1','claude-sonnet-4-5',true,false],
+  ['DeepSeek','DeepSeek','https://api.deepseek.com/v1','deepseek-chat',true,false],
+  ['Together AI','Together AI','https://api.together.xyz/v1','meta-llama/Llama-3.3-70B-Instruct-Turbo',true,false],
+  ['xAI Grok','xAI Grok','https://api.x.ai/v1','grok-3-mini',true,false],
+  ['Perplexity','Perplexity','https://api.perplexity.ai','sonar',true,false],
+  ['Fireworks AI','Fireworks AI','https://api.fireworks.ai/inference/v1','accounts/fireworks/models/llama-v3p3-70b-instruct',true,false],
+  ['Ollama (lokal auf diesem Server)','Ollama (lokal)','http://localhost:11434/v1','llama3.2',false,true],
+  ['LM Studio (lokal auf diesem Server)','LM Studio (lokal)','http://localhost:1234/v1','local-model',false,true],
+ ];
  function cmsRoot(){ try{ return (typeof CMS!=='undefined'&&CMS)?CMS:(window.CMS||{}); }catch(e){ return window.CMS||{}; } }
- function cfg(){ if(!model)model=JSON.parse(JSON.stringify(cmsRoot().assistant||{})); if(!Array.isArray(model.providers))model.providers=[]; return model; }
+ function cfg(){ if(!model)model=JSON.parse(JSON.stringify(cmsRoot().assistant||{})); if(!Array.isArray(model.providers))model.providers=[]; model.providers.forEach(p=>{if(!Array.isArray(p.models))p.models=String(p.models||'').split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);}); return model; }
  function set(path,value){ const parts=path.split('.');let o=cfg();for(let i=0;i<parts.length-1;i++){o[parts[i]]=o[parts[i]]??{};o=o[parts[i]];}o[parts[parts.length-1]]=value; }
  function provider(i){ return cfg().providers[i]; }
  function field(id,label,value,opts={}){
   const on=`oninput="AssistantManager.set('${esc(id)}',this.value)"`;
   if(opts.type==='textarea')return `<div><label class="news-lbl">${esc(label)}</label><textarea class="fc w-100" rows="${opts.rows||3}" placeholder="${esc(opts.ph||'')}" ${on}>${esc(value)}</textarea>${opts.hint?'<div class="hint" style="margin-top:4px">'+esc(opts.hint)+'</div>':''}</div>`;
-  return `<div><label class="news-lbl">${esc(label)}</label><input class="fc w-100" type="${opts.type||'text'}" value="${esc(value)}" placeholder="${esc(opts.ph||'')}" ${on}>${opts.hint?'<div class="hint" style="margin-top:4px">'+esc(opts.hint)+'</div>':''}</div>`;
+  return `<div><label class="news-lbl">${esc(label)}</label><input class="fc w-100" type="${opts.type||'text'}" ${opts.step?'step="'+opts.step+'" min="'+(opts.min??0)+'" max="'+(opts.max??2)+'"':''} value="${esc(value)}" placeholder="${esc(opts.ph||'')}" ${on}>${opts.hint?'<div class="hint" style="margin-top:4px">'+esc(opts.hint)+'</div>':''}</div>`;
  }
- function render(){
+ function select(id,label,value,options,hint){
+  return `<div><label class="news-lbl">${esc(label)}</label><select class="fc w-100" onchange="AssistantManager.set('${esc(id)}',this.value);AssistantManager.redraw()">${options.map(([v,l])=>`<option value="${esc(v)}" ${v===value?'selected':''}>${esc(l)}</option>`).join('')}</select>${hint?'<div class="hint" style="margin-top:4px">'+esc(hint)+'</div>':''}</div>`;
+ }
+ function render(keep){
   const host=document.getElementById('assistantEditor');if(!host)return;
-  model=null;const a=cfg();
-  const f=a.features||{};const own=!!a.neutral;
-  const feat=(k,label,desc)=>`<label class="wm-check" style="display:flex;gap:10px;align-items:flex-start;margin:0"><input type="checkbox" ${f[k]!==false?'checked':''} onchange="AssistantManager.set('features.${k}',this.checked)"><span><b>${esc(label)}</b><br><small class="hint">${esc(desc)}</small></span></label>`;
+  if(keep!==true)model=null;const a=cfg();
+  const f=a.features||{};const own=!!a.neutral;const web=own&&a.mode==='website';
+  const feat=(k,label,desc,also)=>`<label class="wm-check" style="display:flex;gap:10px;align-items:flex-start;margin:0"><input type="checkbox" ${f[k]!==false?'checked':''} onchange="AssistantManager.set('features.${k}',this.checked);${also?`AssistantManager.set('features.${also}',this.checked)`:''}"><span><b>${esc(label)}</b><br><small class="hint">${esc(desc)}</small></span></label>`;
+  const modeSel=own?select('mode','Art des Assistenten',a.mode||'website',[['website','Website-Assistent (allgemein, antwortet aus deinen Inhalten)'],['radio','Radio-Assistent (zusätzlich Sender, laufender Titel, Sendeplan)']],'Der Website-Assistent kennt Beiträge und das Wissen unten; der Radio-Assistent zusätzlich deine laut.fm-Sender.'):'';
   host.innerHTML=`
    <div class="section-grid" style="margin-bottom:10px">
-    <label class="wm-check" style="margin:0"><input type="checkbox" ${a.enabled!==false?'checked':''} onchange="AssistantManager.set('enabled',this.checked)"> Assistent im Portal anzeigen</label>
-    ${field('name','Name des Assistenten',a.name||'',{ph:'Radio-Assistent'})}
-    ${field('rate_limit','Max. Fragen je Hörer und Stunde',a.rate_limit||40,{type:'number',hint:'Schutz vor Missbrauch; pro IP-Adresse.'})}
+    <label class="wm-check" style="margin:0"><input type="checkbox" ${a.enabled!==false?'checked':''} onchange="AssistantManager.set('enabled',this.checked)"> Assistent ${own?'auf der Website':'im Portal'} anzeigen</label>
+    ${field('name','Name des Assistenten',a.name||'',{ph:own?'Assistent':'Radio-Assistent'})}
+    ${modeSel}
+    ${field('rate_limit','Max. Fragen je Besucher und Stunde',a.rate_limit||40,{type:'number',hint:'Schutz vor Missbrauch; pro IP-Adresse.'})}
     ${field('max_tokens','Max. Antwortlänge (Tokens)',a.max_tokens||420,{type:'number'})}
+    ${field('temperature','Kreativität (Temperatur 0–1,5)',a.temperature??0.2,{type:'number',step:'0.1',min:0,max:1.5,hint:'Niedrig = sachlich und gleichbleibend, hoch = abwechslungsreicher.'})}
    </div>
    ${field('greeting','Begrüßung im Chat',a.greeting||'',{type:'textarea',rows:2})}
    <div style="height:10px"></div>
-   ${field('knowledge','Wissen über uns (wird jeder Antwort mitgegeben)',a.knowledge||'',{type:'textarea',rows:6,ph:own?'z.B. Wer wir sind, welche Shows und Moderatoren es gibt, Kontaktwege, Events …':'z.B. Wer AnMaCha ist, was RicoReWi Music & Media macht, was SenderWelt ist, Shows, Moderatoren, Kontaktwege, Events …',hint:'Freitext, max. 6000 Zeichen. Je konkreter, desto besser antwortet der Assistent. Live-Daten (Titel, Sendeplan, Sender, Podcast, News) kommen automatisch dazu.'})}
-   ${own?`<div style="height:10px"></div>${field('stations','Deine Sender (laut.fm-Kennungen)',(a.stations||[]).join('\n'),{type:'textarea',rows:3,ph:'meinradio\nmein-zweiter-sender',hint:'Eine Kennung je Zeile (laut.fm/<kennung>). Damit nennt der Assistent den laufenden Titel und den Sendeplan. Sender aus dem Alexa-Skill werden automatisch mit verwendet.'})}`:''}
+   ${field('knowledge','Wissen über uns (wird jeder Antwort mitgegeben)',a.knowledge||'',{type:'textarea',rows:6,ph:own?(web?'z.B. Wer wir sind, was wir anbieten, Öffnungszeiten, Preise, Kontaktwege …':'z.B. Wer wir sind, welche Shows und Moderatoren es gibt, Kontaktwege, Events …'):'z.B. Wer AnMaCha ist, was RicoReWi Music & Media macht, was SenderWelt ist, Shows, Moderatoren, Kontaktwege, Events …',hint:'Freitext, max. 6000 Zeichen. Je konkreter, desto besser antwortet der Assistent.'+(web?' Beiträge deiner Website werden zusätzlich passend zur Frage herangezogen.':'')})}
+   ${own&&!web?`<div style="height:10px"></div>${field('stations','Deine Sender (laut.fm-Kennungen)',(a.stations||[]).join('\n'),{type:'textarea',rows:3,ph:'meinradio\nmein-zweiter-sender',hint:'Eine Kennung je Zeile (laut.fm/<kennung>). Damit nennt der Assistent den laufenden Titel und den Sendeplan. Sender aus dem Alexa-Skill werden automatisch mit verwendet.'})}`:''}
    <div style="height:10px"></div>
-   ${field('system_prompt','Zusätzliche Anweisungen (optional)',a.system_prompt||'',{type:'textarea',rows:2,ph:'z.B. Duze die Hörer, erwähne bei Fragen zu Events immer unsere News-Seite …'})}
+   ${field('system_prompt','Zusätzliche Anweisungen (optional)',a.system_prompt||'',{type:'textarea',rows:2,ph:web?'z.B. Duze die Besucher, antworte kurz, verweise bei Preisfragen auf die Kontaktseite …':'z.B. Duze die Hörer, erwähne bei Fragen zu Events immer unsere News-Seite …'})}
    <div style="height:10px"></div>
    ${field('privacy_note','Datenschutz-Hinweis im Chat',a.privacy_note||'',{type:'textarea',rows:2})}
    <div class="widget-category-title" style="margin-top:16px">Funktionen</div>
    <div class="section-grid">
-    ${feat('nowplaying','Jetzt läuft','Aktueller Titel und zuletzt gespielte Songs je Sender (laut.fm).')}
-    ${feat('schedule','Sendeplan','Laufende Sendung, nächste Sendungen, Tagesprogramm.')}
-    ${feat('stations','Sender',own?'Deine Sender vorstellen und empfehlen.':'Alle Sender des Netzwerks vorstellen und empfehlen.')}
+    ${web?feat('pages','Inhalte der Website','Passende Beiträge zur Frage heraussuchen und für die Antwort nutzen.','news'):''}
+    ${own?feat('research','Live-Recherche','Wetter, Schlagzeilen und Wikipedia-Auszüge abrufen, wenn die Frage danach klingt (externe Dienste).'):''}
+    ${web?'':feat('nowplaying','Jetzt läuft','Aktueller Titel und zuletzt gespielte Songs je Sender (laut.fm).')}
+    ${web?'':feat('schedule','Sendeplan','Laufende Sendung, nächste Sendungen, Tagesprogramm.')}
+    ${web?'':feat('stations','Sender',own?'Deine Sender vorstellen und empfehlen.':'Alle Sender des Netzwerks vorstellen und empfehlen.')}
     ${own?'':feat('podcast','Podcast','AnMaCha – Der Podcast mit den neuesten Folgen.')}
-    ${feat('news','News & Events','Veröffentlichte Beiträge aus dem Magazin.')}
-    ${feat('favorites','Favoriten','Lieblingssender des Hörers als Kontext nutzen.')}
+    ${web?'':feat('news','News & Events','Veröffentlichte Beiträge aus dem Magazin.')}
+    ${web?'':feat('favorites','Favoriten','Lieblingssender des Hörers als Kontext nutzen.')}
     ${own?'':feat('studiomail','Nachricht ans Studio','Hörer schreiben je Sender oder ans Netzwerk – landet in Studiomail.')}
     ${own?'':feat('voicemail','Sprachnachricht','Voice-Memo je Sender aufnehmen – landet in Studiomail (Voicemail).')}
    </div>
-   <div class="widget-category-title" style="margin-top:16px">KI-Anbieter (Reihenfolge = Priorität, kostenlose zuerst)</div>
-   <p class="hint" style="margin:-4px 0 8px">Reihenfolge der Kette: kostenlose Anbieter mit Key (z.B. Groq) zuerst, dann Key-freie Community-Dienste (Pollinations, LLM7), zuletzt kostenpflichtige. Es wird automatisch der erste aktive Anbieter genutzt, der antwortet. Fällt einer aus, wird er 10 Minuten übersprungen. Anbieter mit „Key nötig“ sind erst aktiv, wenn ein API-Key hinterlegt ist. Keys werden nie an Hörer ausgeliefert.</p>
+   <div class="widget-category-title" style="margin-top:16px">KI-Anbieter und Modelle</div>
+   <div class="section-grid" style="margin-bottom:6px">
+    ${select('order_mode','Reihenfolge',a.order_mode||(own?'manual':'auto'),[['manual','Manuell – genau meine Reihenfolge (oben zuerst)'],['auto','Automatisch – kostenlose zuerst, schnelle Modelle nach vorn']],'Manuell: Es wird der erste aktive Anbieter genutzt, der antwortet, mit seinen Modellen in der angegebenen Reihenfolge. Automatisch: kostenlose Anbieter mit Key, dann Key-freie Dienste, zuletzt kostenpflichtige; gemessen schnellere Modelle rücken vor.')}
+   </div>
+   <p class="hint" style="margin:0 0 8px">Fällt ein Anbieter aus, wird er 3 Minuten übersprungen. Anbieter mit „Key nötig“ sind erst aktiv, wenn ein API-Key hinterlegt ist. Keys werden nie an Besucher ausgeliefert. Pro Anbieter wählst du das Hauptmodell und beliebig viele Reservemodelle; „Modelle laden“ fragt den Anbieter nach seiner Liste.</p>
    <div id="assistantStatus" class="hint" style="margin:0 0 8px"></div>
    <div id="assistantProviders">${(a.providers||[]).map((p,i)=>providerHtml(p,i)).join('')}</div>
-   <button class="btn-g" style="margin-top:8px" onclick="AssistantManager.addProvider()"><i class="fas fa-plus"></i> Eigenen Anbieter (OpenAI-kompatibel) hinzufügen</button>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+    <select id="assistantTpl" class="fc" style="max-width:340px">${TEMPLATES.map((t,i)=>`<option value="${i}">${esc(t[0])}</option>`).join('')}</select>
+    <button class="btn-g" onclick="AssistantManager.addProvider(document.getElementById('assistantTpl').value)"><i class="fas fa-plus"></i> Anbieter hinzufügen</button>
+   </div>
   `;
+ }
+ function modelChips(p,i){
+  const list=Array.isArray(p.models)?p.models:[];
+  return list.map((m,j)=>`<span style="display:inline-flex;gap:4px;align-items:center;padding:3px 6px;margin:2px 4px 2px 0;border-radius:999px;border:1px solid var(--line)"><span style="font-size:.78rem">${esc(m)}</span><span id="assistantModelTest_${i}_${j}" class="hint" style="font-size:.68rem"></span><button class="btn-g" title="Nach vorn" ${j<=0?'disabled':''} onclick="AssistantManager.moveModel(${i},${j},-1)" style="padding:0 5px"><i class="fas fa-arrow-left"></i></button><button class="btn-g" title="Nach hinten" ${j>=list.length-1?'disabled':''} onclick="AssistantManager.moveModel(${i},${j},1)" style="padding:0 5px"><i class="fas fa-arrow-right"></i></button><button class="btn-g" title="Als Hauptmodell" onclick="AssistantManager.makePrimary(${i},${j})" style="padding:0 5px"><i class="fas fa-star"></i></button><button class="btn-g" title="Dieses Modell testen" onclick="AssistantManager.testModel(${i},'${esc(m).replace(/'/g,'&#39;')}',${j})" style="padding:0 5px"><i class="fas fa-plug-circle-check"></i></button><button class="btn-g" title="Entfernen" onclick="AssistantManager.removeModel(${i},${j})" style="padding:0 5px"><i class="fas fa-xmark"></i></button></span>`).join('')||'<span class="hint">Keine Reservemodelle.</span>';
+ }
+ function modelList(p,i){
+  const l=loaded[i];if(!l)return '';
+  if(l.error)return `<div class="hint" style="color:#ff8e8e;margin-top:6px">${esc(l.error)}</div>`;
+  const have=new Set([p.model,...(p.models||[])]);
+  return `<details open style="margin-top:6px"><summary class="hint">${l.models.length} Modelle beim Anbieter</summary><input class="fc w-100" placeholder="Modelle filtern …" oninput="AssistantManager.filterModels(${i},this.value)" style="margin:6px 0"><div id="assistantModelList_${i}" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px">${l.models.map(m=>modelRow(i,m,have.has(m.id))).join('')}</div></details>`;
+ }
+ function modelRow(i,m,has){
+  return `<div class="assistant-mrow" data-m="${esc(m.id.toLowerCase())}" style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-bottom:1px dashed var(--line)"><span style="flex:1;word-break:break-all;font-size:.8rem">${esc(m.id)}</span>${m.free===true?'<span class="hint" style="color:var(--ok,#7ee2b8)">kostenlos</span>':''}${m.ctx?`<span class="hint">${Math.round(m.ctx/1000)}k</span>`:''}${has?'<span class="hint">verwendet</span>':`<button class="btn-g" onclick="AssistantManager.pickModel(${i},'${esc(m.id).replace(/'/g,'&#39;')}','main')">Haupt</button><button class="btn-g" onclick="AssistantManager.pickModel(${i},'${esc(m.id).replace(/'/g,'&#39;')}','reserve')">Reserve</button>`}</div>`;
  }
  function providerHtml(p,i){
   const hasKey=!!(p.has_key||(p.api_key&&p.api_key!=='__clear__'));const keyState=p.needs_key?(hasKey?'<span style="color:var(--ok,#7ee2b8)"><i class="fas fa-key"></i> Key hinterlegt</span>':'<span style="color:var(--warn,#ffc96b)"><i class="fas fa-key"></i> Key nötig</span>'):'<span style="color:var(--ok,#7ee2b8)"><i class="fas fa-unlock"></i> ohne Key</span>';
+  const n=(cfg().providers||[]).length;
   return `<div class="card" style="padding:12px;margin:8px 0;border:1px solid var(--line)">
    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
     <label class="wm-check" style="margin:0"><input type="checkbox" ${p.enabled!==false?'checked':''} onchange="AssistantManager.setP(${i},'enabled',this.checked)"> <b>${esc(p.label||p.id)}</b></label>
@@ -59,23 +100,41 @@
     <span style="flex:1"></span>
     <span id="assistantTest_${i}" class="hint" style="font-size:.72rem"></span>
     <button class="btn-g" onclick="AssistantManager.test(${i})"><i class="fas fa-plug-circle-check"></i> Testen</button>
-    ${i>0?`<button class="btn-g" title="Nach oben" onclick="AssistantManager.move(${i},-1)"><i class="fas fa-arrow-up"></i></button>`:''}
-    ${!p.builtin?`<button class="btn-g" onclick="AssistantManager.remove(${i})"><i class="fas fa-trash"></i></button>`:''}
+    <button class="btn-g" title="Nach oben" ${i<=0?'disabled':''} onclick="AssistantManager.move(${i},-1)"><i class="fas fa-arrow-up"></i></button>
+    <button class="btn-g" title="Nach unten" ${i>=n-1?'disabled':''} onclick="AssistantManager.move(${i},1)"><i class="fas fa-arrow-down"></i></button>
+    ${!p.builtin?`<button class="btn-g" title="Anbieter entfernen" onclick="AssistantManager.remove(${i})"><i class="fas fa-trash"></i></button>`:''}
    </div>
    <div class="section-grid">
-    <div><label class="news-lbl">Modell</label><input class="fc w-100" value="${esc(p.model||'')}" oninput="AssistantManager.setP(${i},'model',this.value)">${p.id==='openrouter'?'<div class="hint" style="margin-top:4px">Die aktuell besten kostenlosen OpenRouter-Modelle werden automatisch erkannt und zuerst nacheinander probiert; ein hier eingetragenes Modell kommt danach als Reserve.</div>':''}</div>
-    ${p.id==='openrouter'?'':`<div><label class="news-lbl">Weitere Modelle (Reserve &amp; Tempo)</label><textarea class="fc w-100" rows="3" placeholder="ein Modell pro Zeile" oninput="AssistantManager.setP(${i},'models',this.value)">${esc((Array.isArray(p.models)?p.models:String(p.models||'').split(/[\n,;]+/)).filter(Boolean).join('\n'))}</textarea><div class="hint" style="margin-top:4px">Diese Modelle desselben Anbieters werden bei Fehlern oder Langsamkeit nacheinander probiert; das schnellste gemessene rückt automatisch nach vorn (max. 8).</div></div>`}
+    <div><label class="news-lbl">Hauptmodell</label><div style="display:flex;gap:6px"><input class="fc w-100" value="${esc(p.model||'')}" oninput="AssistantManager.setP(${i},'model',this.value)" placeholder="Modellname"><button class="btn-g" type="button" onclick="AssistantManager.loadModels(${i})" title="Beim Anbieter nachfragen, welche Modelle es gibt"><i class="fas fa-list"></i> Modelle laden</button></div>${p.id==='openrouter'?'<div class="hint" style="margin-top:4px">Die aktuell besten kostenlosen OpenRouter-Modelle werden automatisch erkannt und zuerst nacheinander probiert; ein hier eingetragenes Modell kommt danach als Reserve.</div>':''}</div>
     <div><label class="news-lbl">API-Key${p.needs_key?'':' (optional)'}</label><div style="display:flex;gap:6px"><input class="fc w-100" type="password" value="${esc(p.api_key==='__clear__'?'':(p.api_key||''))}" placeholder="${hasKey?'•••••• (hinterlegt – leer lassen = behalten)':(p.needs_key?'sk-…':'nicht nötig')}" autocomplete="new-password" oninput="AssistantManager.setP(${i},'api_key',this.value)">${hasKey?`<button class="btn-g" type="button" title="Gespeicherten Key entfernen" onclick="AssistantManager.clearKey(${i})"><i class="fas fa-eraser"></i></button>`:''}</div></div>
-    ${p.builtin?`<div><label class="news-lbl">Endpunkt</label><div class="hint" style="word-break:break-all">${esc(p.base_url)}</div></div>`:`<div><label class="news-lbl">Basis-URL (OpenAI-kompatibel, ohne /chat/completions)</label><input class="fc w-100" value="${esc(p.base_url||'')}" placeholder="https://api.example.com/v1" oninput="AssistantManager.setP(${i},'base_url',this.value)"></div><div><label class="news-lbl">Bezeichnung</label><input class="fc w-100" value="${esc(p.label||'')}" oninput="AssistantManager.setP(${i},'label',this.value)"></div>`}
+    ${p.builtin?`<div><label class="news-lbl">Endpunkt</label><div class="hint" style="word-break:break-all">${esc(p.base_url)}</div></div>`:`<div><label class="news-lbl">Basis-URL (OpenAI-kompatibel, ohne /chat/completions)</label><input class="fc w-100" value="${esc(p.base_url||'')}" placeholder="https://api.example.com/v1 (lokal: http://localhost:11434/v1)" oninput="AssistantManager.setP(${i},'base_url',this.value)"></div><div><label class="news-lbl">Bezeichnung</label><input class="fc w-100" value="${esc(p.label||'')}" oninput="AssistantManager.setP(${i},'label',this.value)"></div><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><label class="wm-check" style="margin:0"><input type="checkbox" ${p.needs_key!==false?'checked':''} onchange="AssistantManager.setP(${i},'needs_key',this.checked);AssistantManager.redrawProviders()"> API-Key nötig</label><label class="wm-check" style="margin:0"><input type="checkbox" ${p.free?'checked':''} onchange="AssistantManager.setP(${i},'free',this.checked)"> kostenlos (Reihenfolge „Automatisch“)</label></div>`}
    </div>
+   ${p.id==='openrouter'?'':`<div style="margin-top:8px"><label class="news-lbl">Weitere Modelle (Reserve – werden bei Fehlern oder Langsamkeit in dieser Reihenfolge probiert, bis zu 20)</label><div>${modelChips(p,i)}</div><div style="display:flex;gap:6px;margin-top:6px"><input id="assistantAddModel_${i}" class="fc" style="max-width:360px" placeholder="Modellname hinzufügen" onkeydown="if(event.key==='Enter'){AssistantManager.addModel(${i});event.preventDefault()}"><button class="btn-g" type="button" onclick="AssistantManager.addModel(${i})"><i class="fas fa-plus"></i> Hinzufügen</button></div></div>`}
+   <div id="assistantModels_${i}">${modelList(p,i)}</div>
   </div>`;
  }
- function setP(i,k,v){ const p=provider(i);if(!p)return;p[k]=v; if(k==='api_key'||k==='enabled'){/* Statusanzeige aktualisieren ohne Fokus zu verlieren */} }
- function move(i,d){ const list=cfg().providers;const j=i+d;if(j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];rerenderProviders(); }
- function remove(i){ cfg().providers.splice(i,1);rerenderProviders(); }
- function addProvider(){ cfg().providers.push({id:'custom_'+Date.now().toString(36),label:'Eigener Anbieter',type:'openai',base_url:'',model:'',api_key:'',enabled:true,builtin:false,free:false,needs_key:true});rerenderProviders(); }
+ function setP(i,k,v){ const p=provider(i);if(!p)return;p[k]=v; }
+ function move(i,d){ const list=cfg().providers;const j=i+d;if(j<0||j>=list.length)return;[list[i],list[j]]=[list[j],list[i]];[loaded[i],loaded[j]]=[loaded[j],loaded[i]];rerenderProviders(); }
+ function remove(i){ cfg().providers.splice(i,1);delete loaded[i];rerenderProviders(); }
+ function addProvider(t){ const x=TEMPLATES[parseInt(t,10)||0]||TEMPLATES[0];cfg().providers.push({id:'custom_'+Date.now().toString(36),label:x[1],type:'openai',base_url:x[2],model:x[3],models:[],api_key:'',enabled:true,builtin:false,free:!!x[5],needs_key:x[4]});rerenderProviders(); }
  function rerenderProviders(){ const h=document.getElementById('assistantProviders');if(h)h.innerHTML=(cfg().providers||[]).map((p,i)=>providerHtml(p,i)).join(''); }
- async function save(){ const a=cfg();a.rate_limit=parseInt(a.rate_limit,10)||40;a.max_tokens=parseInt(a.max_tokens,10)||420;await window.saveSection('assistant',a);model=null;render(); }
+ function addModel(i){ const el=document.getElementById('assistantAddModel_'+i);const v=(el?.value||'').trim();const p=provider(i);if(!p||!v)return;if(!/^[\w.:\/@+-]{1,120}$/.test(v))return toast('Ungültiger Modellname',true);if(v===p.model||p.models.includes(v))return toast('Dieses Modell ist schon eingetragen',true);if(p.models.length>=20)return toast('Höchstens 20 Reservemodelle',true);p.models.push(v);rerenderProviders(); }
+ function removeModel(i,j){ const p=provider(i);if(!p)return;p.models.splice(j,1);rerenderProviders(); }
+ function moveModel(i,j,d){ const p=provider(i),k=j+d;if(!p||k<0||k>=p.models.length)return;[p.models[j],p.models[k]]=[p.models[k],p.models[j]];rerenderProviders(); }
+ function makePrimary(i,j){ const p=provider(i);if(!p)return;const m=p.models[j];p.models.splice(j,1);if(p.model)p.models.unshift(p.model);p.model=m;rerenderProviders(); }
+ function pickModel(i,id,where){ const p=provider(i);if(!p)return;if(where==='main'){ if(p.model&&!p.models.includes(p.model))p.models.unshift(p.model);p.models=p.models.filter(x=>x!==id);p.model=id; } else if(!p.models.includes(id)&&id!==p.model){ if(p.models.length>=20)return toast('Höchstens 20 Reservemodelle',true);p.models.push(id); } rerenderProviders(); }
+ function filterModels(i,q){ q=String(q||'').toLowerCase().trim();document.querySelectorAll('#assistantModelList_'+i+' .assistant-mrow').forEach(r=>{r.style.display=(!q||r.dataset.m.includes(q))?'flex':'none'}); }
+ async function loadModels(i){
+  const p=provider(i);if(!p)return;const box=document.getElementById('assistantModels_'+i);
+  if(box)box.innerHTML='<div class="hint" style="margin-top:6px"><i class="fas fa-spinner fa-spin"></i> Modelle werden abgefragt …</div>';
+  try{
+   const d=await window.cmsApi('assistant_models',{provider:p.id,base_url:p.base_url||'',api_key:(p.api_key&&p.api_key!=='__clear__')?p.api_key:''});
+   loaded[i]=d.ok?{models:d.models||[]}:{error:d.error||'Modelle nicht abrufbar'};
+  }catch(e){ loaded[i]={error:e.message}; }
+  if(box)box.innerHTML=modelList(p,i);
+ }
+ function toast(m,bad){ try{window.cmsToast(m,!!bad);}catch(e){} }
+ async function save(){ const a=cfg();a.rate_limit=parseInt(a.rate_limit,10)||40;a.max_tokens=parseInt(a.max_tokens,10)||420;a.temperature=parseFloat(a.temperature);if(isNaN(a.temperature))a.temperature=0.2;await window.saveSection('assistant',a);model=null;render(); }
  async function test(i){
   const el=document.getElementById('assistantTest_'+i);const p=provider(i);if(!p)return;
   if(el)el.innerHTML='<i class="fas fa-spinner fa-spin"></i> Test läuft …';
@@ -84,6 +143,15 @@
    await window.saveSection('assistant',cfg());
    const d=await window.cmsApi('assistant_test',{provider:p.id});
    if(el)el.innerHTML=d.ok?`<span style="color:var(--ok,#7ee2b8)"><i class="fas fa-circle-check"></i> OK · ${esc(d.model||'')} · ${d.ms} ms</span>`:`<span style="color:#ff8e8e"><i class="fas fa-circle-xmark"></i> ${esc(d.error||'Fehler')}</span>`;
+  }catch(e){ if(el)el.innerHTML='<span style="color:#ff8e8e">'+esc(e.message)+'</span>'; }
+ }
+ async function testModel(i,m,j){
+  const el=document.getElementById('assistantModelTest_'+i+'_'+j);const p=provider(i);if(!p)return;
+  if(el)el.innerHTML='<i class="fas fa-spinner fa-spin"></i>';
+  try{
+   await window.saveSection('assistant',cfg());
+   const d=await window.cmsApi('assistant_test',{provider:p.id,model:m});
+   if(el)el.innerHTML=d.ok?`<span style="color:var(--ok,#7ee2b8)">OK ${d.ms} ms</span>`:`<span style="color:#ff8e8e" title="${esc(d.error||'')}">Fehler</span>`;
   }catch(e){ if(el)el.innerHTML='<span style="color:#ff8e8e">'+esc(e.message)+'</span>'; }
  }
  async function testAll(){ for(let i=0;i<(cfg().providers||[]).length;i++){const p=provider(i);if(p.enabled===false||(p.needs_key&&!p.has_key&&!p.api_key))continue;await test(i);} }
@@ -97,5 +165,7 @@
   }catch(e){ el.textContent='Status nicht abrufbar: '+e.message; }
  }
  const _render=render;
- window.AssistantManager={render:()=>{_render();status();},set,setP,move,remove,addProvider,save,test,testAll,status,clearKey};
+ // redraw: Ansicht neu zeichnen, ohne die ungespeicherten Eingaben zu verwerfen (Modell bleibt im Speicher)
+ function redraw(){ _render(true);status(); }
+ window.AssistantManager={render:()=>{_render();status();},redraw,redrawProviders:rerenderProviders,set,setP,move,remove,addProvider,addModel,removeModel,moveModel,makePrimary,pickModel,filterModels,loadModels,save,test,testModel,testAll,status,clearKey};
 })();
