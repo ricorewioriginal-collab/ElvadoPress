@@ -11,7 +11,7 @@ function rrw_tc_registry(): array {
     static $r=null;
     if($r===null){
         $r=[];
-        if(is_file(__DIR__.'/band.php')){ require_once __DIR__.'/band.php';$r['band']=rrw_band_registration(); }
+        foreach(['band','creator'] as $id)if(is_file(__DIR__.'/'.$id.'.php')){ require_once __DIR__.'/'.$id.'.php';$r[$id]=('rrw_'.$id.'_registration')(); }
     }
     return $r;
 }

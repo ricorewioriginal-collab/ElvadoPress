@@ -197,7 +197,7 @@ function rrw_wp_dispatch(string $uri, string $method='GET', array $query=[], arr
     $level=ob_get_level();ob_start();$GLOBALS['rrw_wp_die_throws']=true;$GLOBALS['rrw_wp_tpl_loaded']=[];foreach(['rrw_wp_scripts','rrw_wp_styles'] as $_k)$GLOBALS[$_k]['done']=[];
     try{
         $q=rrw_wp_setup_query($path,$query);
-        if($q->is_404)$status=404;
+        if($q->is_404)$status=(int)apply_filters('rrw_wp_404_status',404,$path);   // Themes mit eigenen virtuellen Seiten (z. B. /links/) können hier 200 melden
         // Wie WP::register_globals: bei Einzelseiten ist der Beitrag schon vor template_redirect der aktuelle (Elementor prüft das)
         if($q->is_singular&&!empty($q->posts[0])){ $GLOBALS['post']=$q->posts[0]; }
         do_action('template_redirect');
