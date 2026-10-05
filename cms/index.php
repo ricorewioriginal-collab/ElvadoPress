@@ -28,6 +28,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <?php if(!$sa): ?><link rel="stylesheet" href="/control/shared.css"><?php endif; ?>
 <link rel="stylesheet" href="assets/cms.css?v=32">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
+<link rel="stylesheet" href="assets/baukasten.css?v=1">
 </head>
 <body>
 <div id="navbarContainer"></div>
@@ -64,6 +65,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
     <?php require __DIR__.'/views/panel-tools.php'; ?>
 
     <?php require __DIR__.'/views/panel-tags.php'; ?>
+
+    <?php require __DIR__.'/views/panel-baukasten.php'; ?>
 
     <?php require __DIR__.'/views/panel-contents.php'; ?>
 
@@ -148,6 +151,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>
+<script src="assets/home-builder.js?v=1"></script>
 <script src="assets/contents-manager.js?v=1"></script>
 <script src="assets/forms-manager.js?v=1"></script>
 <script src="assets/polls-manager.js?v=1"></script>

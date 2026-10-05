@@ -7,6 +7,9 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 - Öffentliches ElvadoPress-Branding/README wurde aufgewertet.
 - Dauerhafte Claude-Code-Arbeitsstruktur wurde eingerichtet: zentrale Regeln, Handover, Projektkarte, Architektur- und Development-Übersicht sowie bekannte Doku-Probleme.
 
+- Neues Theme `cms/themes/elvado-baukasten` (Homepage-Baukasten: Startseite aus frei sortierbaren Abschnitten, Farben/Schrift/Breiten/Kopf/Fuß über den WordPress-Customizer, `theme_mods`); Doku in `cms/docs/THEMES.md`, Test `scripts/test-baukasten.php`. Smoke-Test erwartet nun beide neutralen Themes.
+- Visueller Abschnitts-Editor „Homepage-Baukasten“ im CMS (Design-Menü): `cms/views/panel-baukasten.php`, `cms/assets/home-builder.js`/`baukasten.css`, API `wp_bk_get`/`wp_bk_save` (Option `elvado_bk_layout`, Schema in `cms/themes/elvado-baukasten/inc/layout.php`). Im Browser geprüft (Hinzufügen, Drag & Drop, Speichern, Vorschau).
+
 ## Aktuell in Arbeit
 Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokumentiert.
 
