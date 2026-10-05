@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: curl, zip, mbstring, pdo_sqlite, gd
+          extensions: curl, zip, mbstring, pdo_sqlite, gd, :imagick
       - name: PHP-Syntax prüfen
         run: find cms scripts -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
       - name: Testinstallation (Einrichtung, Verwaltung, Radio-Erweiterungen)
