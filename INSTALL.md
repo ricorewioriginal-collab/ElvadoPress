@@ -90,6 +90,5 @@ Radio-Widgets, Portal-Seiten, Alexa-Skill, Radioverzeichnis, Sender-Netzwerk, Ap
 Funktionen, die zu den eigenen Apps gehören, bleiben im eigenständigen CMS erhalten – ohne RicoReWi-Inhalte:
 
 - **Alexa-Skill (Baukasten):** Name und Aufrufname stammen aus deinen Einstellungen (Standard: Website-Name), die Sender legst du selbst an (laut.fm-Kennung); Sprachmodell, Skill-Angaben, README und Store-Texte werden daraus erzeugt (`cms/standalone/alexa-skill/` enthält die neutralen Vorlagen, das Paket ersetzt damit den RicoReWi-Katalog).
-- **Radioverzeichnis:** Suche, Meldungen und Ausschlüsse für Radio-Apps und die Website; die Kennung gegenüber laut.fm/radio-browser.info ist neutral.
 - Sichtbar sind sie in der Verwaltung unter **Apps & Kanäle**; mit dem RicoReWi-Paket erscheinen sie nur, solange das RicoReWi-Design ausgeliefert wird (`data-pack-app`).
 - **KI-Assistent:** beantwortet Fragen auf der Website und in den Radio-Apps (Anbieter-Kette wie gehabt, Schlüssel optional). Ohne RicoReWi-Paket arbeitet er mit deinen eigenen Sendern (Einstellungen → KI-Assistent → „Deine Sender“, dazu die Sender des Alexa-Skills), deinen News und deinem Wissenstext; Podcast, Studiomail und Voicemail des Herstellers entfallen.

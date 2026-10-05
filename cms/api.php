@@ -563,6 +563,8 @@ if($action==='brand')rrw_json(['status'=>'ok']+rrw_brand_public_payload($rrwBran
 if($action==='assistant_chat'){ $r=rrw_assistant_chat($site,$rrwBrand,rrw_body(),$dataDir,$newsFile);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
 if($action==='assistant_send'){ $r=rrw_assistant_send_studiomail($site,rrw_body(),$dataDir);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
 if($action==='assistant_voice'){ $r=rrw_assistant_send_voice($site,$dataDir);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
+// Radioverzeichnis: gehört zum RicoReWi-Paket und fehlt im eigenständigen CMS
+if(strncmp($action,'directory_',10)===0&&!rrw_pack_available())rrw_json(['status'=>'error','message'=>'Das Radioverzeichnis ist in diesem CMS nicht enthalten.'],404);
 // Radioverzeichnis (Marken mit Verzeichnis-Funktion, z.B. SenderWelt): öffentlich, mit Stundenlimit je IP
 if($action==='directory_search'){
     if(!rrw_assistant_rate_ok($dataDir,'directory',400))rrw_json(['status'=>'error','message'=>'Zu viele Suchanfragen – bitte in ein paar Minuten noch einmal versuchen.'],429);

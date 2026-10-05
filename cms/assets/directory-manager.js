@@ -86,7 +86,7 @@ window.DirectoryManager=(()=>{
  }
  return {
   render,
-  async refreshBadge(){try{S.data=await api('directory_admin_get');badge();}catch(e){}},
+  async refreshBadge(){if(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']===false)return;try{S.data=await api('directory_admin_get');badge();}catch(e){}},
   tab(k){S.tab=k;draw();},
   filter(f){S.filter=f;draw();},
   reportBlock(id,host){if(confirm(host?'Alle Sender dieser Webseite aus dem Verzeichnis ausschließen?':'Diesen Sender aus dem Verzeichnis ausschließen?'))send({op:'report_block',id,host:host?1:0},'Ausgeschlossen');},

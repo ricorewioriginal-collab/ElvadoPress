@@ -32,7 +32,7 @@ ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung vo
 **Radio-Erweiterungen (für eigene Radio-Apps und -Seiten)**
 - **App-Baukasten:** eigene Android- und Windows-Apps (Radio-App oder Website-App) über GitHub-Actions bauen
 - **Alexa-Skill:** Sprachmodell, Skill-Angaben und Backend aus deinen eigenen Sendern erzeugen
-- **Radioverzeichnis** und **KI-Assistent** für Website und Apps
+- **KI-Assistent** für Website und Apps
 
 Alle Radio-Erweiterungen sind optional und arbeiten mit deinen eigenen Inhalten.
 
@@ -52,7 +52,7 @@ Ausführliche Hinweise stehen in [INSTALL.md](INSTALL.md) und in `cms/docs/`.
 
 ## Qualität
 
-- `php scripts/smoke-test.php` richtet das CMS in einem temporären Ordner ein und prüft Einrichtung, Auslieferung, Verwaltung, Alexa-Baukasten, Radioverzeichnis und KI-Assistent; die übrigen Tests liegen in `scripts/test-*.php`.
+- `php scripts/smoke-test.php` richtet das CMS in einem temporären Ordner ein und prüft Einrichtung, Auslieferung, Verwaltung, Alexa-Baukasten und KI-Assistent (das Radioverzeichnis ist im eigenständigen CMS bewusst nicht enthalten); die übrigen Tests liegen in `scripts/test-*.php`.
 - Der Workflow *CI* führt PHP-Syntaxprüfung, diesen Test und alle weiteren Tests bei jedem Push und Pull Request aus.
 
 ## Entwicklung
