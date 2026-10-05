@@ -1,0 +1,23 @@
+name: Release
+
+# Ein Tag "v<Version>" (z. B. v1.0.1) erzeugt das ZIP zum Installieren und hängt es an das Release.
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ZIP bauen
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          git archive --format=zip --prefix="elvadopress-${VERSION}/" -o "dist/elvadopress-${VERSION}.zip" HEAD
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip

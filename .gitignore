@@ -1,0 +1,10 @@
+# Laufzeitdaten einer lokalen Installation gehören nicht ins Repository
+/cms/data/*
+!/cms/data/.htaccess
+!/cms/data/*.example
+/cms/generated/
+/cms/media/
+/cms/demo-state/
+/cms/lib/demo.json
+/demo/
+/cms/wp-content/uploads/*
