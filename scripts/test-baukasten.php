@@ -36,7 +36,7 @@ t('Neue Reihenfolge: Aufruf vor Text, Text nur einmal',strpos($r['body'],'bk-cta
 t('Akzentfarbe übernommen',str_contains($r['body'],'--accent:#ff0000'));
 t('Breite begrenzt (1600)',str_contains($r['body'],'--max:1600px'));
 t('Unbekannte Schrift fällt zurück',str_contains($r['body'],'--head-font:system-ui'));
-t('Aufruf-Titel maskiert',str_contains($r['body'],'&lt;b&gt;Jetzt&lt;/b&gt;'));
+t('Aufruf-Titel ohne Tags',str_contains($r['body'],'>Jetzt</h2>')&&!str_contains($r['body'],'<b>'));
 t('Text: Script entfernt, Formatierung bleibt',!str_contains($r['body'],'<script>alert')&&str_contains($r['body'],'<em>Welt</em>'));
 t('Eigenes CSS kann Style-Tag nicht verlassen',!str_contains($r['body'],'</style><script>x'));
 set_theme_mod('slot_1','hero');set_theme_mod('hero_btn_label','Los');
@@ -53,5 +53,30 @@ t('Customizer: Abschnittspositionen und Farben',in_array('slot_1',$ids,true)&&in
 $res=rrw_wpc_save(['slot_2'=>'features','color_accent'=>'#00ff00','content_width'=>'900']);
 t('Customizer speichert',!empty($res['ok'])||isset($res['saved']),json_encode($res));
 t('Gespeicherter Wert wirkt',get_theme_mod('color_accent')==='#00ff00'&&str_contains(page('/')['body'],'--accent:#00ff00'));
+// Visueller Editor: gespeichertes Layout (mehrfach gleiche Typen, ausgeblendet, bereinigt)
+$lay=elvado_bk_save_layout([
+ ['id'=>'a1','type'=>'text','props'=>['title'=>'Eins <i>x</i>','body'=>'<p>Alpha</p><script>x()</script>','bg'=>'alt']],
+ ['id'=>'a1','type'=>'text','props'=>['title'=>'Zwei','body'=>'Beta','bg'=>'boese','align'=>'center']],
+ ['id'=>'h','type'=>'text','hidden'=>true,'props'=>['title'=>'Versteckt','body'=>'Gamma']],
+ ['id'=>'f','type'=>'features','props'=>['title'=>'Karten','items'=>[['title'=>'K1','text'=>'T1'],['title'=>'','text'=>''],['title'=>'K2','text'=>'T2']],'columns'=>'9']],
+ ['id'=>'sp','type'=>'spacer','props'=>['height'=>9999]],
+ ['id'=>'p','type'=>'posts','props'=>['count'=>2,'category'=>'News']],
+ ['type'=>'unbekannt'],['id'=>'b','type'=>'cta','props'=>['btn_label'=>'Go','btn_url'=>'javascript:alert(1)']],
+]);
+t('Layout bereinigt: unbekannter Typ entfällt, IDs eindeutig',count($lay)===7&&count(array_unique(array_column($lay,'id')))===7);
+t('Layout: Auswahl/Zahl/Karten begrenzt',$lay[1]['props']['bg']==='default'&&$lay[4]['props']['height']===400&&count($lay[3]['props']['items'])===2&&$lay[3]['props']['columns']==='0');
+$r=page('/');$b=$r['body'];
+t('Gespeichertes Layout ersetzt die Customizer-Positionen',!str_contains($b,'bk-hero')&&str_contains($b,'>Eins x</h2>')&&str_contains($b,'>Zwei</h2>')&&str_contains($b,'K2'));
+t('Gleicher Typ mehrfach, Reihenfolge',strpos($b,'Alpha')<strpos($b,'Beta')&&strpos($b,'Beta')<strpos($b,'K1'));
+t('Ausgeblendeter Abschnitt fehlt',!str_contains($b,'Versteckt')&&!str_contains($b,'Gamma'));
+t('Abschnitte mit Anker/data-bk',str_contains($b,'data-bk="a1"')&&str_contains($b,'bk-bg-alt'));
+t('Script im Text entfernt',!str_contains($b,'<script>x()'));
+t('Beitragskategorie-Filter, Anzahl',substr_count($b,'class="post-card')<=2);
+t('Unsichere Button-URL im Aufruf entfernt',!str_contains($b,'javascript:'));
+t('Spalten-Raster unbegrenzt nur 0 (automatisch)',!str_contains($b,'grid-template-columns:repeat(9'));
+update_option('elvado_bk_layout',[]);
+t('Leeres gespeichertes Layout: Startseite im Normallayout',str_contains(page('/')['body'],'site-content'));
+delete_option('elvado_bk_layout');
+t('Ohne gespeichertes Layout gelten die Positionen wieder',str_contains(page('/')['body'],'bk-hero'));
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

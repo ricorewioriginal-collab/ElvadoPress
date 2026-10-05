@@ -54,3 +54,6 @@ img,video,iframe{max-width:100%;height:auto}
 .bk-posts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.bk-posts .post-card{margin:0}
 .bk-cta{background:var(--accent);color:var(--on-accent);text-align:center}.bk-cta .btn{background:var(--on-accent);color:var(--accent)}
 .bk-alt{background:var(--card)}
+.bk-bg-alt{background:var(--card)}.bk-bg-accent{background:var(--accent);color:var(--on-accent)}.bk-bg-accent .btn{background:var(--on-accent);color:var(--accent)}
+.bk-bg-dark{background:#0f172a;color:#e8ecf5}.bk-bg-dark .bk-feature{background:#1e293b;border-color:#334155}.bk-bg-dark a:not(.btn){color:#93c5fd}
+.bk-cta:not([class*=bk-bg-]){background:var(--accent);color:var(--on-accent)}.bk-spacer{display:block}
