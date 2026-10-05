@@ -72,7 +72,7 @@ function rrw_wp_run_cron(bool $force=false, int $max=15, int $budget=20): int {
 // PHPMailer-Klassen (Namespace PHPMailer\PHPMailer) werden erst beim ersten Gebrauch geladen
 spl_autoload_register(function ($c) { if(strncmp($c,'PHPMailer\\PHPMailer\\',20)===0){ $f=__DIR__.'/PHPMailer/'.substr($c,20).'.php'; if(is_file($f))require_once $f; } });
 function wp_mail($to, $subject, $message, $headers='', $attachments=[]) {
-    if(defined('RRW_WP_SANDBOX'))return false;   // Sandbox: nichts versenden
+    if(defined('RRW_WP_SANDBOX')||defined('RRW_DEMO'))return false;   // Sandbox/Demo: nichts versenden
     $atts=apply_filters('wp_mail',compact('to','subject','message','headers','attachments'));
     if(isset($atts['to']))$to=$atts['to'];if(isset($atts['subject']))$subject=$atts['subject'];if(isset($atts['message']))$message=$atts['message'];
     if(isset($atts['headers']))$headers=$atts['headers'];if(isset($atts['attachments']))$attachments=$atts['attachments'];

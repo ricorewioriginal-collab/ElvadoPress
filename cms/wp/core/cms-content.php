@@ -132,14 +132,14 @@ function rrw_wp_cms_term(string $name, string $taxonomy): WP_Term {
 function rrw_wp_cms_terms(string $taxonomy): array {
     $d=rrw_wp_cms_data();$map=[];
     foreach($d['news'] as $a){
-        $names=$taxonomy==='category'?[trim((string)($a['category']??''))]:array_filter(array_map('trim',explode(',',(string)($a['tags']??''))));
+        $names=$taxonomy==='category'?[trim((string)($a['category']??''))]:array_filter(array_map('trim',is_array($a['tags']??null)?array_map('strval',$a['tags']):explode(',',(string)($a['tags']??''))));
         foreach($names as $n){ if($n==='')continue; $t=rrw_wp_cms_term($n,$taxonomy); if(!isset($map[$t->slug]))$map[$t->slug]=$t; $map[$t->slug]->count++; }
     }
     ksort($map);return array_values($map);
 }
 function rrw_wp_cms_post_terms(WP_Post $p, string $taxonomy): array {
     if($p->rrw_source!=='news')return [];$a=$p->rrw_data??[];
-    $names=$taxonomy==='category'?[trim((string)($a['category']??''))]:array_filter(array_map('trim',explode(',',(string)($a['tags']??''))));
+    $names=$taxonomy==='category'?[trim((string)($a['category']??''))]:array_filter(array_map('trim',is_array($a['tags']??null)?array_map('strval',$a['tags']):explode(',',(string)($a['tags']??''))));
     $out=[];foreach($names as $n)if($n!=='')$out[]=rrw_wp_cms_term($n,$taxonomy);
     return $out;
 }

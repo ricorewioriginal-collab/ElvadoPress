@@ -20,7 +20,7 @@ function rrw_mail_from(array $site): string {
 }
 function rrw_send_mail(string $to,string $subject,string $body,string $fromAddress,string $fromName=''): bool {
     if($fromName==='')$fromName=function_exists('rrw_product_title')?rrw_product_title():'RicoReWi Radio CMS';
-    if(!filter_var($to,FILTER_VALIDATE_EMAIL))return false;
+    if(defined('RRW_DEMO')||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;   // Demo: kein Mailversand
     $subjectEncoded='=?UTF-8?B?'.base64_encode($subject).'?=';
     $fromNameEncoded='=?UTF-8?B?'.base64_encode($fromName).'?=';
     $headers="From: {$fromNameEncoded} <{$fromAddress}>\r\n"

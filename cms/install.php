@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';rrw_demo_boot(); }   // Demo-Betrieb (nur mit cms/lib/demo.json)
 
 // Einrichtungsassistent (Ersteinrichtung). Erscheint nur auf einer frischen Installation, siehe
 // rrw_install_needed() in lib/system.php. Danach ist die Seite über install.lock gesperrt und

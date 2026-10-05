@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';rrw_demo_boot(); }   // Demo-Betrieb (nur mit cms/lib/demo.json)
 require_once __DIR__.'/lib/auth.php';
 require_once __DIR__.'/lib/system.php';
 require_once __DIR__.'/lib/pack.php';
@@ -19,6 +20,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <title><?=$ph('title')?></title>
 <?php if($pr['logo']!==''): ?><link rel="icon" href="<?=$ph('logo')?>"><?php endif; ?>
 <script>window.RRW_PRODUCT=<?=json_encode(rrw_product_public()+['standalone'=>$sa],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script>
+<?php if(defined('RRW_DEMO')): ?><script>window.RRW_DEMO=<?=json_encode(rrw_demo_public(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="assets/demo.js?v=1" defer></script><?php endif; ?>
 <script src="assets/auth-guard.js?v=5"></script>
 <script src="assets/cms-toast.js?v=2"></script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

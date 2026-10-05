@@ -4,6 +4,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 $root = dirname(__DIR__);
+if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';rrw_demo_boot(); }   // Demo-Betrieb (nur mit cms/lib/demo.json)
 $dataDir = __DIR__ . '/data';
 $genDir = __DIR__ . '/generated';
 $mediaDir = __DIR__ . '/media';
@@ -526,6 +527,7 @@ function rrw_site_lock(string $dataDir): void {
 }
 rrw_ensure_dirs();
 $action=(string)($_GET['action']??'public');
+if(function_exists('rrw_demo_guard'))rrw_demo_guard($action,rrw_body());
 $site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));$GLOBALS['RRW_SITE']=$site;
 if(!isset($site['theme'])||!is_array($site['theme']))$site['theme']=['active'=>rrw_default_theme_id()];
 

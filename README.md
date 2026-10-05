@@ -21,6 +21,12 @@ ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung vo
 
 Alle Radio-Erweiterungen sind optional und arbeiten mit deinen eigenen Inhalten.
 
+## Live-Demo
+
+**<https://elvadopress.ricorewi-radio.de>** – Verwaltung: <https://elvadopress.ricorewi-radio.de/cms/?demo=1> (automatische Anmeldung; Benutzer `demo`, Passwort `ElvadoPress-Demo1`).
+
+Eine öffentliche Testinstanz mit Demo-Benutzer läuft als Demo-Build (`--demo`): Daten werden alle 10 Minuten zurückgesetzt, Uploads, Plugin-/Theme-Installation und Systemänderungen sind gesperrt. Einrichtung und Betrieb: `cms/docs/ELVADOPRESS.md` im Entwicklungsprojekt.
+
 ## Installation
 
 1. Dateien auf einen Webserver legen (PHP 8.1 oder neuer mit `mbstring`; für den Datenbankspiegel zusätzlich `pdo_sqlite`, `pdo_mysql` oder `pdo_pgsql`; `zip` und `curl` empfohlen). `cms/data/` muss beschreibbar sein.
@@ -40,4 +46,4 @@ ElvadoPress wird aus dem Entwicklungsprojekt *ricorewi-radio* veröffentlicht. D
 
 ## Lizenz
 
-Die Lizenz wird vor der ersten offiziellen Version festgelegt. Bis dahin sind alle Rechte vorbehalten.
+ElvadoPress steht unter der **GNU General Public License, Version 2 oder (nach deiner Wahl) jeder späteren Version** (GPL-2.0-or-later) – siehe [LICENSE](LICENSE). Das ist dieselbe Lizenz wie bei WordPress; WordPress-Themes und -Plugins bleiben damit lizenzkompatibel.

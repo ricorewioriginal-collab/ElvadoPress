@@ -4,6 +4,7 @@
 // Aufruf über index.php (Startseite) und die Umschreibregel in .htaccess (alle weiteren nicht vorhandenen Pfade).
 declare(strict_types=1);
 $cmsDir=__DIR__;$root=dirname(__DIR__);
+if(is_file($cmsDir.'/lib/demo.json')){ require_once $cmsDir.'/lib/demo.php';rrw_demo_boot();rrw_demo_guard_front((string)parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH));ob_start('rrw_demo_inject'); }   // Demo-Betrieb
 $flag=$cmsDir.'/data/.wp/front-on';
 /* Sandbox: geheimer Link (?rrw_sbx=<Schlüssel>) → Cookie; eigene Optionen/Themes, nur lesend, nicht indexierbar (siehe wp/sandbox.php) */
 $sbx=false;
