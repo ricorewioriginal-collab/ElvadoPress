@@ -37,9 +37,10 @@
       +'<label>Dateiname-Anfang<input class="fc" id="abfPrefix" maxlength="30" placeholder="MeineApp" value="'+esc(b.filePrefix||'')+'"></label>'
       +'<label class="ab-chk" id="abfDirRow" data-pack="ricorewi-radio"><input type="checkbox" id="abfDir"'+(b.directory?' checked':'')+'> Radioverzeichnis in der App</label>'
       +'<label id="abfColorRow">Farbe (Statusleiste/Fenster)<input type="color" id="abfColor" value="'+esc(b.themeColor||'#070a1c')+'" data-touched="'+(b.themeColor?1:'')+'" style="width:60px;height:36px;padding:2px" oninput="this.dataset.touched=1"></label>'
-      +'<label>Icon-Hintergrund <span class="hint">(optional, für runde/adaptive Icons)</span><input type="color" id="abfIconBg" value="'+esc(b.iconBg||'#ffffff')+'" data-set="'+(b.iconBg?1:'')+'" style="width:60px;height:36px;padding:2px" oninput="this.dataset.set=1"></label>'
+      +'<label>Icon-Hintergrund <span class="hint">(optional: Farbe hinter einem transparenten Icon)</span><input type="color" id="abfIconBg" value="'+esc(b.iconBg||'#ffffff')+'" data-set="'+(b.iconBg?1:'')+'" style="width:60px;height:36px;padding:2px" oninput="this.dataset.set=1"></label>'
       +'<div style="grid-column:1/-1"><div class="news-lbl">App-Icon (PNG/JPG/WebP, mindestens 96 px, besser 512 px)</div><div class="ab-icon"><div id="abfPrev">'+(b.icon?'<img src="'+esc(b.icon)+'" alt="">':'<span class="hint">kein Icon</span>')+'</div><button type="button" class="btn-g" onclick="AppBuild.pickIcon()"><i class="fas fa-images"></i> Aus Mediathek wählen</button><button type="button" class="btn-g" onclick="AppBuild.setIcon(\'\')">Entfernen</button></div><input type="hidden" id="abfIcon" value="'+esc(b.icon||'')+'"></div>'
       +'<div style="grid-column:1/-1"><div class="news-lbl">Startbild (optional, wird beim Öffnen der App gezeigt; Querformat oder Hochformat, mindestens 200 px)</div><div class="ab-icon"><div id="abfSplashPrev">'+(b.splash?'<img src="'+esc(b.splash)+'" alt="">':'<span class="hint">kein Startbild</span>')+'</div><button type="button" class="btn-g" onclick="AppBuild.pickImage(\'splash\')"><i class="fas fa-images"></i> Aus Mediathek wählen</button><button type="button" class="btn-g" onclick="AppBuild.setSplash(\'\')">Entfernen</button></div><input type="hidden" id="abfSplash" value="'+esc(b.splash||'')+'"></div>'
+      +'<div style="grid-column:1/-1"><div class="news-lbl">Logo in der Kopfzeile der App (optional, z. B. Wortmarke; mindestens 64 px)</div><div class="ab-icon"><div id="abfLogoPrev">'+(b.headerLogo?'<img src="'+esc(b.headerLogo)+'" alt="">':'<span class="hint">kein Kopfzeilen-Logo – das App-Icon wird verwendet</span>')+'</div><button type="button" class="btn-g" onclick="AppBuild.pickImage(\'logo\')"><i class="fas fa-images"></i> Aus Mediathek wählen</button><button type="button" class="btn-g" onclick="AppBuild.setLogo(\'\')">Entfernen</button></div><input type="hidden" id="abfLogo" value="'+esc(b.headerLogo||'')+'"></div>'
       +'<div style="grid-column:1/-1"><div class="news-lbl">Store-Screenshots (optional, bis zu 8 – für Play Store und Microsoft Store)</div><div class="ab-icon"><div id="abfShots"></div><button type="button" class="btn-g" onclick="AppBuild.pickImage(\'shot\')"><i class="fas fa-plus"></i> Screenshot aus Mediathek</button></div></div>'
       +'<label style="grid-column:1/-1">Kurzbeschreibung für den Store <span class="hint">(max. 80 Zeichen)</span><input class="fc" id="abfShort" maxlength="80" value="'+esc(b.shortDescription||'')+'"></label>'
       +'<label style="grid-column:1/-1">Ausführliche Beschreibung für den Store<textarea class="fc" id="abfFull" rows="5" maxlength="4000">'+esc(b.fullDescription||'')+'</textarea></label>'
@@ -86,7 +87,7 @@
   async function saveBrand(){
     var pl=[];if($('abfAnd').checked)pl.push('android');if($('abfWin').checked)pl.push('windows');
     var ty=$('abfType').value,body={id:$('abfId').value.trim(),appName:$('abfName').value.trim(),applicationId:$('abfPkg').value.trim(),site:$('abfSite').value.trim(),filePrefix:$('abfPrefix').value.trim(),directory:ty==='radio'&&$('abfDir').checked,icon:$('abfIcon').value,type:ty,platforms:pl,themeColor:(ty==='web'||$('abfColor').dataset.touched)?$('abfColor').value:'',
-      splash:$('abfSplash').value,iconBg:$('abfIconBg').dataset.set?$('abfIconBg').value:'',screenshots:shots.slice(),shortDescription:$('abfShort').value.trim(),fullDescription:$('abfFull').value.trim()};
+      splash:$('abfSplash').value,headerLogo:$('abfLogo').value,iconBg:$('abfIconBg').dataset.set?$('abfIconBg').value:'',screenshots:shots.slice(),shortDescription:$('abfShort').value.trim(),fullDescription:$('abfFull').value.trim()};
     try{st=await call('app_build_brand_save',body);edit=null;draw();toast('App gespeichert ✓')}catch(e){toast(e.message,true)}
   }
   async function start(id,platform){
@@ -100,9 +101,10 @@
   }
   function setIcon(url){var i=$('abfIcon');if(!i)return;i.value=url;$('abfPrev').innerHTML=url?'<img src="'+esc(url)+'" alt="">':'<span class="hint">kein Icon</span>';var p=$('abPick');if(p)p.innerHTML=''}
   function setSplash(url){var i=$('abfSplash');if(!i)return;i.value=url;$('abfSplashPrev').innerHTML=url?'<img src="'+esc(url)+'" alt="">':'<span class="hint">kein Startbild</span>';var p=$('abPick');if(p)p.innerHTML=''}
+  function setLogo(url){var i=$('abfLogo');if(!i)return;i.value=url;$('abfLogoPrev').innerHTML=url?'<img src="'+esc(url)+'" alt="">':'<span class="hint">kein Kopfzeilen-Logo – das App-Icon wird verwendet</span>';var p=$('abPick');if(p)p.innerHTML=''}
   function drawShots(){var h=$('abfShots');if(!h)return;h.innerHTML=shots.length?shots.map(function(u,i){return '<span class="ab-shot"><img src="'+esc(u)+'" alt="" style="height:64px"><button type="button" class="btn-g" title="Entfernen" onclick="AppBuild.delShot('+i+')"><i class="fas fa-xmark"></i></button></span>'}).join(' '):'<span class="hint">keine Screenshots</span>'}
   function addShot(url){if(shots.length>=8){toast('Höchstens 8 Screenshots',true);return}if(shots.indexOf(url)<0)shots.push(url);drawShots();var p=$('abPick');if(p)p.innerHTML=''}
-  function choose(url){if(pickFor==='splash')setSplash(url);else if(pickFor==='shot')addShot(url);else setIcon(url)}
+  function choose(url){if(pickFor==='splash')setSplash(url);else if(pickFor==='logo')setLogo(url);else if(pickFor==='shot')addShot(url);else setIcon(url)}
   async function pickImage(what){
     pickFor=what||'icon';var box=$('abPick');box.innerHTML='<div class="hint">Lädt …</div>';
     try{
@@ -111,7 +113,7 @@
     }catch(e){box.innerHTML='<div class="hint">'+esc(e.message)+'</div>'}
   }
   document.addEventListener('input',function(e){if(e.target&&(e.target.id==='abfId'||e.target.id==='abfPrefix'))e.target.dataset.touched='1'});
-  window.AppBuild={load:load,saveConn:saveConn,clearToken:clearToken,check:check,saveBrand:saveBrand,start:start,remove:remove,autoFill:autoFill,setIcon:setIcon,pickIcon:function(){return pickImage('icon')},setSplash:setSplash,pickImage:pickImage,choose:choose,delShot:function(i){shots.splice(i,1);drawShots()},
+  window.AppBuild={load:load,saveConn:saveConn,clearToken:clearToken,check:check,saveBrand:saveBrand,start:start,remove:remove,autoFill:autoFill,setIcon:setIcon,pickIcon:function(){return pickImage('icon')},setSplash:setSplash,setLogo:setLogo,pickImage:pickImage,choose:choose,delShot:function(i){shots.splice(i,1);drawShots()},
     typeChange:function(){var web=$('abfType').value==='web';$('abfDirRow').hidden=web},
     edit:function(id){edit=id;var cur=(st.brands||[]).filter(function(x){return x.id===id})[0];shots=((cur&&cur.screenshots)||[]).slice();draw();if($('abfType')){AppBuild.typeChange();drawShots()}},cancel:function(){edit=null;draw()}};
 })();

@@ -11,18 +11,18 @@ $GLOBALS['__base']=$base=['id'=>'meinapp','applicationId'=>'de.beispiel.app','ap
 function clean(array $in){ [$b,$e]=rrw_ab_clean_brand($in);return [$b,$e]; }
 
 t('Ohne Branding-Angaben bleibt der Eintrag unverändert (keine neuen Schlüssel)',function() use($base){
-    [$b]=clean($base);foreach(['splash','iconBg','screenshots','shortDescription','fullDescription'] as $k)if(array_key_exists($k,$b))throw new RuntimeException("Schlüssel $k ohne Angabe");
+    [$b]=clean($base);foreach(['splash','headerLogo','iconBg','screenshots','shortDescription','fullDescription'] as $k)if(array_key_exists($k,$b))throw new RuntimeException("Schlüssel $k ohne Angabe");
     eq(array_keys($b),['id','applicationId','appName','site','launchUrl','filePrefix','directory','icon','type','platforms','themeColor']);
 });
 t('Branding gilt für jeden App-Typ (Radio und Website)',function() use($base){
     foreach(['radio','web'] as $ty){
-        [$b,$e]=clean(['type'=>$ty,'splash'=>'/cms/media/start.png','iconBg'=>'#AABBCC','screenshots'=>['/cms/media/a.png','/cms/media/b.png','/cms/media/a.png'],'shortDescription'=>'<b>Kurz</b>','fullDescription'=>'Lang']+$base);
-        eq($e,'',$ty);eq($b['splash'],'/cms/media/start.png');eq($b['iconBg'],'#aabbcc');eq($b['screenshots'],['/cms/media/a.png','/cms/media/b.png'],'doppelte entfallen');
+        [$b,$e]=clean(['type'=>$ty,'splash'=>'/cms/media/start.png','headerLogo'=>'/cms/media/lockup.png','iconBg'=>'#AABBCC','screenshots'=>['/cms/media/a.png','/cms/media/b.png','/cms/media/a.png'],'shortDescription'=>'<b>Kurz</b>','fullDescription'=>'Lang']+$base);
+        eq($e,'',$ty);eq($b['splash'],'/cms/media/start.png');eq($b['headerLogo'],'/cms/media/lockup.png');eq($b['iconBg'],'#aabbcc');eq($b['screenshots'],['/cms/media/a.png','/cms/media/b.png'],'doppelte entfallen');
         eq($b['shortDescription'],'Kurz','HTML entfernt');eq($b['fullDescription'],'Lang');
     }
 });
 t('Ungültige Branding-Angaben werden abgelehnt',function() use($base){
-    foreach([['splash'=>'/cms/media/../x.png'],['splash'=>'https://fremd.example/x.png'],['iconBg'=>'rot'],['screenshots'=>['/etc/passwd']],['screenshots'=>array_map(fn($i)=>"/cms/media/s$i.png",range(1,9))]] as $bad){
+    foreach([['splash'=>'/cms/media/../x.png'],['splash'=>'https://fremd.example/x.png'],['headerLogo'=>'https://fremd.example/l.png'],['iconBg'=>'rot'],['screenshots'=>['/etc/passwd']],['screenshots'=>array_map(fn($i)=>"/cms/media/s$i.png",range(1,9))]] as $bad){
         [$b,$e]=clean($bad+$base);if($b!==null||$e==='')throw new RuntimeException('nicht abgelehnt: '.json_encode($bad));
     }
 });
@@ -32,6 +32,18 @@ t('Texte werden begrenzt',function() use($base){
 t('Radioverzeichnis in der App nur mit RicoReWi-Paket',function() use($base){
     [$b]=clean(['type'=>'radio','directory'=>true]+$base);eq($b['directory'],rrw_pack_available());
     [$b]=clean(['type'=>'web','directory'=>true]+$base);eq($b['directory'],false);
+});
+t('Icon mit Hintergrundfarbe: deckende Fläche statt Transparenz, Icon bleibt sichtbar',function(){
+    if(!function_exists('imagecreatetruecolor'))return;
+    $root=sys_get_temp_dir().'/abbg-'.bin2hex(random_bytes(4));mkdir($root.'/cms/media',0777,true);
+    $im=imagecreatetruecolor(200,200);imagealphablending($im,false);imagesavealpha($im,true);imagefill($im,0,0,imagecolorallocatealpha($im,0,0,0,127));
+    imagefilledrectangle($im,80,80,120,120,imagecolorallocate($im,255,0,0));ob_start();imagepng($im);file_put_contents($root.'/cms/media/i.png',ob_get_clean());
+    [$flat]=rrw_ab_icon_png($root,'/cms/media/i.png','#102030');[$clear]=rrw_ab_icon_png($root,'/cms/media/i.png');
+    $f=imagecreatefromstring((string)$flat);$c=imagecreatefromstring((string)$clear);
+    $px=fn($g,$x,$y)=>imagecolorat($g,$x,$y);$rgba=fn($v)=>[($v>>16)&255,($v>>8)&255,$v&255,($v>>24)&127];
+    eq($rgba($px($f,2,2)),[16,32,48,0],'Ecke mit Hintergrund');eq($rgba($px($f,100,100)),[255,0,0,0],'Icon bleibt');
+    eq($rgba($px($c,2,2))[3],127,'ohne Hintergrund transparent');
+    eq(rrw_ab_icon_png($root,'/cms/media/i.png','kein-farbwert')[1],'');exec('rm -rf '.escapeshellarg($root));
 });
 t('Store-Texte als Markdown',function(){
     $md=rrw_ab_listing_md(['appName'=>'Meine App','shortDescription'=>'Kurz','fullDescription'=>'Lang']);
@@ -57,7 +69,7 @@ t('Eigene Sender: laut.fm-Kennung oder https-Stream, selbst eingetragen',functio
 t('Build: Branding-Dateien landen im Repository (Startbild, Screenshots, Store-Texte, Icon-Hintergrund) – nur wenn angegeben',function(){
     if(!function_exists('imagecreatetruecolor'))return;
     $root=sys_get_temp_dir().'/abst-'.bin2hex(random_bytes(4));mkdir($root.'/cms/media',0777,true);mkdir($root.'/data');
-    $im=imagecreatetruecolor(800,600);ob_start();imagepng($im);$png=ob_get_clean();foreach(['icon','splash','s1','s2'] as $f)file_put_contents($root."/cms/media/$f.png",$png);
+    $im=imagecreatetruecolor(800,600);ob_start();imagepng($im);$png=ob_get_clean();foreach(['icon','splash','lockup','s1','s2'] as $f)file_put_contents($root."/cms/media/$f.png",$png);
     $run=function(array $brand) use($root){
         $put=[];$brands=[];
         $GLOBALS['rrw_ab_http']=function($m,$path,$tok,$json) use(&$put,&$brands){
@@ -73,14 +85,13 @@ t('Build: Branding-Dateien landen im Repository (Startbild, Screenshots, Store-T
         $r=rrw_ab_start($root.'/data',$root,$brand['id'],'android');unset($GLOBALS['rrw_ab_http']);
         return [$r,$put,$brands];
     };
-    [$b]=rrw_ab_clean_brand(['icon'=>'/cms/media/icon.png','splash'=>'/cms/media/splash.png','iconBg'=>'#112233','screenshots'=>['/cms/media/s1.png','/cms/media/s2.png'],'shortDescription'=>'Kurz','fullDescription'=>'Lang']+$GLOBALS['__base']);
+    [$b]=rrw_ab_clean_brand(['icon'=>'/cms/media/icon.png','splash'=>'/cms/media/splash.png','headerLogo'=>'/cms/media/lockup.png','iconBg'=>'#112233','screenshots'=>['/cms/media/s1.png','/cms/media/s2.png'],'shortDescription'=>'Kurz','fullDescription'=>'Lang']+$GLOBALS['__base']);
     [$r,$put,$entry]=$run($b);eq($r['ok'],true,$r['message']);
-    foreach(['android/brands.json','brands/meinapp/app_logo.png','brands/meinapp/app_splash.png','brands/meinapp/store/screenshot-1.png','brands/meinapp/store/screenshot-2.png','brands/meinapp/store/listing-de.md'] as $f)if(!in_array($f,$put,true))throw new RuntimeException("nicht geschrieben: $f (".implode(', ',$put).')');
-    eq($entry[0]['iconBg'],'#112233');eq($entry[0]['splash'],true);
+    foreach(['android/brands.json','brands/meinapp/app_logo.png','brands/meinapp/startscreen.png','brands/meinapp/logo-lockup.png','brands/meinapp/store/screenshot-1.png','brands/meinapp/store/screenshot-2.png','brands/meinapp/store/listing-de.md'] as $f)if(!in_array($f,$put,true))throw new RuntimeException("nicht geschrieben: $f (".implode(', ',$put).')');
+    foreach(['iconBg','splash','headerLogo'] as $k)if(array_key_exists($k,$entry[0]))throw new RuntimeException("$k gehört nicht in brands.json (die Dateien tragen es): ".json_encode($entry[0]));
     [$b2]=rrw_ab_clean_brand(['icon'=>'/cms/media/icon.png']+$GLOBALS['__base']);
     [$r,$put,$entry]=$run($b2);eq($r['ok'],true,$r['message']);
     eq($put,['android/brands.json','brands/meinapp/app_logo.png'],'ohne Branding nur wie bisher');
-    foreach(['iconBg','splash'] as $k)if(array_key_exists($k,$entry[0]))throw new RuntimeException("$k ohne Angabe im Eintrag");
     exec('rm -rf '.escapeshellarg($root));
 });
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";

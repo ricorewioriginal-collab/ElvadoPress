@@ -27,13 +27,14 @@ Die App fragt beim Start deine Website (`app_config`) nach Funktionen, Startseit
 Ohne Schlüssel entsteht eine **Entwickler-APK** (Debug-Signatur). Für gleichbleibende Signatur und Updates lege diese Repository-Secrets an: `ANDROID_DEVELOPER_KEYSTORE_BASE64`, `ANDROID_DEVELOPER_KEYSTORE_PASSWORD`, `ANDROID_DEVELOPER_KEY_ALIAS`, `ANDROID_DEVELOPER_KEY_PASSWORD`. Pakete für den Play Store (AAB, Release-Schlüssel) werden mit dem Workflow „Android APK / AAB“ im Repository auf Knopfdruck erzeugt.
 
 ## Branding (für alle App-Typen)
-Beim Anlegen oder Bearbeiten einer App gibt es – für Radio-Apps genauso wie für Website-Apps – diese optionalen Angaben aus der Mediathek:
-* **App-Icon** und **Icon-Hintergrund** (Farbe für runde/adaptive Icons, `iconBg` in `android/brands.json`).
-* **Farbe** der Statusleiste/des Fensters (`themeColor`).
-* **Startbild** (`brands/<id>/app_splash.png`, höchstens 1080 px, Eintrag `splash: true`).
+Beim Anlegen oder Bearbeiten einer App gibt es – für Radio-Apps genauso wie für Website-Apps – diese optionalen Angaben aus der Mediathek. Das CMS schreibt sie in die Dateien, die die App-Vorlage (Android und Windows) schon einliest:
+* **App-Icon** → `brands/<id>/app_logo.png` (quadratisch, höchstens 512 px). Mit **Icon-Hintergrund** (Farbe) wird das Icon beim Hochladen auf eine deckende Fläche dieser Farbe gesetzt, praktisch für Icons mit transparentem Hintergrund.
+* **Farbe** der Statusleiste/des Fensters (`themeColor` in `android/brands.json`).
+* **Startbild** → `brands/<id>/startscreen.png` (höchstens 1080 px), erscheint beim Öffnen der App.
+* **Logo in der Kopfzeile** → `brands/<id>/logo-lockup.png` (höchstens 1000 px breit); ohne Angabe wird das App-Icon verwendet.
 * **Store-Screenshots** (bis zu 8, `brands/<id>/store/screenshot-<n>.png`) sowie **Kurz- und Langbeschreibung** (`brands/<id>/store/listing-de.md`) für Play Store und Microsoft Store.
 
-Nur angegebene Werte werden ins Repository geschrieben; Apps ohne diese Angaben bauen wie bisher. Die App-Vorlage muss `iconBg`, `splash` und die Store-Dateien auswerten bzw. verwenden.
+Nur angegebene Werte werden ins Repository geschrieben; Apps ohne diese Angaben bauen wie bisher.
 
 ## Eigene Sender und beliebige Streams
 * **App:** Im Builder (Apps → Layout) trägst du die Sender selbst ein – auch laut.fm-Sender: unter **Eigene Sender** bis zu 20 Stück mit **https-Stream-Adresse oder laut.fm-Kennung** (Name, Stream, optional Logo-Adresse). Eine laut.fm-Kennung (oder `laut.fm/<kennung>`) wird zur Stream-Adresse `https://<kennung>.stream.laut.fm/<kennung>` und zusätzlich als `laut` mitgegeben. Sie stehen in der Konfiguration `layout.stations.custom` (`id`, `title`, `stream`, optional `logo`) und erscheinen zusätzlich zu den Sendern des Core-Netzwerks; Reihenfolge und Sichtbarkeit gelten über `order`/`hidden` auch für sie. Ohne eigene Sender fehlt der Schlüssel `custom`, die Ausgabe bleibt wie bisher.
@@ -43,6 +44,7 @@ Nur angegebene Werte werden ins Repository geschrieben; Apps ohne diese Angaben 
 Für Radio-Apps erzeugt das CMS im Bereich **Alexa-Skill** das einreichfertige Paket (Sprachmodell, Skill-Angaben, Backend, Anleitung) passend zu deinen Sendern. Einreichen musst du es selbst bei Amazon (Developer-Konto, Zertifizierung); der Skill selbst braucht kein Control Center. Für Website-Apps ist kein Skill vorgesehen.
 
 ## Grenzen
+* **Radio-App:** Die Radio-App der Vorlage ist noch auf die Sender der Hersteller-App ausgelegt (Standardsender, laut.fm-Kennungen). Eigene Sender aus dem Builder (`layout.stations.custom`) und Marken ohne diesen Sender-Stamm zeigt sie noch nicht. Für eigene Themen und Inhalte ist die **Website-App** der vollständig allgemeine Typ.
 * Die Windows-App wird von GitHub Actions gebaut (Windows-Runner, ebenfalls kostenlos im Rahmen des Kontingents).
 * iOS/macOS gibt es nicht (Apple verlangt eigene Konten und Signatur).
 * Für den Build braucht es ein GitHub-Konto; ohne GitHub kann das Repository auch lokal mit Gradle gebaut werden (`gradle -p android assemble<Marke>Developer`).

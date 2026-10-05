@@ -63,6 +63,8 @@ function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
     // Branding für alle App-Typen (nur gesetzte Werte werden gespeichert, bestehende Apps bleiben unverändert)
     $splash=trim((string)($in['splash']??''));
     if($splash!==''){ if(!rrw_ab_media_url_ok($splash))return [null,'Das Startbild muss ein Bild aus der Medienbibliothek sein.'];$out['splash']=$splash; }
+    $hl=trim((string)($in['headerLogo']??''));
+    if($hl!==''){ if(!rrw_ab_media_url_ok($hl))return [null,'Das Kopfzeilen-Logo muss ein Bild aus der Medienbibliothek sein.'];$out['headerLogo']=$hl; }
     $bg=trim((string)($in['iconBg']??''));
     if($bg!==''){ if(!preg_match('/^#[0-9a-fA-F]{6}$/',$bg))return [null,'Die Icon-Hintergrundfarbe hat die Form #112233.'];$out['iconBg']=strtolower($bg); }
     $shots=[];foreach(array_slice((array)($in['screenshots']??[]),0,RRW_AB_MAX_SCREENSHOTS*2) as $u){
@@ -152,15 +154,13 @@ function rrw_ab_merge_brands(array $d, array $brand): array {
     if(!empty($brand['directory']))$entry['directory']=true;
     if(($brand['type']??'radio')==='web')$entry['type']='web';
     if(($brand['themeColor']??'')!=='')$entry['themeColor']=$brand['themeColor'];
-    if(($brand['iconBg']??'')!=='')$entry['iconBg']=$brand['iconBg'];
-    if(!empty($brand['splash']))$entry['splash']=true;   // Datei: brands/<id>/app_splash.png
     $out=[];$done=false;
     foreach($list as $b){ if(is_array($b)&&($b['id']??'')===$brand['id']){ $out[]=$entry;$done=true; }else $out[]=$b; }
     if(!$done)$out[]=$entry;
     return [json_encode($out,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n",''];
 }
 /** Bild aus der Medienbibliothek als PNG. $square: auf ein Quadrat einpassen (transparent aufgefüllt); sonst nur verkleinern. Rückgabe [PNG-Bytes|null, Fehler]. */
-function rrw_ab_image_png(string $root, string $url, int $max=512, bool $square=true, int $min=96, string $label='Das Bild'): array {
+function rrw_ab_image_png(string $root, string $url, int $max=512, bool $square=true, int $min=96, string $label='Das Bild', string $bg=''): array {
     if($url==='')return ['',''];
     $base=realpath($root.'/cms/media');$file=realpath($root.$url);
     if(!$base||!$file||!str_starts_with($file,$base.DIRECTORY_SEPARATOR)||!is_file($file))return [null,$label.' wurde in der Medienbibliothek nicht gefunden.'];
@@ -170,7 +170,10 @@ function rrw_ab_image_png(string $root, string $url, int $max=512, bool $square=
     $im=@imagecreatefromstring($raw);if(!$im)return [null,$label.' ist kein gültiges Bild (PNG, JPG oder WebP).'];
     $w=imagesx($im);$h=imagesy($im);if(min($w,$h)<$min){ imagedestroy($im);return [null,$label.' ist zu klein (mindestens '.$min.' Pixel an der kurzen Seite).']; }
     if($square){
-        $s=min($max,max($w,$h));$out=imagecreatetruecolor($s,$s);imagealphablending($out,false);imagesavealpha($out,true);imagefill($out,0,0,imagecolorallocatealpha($out,0,0,0,127));
+        $s=min($max,max($w,$h));$out=imagecreatetruecolor($s,$s);imagealphablending($out,false);imagesavealpha($out,true);
+        // Mit Hintergrundfarbe (#rrggbb): deckende Fläche, das Icon wird daraufgesetzt; sonst transparent
+        if(preg_match('/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i',$bg,$c)){ imagefill($out,0,0,imagecolorallocate($out,hexdec($c[1]),hexdec($c[2]),hexdec($c[3])));imagealphablending($out,true); }
+        else imagefill($out,0,0,imagecolorallocatealpha($out,0,0,0,127));
         $k=min($s/$w,$s/$h);$nw=(int)round($w*$k);$nh=(int)round($h*$k);imagecopyresampled($out,$im,(int)(($s-$nw)/2),(int)(($s-$nh)/2),0,0,$nw,$nh,$w,$h);
     }else{
         $k=min(1,$max/max($w,$h));$nw=max(1,(int)round($w*$k));$nh=max(1,(int)round($h*$k));
@@ -180,7 +183,7 @@ function rrw_ab_image_png(string $root, string $url, int $max=512, bool $square=
     return [$png,''];
 }
 /** Icon aus der Medienbibliothek als PNG (max. 512 px, quadratisch). Rückgabe [PNG-Bytes|null, Fehler]. */
-function rrw_ab_icon_png(string $root, string $url): array { return rrw_ab_image_png($root,$url,512,true,96,'Das gewählte Icon'); }
+function rrw_ab_icon_png(string $root, string $url, string $bg=''): array { return rrw_ab_image_png($root,$url,512,true,96,'Das gewählte Icon',$bg); }
 /** Store-Texte (Markdown) für Play Store / Microsoft Store aus den Angaben der App. */
 function rrw_ab_listing_md(array $brand): string {
     $md='# '.$brand['appName']."\n\n";
@@ -196,7 +199,7 @@ function rrw_ab_start(string $dataDir, string $root, string $id, string $platfor
     $targets=$platform==='all'?$have:[$platform];
     foreach($targets as $t)if(!isset(RRW_AB_PLATFORMS[$t])||!in_array($t,$have,true))return ['ok'=>false,'message'=>'Diese Plattform ist für die App nicht ausgewählt.'];
     if($d['repo']===''||$d['token']==='')return ['ok'=>false,'message'=>'Bitte zuerst Repository und Token eintragen.'];
-    [$png,$err]=rrw_ab_icon_png($root,(string)($brand['icon']??''));if($png===null)return ['ok'=>false,'message'=>$err];
+    [$png,$err]=rrw_ab_icon_png($root,(string)($brand['icon']??''),(string)($brand['iconBg']??''));if($png===null)return ['ok'=>false,'message'=>$err];
     $e=rrw_ab_ensure_branch($d);if($e!==null)return ['ok'=>false,'message'=>$e];
     [$json,$err]=rrw_ab_merge_brands($d,$brand);if($json===null)return ['ok'=>false,'message'=>$err];
     $msg='App-Builder: '.$brand['appName'];
@@ -205,7 +208,11 @@ function rrw_ab_start(string $dataDir, string $root, string $id, string $platfor
     // Branding (alle App-Typen): Startbild, Store-Screenshots und -Texte; nur wenn angegeben
     if(!empty($brand['splash'])){
         [$sp,$err]=rrw_ab_image_png($root,(string)$brand['splash'],1080,false,200,'Das Startbild');if($sp===null)return ['ok'=>false,'message'=>$err];
-        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/app_splash.png',$sp,$msg.' (Startbild)'))!==null)return ['ok'=>false,'message'=>$e];
+        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/startscreen.png',$sp,$msg.' (Startbild)'))!==null)return ['ok'=>false,'message'=>$e];
+    }
+    if(!empty($brand['headerLogo'])){   // Logo in der Kopfzeile der App (logo-lockup.png, Android und Windows)
+        [$hl,$err]=rrw_ab_image_png($root,(string)$brand['headerLogo'],1000,false,64,'Das Kopfzeilen-Logo');if($hl===null)return ['ok'=>false,'message'=>$err];
+        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/logo-lockup.png',$hl,$msg.' (Kopfzeilen-Logo)'))!==null)return ['ok'=>false,'message'=>$e];
     }
     foreach(array_values((array)($brand['screenshots']??[])) as $i=>$u){
         [$sh,$err]=rrw_ab_image_png($root,(string)$u,1600,false,200,'Der Screenshot '.($i+1));if($sh===null)return ['ok'=>false,'message'=>$err];
