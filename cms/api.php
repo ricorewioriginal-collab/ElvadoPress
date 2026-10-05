@@ -1026,6 +1026,31 @@ if($action==='media_library_delete'){
     else rrw_json(['status'=>'error','message'=>'Medium nicht gefunden'],404);
     rrw_json(['status'=>'ok']);
 }
+// Freie Bildquellen (Pixabay, Pexels, Unsplash, Openverse, Wikimedia Commons) für die Mediathek: Status, Einstellungen (Schlüssel nur schreibend), Suche, Übernahme
+if(str_starts_with($action,'stock_')){
+    require_once __DIR__.'/lib/stockmedia.php';
+    $skUser=in_array($action,['stock_config_save'],true)?rrw_auth(true):rrw_auth(false);$skB=rrw_body();
+    if($action==='stock_status')rrw_json(['status'=>'ok','providers'=>rrw_stock_status($dataDir),'admin'=>!empty($skUser['superadmin'])]);
+    if($action==='stock_config_save'){
+        try{ rrw_stock_save($dataDir,['keys'=>is_array($skB['keys']??null)?$skB['keys']:[],'enabled'=>is_array($skB['enabled']??null)?$skB['enabled']:[]]); }
+        catch(InvalidArgumentException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],400); }
+        catch(Throwable $e){ rrw_json(['status'=>'error','message'=>'Einstellungen konnten nicht gespeichert werden'],500); }
+        rrw_log_activity($activityLogFile,$skUser,'stock_config','Freie Bildquellen: Einstellungen gespeichert');
+        rrw_json(['status'=>'ok','providers'=>rrw_stock_status($dataDir)]);
+    }
+    if($action==='stock_search'){
+        try{ $r=rrw_stock_search($dataDir,(string)($skB['provider']??''),(string)($skB['q']??''),(int)($skB['page']??1),(string)($skB['orientation']??'')); }
+        catch(Throwable $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422); }
+        rrw_json(['status'=>'ok']+$r);
+    }
+    if($action==='stock_import'){
+        try{ $r=rrw_stock_import($dataDir,(string)($skB['provider']??''),(string)($skB['id']??'')); }
+        catch(Throwable $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],$e->getCode()>=400&&$e->getCode()<600?$e->getCode():422); }
+        rrw_log_activity($activityLogFile,$skUser,'stock_import','Freies Bild übernommen ('.(string)($skB['provider']??'').' '.(string)($skB['id']??'').')');
+        rrw_json(['status'=>'ok']+$r);
+    }
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
+}
 // Theme-Konfiguration (Menüs wie „Band“, nur bei aktivem Theme; Schema je Theme in cms/lib/themeconf.php): state | get | save
 if(str_starts_with($action,'themeconf_')){
     require_once __DIR__.'/lib/themeconf.php';

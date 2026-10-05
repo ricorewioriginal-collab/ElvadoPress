@@ -125,7 +125,7 @@ function rrw_news_tag_list(string $tags): array {
 }
 function rrw_safe_html(string $html): string {
     $html=preg_replace('#<(script|object|embed|form|input|button|textarea|select)[^>]*>.*?</\1>#is','',$html);
-    $html=strip_tags($html,'<p><br><strong><b><em><i><u><s><ul><ol><li><h1><h2><h3><h4><blockquote><a><span><div><hr><small><code><img>');
+    $html=strip_tags($html,'<p><br><strong><b><em><i><u><s><ul><ol><li><h1><h2><h3><h4><blockquote><a><span><div><hr><small><code><img><figure><figcaption>');
     // Ereignis-Attribute nur innerhalb von Tags entfernen – in Anführungszeichen, ohne Anführungszeichen und auch mit „/“ statt Leerzeichen davor
     $html=preg_replace_callback('/<[a-z][^>]*>/i',function(array $m): string {
         $t=$m[0];for($i=0;$i<3;$i++)$t=preg_replace('/[\s\/]on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i','',$t);return $t;

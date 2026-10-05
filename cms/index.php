@@ -140,8 +140,9 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/news-editor.js?v=15"></script>
-<script src="assets/media-manager.js?v=5"></script>
+<script src="assets/news-editor.js?v=16"></script>
+<script src="assets/stock-media.js?v=1"></script>
+<script src="assets/media-manager.js?v=6"></script>
 <script src="assets/theme-manager.js?v=7"></script>
 <script src="assets/brands-manager.js?v=4"></script>
 <script src="assets/directory-manager.js?v=2"></script><script src="assets/services-manager.js?v=1"></script>
@@ -155,7 +156,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>
-<script src="assets/home-builder.js?v=2"></script>
+<script src="assets/home-builder.js?v=3"></script>
 <script src="assets/radio-manager.js?v=1"></script>
 <script src="assets/theme-config.js?v=1"></script>
 <script src="assets/contents-manager.js?v=1"></script>
@@ -163,13 +164,13 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/polls-manager.js?v=1"></script>
 <script src="assets/community-manager.js?v=1"></script>
 <script src="assets/wpplugins-manager.js?v=3"></script>
-<script src="assets/wpthemes-manager.js?v=8"></script>
+<script src="assets/wpthemes-manager.js?v=9"></script>
 <script src="assets/wp-links.js?v=2"></script>
 <script src="assets/wp-settings.js?v=1"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
 <script src="assets/sandbox.js?v=1"></script>
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
-<script src="assets/cms-app.js?v=41"></script>
+<script src="assets/cms-app.js?v=42"></script>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
 </body>

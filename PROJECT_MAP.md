@@ -11,6 +11,7 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/rebuild.php` | Rebuild-/Publizierungs-Einstieg. |
 | `cms/rss.php` | RSS-Ausgabe. |
 | `cms/lib/` | Serverseitige Fachlogik: Auth, Storage, Inhalte, Themes/Plugins, Branding, Apps, Assistant, Community, Demo usw. |
+| `cms/lib/stockmedia.php`, `cms/assets/stock-media.js` | Freie Bildquellen (Pixabay, Pexels, Unsplash, Openverse, Wikimedia) und zentrale Bildauswahl; Doku `cms/docs/MEDIA.md`. |
 | `cms/lib/radio.php`, `cms/radio.php` | Radio-Erweiterung: Sender/Quellen (laut.fm, Icecast, Shoutcast), Jetzt läuft, Sendeplan; öffentlicher JSON-Endpunkt. |
 | `cms/themes/` | mitgelieferte Themes: `rrw-classic` (Standard), `elvado-baukasten` (Homepage-Baukasten), `elvado-radio` (Radio), `elvado-band` (Band/Musiker). |
 | `cms/lib/themeconf.php`, `cms/lib/band.php` | Theme-Menüs aus Schema (Editor, Speichern, Bereinigung); Band-Schema. |

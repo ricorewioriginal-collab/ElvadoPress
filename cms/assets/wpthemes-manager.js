@@ -189,7 +189,7 @@
   function czPicker(id){
     var old=$('czPicker');if(old)old.remove();
     var m=document.createElement('div');m.id='czPicker';m.className='cz-picker';
-    m.innerHTML='<div class="cz-picker-box"><div class="cz-picker-top"><b>Mediathek</b><input class="fc" id="czPickQ" type="search" placeholder="Suchen …"><label class="btn-a" style="margin:0;cursor:pointer"><i class="fas fa-file-arrow-up"></i> Hochladen<input id="czPickUp" type="file" accept="image/*" hidden></label><button type="button" class="btn-g" id="czPickX" aria-label="Schließen"><i class="fas fa-xmark"></i></button></div><div id="czPickGrid" class="cz-picker-grid"><div class="hint">Lädt …</div></div></div>';
+    m.innerHTML='<div class="cz-picker-box"><div class="cz-picker-top"><b>Mediathek</b><input class="fc" id="czPickQ" type="search" placeholder="Suchen …"><label class="btn-a" style="margin:0;cursor:pointer"><i class="fas fa-file-arrow-up"></i> Hochladen<input id="czPickUp" type="file" accept="image/*" hidden></label><button type="button" class="btn-g" id="czPickStock"><i class="fas fa-images"></i> Freie Bilder</button><button type="button" class="btn-g" id="czPickX" aria-label="Schließen"><i class="fas fa-xmark"></i></button></div><div id="czPickGrid" class="cz-picker-grid"><div class="hint">Lädt …</div></div></div>';
     document.body.appendChild(m);
     var items=[];
     function draw(){var q=($('czPickQ').value||'').toLowerCase(),list=items.filter(function(i){return !q||String(i.name||'').toLowerCase().indexOf(q)>=0});
@@ -198,6 +198,7 @@
     $('czPickX').onclick=close;m.addEventListener('click',function(e){if(e.target===m)close()});
     $('czPickQ').oninput=draw;
     $('czPickGrid').onclick=function(e){var b=e.target.closest('[data-url]');if(!b)return;czSetImage(id,b.getAttribute('data-url'));close()};
+    $('czPickStock').onclick=function(){if(!window.StockMedia)return;close();StockMedia.open({tab:'stock',onPick:function(it,i){czSetImage(id,i.url)}})};
     $('czPickUp').onchange=async function(){
       var f=this.files&&this.files[0];if(!f)return;var fd=new FormData();fd.append('file',f);fd.append('sizes','64,128,192,256,512,1024,1600');fd.append('quality','90');
       try{$('czPickGrid').innerHTML='<div class="hint">Lade hoch …</div>';
