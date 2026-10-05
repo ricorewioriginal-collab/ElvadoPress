@@ -1,0 +1,6 @@
+# Interne PHP-Dateien der WordPress-Kompatibilitätsschicht: nie direkt über die URL aufrufbar, nur per include aus dem CMS.
+Require all denied
+# Einzige Ausnahme: der abgeschottete Rahmen für Plugin-Seiten im CMS (Adresse mit zufälligem Schlüssel, 15 Minuten gültig, prüft alles selbst).
+<Files "frame.php">
+    Require all granted
+</Files>

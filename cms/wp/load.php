@@ -1,0 +1,83 @@
+<?php
+// WordPress-Kompatibilitätsschicht des CMS – Einstieg. Stellt die WordPress-API (Hooks, Shortcodes, Optionen, Escaping, Plugins …)
+// bereit, damit WordPress-Plugins und -Themes laufen. Eigenständige Implementierung; kein WordPress-Quelltext.
+// Aufruf: require_once __DIR__.'/wp/load.php'; rrw_wp_boot();
+if(defined('RRW_WP_LOADED'))return;
+define('RRW_WP_LOADED',true);
+
+if(!defined('ABSPATH'))define('ABSPATH',__DIR__.'/');
+if(!defined('WPINC'))define('WPINC','core');
+if(!defined('WP_CONTENT_DIR'))define('WP_CONTENT_DIR',dirname(__DIR__).'/wp-content');
+if(!defined('WP_PLUGIN_DIR'))define('WP_PLUGIN_DIR',WP_CONTENT_DIR.'/plugins');
+if(!defined('WPMU_PLUGIN_DIR'))define('WPMU_PLUGIN_DIR',WP_CONTENT_DIR.'/mu-plugins');
+if(!defined('WP_LANG_DIR'))define('WP_LANG_DIR',WP_CONTENT_DIR.'/languages');
+if(!defined('RRW_WP_NATIVE_THEMES'))define('RRW_WP_NATIVE_THEMES',dirname(__DIR__).'/themes');
+if(!defined('RRW_WP_DATA'))define('RRW_WP_DATA',dirname(__DIR__).'/data/.wp');
+// Gemeldete WordPress-Version: Grundstand 6.8.3; nach einem Versionswechsel (Einstellung „WordPress-Version nachführen“) steht die neue in data/.wp/wp-version.json
+define('RRW_WP_BASE_VERSION','6.8.3');
+$rrw_wpv=['version'=>RRW_WP_BASE_VERSION,'db'=>57155];
+if(is_file(RRW_WP_DATA.'/wp-version.json')){ $rrw_j=json_decode((string)@file_get_contents(RRW_WP_DATA.'/wp-version.json'),true);
+    if(is_array($rrw_j)&&preg_match('/^\d{1,2}\.\d{1,2}(\.\d{1,2})?$/',(string)($rrw_j['version']??'')))$rrw_wpv=['version'=>(string)$rrw_j['version'],'db'=>max(1,(int)($rrw_j['db']??57155))];
+    unset($rrw_j); }
+define('RRW_WP_VERSION',$rrw_wpv['version']);
+$GLOBALS['wp_version']=RRW_WP_VERSION;$GLOBALS['wp_db_version']=$rrw_wpv['db'];$GLOBALS['required_php_version']='7.4';unset($rrw_wpv);
+foreach(['WP_DEBUG'=>false,'WP_DEBUG_LOG'=>false,'WP_DEBUG_DISPLAY'=>false,'SCRIPT_DEBUG'=>false,'WP_MEMORY_LIMIT'=>'256M','WP_MAX_MEMORY_LIMIT'=>'512M','WP_CACHE'=>false,'CONCATENATE_SCRIPTS'=>true,'COMPRESS_SCRIPTS'=>false,'COMPRESS_CSS'=>false,'FORCE_SSL_ADMIN'=>false,'MULTISITE'=>false,'WP_ALLOW_MULTISITE'=>false,'DISALLOW_FILE_EDIT'=>true,'DISALLOW_FILE_MODS'=>false,'COOKIEHASH'=>'rrwwp','EMPTY_TRASH_DAYS'=>30,'WP_POST_REVISIONS'=>true,'AUTOSAVE_INTERVAL'=>60,
+    'MINUTE_IN_SECONDS'=>60,'HOUR_IN_SECONDS'=>3600,'DAY_IN_SECONDS'=>86400,'WEEK_IN_SECONDS'=>604800,'MONTH_IN_SECONDS'=>2592000,'YEAR_IN_SECONDS'=>31536000,
+    'KB_IN_BYTES'=>1024,'MB_IN_BYTES'=>1048576,'GB_IN_BYTES'=>1073741824,'TB_IN_BYTES'=>1099511627776,'OBJECT'=>'OBJECT','OBJECT_K'=>'OBJECT_K','ARRAY_A'=>'ARRAY_A','ARRAY_N'=>'ARRAY_N'] as $k=>$v)if(!defined($k))define($k,$v);
+
+$rrw_wp_core=__DIR__.'/core/';
+if(is_file(dirname(__DIR__).'/wp-core/php/class-wp-list-table.php'))require_once dirname(__DIR__).'/wp-core/php/class-wp-list-table.php';   // echte WP_List_Table aus den Kernressourcen
+foreach(['hooks','shortcodes','formatting','options','functions','i18n','script-loader','plugin','general','cron','admin-api','theme','widgets','wpdb','schema','post-types','class-post','cms-content','cms-write','cms-media','meta','user','post','taxonomy','query','template','navigation','sidebars','comments','defaults','compat','customize','extras','blocks','fse','block-supports','core-blocks','shortcodes-builtin'] as $f)require_once $rrw_wp_core.$f.'.php';
+// Ergänzende Funktionen (ext/*.php), alphabetisch; sie ergänzen nur, was der Kern nicht definiert
+foreach(glob($rrw_wp_core.'ext/*.php')?:[] as $f)require_once $f;
+unset($rrw_wp_core);
+rrw_wp_init_db();   // $wpdb gibt es ab dem Laden (Verbindung entsteht erst bei der ersten Abfrage)
+
+add_filter('the_content','do_shortcode',11);
+add_filter('widget_text','do_shortcode',11);
+add_filter('the_excerpt','do_shortcode',11);
+
+/**
+ * Laufzeit starten (idempotent). $opts: user (['id','login','name','email','role']) für Rechte, admin (bool) für is_admin().
+ * Lädt aktive Plugins in geschütztem Modus und löst plugins_loaded / init / wp_loaded aus.
+ */
+function rrw_wp_boot(array $opts=[]): array {
+    static $errors=null;
+    if(!empty($opts['user'])){ $u=$opts['user']; $u['caps']=rrw_wp_caps_for_role((string)($u['role']??'administrator')); $GLOBALS['rrw_wp_user']=$u; }
+    if(array_key_exists('admin',$opts))$GLOBALS['rrw_wp_is_admin']=(bool)$opts['admin'];
+    if($errors!==null)return $errors;
+    if(!is_dir(RRW_WP_DATA)){@mkdir(RRW_WP_DATA,0775,true);}
+    rrw_wp_protect_dir(RRW_WP_DATA);
+    rrw_sc_register_builtin();
+    rrw_wp_init_db();
+    rrw_wp_register_default_types();
+    $GLOBALS['wp_query']=$GLOBALS['wp_the_query']=new WP_Query();
+    rrw_wp_add_default_filters();
+    $errors=rrw_wp_load_plugins();
+    if(!empty($opts['theme']))$errors+=rrw_wp_load_theme();
+    do_action('after_setup_theme');
+    do_action('init');
+    rrw_wp_register_core_widgets();
+    do_action('widgets_init');
+    do_action('wp_loaded');
+    return $errors;
+}
+/** Shortcodes (eingebaut + Plugins) in HTML-Inhalt auflösen. Ohne „[“ im Text passiert nichts (und es werden keine Plugins geladen). */
+function rrw_wp_expand_content(string $html): string {
+    if(!str_contains($html,'['))return $html;
+    rrw_wp_boot();
+    $GLOBALS['rrw_wp_raw_html']=true;   // CMS-HTML: kein wpautop
+    try{ return (string)apply_filters('the_content',$html); } finally { $GLOBALS['rrw_wp_raw_html']=false; }
+}
+
+/** Theme laden: Eltern-Theme zuerst, dann das aktive; ein Fehler im Theme bricht die Seite nicht ab (wird zurückgemeldet). */
+function rrw_wp_load_theme(): array {
+    rrw_wp_define_missing_conditionals();
+    $errors=[];$dirs=[];$t=get_template();$s=get_stylesheet();
+    if($t!==$s)$dirs[]=get_template_directory();$dirs[]=get_stylesheet_directory();
+    foreach(array_unique($dirs) as $dir){
+        $f=$dir.'/functions.php';if(!is_file($f))continue;
+        try{ require_once $f; }catch(Throwable $e){ $errors['theme:'.basename($dir)]=$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')';rrw_wp_log('Theme '.basename($dir).': '.$errors['theme:'.basename($dir)]); }
+    }
+    return $errors;
+}

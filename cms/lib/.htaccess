@@ -1,0 +1,4 @@
+# Bibliotheks-PHP wird nur per include aus dem CMS genutzt – nie direkt über die URL (Assets wie Bilder bleiben abrufbar).
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>

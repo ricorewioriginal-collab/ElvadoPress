@@ -1,0 +1,24 @@
+html,body{height:100%}
+body.wp-admin{padding:0!important;margin:0;overflow:hidden}
+#wpbody-content{height:100vh}
+#rrw-se-root{position:fixed;inset:0;background:#f0f0f1;font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1e1e1e}
+.rrw-se-loading{padding:30px;text-align:center}
+.rrw-se{display:flex;flex-direction:column;height:100%}
+.rrw-se-bar{display:flex;gap:8px;align-items:center;padding:6px 10px;background:#fff;border-bottom:1px solid #dcdcde;flex-wrap:wrap}
+.rrw-se-title{flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrw-se-state{color:#757575}
+.rrw-se-body{display:flex;flex:1;min-height:0}
+.rrw-se-side{width:200px;flex:0 0 200px;overflow:auto;background:#fff;border-right:1px solid #dcdcde;padding:8px}
+.rrw-se-gh{font-weight:600;text-transform:uppercase;font-size:11px;color:#757575;margin:8px 4px 4px}
+.rrw-se-item{display:flex;justify-content:space-between;width:100%;border:0;background:none;text-align:left;padding:7px 8px;border-radius:4px;cursor:pointer;font:inherit;color:inherit}
+.rrw-se-item:hover{background:#f0f0f1}.rrw-se-item.on{background:#1e1e1e;color:#fff}
+.rrw-se-dot{color:#2271b1;font-size:10px}.rrw-se-item.on .rrw-se-dot{color:#7cc4ff}
+.rrw-se-main{display:flex;flex:1;min-width:0;min-height:0;height:100%}
+.rrw-se-tools{flex:1;min-width:0;display:flex}
+.rrw-se-canvas{flex:1;min-width:0;height:100%;padding:10px;overflow:auto}
+.rrw-se-paper{background:#fff;border-radius:6px;min-height:100%;padding:0;box-sizing:border-box}
+.rrw-se-insp{width:280px;flex:0 0 280px;overflow:auto;background:#fff;border-left:1px solid #dcdcde;padding:8px}
+.rrw-se-styles{flex:1;padding:20px;overflow:auto;background:#fff}
+.rrw-se-color{display:flex;gap:10px;align-items:center;margin:8px 0}.rrw-se-color input{width:42px;height:32px;padding:0;border:1px solid #8c8f94;border-radius:4px}
+.rrw-se-row{display:flex;gap:8px;margin:14px 0}.rrw-se-hint{color:#757575}
+@media (max-width:900px){.rrw-se-body{flex-direction:column}.rrw-se-side{width:auto;flex:0 0 auto;max-height:28vh;border-right:0;border-bottom:1px solid #dcdcde}.rrw-se-main{flex-direction:column}.rrw-se-insp{width:auto;flex:0 0 30vh;border-left:0;border-top:1px solid #dcdcde}}

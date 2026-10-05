@@ -1,0 +1,770 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/pack.php';
+require_once __DIR__.'/brand.php';
+require_once __DIR__.'/product.php';
+require_once __DIR__.'/system.php';
+
+// Kernlogik zum Speichern und Veröffentlichen der CMS-Konfiguration:
+// site.json schreiben, index.html-Snapshot, eigene Seiten, RSS.
+// Wird sowohl von api.php (HTTP) als auch von rebuild.php (CLI) genutzt,
+// damit beide garantiert dasselbe Ergebnis erzeugen.
+
+require_once __DIR__.'/legal-defaults.php';
+const RRW_CMS_MARKER = '<!-- RRW-CMS-GENERATED -->';
+
+function rrw_ensure_dirs(): void {
+    foreach([__DIR__.'/data',__DIR__.'/generated',__DIR__.'/media',__DIR__.'/media/content',__DIR__.'/media/branding',__DIR__.'/media/news',__DIR__.'/media/library',__DIR__.'/themes'] as $d){
+        if(!is_dir($d))@mkdir($d,0755,true);
+    }
+    // Einstellungen (inkl. API-Schlüssel), Beiträge, Protokolle und Backups gehören nie in den öffentlichen Abruf
+    rrw_protect_dir(dirname(__DIR__).'/data');rrw_protect_dir(dirname(__DIR__).'/backups');
+}
+require_once __DIR__.'/tools.php';
+function rrw_read_json(string $file, array $fallback=[]): array {
+    if(!is_file($file))return $fallback;
+    $j=json_decode((string)file_get_contents($file),true); return is_array($j)?$j:$fallback;
+}
+function rrw_write_atomic(string $file, string $content): void {
+    $dir=dirname($file); if(!is_dir($dir)&&!@mkdir($dir,0755,true))throw new RuntimeException('Ordner nicht beschreibbar: '.$dir);
+    $tmp=$file.'.tmp.'.bin2hex(random_bytes(4));
+    if(file_put_contents($tmp,$content,LOCK_EX)===false)throw new RuntimeException('Datei konnte nicht geschrieben werden');
+    @chmod($tmp,0644);
+    if(!@rename($tmp,$file)){@unlink($tmp);throw new RuntimeException('Datei konnte nicht ersetzt werden');}
+}
+function rrw_news_is_live(array $a): bool {
+    if (($a['status']??'draft')!=='published' || !empty($a['deleted_at'])) return false;
+    $publishedAt=trim((string)($a['published_at']??''));
+    return $publishedAt===''||$publishedAt<=date('Y-m-d H:i:s');
+}
+// Rechteprüfung für Mehrfach-Redakteure: Admins dürfen alles, die Rolle 'autor'
+// nur eigene Beiträge bearbeiten/löschen/wiederherstellen. Beiträge ohne gespeicherten
+// Besitzer (author_user leer, z.B. Altbestand vor Einführung der Rollen) bleiben für
+// alle eingeloggten Redakteure bearbeitbar, damit bestehende Inhalte nicht ausgesperrt werden.
+function rrw_news_can_edit(array $article, array $user): bool {
+    if(($user['role']??'admin')==='admin')return true;
+    $owner=(string)($article['author_user']??'');
+    if($owner==='')return true;
+    return strcasecmp($owner,(string)($user['user']??''))===0;
+}
+// Kommentare werden nur eine Ebene tief angezeigt (wie bei WordPress): Antwortet jemand auf
+// eine Antwort, wird sie automatisch unter deren ursprünglichem Top-Level-Kommentar einsortiert,
+// statt in der Anzeige zu verschwinden. Gibt null zurück, wenn der Zielkommentar nicht existiert.
+function rrw_comment_top_parent(array $comments, int $parentId, int $articleId): ?int {
+    if($parentId<=0)return 0;
+    foreach($comments as $c){
+        if((int)($c['id']??0)===$parentId&&(int)($c['article_id']??0)===$articleId){
+            $grandParent=(int)($c['parent_id']??0);
+            return $grandParent>0?$grandParent:$parentId;
+        }
+    }
+    return null;
+}
+// Einfacher Aufruf-Zähler pro Beitrag (kein Referrer/UA-Tracking, keine Cookies nötig): die
+// Website entprellt clientseitig per sessionStorage, sodass ein Refresh/Zurück-Navigieren
+// innerhalb derselben Browser-Sitzung denselben Beitrag nicht mehrfach zählt. Read-modify-write
+// ohne Locking ist für die zu erwartende Last einer kleinen Radioseite ausreichend; im
+// Extremfall (zwei zeitgleiche Requests) kann höchstens ein Zähler-Increment verloren gehen.
+function rrw_news_track_view(string $viewsFile, int $articleId): void {
+    $views=rrw_read_json($viewsFile,[]);
+    $key=(string)$articleId;
+    $views[$key]=(int)($views[$key]??0)+1;
+    rrw_write_atomic($viewsFile,json_encode($views,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+}
+function rrw_news_view_count(array $views, int $articleId): int {
+    return (int)($views[(string)$articleId]??0);
+}
+// Redakteurs-Aktivitätslog: eine einfache, chronologische Historie wichtiger Änderungen
+// (Beiträge, Kommentare, Redakteurverwaltung). Kein Ersatz für echte Revisionen – dafür gibt
+// es bereits rrw_news_save_revision() –, sondern ein Überblick "wer hat wann was gemacht".
+function rrw_log_activity(string $logFile, ?array $user, string $action, string $summary): void {
+    $all=rrw_read_json($logFile,[]);
+    $all[]=[
+        'id'=>bin2hex(random_bytes(6)),
+        'created_at'=>date('Y-m-d H:i:s'),
+        'user'=>(string)($user['display_name']??$user['user']??'System'),
+        'role'=>(string)($user['role']??''),
+        'action'=>$action,
+        'summary'=>$summary,
+    ];
+    if(count($all)>500){
+        usort($all,fn($a,$b)=>strcmp((string)($a['created_at']??''),(string)($b['created_at']??'')));
+        $all=array_slice($all,-500);
+    }
+    rrw_write_atomic($logFile,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+}
+function rrw_add_notification(string $notificationsFile, array $data): void {
+    $all=rrw_read_json($notificationsFile,[]);
+    $all[]=array_merge(['id'=>bin2hex(random_bytes(6)),'created_at'=>date('Y-m-d H:i:s'),'read'=>false],$data);
+    if(count($all)>200){
+        usort($all,fn($a,$b)=>strcmp((string)($a['created_at']??''),(string)($b['created_at']??'')));
+        $all=array_slice($all,-200);
+    }
+    rrw_write_atomic($notificationsFile,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+}
+function rrw_news_save_revision(string $revisionsFile, int $articleId, array $articleSnapshot): void {
+    $all=rrw_read_json($revisionsFile,[]);
+    $all[]=['revision_id'=>bin2hex(random_bytes(6)),'article_id'=>$articleId,'saved_at'=>date('Y-m-d H:i:s'),'article'=>$articleSnapshot];
+    $mine=array_values(array_filter($all,fn($r)=>(int)($r['article_id']??0)===$articleId));
+    if(count($mine)>15){
+        usort($mine,fn($a,$b)=>strcmp((string)($a['saved_at']??''),(string)($b['saved_at']??'')));
+        $drop=array_slice($mine,0,count($mine)-15);
+        $dropIds=array_column($drop,'revision_id');
+        $all=array_values(array_filter($all,fn($r)=>(int)($r['article_id']??0)!==$articleId||!in_array($r['revision_id']??'',$dropIds,true)));
+    }
+    rrw_write_atomic($revisionsFile,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+}
+function rrw_slug(string $s): string {
+    $s=mb_strtolower(trim($s),'UTF-8');$s=@iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$s)?:$s;
+    $s=preg_replace('/[^a-z0-9]+/','-',$s);$s=trim((string)$s,'-');return substr($s!==''?$s:'seite',0,70);
+}
+/** „a, b,, A“ → ['a','b','A'] (getrimmt, ohne Leere; Groß-/Kleinschreibung bleibt erhalten). */
+function rrw_news_tag_list(string $tags): array {
+    $out=[];foreach(explode(',',$tags) as $t){$t=trim($t);if($t!=='')$out[]=$t;}return $out;
+}
+function rrw_safe_html(string $html): string {
+    $html=preg_replace('#<(script|object|embed|form|input|button|textarea|select)[^>]*>.*?</\1>#is','',$html);
+    $html=strip_tags($html,'<p><br><strong><b><em><i><u><s><ul><ol><li><h1><h2><h3><h4><blockquote><a><span><div><hr><small><code><img>');
+    // Ereignis-Attribute nur innerhalb von Tags entfernen – in Anführungszeichen, ohne Anführungszeichen und auch mit „/“ statt Leerzeichen davor
+    $html=preg_replace_callback('/<[a-z][^>]*>/i',function(array $m): string {
+        $t=$m[0];for($i=0;$i<3;$i++)$t=preg_replace('/[\s\/]on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i','',$t);return $t;
+    },$html);
+    $html=preg_replace('/javascript\s*:/i','',$html);
+    return substr($html,0,50000);
+}
+function rrw_clean_blocks($blocks): array {
+    $out=[];if(!is_array($blocks))return $out;
+    foreach(array_slice($blocks,0,120) as $b){
+        if(!is_array($b))continue;$type=strtolower(trim((string)($b['type']??'text')));
+        if(!in_array($type,['heading','text','html','image','button','widget','spacer','divider','quote'],true))continue;
+        $id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($b['id']??''));if($id==='')$id='blk_'.bin2hex(random_bytes(4));
+        $x=['id'=>$id,'type'=>$type,'enabled'=>!array_key_exists('enabled',$b)||!empty($b['enabled'])];
+        if($type==='heading'){$x['text']=mb_substr(trim((string)($b['text']??'')),0,500);$x['level']=in_array((int)($b['level']??2),[2,3,4],true)?(int)$b['level']:2;}
+        elseif(in_array($type,['text','quote'],true))$x['text']=mb_substr((string)($b['text']??''),0,15000);
+        elseif($type==='html')$x['html']=rrw_safe_html((string)($b['html']??''));
+        elseif($type==='image'){$x['url']=mb_substr(trim((string)($b['url']??'')),0,1200);$x['alt']=mb_substr((string)($b['alt']??''),0,250);$x['caption']=mb_substr((string)($b['caption']??''),0,600);}
+        elseif($type==='button'){$x['label']=mb_substr((string)($b['label']??'Mehr erfahren'),0,120);$x['url']=mb_substr(trim((string)($b['url']??'#')),0,1200);}
+        elseif($type==='widget')$x['widget_id']=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($b['widget_id']??''));
+        elseif($type==='spacer')$x['size']=max(8,min(160,(int)($b['size']??32)));
+        $out[]=$x;
+    } return $out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Widget-System wie bei WordPress: Es gibt WIDGET-TYPEN (Code, unten) und WIDGET-INSTANZEN
+// (Daten). Eine Instanz liegt in genau einem Widget-Bereich (oder bei "Inaktive Widgets"),
+// hat einen eigenen Titel, eigene Einstellungen nach dem Schema ihres Typs und eine eigene
+// Geräte-Sichtbarkeit. Alte Daten (Bereiche mit reinen Widget-IDs aus site.widgets, Theme-
+// Manifeste mit "w-news" usw.) werden beim Bereinigen automatisch in Instanzen überführt.
+// ---------------------------------------------------------------------------------------------
+function rrw_widget_types(): array {
+    static $t=null; if($t!==null)return $t;
+    $int=fn(int $min,int $max,int $def)=>['type'=>'int','min'=>$min,'max'=>$max,'default'=>$def];
+    $bool=fn(bool $def)=>['type'=>'bool','default'=>$def];
+    $text=fn(int $max=200,string $def='')=>['type'=>'text','max'=>$max,'default'=>$def];
+    $sel=fn(array $opts,string $def)=>['type'=>'select','options'=>$opts,'default'=>$def];
+    $t=[
+        'recent-posts'=>['name'=>'Letzte Beiträge','category'=>'Inhalte','settings'=>['count'=>$int(1,10,5),'show_date'=>$bool(true),'show_thumb'=>$bool(true),'category'=>$text(80)]],
+        'categories'=>['name'=>'Kategorien','category'=>'Inhalte','settings'=>['show_counts'=>$bool(true)]],
+        'tags'=>['name'=>'Schlagwörter','category'=>'Inhalte','settings'=>['max'=>$int(5,40,20)]],
+        'archives'=>['name'=>'Archiv','category'=>'Inhalte','settings'=>['months'=>$int(3,24,12),'show_counts'=>$bool(true)]],
+        'calendar'=>['name'=>'Kalender','category'=>'Inhalte','settings'=>[]],
+        'search'=>['name'=>'Suche','category'=>'Inhalte','settings'=>['placeholder'=>$text(80,'News durchsuchen …')]],
+        'recent-comments'=>['name'=>'Letzte Kommentare','category'=>'Inhalte','settings'=>['count'=>$int(1,10,5)]],
+        'text'=>['name'=>'Text','category'=>'Eigene','settings'=>['text'=>['type'=>'textarea','max'=>5000,'default'=>'']]],
+        'html'=>['name'=>'Eigenes HTML','category'=>'Eigene','settings'=>['html'=>['type'=>'html','max'=>50000,'default'=>'']]],
+        'image'=>['name'=>'Bild','category'=>'Medien','settings'=>['url'=>['type'=>'url','default'=>''],'alt'=>$text(160),'link'=>['type'=>'url','default'=>''],'caption'=>$text(200)]],
+        'gallery'=>['name'=>'Galerie','category'=>'Medien','settings'=>['urls'=>['type'=>'textarea','max'=>6000,'default'=>''],'columns'=>$int(2,4,3)]],
+        'audio'=>['name'=>'Audio','category'=>'Medien','settings'=>['url'=>['type'=>'url','default'=>''],'caption'=>$text(200)]],
+        'embed'=>['name'=>'Einbettung (iframe)','category'=>'Medien','settings'=>['url'=>['type'=>'url','default'=>''],'height'=>$int(120,1400,520)]],
+        'button'=>['name'=>'Button','category'=>'Eigene','settings'=>['label'=>$text(80,'Mehr erfahren'),'url'=>$text(1200,'#'),'style'=>$sel(['primary','ghost'],'primary'),'icon'=>$text(40)]],
+        'menu'=>['name'=>'Navigationsmenü','category'=>'Eigene','settings'=>['menu'=>$sel(['top','bottom'],'top'),'style'=>$sel(['list','chips'],'list')]],
+        'stations'=>['name'=>'Senderliste','category'=>'Radio','settings'=>['count'=>$int(1,20,6),'layout'=>$sel(['list','grid'],'list'),'show_genres'=>$bool(true)]],
+        'now-playing'=>['name'=>'Jetzt läuft','category'=>'Radio','settings'=>['show_cover'=>$bool(true)]],
+        'schedule'=>['name'=>'Sendeplan','category'=>'Radio','settings'=>['count'=>$int(1,10,5),'station'=>$text(60)]],
+        'random-station'=>['name'=>'Überrasch mich','category'=>'Radio','settings'=>['label'=>$text(60,'Überrasch mich')]],
+        'favorites'=>['name'=>'Meine Favoriten','category'=>'Radio','settings'=>[]],
+        'podcast'=>['name'=>'Podcast','category'=>'Inhalte','settings'=>['count'=>$int(1,10,3),'show_images'=>$bool(true)]],
+        'voting'=>['name'=>'Netzwerk-Voting','category'=>'Interaktion','settings'=>[]],
+        'song-voting'=>['name'=>'Song-Voting','category'=>'Interaktion','settings'=>['label'=>$text(60,'Song-Voting öffnen'),'station'=>$text(60)]],
+        'studiomail'=>['name'=>'Studiomail','category'=>'Interaktion','settings'=>['label'=>$text(60,'Studiomail öffnen'),'station'=>$text(60)]],
+        'voicemail'=>['name'=>'Voicemail','category'=>'Interaktion','settings'=>['label'=>$text(60,'Voicemail öffnen'),'station'=>$text(60)]],
+        'wunsch'=>['name'=>'Musikwunsch','category'=>'Interaktion','settings'=>['label'=>$text(60,'Musikwunsch öffnen'),'station'=>$text(60)]],
+        'poll'=>['name'=>'Umfrage','category'=>'Interaktion','settings'=>['label'=>$text(60,'Umfrage öffnen'),'station'=>$text(60)]],
+        // Allgemeine Widgets, unabhängig vom Radio (für das eigenständige CMS)
+        'community-account'=>['name'=>'Mitgliederbereich','category'=>'Community','settings'=>[]],
+        'community-forum'=>['name'=>'Forum','category'=>'Community','settings'=>[]],
+        'community-social'=>['name'=>'Soziales Netzwerk','category'=>'Community','settings'=>[]],
+        'cms-poll'=>['name'=>'Umfrage (CMS)','category'=>'Interaktion','settings'=>['poll_id'=>$text(8)]],
+        'faq'=>['name'=>'FAQ / Akkordeon','category'=>'Eigene','settings'=>['items'=>['type'=>'textarea','max'=>8000,'default'=>''],'open_first'=>$bool(false)]],
+        'countdown'=>['name'=>'Countdown','category'=>'Eigene','settings'=>['target'=>$text(20),'label'=>$text(120),'done'=>$text(120,'Es ist so weit!')]],
+        'video'=>['name'=>'Video','category'=>'Medien','settings'=>['url'=>['type'=>'url','default'=>''],'caption'=>$text(200)]],
+        'map'=>['name'=>'Karte (OpenStreetMap)','category'=>'Medien','settings'=>['lat'=>$text(20),'lon'=>$text(20),'zoom'=>$int(3,19,14),'height'=>$int(150,800,320),'label'=>$text(120)]],
+        'social-links'=>['name'=>'Social-Links','category'=>'Social','settings'=>['items'=>['type'=>'textarea','max'=>3000,'default'=>''],'style'=>$sel(['list','icons'],'icons')]],
+        'contact-form'=>['name'=>'Kontaktformular','category'=>'Interaktion','settings'=>['intro'=>['type'=>'textarea','max'=>500,'default'=>''],'notify'=>$text(120),'button'=>$text(40,'Senden'),'success'=>$text(200,'Danke, deine Nachricht ist angekommen.'),'consent'=>$text(300,'Ich stimme der Verarbeitung meiner Angaben zur Beantwortung meiner Anfrage zu (siehe Datenschutzerklärung).'),'subject'=>$bool(true)]],
+        'newsletter'=>['name'=>'Newsletter-Anmeldung','category'=>'Interaktion','settings'=>['intro'=>['type'=>'textarea','max'=>500,'default'=>''],'notify'=>$text(120),'button'=>$text(40,'Anmelden'),'success'=>$text(200,'Danke für deine Anmeldung!'),'consent'=>$text(300,'Ich möchte den Newsletter erhalten und stimme der Speicherung meiner E-Mail-Adresse zu (siehe Datenschutzerklärung).')]],
+        'social-wall'=>['name'=>'Social Wall','category'=>'Social','settings'=>[]],
+        'social-single'=>['name'=>'Social-Profil','category'=>'Social','settings'=>['platform'=>$sel(['tiktok','instagram'],'tiktok'),'creator'=>$sel(['ricorewi','anmacha'],'ricorewi')]],
+    ];
+    return $t;
+}
+// Alte Widget-Definitionen (site.widgets, Typ builtin) -> Widget-Typ + Voreinstellungen
+function rrw_widget_legacy_type(string $builtin): array {
+    $map=['social-wall'=>['social-wall',[]],'tiktok-ricorewi'=>['social-single',['platform'=>'tiktok','creator'=>'ricorewi']],'tiktok-anmacha'=>['social-single',['platform'=>'tiktok','creator'=>'anmacha']],'instagram-ricorewi'=>['social-single',['platform'=>'instagram','creator'=>'ricorewi']],'instagram-anmacha'=>['social-single',['platform'=>'instagram','creator'=>'anmacha']],'news-latest'=>['recent-posts',[]],'stations'=>['stations',[]],'schedule'=>['schedule',[]],'podcast'=>['podcast',[]],'random-station'=>['random-station',[]],'favorites'=>['favorites',[]],'voting'=>['voting',[]],'song-voting'=>['song-voting',[]],'studiomail'=>['studiomail',[]],'voicemail'=>['voicemail',[]],'wunsch'=>['wunsch',[]],'poll'=>['poll',[]]];
+    return $map[$builtin]??['html',[]];
+}
+function rrw_widget_legacy_defs(): array {
+    static $d=null; if($d!==null)return $d;
+    $d=[];
+    foreach([['w-social','Social Wall','social-wall'],['w-tiktok-ricorewi','RicoReWi auf TikTok','tiktok-ricorewi'],['w-tiktok-anmacha','AnMaCha auf TikTok','tiktok-anmacha'],['w-instagram-ricorewi','RicoReWi auf Instagram','instagram-ricorewi'],['w-instagram-anmacha','AnMaCha auf Instagram','instagram-anmacha'],['w-news','Aktuelle News','news-latest'],['w-stations','Unsere Sender','stations'],['w-schedule','Sendeplan','schedule'],['w-podcast','Podcast','podcast'],['w-random','Überrasch mich','random-station'],['w-favorites','Meine Favoriten','favorites'],['w-song-voting','Song-Voting','song-voting'],['w-studiomail','Studiomail','studiomail'],['w-voicemail','Voicemail','voicemail'],['w-wunsch','Musikwunsch','wunsch'],['w-poll','Umfrage','poll']] as [$id,$title,$b])$d[$id]=['id'=>$id,'type'=>'builtin','builtin'=>$b,'title'=>$title,'name'=>$title];
+    return $d;
+}
+function rrw_widget_settings_clean(string $type,$settings): array {
+    $schema=rrw_widget_types()[$type]['settings']??[];$settings=is_array($settings)?$settings:[];$out=[];
+    foreach($schema as $k=>$f){
+        $v=$settings[$k]??$f['default'];
+        switch($f['type']){
+            case 'int':$out[$k]=max($f['min'],min($f['max'],(int)$v));break;
+            case 'bool':$out[$k]=is_string($v)?in_array(strtolower($v),['1','true','on','yes'],true):(bool)$v;break;
+            case 'select':$out[$k]=in_array((string)$v,$f['options'],true)?(string)$v:$f['default'];break;
+            case 'url':$v=trim((string)$v);$out[$k]=preg_match('~^(https?://|/|#|data:image/)~i',$v)||$v===''?mb_substr($v,0,1500):'';break;
+            case 'html':$out[$k]=rrw_safe_html((string)$v);break;
+            case 'textarea':$out[$k]=mb_substr((string)$v,0,$f['max']);break;
+            default:$out[$k]=mb_substr(trim((string)$v),0,$f['max']??200);
+        }
+    }
+    return $out;
+}
+// Eine Widget-Instanz bereinigen. $w darf eine alte Widget-ID (String) sein - dann wird aus der
+// Definition in site.widgets bzw. aus den eingebauten Standard-Widgets eine Instanz abgeleitet.
+function rrw_widget_instance_clean($w,string $areaId=''): ?array {
+    $site=$GLOBALS['RRW_SITE']??[];
+    if(is_string($w)){
+        $legacyId=preg_replace('/[^a-zA-Z0-9_-]/','',$w);if($legacyId==='')return null;
+        $def=null;foreach((array)($site['widgets']??[]) as $d)if((string)($d['id']??'')===$legacyId){$def=$d;break;}
+        if($def===null)$def=rrw_widget_legacy_defs()[$legacyId]??null;
+        if($def===null)return null;
+        if(($def['enabled']??true)===false)return null;
+        $dtype=(string)($def['type']??'builtin');
+        if($dtype==='html'){$type='html';$settings=['html'=>(string)($def['html']??'')];}
+        elseif($dtype==='iframe'){$type='embed';$settings=['url'=>(string)($def['url']??'')];}
+        else{[$type,$settings]=rrw_widget_legacy_type((string)($def['builtin']??''));}
+        $w=['id'=>'wi_'.$legacyId.($areaId!==''?'_'.substr(md5($areaId),0,4):''),'type'=>$type,'title'=>(string)($def['title']??$def['name']??''),'settings'=>$settings];
+    }
+    if(!is_array($w))return null;
+    $type=(string)($w['type']??'');if(!isset(rrw_widget_types()[$type]))return null;
+    $id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($w['id']??''));if($id==='')$id='wi_'.bin2hex(random_bytes(4));
+    $vis=is_array($w['visibility']??null)?$w['visibility']:[];
+    return ['id'=>$id,'type'=>$type,'title'=>mb_substr(trim((string)($w['title']??'')),0,160),'settings'=>rrw_widget_settings_clean($type,$w['settings']??[]),'visibility'=>['mode'=>(($vis['mode']??'hide')==='show')?'show':'hide','desktop'=>!empty($vis['desktop']),'tablet'=>!empty($vis['tablet']),'mobile'=>!empty($vis['mobile'])]];
+}
+function rrw_clean_section(string $section,$value){
+    if($section==='portal'){
+        $keys=['site_name'=>80,'news_title'=>140,'news_intro'=>600,'hero_eyebrow'=>80,'hero_title'=>220,'hero_text'=>1200,'footer_text'=>220,'notice_text'=>800];
+        $o=[];foreach($keys as $k=>$n)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,$n);$o['notice_enabled']=!empty($value['notice_enabled']);
+        if(isset($value['tagline']))$o['tagline']=mb_substr(trim((string)$value['tagline']),0,200);   // optional, von der WordPress-Schicht (blogdescription) geschrieben
+        return $o;
+    }
+    if($section==='apps')return function_exists('rrw_apps_clean')?rrw_apps_clean($value):['android_enabled'=>!empty($value['android_enabled']),'windows_enabled'=>!empty($value['windows_enabled'])];
+    if($section==='assistant')return function_exists('rrw_assistant_clean')?rrw_assistant_clean($value):(array)$value;
+    if($section==='alexa')return function_exists('rrw_alexa_clean')?rrw_alexa_clean($value):(array)$value;
+    if($section==='comments')return ['enabled'=>!empty($value['enabled']),'require_approval'=>!array_key_exists('require_approval',(array)$value)||!empty($value['require_approval'])];
+    if($section==='news_categories'){
+        $out=[];foreach((array)$value as $c){$c=mb_substr(trim((string)$c),0,40);if($c!=='')$out[]=$c;}
+        $out=array_values(array_unique($out));
+        return array_slice($out,0,40);
+    }
+    if($section==='social'){foreach(['ricorewi_tiktok','ricorewi_instagram','anmacha_tiktok','anmacha_instagram'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,120);return $o??[];}
+    if($section==='branding'){foreach(['portal_logo','portal_icon','favicon','android_inapp_logo','android_startscreen','android_app_icon','windows_logo'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
+    if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
+    if($section==='services'){foreach(['radio_portal','control_center','public_api','news_api','tracker','apps_page','nextcloud','owncast','castopod','airdeck'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
+    if($section==='pages'){
+        $out=[];$sys=['start','sender','senderdetail','sendeplan','voting','podcast','news','hilfe','apps','fanshop'];
+        foreach(array_slice((array)$value,0,100) as $p){
+            if(!is_array($p))continue;$type=($p['type']??'custom')==='system'?'system':'custom';$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($p['id']??''));if($id==='')$id='page_'.bin2hex(random_bytes(4));
+            $slug=rrw_slug((string)($p['slug']??$p['title']??$id));$target=$type==='system'?strtolower(trim((string)($p['system_target']??$slug))):'';if($type==='system'&&!in_array($target,$sys,true))continue;
+            $ovs=[];foreach(array_slice((array)($p['text_overrides']??[]),0,150) as $ov){if(!is_array($ov))continue;$sel=trim((string)($ov['selector']??''));if($sel===''||strlen($sel)>600||preg_match('/[{};]/',$sel))continue;$ovs[]=['selector'=>$sel,'text'=>mb_substr((string)($ov['text']??''),0,5000),'original'=>mb_substr((string)($ov['original']??''),0,5000)];}
+            $out[]=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($p['title']??$slug)),0,160),'type'=>$type,'system_target'=>$target,'enabled'=>!array_key_exists('enabled',$p)||!empty($p['enabled']),'native_enabled'=>!array_key_exists('native_enabled',$p)||!empty($p['native_enabled']),'headline'=>mb_substr(trim((string)($p['headline']??'')),0,260),'intro'=>mb_substr(trim((string)($p['intro']??'')),0,1500),'text_overrides'=>$ovs,'blocks_before'=>rrw_clean_blocks($p['blocks_before']??[]),'blocks_after'=>rrw_clean_blocks($p['blocks_after']??[]),'meta_title'=>mb_substr(trim(strip_tags((string)($p['meta_title']??''))),0,160),'meta_description'=>mb_substr(trim(strip_tags((string)($p['meta_description']??''))),0,300),'noindex'=>!empty($p['noindex']),'publish_at'=>$type==='custom'?rrw_page_publish_at($p['publish_at']??''):''];
+        } return $out;
+    }
+    if($section==='menus'){
+        $out=['top'=>[],'bottom'=>[]];
+        foreach(['top','bottom'] as $menu)foreach(array_slice((array)($value[$menu]??[]),0,100) as $m){
+            if(!is_array($m))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($m['id']??''));if($id==='')$id=$menu.'_'.bin2hex(random_bytes(4));
+            $out[$menu][]=['id'=>$id,'label'=>mb_substr(trim((string)($m['label']??'Menüpunkt')),0,100),'target'=>mb_substr(trim((string)($m['target']??'')),0,1200),'icon'=>preg_replace('/[^a-zA-Z0-9_-]/','',(string)($m['icon']??'fa-circle')),'parent_id'=>preg_replace('/[^a-zA-Z0-9_-]/','',(string)($m['parent_id']??'')),'enabled'=>!array_key_exists('enabled',$m)||!empty($m['enabled'])];
+        } return $out;
+    }
+    if($section==='widgets'){
+        $out=[];$allowed=['social-wall','tiktok-ricorewi','tiktok-anmacha','instagram-ricorewi','instagram-anmacha','news-latest','stations','schedule','podcast','random-station','favorites','voting','song-voting','studiomail','voicemail','wunsch','poll'];
+        foreach(array_slice((array)$value,0,100) as $w){if(!is_array($w))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($w['id']??''));if($id==='')$id='widget_'.bin2hex(random_bytes(4));$type=in_array(($w['type']??'builtin'),['builtin','html','iframe'],true)?$w['type']:'builtin';$builtin=in_array(($w['builtin']??''),$allowed,true)?$w['builtin']:'';
+            $cat=mb_substr(trim((string)($w['category']??'Eigene')),0,80);
+            $out[]=['id'=>$id,'name'=>mb_substr((string)($w['name']??'Widget'),0,120),'type'=>$type,'builtin'=>$builtin,'category'=>$cat,'enabled'=>!array_key_exists('enabled',$w)||!empty($w['enabled']),'title'=>mb_substr((string)($w['title']??''),0,160),'config'=>is_array($w['config']??null)?$w['config']:[],'html'=>$type==='html'?rrw_safe_html((string)($w['html']??'')):'','url'=>$type==='iframe'?mb_substr(trim((string)($w['url']??'')),0,1200):''];
+        } return $out;
+    }
+    if($section==='widget_areas'){
+        $out=[];$validKinds=['sidebar','footer','content'];$validScopes=['global','page'];$validPos=['left','right','top','bottom'];
+        foreach(array_slice((array)$value,0,50) as $a){
+            if(!is_array($a))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($a['id']??''));if($id==='')$id='area_'.bin2hex(random_bytes(4));
+            $widgets=[];$seen=[];foreach(array_slice((array)($a['widgets']??[]),0,50) as $wid){$inst=rrw_widget_instance_clean($wid,$id);if($inst===null||isset($seen[$inst['id']]))continue;$seen[$inst['id']]=true;$widgets[]=$inst;}
+            $out[]=['id'=>$id,'name'=>mb_substr(trim((string)($a['name']??'Widget-Bereich')),0,120),'kind'=>in_array(($a['kind']??'sidebar'),$validKinds,true)?$a['kind']:'sidebar','scope'=>in_array(($a['scope']??'global'),$validScopes,true)?$a['scope']:'global','page_id'=>preg_replace('/[^a-zA-Z0-9_-]/','',(string)($a['page_id']??'')),'position'=>in_array(($a['position']??'right'),$validPos,true)?$a['position']:'right','enabled'=>!empty($a['enabled']),'widgets'=>$widgets];
+        } return $out;
+    }
+    if($section==='brands')return rrw_brands_clean($value);
+    if($section==='widget_inactive'){
+        $out=[];$seen=[];foreach(array_slice((array)$value,0,60) as $w){$inst=rrw_widget_instance_clean($w,'inactive');if($inst===null||isset($seen[$inst['id']]))continue;$seen[$inst['id']]=true;$out[]=$inst;}
+        return $out;
+    }
+    if($section==='feed_sources'){
+        $out=[];
+        foreach(array_slice((array)$value,0,30) as $s){
+            if(!is_array($s))continue;
+            $id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($s['id']??''));if($id==='')$id='feed_'.bin2hex(random_bytes(4));
+            $url=trim((string)($s['url']??''));
+            if(!filter_var($url,FILTER_VALIDATE_URL))continue;
+            $scheme=strtolower((string)(parse_url($url,PHP_URL_SCHEME)??''));if(!in_array($scheme,['http','https'],true))continue;
+            $out[]=[
+                'id'=>$id,
+                'name'=>mb_substr(trim((string)($s['name']??'Externer Feed')),0,120),
+                'url'=>mb_substr($url,0,1500),
+                'category'=>mb_substr(trim((string)($s['category']??'Extern')),0,80),
+                'enabled'=>!array_key_exists('enabled',$s)||!empty($s['enabled']),
+                'max_items'=>max(1,min(25,(int)($s['max_items']??5)))
+            ];
+        }
+        return $out;
+    }
+    if($section==='rss'){
+        return [
+            'enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),
+            'title'=>mb_substr(trim((string)($value['title']??'RicoReWi Radio – News & Magazin')),0,180),
+            'description'=>mb_substr(trim((string)($value['description']??'')),0,500),
+            'max_items'=>max(5,min(100,(int)($value['max_items']??50))),
+            'include_external'=>!empty($value['include_external'])
+        ];
+    }
+    if($section==='plugins'){
+        $out=[];foreach(array_slice((array)$value,0,100) as $id){$id=rrw_plugin_id((string)$id);if($id!=='')$out[]=$id;}return array_values(array_unique($out));
+    }
+    if($section==='theme'){
+        $allowedKeys=['accent','accent2','background','surface','surface2','text','muted','radius','content_width','header_height','sidebar_width','font_scale','glass_strength','nav_style','card_style','hero_style','footer_background','button_radius','button_style','custom_css','variant'];
+        $cleanSettings=function($raw)use($allowedKeys):array{$settings=[];foreach((array)$raw as $k=>$v){if(!in_array((string)$k,$allowedKeys,true))continue;$vv=trim((string)$v);if($k==='custom_css'){$vv=preg_replace('/<\/?style\b[^>]*>/i','',$vv);$vv=preg_replace('/@import\s+[^;]+;/i','',$vv);$settings[$k]=mb_substr($vv,0,12000);}else{$settings[(string)$k]=mb_substr($vv,0,120);}}return $settings;};
+        $cleanVariant=fn($v)=>preg_replace('/[^a-zA-Z0-9_-]/','',(string)($v??'default'));
+        $out=['active'=>rrw_theme_id((string)($value['active']??rrw_default_theme_id())),'variant'=>$cleanVariant($value['variant']??'default'),'settings'=>$cleanSettings($value['settings']??[])];
+        if(is_array($value['layout']??null))$out['layout']=rrw_theme_layout_clean($value['layout']);
+        // Pro-Theme-Anpassungen (wie WordPress' theme_mods / sidebars_widgets): Einstellungen,
+        // Variante und Widget-Anordnung je Theme, damit ein Theme-Wechsel nichts überschreibt.
+        $mods=[];
+        foreach(array_slice((array)($value['mods']??[]),0,50,true) as $tid=>$m){
+            $tid=rrw_theme_id((string)$tid);if($tid===''||!is_array($m))continue;
+            $mods[$tid]=['variant'=>$cleanVariant($m['variant']??'default'),'settings'=>$cleanSettings($m['settings']??[]),'widget_areas'=>rrw_clean_section('widget_areas',$m['widget_areas']??[]),'saved_at'=>mb_substr(trim((string)($m['saved_at']??'')),0,32)];
+        }
+        $out['mods']=$mods;
+        return $out;
+    }
+    if($section==='seo'){
+        $base=trim((string)($value['canonical_base']??rrw_default_canonical_base()));
+        if(!preg_match('#^https://[a-z0-9.-]+(:\d{2,5})?$#i',$base))$base=rrw_default_canonical_base()?:'https://www.ricorewi-radio.de';
+        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??'RicoReWi Radioportal')),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?$value['robots']:'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
+    }
+    if($section==='storage'){
+        return ['mode'=>in_array(($value['mode']??'files'),['files','files+database'],true)?$value['mode']:'files','database_mirror'=>!empty($value['database_mirror'])];
+    }
+    if($section==='backup'){
+        return ['include_media'=>!array_key_exists('include_media',$value)||!empty($value['include_media']),'keep'=>max(1,min(50,(int)($value['keep']??10)))];
+    }
+    if($section==='legal')return ['imprint_mode'=>($value['imprint_mode']??'link')==='custom'?'custom':'link','imprint_url'=>mb_substr(trim((string)($value['imprint_url']??'')),0,1200),'imprint_title'=>mb_substr((string)($value['imprint_title']??'Impressum'),0,160),'imprint_content'=>rrw_safe_html((string)($value['imprint_content']??'')),'privacy_mode'=>($value['privacy_mode']??'link')==='custom'?'custom':'link','privacy_url'=>mb_substr(trim((string)($value['privacy_url']??'')),0,1200),'privacy_title'=>mb_substr((string)($value['privacy_title']??'Datenschutz'),0,160),'privacy_content'=>rrw_safe_html((string)($value['privacy_content']??''))]+(isset($value['email'])&&filter_var((string)$value['email'],FILTER_VALIDATE_EMAIL)?['email'=>mb_substr(trim((string)$value['email']),0,200)]:[]);   // email: optional, von der WordPress-Schicht (admin_email) geschrieben
+    return null;
+}
+function rrw_render_blocks(array $blocks,array $widgets): string {
+    $by=[];foreach($widgets as $w)$by[$w['id']??'']=$w;$html='';
+    foreach($blocks as $b){if(empty($b['enabled']))continue;$t=$b['type']??'text';
+        if($t==='heading'){$l=in_array((int)($b['level']??2),[2,3,4],true)?(int)$b['level']:2;$html.="<h$l>".htmlspecialchars((string)($b['text']??''),ENT_QUOTES,'UTF-8')."</h$l>";}
+        elseif($t==='text')$html.='<p>'.nl2br(htmlspecialchars((string)($b['text']??''),ENT_QUOTES,'UTF-8')).'</p>';
+        elseif($t==='quote')$html.='<blockquote>'.nl2br(htmlspecialchars((string)($b['text']??''),ENT_QUOTES,'UTF-8')).'</blockquote>';
+        elseif($t==='html')$html.=(string)($b['html']??'');
+        elseif($t==='image')$html.='<figure><img src="'.htmlspecialchars((string)($b['url']??''),ENT_QUOTES,'UTF-8').'" alt="'.htmlspecialchars((string)($b['alt']??''),ENT_QUOTES,'UTF-8').'"><figcaption>'.htmlspecialchars((string)($b['caption']??''),ENT_QUOTES,'UTF-8').'</figcaption></figure>';
+        elseif($t==='button')$html.='<p><a class="rrw-btn" href="'.htmlspecialchars((string)($b['url']??'#'),ENT_QUOTES,'UTF-8').'">'.htmlspecialchars((string)($b['label']??'Mehr erfahren'),ENT_QUOTES,'UTF-8').'</a></p>';
+        elseif($t==='divider')$html.='<hr>';
+        elseif($t==='spacer')$html.='<div style="height:'.max(8,min(160,(int)($b['size']??32))).'px"></div>';
+        elseif($t==='widget'){$w=$by[$b['widget_id']??'']??null;if($w)$html.='<section class="rrw-widget"><h3>'.htmlspecialchars((string)($w['title']??$w['name']??''),ENT_QUOTES,'UTF-8').'</h3><p>Dieses Widget wird auf der Hauptseite interaktiv dargestellt.</p></section>';}
+    } return $html;
+}
+function rrw_generate_custom_pages(array $site,string $root): void {
+    $wanted=[];$widgets=(array)($site['widgets']??[]);$menus=(array)($site['menus']['top']??[]);
+    $nav='';foreach($menus as $m){if(empty($m['enabled'])||!empty($m['parent_id']))continue;$target=(string)($m['target']??'');$href='#';if(str_starts_with($target,'page:'))$href='/'.rrw_slug(substr($target,5)).'.html';elseif(str_starts_with($target,'system:'))$href='/#'.substr($target,7);elseif(str_starts_with($target,'http')||str_starts_with($target,'/'))$href=$target;$nav.='<a href="'.htmlspecialchars($href,ENT_QUOTES,'UTF-8').'">'.htmlspecialchars((string)($m['label']??''),ENT_QUOTES,'UTF-8').'</a>';}
+    rrw_page_schedule_write($root.'/cms/data',(array)($site['pages']??[]));
+    foreach((array)($site['pages']??[]) as $p){if(($p['type']??'')!=='custom'||empty($p['enabled']))continue;$slug=rrw_slug((string)($p['slug']??$p['title']??'seite'));$file=$root.'/'.$slug.'.html';$wanted[$file]=true;$title=htmlspecialchars((string)($p['headline']?:$p['title']??$slug),ENT_QUOTES,'UTF-8');$intro=htmlspecialchars((string)($p['intro']??''),ENT_QUOTES,'UTF-8');$body=rrw_render_blocks(array_merge((array)($p['blocks_before']??[]),(array)($p['blocks_after']??[])),$widgets);
+        $mt=trim((string)($p['meta_title']??''));$metaTitle=htmlspecialchars($mt!==''?$mt:(string)($p['headline']?:$p['title']??$slug).' – RicoReWi Radio',ENT_QUOTES,'UTF-8');
+        $md=trim((string)($p['meta_description']??''));if($md==='')$md=trim((string)($p['intro']??''));
+        $metaTags=($md!==''?'<meta name="description" content="'.htmlspecialchars(mb_substr($md,0,300),ENT_QUOTES,'UTF-8').'">':'').(!empty($p['noindex'])?'<meta name="robots" content="noindex,follow">':'');
+        $activeTheme=rrw_theme_id((string)($site['theme']['active']??'ricorewi-neon'));
+        $themeLink=$activeTheme!=='ricorewi-neon'?'<link rel="stylesheet" href="/cms/themes/'.htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8').'/theme.css">':'';
+        $ts=is_array($site['theme']['settings']??null)?$site['theme']['settings']:[];
+        $safeColor=function($v,$fallback){$v=trim((string)$v);return preg_match('/^#[0-9a-fA-F]{6}$/',$v)?$v:$fallback;};
+        $themeVars='<style>:root{--rrw-theme-accent:'.$safeColor($ts['accent']??'','#b57cff').';--rrw-theme-accent2:'.$safeColor($ts['accent2']??'','#22d3ee').';--rrw-theme-background:'.$safeColor($ts['background']??'','#06060a').';--rrw-theme-surface:'.$safeColor($ts['surface']??'','#101522').';--rrw-theme-text:'.$safeColor($ts['text']??'','#f4f6ff').';--rrw-theme-radius:'.max(0,min(40,(float)($ts['radius']??16))).';--rrw-theme-content-width:'.max(800,min(1900,(float)($ts['content_width']??1320))).';--rrw-theme-font-scale:'.max(.75,min(1.4,(float)($ts['font_scale']??1))).';}</style>';
+        $customCss=trim((string)($ts['custom_css']??''));if($customCss!=='')$themeVars.='<style>'.$customCss.'</style>';
+        $html=RRW_CMS_MARKER."\n<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>$metaTitle</title>$metaTags<link rel=\"icon\" href=\"/icon-192.png\"><link rel=\"stylesheet\" href=\"/cms/generated/page.css\">".$themeLink.$themeVars."</head><body data-rrw-theme=\"".htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8')."\"><header><a class=\"brand\" href=\"/\"><img src=\"/logo-lockup.png\" alt=\"RicoReWi Radio\"></a><nav>$nav</nav></header><main><article><h1>$title</h1>".($intro!==''?"<p class=\"intro\">$intro</p>":'').$body."</article></main><footer><a href=\"/\">RicoReWi Radioportal</a></footer></body></html>";
+        rrw_write_atomic($file,$html);
+    }
+    foreach(glob($root.'/*.html')?:[] as $file){if(isset($wanted[$file]))continue;$head=(string)@file_get_contents($file,false,null,0,128);if(str_contains($head,RRW_CMS_MARKER))@unlink($file);}
+}
+function rrw_update_index_snapshot(array $site,string $root): void {
+    $file=$root.'/index.html';
+    if(!is_file($file))throw new RuntimeException('index.html wurde nicht gefunden');
+    $html=(string)file_get_contents($file);
+    $start='<!-- RRW-CMS-SNAPSHOT-START -->';
+    $end='<!-- RRW-CMS-SNAPSHOT-END -->';
+    $payload=$start."\n<script>window.__RRW_CMS_FILE__ = ".json_encode(rrw_site_public($site)+(rrw_standalone()?['standalone'=>true]:[]),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).";</script>\n".$end;
+    $pattern='#'.preg_quote($start,'#').'.*?'.preg_quote($end,'#').'#s';
+    if(preg_match($pattern,$html))$html=preg_replace($pattern,$payload,$html,1);
+    else {
+        $pos=strpos($html,'</head>');
+        if($pos===false)throw new RuntimeException('index.html enthält kein </head>');
+        $html=substr($html,0,$pos)."\n".$payload."\n".substr($html,$pos);
+    }
+    $seo=function_exists('rrw_seo_defaults')?rrw_seo_defaults($site):[];
+    $title=htmlspecialchars((string)($seo['site_title']??$site['portal']['site_name']??'RicoReWi Radioportal'),ENT_QUOTES,'UTF-8');
+    $desc=htmlspecialchars((string)($seo['description']??$site['portal']['news_intro']??''),ENT_QUOTES,'UTF-8');
+    $canon=htmlspecialchars(rtrim((string)($seo['canonical_base']??rrw_default_canonical_base()),'/').'/',ENT_QUOTES,'UTF-8');
+    $robots=htmlspecialchars((string)($seo['robots']??'index,follow'),ENT_QUOTES,'UTF-8');
+    $og=htmlspecialchars((string)($seo['og_image']??$site['branding']['portal_icon']??'/icon-512.png'),ENT_QUOTES,'UTF-8');
+    $favicon=htmlspecialchars((string)($site['branding']['favicon']??'/icon-192.png'),ENT_QUOTES,'UTF-8');
+    $html=preg_replace('#<title id="page-title">.*?</title>#s','<title id="page-title">'.$title.'</title>',$html,1);
+    $html=preg_replace('#<meta id="meta-description" name="description" content="[^"]*">#','<meta id="meta-description" name="description" content="'.$desc.'">',$html,1);
+    if(preg_match('#<meta name="robots" content="[^"]*">#',$html))$html=preg_replace('#<meta name="robots" content="[^"]*">#','<meta name="robots" content="'.$robots.'">',$html,1);
+    else $html=preg_replace('#(<meta id="meta-description"[^>]+>)#','$1'."\n    ".'<meta name="robots" content="'.$robots.'">',$html,1);
+    if(preg_match('#<link rel="canonical" href="[^"]*">#',$html))$html=preg_replace('#<link rel="canonical" href="[^"]*">#','<link rel="canonical" href="'.$canon.'">',$html,1);
+    else $html=preg_replace('#(<meta name="robots"[^>]+>)#','$1'."\n    ".'<link rel="canonical" href="'.$canon.'">',$html,1);
+    $html=preg_replace('#<meta id="og-title" property="og:title" content="[^"]*">#','<meta id="og-title" property="og:title" content="'.$title.'">',$html,1);
+    $html=preg_replace('#<meta id="og-description" property="og:description" content="[^"]*">#','<meta id="og-description" property="og:description" content="'.$desc.'">',$html,1);
+    $html=preg_replace('#<meta id="og-image" property="og:image" content="[^"]*">#','<meta id="og-image" property="og:image" content="'.$og.'">',$html,1);
+    $html=preg_replace('#<meta id="twitter-title" name="twitter:title" content="[^"]*">#','<meta id="twitter-title" name="twitter:title" content="'.$title.'">',$html,1);
+    $html=preg_replace('#<meta id="twitter-description" name="twitter:description" content="[^"]*">#','<meta id="twitter-description" name="twitter:description" content="'.$desc.'">',$html,1);
+    $html=preg_replace('#<meta id="twitter-image" name="twitter:image" content="[^"]*">#','<meta id="twitter-image" name="twitter:image" content="'.$og.'">',$html,1);
+    $html=preg_replace('#<link rel="icon" href="[^"]*" type="image/png">#','<link rel="icon" href="'.$favicon.'">',$html,1);
+    rrw_write_atomic($file,$html);
+}
+function rrw_rss_xml(array $site): string {
+    $news=rrw_read_json(__DIR__.'/../data/news.json',[]);
+    $published=array_values(array_filter($news,'rrw_news_is_live'));
+    if(!empty($site['rss']['include_external']))$published=array_merge($published,rrw_external_feed_articles($site));
+    usort($published,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
+    $max=max(5,min(100,(int)($site['rss']['max_items']??50)));$published=array_slice($published,0,$max);
+    $x=fn($s)=>htmlspecialchars((string)$s,ENT_XML1|ENT_QUOTES,'UTF-8');
+    $cdata=fn($s)=>'<![CDATA['.str_replace(']]>',']]]]><![CDATA[>',(string)$s).']]>';
+    $rb=rtrim((string)($site['seo']['canonical_base']??rrw_default_canonical_base()),'/');$ric=rrw_pack_available();
+    $title=(string)($site['rss']['title']??($ric?'RicoReWi Radio – News & Magazin':'News'));
+    $desc=(string)($site['rss']['description']??'News, Magazin, Musik, Radio und Community.');
+    $out="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    $out.="<?xml-stylesheet type=\"text/xsl\" href=\"/cms/rss.xsl\"?>\n";
+    $out.="<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:media=\"http://search.yahoo.com/mrss/\">\n<channel>\n";
+    $out.="<title>".$x($title)."</title><link>".$x($ric?'https://www.ricorewi-radio.de/#news':$rb.'/')."</link><description>".$x($desc)."</description><language>de-de</language><lastBuildDate>".gmdate(DATE_RSS)."</lastBuildDate><generator>".htmlspecialchars(rrw_product_generator(),ENT_XML1|ENT_QUOTES,'UTF-8')."</generator><atom:link href=\"https://www.ricorewi-radio.de/rss.xml\" rel=\"self\" type=\"application/rss+xml\" />\n";
+    foreach($published as $a){
+        $external=!empty($a['is_external']);$slug=(string)($a['slug']??'');
+        $key=rawurlencode($slug!==''?$slug:(string)($a['id']??''));
+        $link=$external?(string)($a['external_url']??''):($ric?'https://www.ricorewi-radio.de/#news/'.$key:$rb.'/'.$key.'/');
+        if($link==='')$link=$ric?'https://www.ricorewi-radio.de/#news':$rb.'/';
+        $guid=$external?('ext-'.md5((string)($a['external_feed_url']??'').'|'.$link)):'rrw-news-'.(string)($a['id']??md5($link));
+        $date=(string)($a['published_at']??$a['created_at']??'');$ts=$date!==''?strtotime($date):false;
+        $html=(string)($a['body_html']??'');if($html==='')$html='<p>'.htmlspecialchars((string)($a['excerpt']??''),ENT_QUOTES,'UTF-8').'</p>';
+        $out.="<item><title>".$x($a['title']??'')."</title><link>".$x($link)."</link><guid isPermaLink=\"false\">".$x($guid)."</guid><pubDate>".gmdate(DATE_RSS,$ts?:time())."</pubDate>".(trim((string)($a['category']??''))!==''?"<category>".$x($a['category'])."</category>":"")."<description>".$cdata((string)($a['excerpt']??''))."</description><content:encoded>".$cdata($html)."</content:encoded>";
+        if(!empty($a['image_url']))$out.="<media:content url=\"".$x($a['image_url'])."\" medium=\"image\" />";
+        $out.="</item>\n";
+    }
+    return $out."</channel></rss>\n";
+}
+function rrw_publish(array $site,string $siteFile,string $genDir,string $root): void {
+    rrw_write_atomic($siteFile,json_encode($site,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+    // Startseiten-Snapshot und statische Seiten gehören zum Portal (index.html); das eigenständige CMS liefert über ein WordPress-Theme aus und hat keine
+    if(is_file($root.'/index.html')){ rrw_update_index_snapshot($site,$root);rrw_generate_custom_pages($site,$root); }
+    if(function_exists('rrw_content_sync_from_site'))rrw_content_sync_from_site($site);
+    $news=rrw_read_json(__DIR__.'/../data/news.json',[]);
+    if(function_exists('rrw_seo_generate'))rrw_seo_generate($site,$news,$root);
+    if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));
+    if(!empty($site['storage']['database_mirror'])&&function_exists('rrw_db_push')){
+        try{rrw_db_push($site,$news);}catch(Throwable $e){}
+    }
+}
+
+// Standard-Inhalt der Partnerseite (#partner). Wird einmalig angelegt und ist danach im CMS (Seiten) vollständig frei bearbeitbar.
+function rrw_partner_card(string $logo,string $alt,string $name,string $text,string $url,string $label,string $brand='',string $target='_blank'): string {
+    $h=static fn(string $v)=>htmlspecialchars($v,ENT_QUOTES,'UTF-8');
+    $only=$brand!==''?' data-brand-only="'.$h($brand).'"':'';
+    $tgt=$target==='_self'?'':' target="_blank" rel="noopener"';
+    return '<div class="partner-card"'.$only.'><div class="partner-logo"><img src="'.$h($logo).'" alt="'.$h($alt).'" loading="lazy" style="max-width:260px;max-height:96px;height:auto;width:auto"></div>'
+        .'<div class="partner-body"><h3>'.$h($name).'</h3><p>'.$h($text).'</p>'
+        .'<p><a class="partner-link" href="'.$h($url).'"'.$tgt.'>'.$h($label).($target==='_self'?'':' ↗').'</a></p></div></div>';
+}
+// Logo der Marke SenderWelt aus dem CMS (Domains & Branding); leer, wenn keines hinterlegt ist
+function rrw_partner_brand_logo(array $site,string $brandId): string {
+    foreach((array)($site['brands']['items']??[]) as $b){
+        if(is_array($b)&&($b['id']??'')===$brandId){
+            $l=trim((string)($b['logo']??''));
+            return ($l!==''&&!str_contains($l,'placeholder')&&preg_match('#^(/|https://)#',$l))?$l:'';
+        }
+    }
+    return '';
+}
+function rrw_partner_station_blocks(): array {
+    return [
+        ['id'=>'blk_partner_stations_h','type'=>'heading','enabled'=>true,'text'=>'Unsere Sender','level'=>2],
+        ['id'=>'blk_partner_stations_t','type'=>'text','enabled'=>true,'text'=>'Das sind die Sender unseres Netzwerks. Namen und Logos kommen direkt von laut.fm und sind immer auf dem aktuellen Stand. Ein Klick öffnet den Sender im Portal.'],
+        ['id'=>'blk_partner_stations','type'=>'html','enabled'=>true,'html'=>'<div class="rrw-station-logos"></div>'],
+    ];
+}
+// Die beiden Portale tauschen auf der Partnerseite die Rollen: auf dem eigenen Portal "Dieses Portal", auf dem anderen "Schwesterportal".
+// Karten mit data-brand-only werden nur auf der genannten Marke angezeigt (Marken-Kennung: ricorewi-radio bzw. senderwelt).
+function rrw_partner_portal_blocks(string $swLogo): array {
+    $b=static fn(string $id,string $html)=>['id'=>$id,'type'=>'html','enabled'=>true,'html'=>$html];
+    return [
+        $b('blk_partner_ricorewi',rrw_partner_card('/assets/partner/ricorewi-radio.png','RicoReWi Radio – Logo','RicoReWi Radio',
+            'RicoReWi Radio ist das Hauptprogramm dieses Portals: Musik, Moderation und Community rund um die Uhr. Gemeinsam mit AnMaCha entstehen Shows und Aktionen, und im RicoReWi × AnMaCha Radioportal findest du alle Sender, den Sendeplan, News und Podcasts an einem Ort.',
+            '/','Zur Startseite','ricorewi-radio','_self')),
+        $b('blk_partner_senderwelt',rrw_partner_card($swLogo,'SenderWelt – Logo','SenderWelt',
+            'SenderWelt ist unser Schwesterportal für alle, die noch mehr Radio entdecken wollen. Neben unseren eigenen Sendern gibt es ein Verzeichnis mit Webradios von laut.fm und aus aller Welt – mit Suche, Favoriten und kostenlosen Apps für Android und Windows.',
+            'https://www.senderwelt.de','Zu SenderWelt','ricorewi-radio')),
+        $b('blk_partner_senderwelt_main',rrw_partner_card($swLogo,'SenderWelt – Logo','SenderWelt',
+            'SenderWelt ist dieses Portal: Deine Streams. Deine Sender. Eine Welt. Neben den Sendern des AnMaCha-Netzwerks findest du hier ein Verzeichnis mit Webradios von laut.fm und aus aller Welt – mit Suche, Favoriten und kostenlosen Apps für Android und Windows.',
+            '/','Zur Startseite','senderwelt','_self')),
+        $b('blk_partner_ricorewi_sister',rrw_partner_card('/assets/partner/ricorewi-radio.png','RicoReWi Radio – Logo','RicoReWi Radio',
+            'RicoReWi Radio ist unser Schwesterportal und das Hauptprogramm des Netzwerks: Musik, Moderation und Community rund um die Uhr. Dort findest du alle Sender, den Sendeplan, News und Podcasts im RicoReWi × AnMaCha Radioportal.',
+            'https://www.ricorewi-radio.de','Zu RicoReWi Radio','senderwelt')),
+    ];
+}
+function rrw_partner_page_default(array $site=[]): array {
+    $b=static fn(string $id,string $type,array $x)=>['id'=>$id,'type'=>$type,'enabled'=>true]+$x;
+    return [
+        'id'=>'page_partner','slug'=>'partner','title'=>'Partner','type'=>'custom','system_target'=>'','enabled'=>true,'native_enabled'=>false,
+        'headline'=>'Unsere Partner',
+        'intro'=>'Radio entsteht nie allein. Hier stellen wir die Menschen, Projekte und Plattformen vor, mit denen wir zusammenarbeiten – vom eigenen Radionetzwerk bis zur Technik, über die unsere Streams zu dir kommen.',
+        'text_overrides'=>[],
+        'blocks_before'=>[
+            $b('blk_partner_h1','heading',['text'=>'Unser Netzwerk','level'=>2]),
+            $b('blk_partner_anmacha','html',['html'=>rrw_partner_card('/assets/partner/anmacha.png','AnMaCha Radioproduktion – Logo','AnMaCha Radioproduktion',
+                'Die AnMaCha Radioproduktion steht hinter diesem Radioportal. Sie produziert und betreibt zwölf Webradios – von Charts, Schlager und Rock bis Rap und Kulthits – und präsentiert den AnMaCha Podcast. Auf der Homepage findest du alle Sender, Neuigkeiten und die Menschen dahinter.',
+                'https://anmacha.de','anmacha.de besuchen')]),
+            ...rrw_partner_portal_blocks(rrw_partner_brand_logo($site,'senderwelt')?:'/assets/partner/senderwelt.svg'),
+            $b('blk_partner_h2','heading',['text'=>'Plattformen & Technik','level'=>2]),
+            $b('blk_partner_meinradio','html',['html'=>rrw_partner_card('/assets/partner/meinradio-com.png','MeinRadio.com – Logo','MeinRadio.com',
+                'MeinRadio.com ist das Webradio-Angebot der AnMaCha Radioproduktion: Zwölf Webradios mit Charts, Schlager, Rock, Rap, Kulthits und Podcastshows mit Musik – rund um die Uhr live und kostenlos.',
+                'https://meinradio.com','meinradio.com besuchen')]),
+            $b('blk_partner_lautfm','html',['html'=>rrw_partner_card('/assets/partner/laut-fm.png','laut.fm – Logo','laut.fm',
+                'Unsere Streams laufen über laut.fm, die Plattform für „User Generated Radio“ in Deutschland. laut.fm stellt die Streaming-Technik bereit und übernimmt die Lizenzierung (GEMA/GVL). Weder RicoReWi noch AnMaCha hosten die Streams – wir gestalten die Programme und verwalten die Sender.',
+                'https://laut.fm','laut.fm besuchen')]),
+        ],
+        'blocks_after'=>rrw_partner_station_blocks(),
+    ];
+}
+
+// Partnerseite: Portalkarten markenabhängig (RicoReWi/SenderWelt tauschen die Rollen). Nur unveränderte Standardkarten werden umgestellt.
+function rrw_partner_migrate_brand(array $site): array {
+    if(!empty($site['_meta']['partner_brand_v2'])||!is_array($site['pages']??null))return $site;
+    $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
+    $site['_meta']['partner_brand_v2']=true;
+    foreach($site['pages'] as $pi=>$pg){
+        if(!is_array($pg)||($pg['slug']??'')!=='partner'||!is_array($pg['blocks_before']??null))continue;
+        $ri=$si=null;
+        foreach($pg['blocks_before'] as $bi=>$blk){
+            if(!is_array($blk))continue;
+            if(($blk['id']??'')==='blk_partner_ricorewi')$ri=$bi;
+            if(($blk['id']??'')==='blk_partner_senderwelt')$si=$bi;
+        }
+        if($ri===null||$si===null)continue;
+        $rh=(string)($pg['blocks_before'][$ri]['html']??'');$sh=(string)($pg['blocks_before'][$si]['html']??'');
+        if(str_contains($rh,'data-brand-only')||str_contains($sh,'data-brand-only'))continue;
+        if(!str_contains($rh,'RicoReWi Radio ist das Hauptprogramm dieses Portals')||!str_contains($sh,'SenderWelt ist unser Schwesterportal'))continue;
+        $logo=preg_match('/<img[^>]*\ssrc="([^"]+)"/',$sh,$mm)?html_entity_decode($mm[1],ENT_QUOTES,'UTF-8'):'/assets/partner/senderwelt.svg';
+        $first=min($ri,$si);$list=[];
+        foreach($pg['blocks_before'] as $bi=>$blk){
+            if($bi===$first)foreach(rrw_partner_portal_blocks($logo) as $nb)$list[]=$nb;
+            if($bi===$ri||$bi===$si)continue;
+            $list[]=$blk;
+        }
+        $site['pages'][$pi]['blocks_before']=$list;
+    }
+    return $site;
+}
+function rrw_ensure_site_defaults(array $site): array {
+    // Ohne das RicoReWi-Paket (eigenständiges CMS) entstehen keine RicoReWi-Inhalte: Favoriten-Menü, Partnerseite, Rechtstexte, Radio-Widgets, Marken
+    $ric=rrw_pack_available();
+    if($ric)$site=rrw_partner_migrate_brand($site);
+    if(function_exists('rrw_assistant_clean'))$site['assistant']=rrw_assistant_clean($site['assistant']??[]);
+    $GLOBALS['RRW_SITE']=$site;
+    if(function_exists('rrw_alexa_clean'))$site['alexa']=rrw_alexa_clean($site['alexa']??[]);
+    $site['menus']=is_array($site['menus']??null)?$site['menus']:[];
+    $site['menus']['top']=is_array($site['menus']['top']??null)?$site['menus']['top']:[];
+    $site['menus']['bottom']=is_array($site['menus']['bottom']??null)?$site['menus']['bottom']:[];
+    $hasTopFavorites=!$ric;
+    foreach($site['menus']['top'] as $m)if((string)($m['target']??'')==='action:favoriten'){$hasTopFavorites=true;break;}
+    if(!$hasTopFavorites)$site['menus']['top'][]=['id'=>'m-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+    $hasBottomFavorites=!$ric;
+    foreach($site['menus']['bottom'] as $m)if((string)($m['target']??'')==='action:favoriten'){$hasBottomFavorites=true;break;}
+    if(!$hasBottomFavorites)$site['menus']['bottom'][]=['id'=>'b-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+    // Partnerseite einmalig anlegen (danach frei bearbeitbar oder löschbar; die Markierung verhindert ein erneutes Anlegen)
+    $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
+    if($ric&&empty($site['_meta']['partner_page_seeded'])){
+        $site['_meta']['partner_page_seeded']=true;
+        $site['pages']=is_array($site['pages']??null)?$site['pages']:[];
+        $has=false;foreach($site['pages'] as $pg)if(is_array($pg)&&($pg['slug']??'')==='partner'){$has=true;break;}
+        if(!$has)$site['pages'][]=rrw_partner_page_default($site);
+    }
+    // Impressum und Datenschutzerklärung einmalig als eigene Seiten im CMS hinterlegen (bisher Verweis auf versteckmich.de); danach frei bearbeitbar
+    if($ric&&empty($site['_meta']['legal_seeded_v1'])){
+        $site['_meta']['legal_seeded_v1']=true;
+        $lg=is_array($site['legal']??null)?$site['legal']:[];
+        if(($lg['imprint_mode']??'link')!=='custom'||trim(strip_tags((string)($lg['imprint_content']??'')))===''){
+            $lg['imprint_mode']='custom';$lg['imprint_title']='Impressum';$lg['imprint_content']=rrw_legal_default_imprint();
+        }
+        if(($lg['privacy_mode']??'link')!=='custom'||trim(strip_tags((string)($lg['privacy_content']??'')))===''){
+            $lg['privacy_mode']='custom';$lg['privacy_title']='Datenschutzerklärung';$lg['privacy_content']=rrw_legal_default_privacy();
+        }
+        $site['legal']=$lg;
+    }
+    // Senderliste (Name + Logo aus der laut.fm-API) am Ende der Partnerseite, einmalig ergänzt; danach frei verschiebbar oder löschbar
+    if($ric&&empty($site['_meta']['partner_stations_seeded'])){
+        $site['_meta']['partner_stations_seeded']=true;
+        if(is_array($site['pages']??null)){
+            foreach($site['pages'] as $pi=>$pg){
+                if(!is_array($pg)||($pg['slug']??'')!=='partner')continue;
+                $after=is_array($pg['blocks_after']??null)?$pg['blocks_after']:[];
+                $exists=false;foreach($after as $blk)if(is_array($blk)&&($blk['id']??'')==='blk_partner_stations'){$exists=true;break;}
+                if(!$exists){
+                    $site['pages'][$pi]['blocks_after']=array_merge($after,rrw_partner_station_blocks());
+                }
+            }
+        }
+    }
+    // Noch nicht angepasste Standardkarte von SenderWelt: das im CMS hinterlegte Logo verwenden (eigene Änderungen bleiben unberührt)
+    $swLogo=$ric?rrw_partner_brand_logo($site,'senderwelt'):'';
+    if($swLogo!==''&&is_array($site['pages']??null)){
+        foreach($site['pages'] as $pi=>$pg){
+            if(!is_array($pg)||($pg['slug']??'')!=='partner'||!is_array($pg['blocks_before']??null))continue;
+            foreach($pg['blocks_before'] as $bi=>$blk){
+                if(is_array($blk)&&($blk['id']??'')==='blk_partner_senderwelt'&&str_contains((string)($blk['html']??''),'/assets/partner/senderwelt.svg')){
+                    $site['pages'][$pi]['blocks_before'][$bi]['html']=str_replace('/assets/partner/senderwelt.svg',htmlspecialchars($swLogo,ENT_QUOTES,'UTF-8'),(string)$blk['html']);
+                }
+            }
+        }
+    }
+
+    $site['branding']=is_array($site['branding']??null)?$site['branding']:[];
+    if(empty($site['branding']['favicon'])&&$ric)$site['branding']['favicon']='/icon-192.png';
+    // Marken-Registry (Multi-Domain): fehlt sie, entsteht sie mit RicoReWi Radio als Hauptmarke und
+    // SenderWelt als vorbereiteter zweiter Marke - bestehende Inhalte bleiben gemeinsam.
+    $GLOBALS['RRW_SITE']=$site;
+    $site['brands']=rrw_brands_clean($site['brands']??rrw_brand_defaults());
+    $site['branding_media']=is_array($site['branding_media']??null)?$site['branding_media']:[];
+
+    if(!isset($site['rss'])||!is_array($site['rss']))$site['rss']=[
+        'enabled'=>true,
+        'title'=>$ric?'RicoReWi Radio – News & Magazin':trim((string)($site['portal']['site_name']??'')).' – News',
+        'description'=>$ric?'News, Magazin, Musik, Radio und Community aus dem RicoReWi × AnMaCha Netzwerk.':'',
+        'max_items'=>50,
+        'include_external'=>true
+    ];
+    if(!isset($site['feed_sources'])||!is_array($site['feed_sources']))$site['feed_sources']=[];
+    if(!isset($site['plugins'])||!is_array($site['plugins']))$site['plugins']=[];
+    if(!isset($site['seo'])||!is_array($site['seo']))$site['seo']=rrw_seo_defaults($site);
+    else $site['seo']=rrw_seo_defaults($site);
+    if(!isset($site['storage'])||!is_array($site['storage']))$site['storage']=['mode'=>'files','database_mirror'=>false];
+    if(!isset($site['backup'])||!is_array($site['backup']))$site['backup']=['include_media'=>true,'keep'=>10];
+    if(!isset($site['comments'])||!is_array($site['comments']))$site['comments']=['enabled'=>false,'require_approval'=>true];
+
+    $site['widgets']=is_array($site['widgets']??null)?$site['widgets']:[];
+    $required=[
+        ['id'=>'w-social','name'=>'Social Wall','type'=>'builtin','builtin'=>'social-wall','category'=>'Social','enabled'=>true,'title'=>'Social Wall','config'=>[]],
+        ['id'=>'w-tiktok-ricorewi','name'=>'TikTok · RicoReWi','type'=>'builtin','builtin'=>'tiktok-ricorewi','category'=>'Social','enabled'=>true,'title'=>'RicoReWi auf TikTok','config'=>[]],
+        ['id'=>'w-tiktok-anmacha','name'=>'TikTok · AnMaCha','type'=>'builtin','builtin'=>'tiktok-anmacha','category'=>'Social','enabled'=>true,'title'=>'AnMaCha auf TikTok','config'=>[]],
+        ['id'=>'w-instagram-ricorewi','name'=>'Instagram · RicoReWi','type'=>'builtin','builtin'=>'instagram-ricorewi','category'=>'Social','enabled'=>true,'title'=>'RicoReWi auf Instagram','config'=>[]],
+        ['id'=>'w-instagram-anmacha','name'=>'Instagram · AnMaCha','type'=>'builtin','builtin'=>'instagram-anmacha','category'=>'Social','enabled'=>true,'title'=>'AnMaCha auf Instagram','config'=>[]],
+        ['id'=>'w-news','name'=>'Aktuelle News','type'=>'builtin','builtin'=>'news-latest','category'=>'Inhalte','enabled'=>true,'title'=>'Aktuelle News','config'=>[]],
+        ['id'=>'w-stations','name'=>'Senderübersicht','type'=>'builtin','builtin'=>'stations','category'=>'Radio','enabled'=>true,'title'=>'Unsere Sender','config'=>[]],
+        ['id'=>'w-schedule','name'=>'Sendeplan','type'=>'builtin','builtin'=>'schedule','category'=>'Radio','enabled'=>true,'title'=>'Sendeplan','config'=>[]],
+        ['id'=>'w-podcast','name'=>'Podcast','type'=>'builtin','builtin'=>'podcast','category'=>'Inhalte','enabled'=>true,'title'=>'Podcast','config'=>[]],
+        ['id'=>'w-random','name'=>'Überrasch mich','type'=>'builtin','builtin'=>'random-station','category'=>'Radio','enabled'=>true,'title'=>'Überrasch mich','config'=>[]],
+        ['id'=>'w-favorites','name'=>'Meine Favoriten','type'=>'builtin','builtin'=>'favorites','category'=>'Radio','enabled'=>true,'title'=>'Meine Favoriten','config'=>[]],
+        ['id'=>'w-song-voting','name'=>'Song-Voting','type'=>'builtin','builtin'=>'song-voting','category'=>'Interaktion','enabled'=>true,'title'=>'Song-Voting','config'=>[]],
+        ['id'=>'w-studiomail','name'=>'Studiomail','type'=>'builtin','builtin'=>'studiomail','category'=>'Interaktion','enabled'=>true,'title'=>'Studiomail','config'=>[]],
+        ['id'=>'w-voicemail','name'=>'Voicemail','type'=>'builtin','builtin'=>'voicemail','category'=>'Interaktion','enabled'=>true,'title'=>'Voicemail','config'=>[]],
+        ['id'=>'w-wunsch','name'=>'Musikwunsch','type'=>'builtin','builtin'=>'wunsch','category'=>'Interaktion','enabled'=>true,'title'=>'Musikwunsch','config'=>[]],
+        ['id'=>'w-poll','name'=>'Umfrage','type'=>'builtin','builtin'=>'poll','category'=>'Interaktion','enabled'=>true,'title'=>'Umfrage','config'=>[]],
+    ];
+    $ids=[];foreach($site['widgets'] as $w){$ids[(string)($w['id']??'')]=true;}
+    if(!$ric)$required=array_values(array_filter($required,fn($w)=>$w['id']==='w-news'));
+    foreach($required as $w)if(empty($ids[$w['id']]))$site['widgets'][]=$w;
+
+    if(!isset($site['widget_areas'])||!is_array($site['widget_areas']))$site['widget_areas']=[
+        ['id'=>'sidebar-global','name'=>'Globale Sidebar','kind'=>'sidebar','scope'=>'global','page_id'=>'','position'=>'right','enabled'=>false,'widgets'=>[]],
+        ['id'=>'sidebar-start','name'=>'Startseite Sidebar','kind'=>'sidebar','scope'=>'page','page_id'=>'start','position'=>'right','enabled'=>false,'widgets'=>[]],
+        ['id'=>'sidebar-news','name'=>'News Sidebar','kind'=>'sidebar','scope'=>'page','page_id'=>'news','position'=>'right','enabled'=>false,'widgets'=>[]],
+        ['id'=>'footer-global','name'=>'Footer Widgets','kind'=>'footer','scope'=>'global','page_id'=>'','position'=>'bottom','enabled'=>false,'widgets'=>[]]
+    ];
+    // Widget-Instanzen: alte Bereiche mit reinen Widget-IDs werden hier einmalig in Instanzen
+    // mit eigenem Titel/Einstellungen überführt (siehe rrw_widget_instance_clean()).
+    $GLOBALS['RRW_SITE']=$site;
+    $site['widget_areas']=rrw_clean_section('widget_areas',$site['widget_areas']);
+    $site['widget_inactive']=rrw_clean_section('widget_inactive',$site['widget_inactive']??[]);
+    $GLOBALS['RRW_SITE']=$site;
+    return $site;
+}
+
+// Strukturelles Layout eines Themes aus theme.json: Sidebar-Seite und -Breite, Header-, Hero-,
+// News- und Container-Variante. Nur bekannte Werte; fehlt der Block, entspricht das Ergebnis
+// exakt dem heutigen Standard-Layout (Sidebar rechts, 320px, Balken-Header, geteilter Hero).
+function rrw_theme_layout_clean($layout): array {
+    $layout=is_array($layout)?$layout:[];
+    $pick=function(string $k,array $allowed,string $def)use($layout):string{$v=strtolower(trim((string)($layout[$k]??'')));return in_array($v,$allowed,true)?$v:$def;};
+    return [
+        'sidebar'=>$pick('sidebar',['right','left','none'],'right'),
+        'sidebar_width'=>max(220,min(480,(int)($layout['sidebar_width']??320))),
+        'header'=>$pick('header',['bar','stacked','centered'],'bar'),
+        'hero'=>$pick('hero',['split','full','compact'],'split'),
+        'news'=>$pick('news',['cards','list','magazine'],'cards'),
+        'container'=>$pick('container',['wide','boxed','narrow'],'wide'),
+    ];
+}
+// Merkt sich Variante, Einstellungen und Widget-Anordnung des aktiven Themes unter
+// theme.mods[<id>], damit sie beim Wechsel zu einem anderen Theme erhalten bleiben.
+function rrw_theme_remember_mods(array $site): array {
+    $active=rrw_theme_id((string)($site['theme']['active']??'ricorewi-neon'));if($active==='')return $site;
+    $mods=is_array($site['theme']['mods']??null)?$site['theme']['mods']:[];
+    $mods[$active]=['variant'=>(string)($site['theme']['variant']??'default'),'settings'=>is_array($site['theme']['settings']??null)?$site['theme']['settings']:[],'widget_areas'=>array_values(is_array($site['widget_areas']??null)?$site['widget_areas']:[]),'saved_at'=>date('Y-m-d H:i:s')];
+    $site['theme']['mods']=$mods;
+    return $site;
+}
+// Öffentliche Sicht auf die Konfiguration (Snapshot in index.html, action=public): die pro Theme
+// gespeicherten Anpassungen/Anordnungen nicht aktiver Themes sind nur für die Verwaltung relevant.
+/** WordPress-Shortcodes ([forum], [umfrage id=…], Plugin-Shortcodes …) in HTML auflösen. Ohne „[“ oder ohne Laufzeit bleibt der Text unverändert. */
+function rrw_expand_shortcodes(string $html): string {
+    static $busy=false;
+    if($busy||!str_contains($html,'[')||!is_file(dirname(__DIR__).'/wp/load.php'))return $html;
+    $busy=true;
+    try{
+        require_once dirname(__DIR__).'/wp/load.php';
+        if(!isset($GLOBALS['RRW_SITE'])&&isset($GLOBALS['site']))$GLOBALS['RRW_SITE']=$GLOBALS['site'];
+        ob_start();$out=rrw_wp_expand_content($html);ob_end_clean();
+        return $out;
+    }catch(Throwable $e){ while(ob_get_level()>($GLOBALS['rrw_ob_base']??0)&&false)ob_end_clean(); return $html; }
+    finally{ $busy=false; }
+}
+function rrw_site_public(array $site): array {
+    // Shortcodes in Seiten-Blöcken und HTML-Widgets auflösen (beim Veröffentlichen)
+    foreach(['pages'] as $k)if(isset($site[$k])&&is_array($site[$k]))foreach($site[$k] as &$pg){
+        if(!is_array($pg))continue;
+        foreach(['blocks_before','blocks_after'] as $bk)if(isset($pg[$bk])&&is_array($pg[$bk]))foreach($pg[$bk] as &$bl)if(is_array($bl)&&isset($bl['html'])&&is_string($bl['html']))$bl['html']=rrw_expand_shortcodes($bl['html']);unset($bl);
+    }unset($pg);
+    $expandW=function($w){ if(is_array($w)&&($w['type']??'')==='html'&&isset($w['settings']['html'])&&is_string($w['settings']['html']))$w['settings']['html']=rrw_expand_shortcodes($w['settings']['html']);return $w; };
+    if(isset($site['widget_areas'])&&is_array($site['widget_areas']))foreach($site['widget_areas'] as &$ar0)if(is_array($ar0)&&isset($ar0['widgets'])&&is_array($ar0['widgets']))$ar0['widgets']=array_map($expandW,$ar0['widgets']);unset($ar0);
+
+    if(isset($site['theme']['mods']))unset($site['theme']['mods']);
+    // KI-Assistent: API-Keys und interne Prompts bleiben serverseitig
+    if(function_exists('rrw_assistant_public'))$site['assistant']=rrw_assistant_public((array)($site['assistant']??[]));
+    else unset($site['assistant']);
+    // Empfänger-Adresse der Formular-Widgets (Kontakt/Newsletter) ist nicht für Besucher gedacht
+    $strip=function(array $w): array {if(in_array($w['type']??'',['contact-form','newsletter'],true)&&isset($w['settings']['notify']))unset($w['settings']['notify']);return $w;};
+    if(isset($site['widget_inactive'])&&is_array($site['widget_inactive']))$site['widget_inactive']=array_map(fn($w)=>is_array($w)?$strip($w):$w,$site['widget_inactive']);
+    if(isset($site['widget_areas'])&&is_array($site['widget_areas']))foreach($site['widget_areas'] as &$ar){if(is_array($ar)&&isset($ar['widgets'])&&is_array($ar['widgets']))$ar['widgets']=array_map(fn($w)=>is_array($w)?$strip($w):$w,$ar['widgets']);}unset($ar);
+    return $site;
+}
+function rrw_theme_id(string $s): string {
+    $s=strtolower(trim($s));$s=preg_replace('/[^a-z0-9_-]+/','-',$s);$s=trim((string)$s,'-');return substr($s!==''?$s:'theme',0,64);
+}

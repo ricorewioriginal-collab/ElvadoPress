@@ -1,0 +1,51 @@
+/*
+Theme Name: RicoReWi Classic
+Theme URI: https://ricorewi-radio.de
+Description: Schlichtes, schnelles Standard-Theme des CMS (hell/dunkel, barrierearm, ohne Frameworks).
+Author: RicoReWi CMS
+Version: 1.0
+Text Domain: rrw-classic
+Requires PHP: 7.4
+*/
+:root{--bg:#f6f7fb;--card:#fff;--text:#1b2230;--muted:#5d6779;--line:#e3e7ef;--accent:#2563eb;--accent-d:#1d4ed8;--radius:14px;--max:1120px}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1220;--card:#141b2e;--text:#e8ecf5;--muted:#93a0b8;--line:#243049;--accent:#60a5fa;--accent-d:#93c5fd}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent-d);text-decoration:underline}
+img,video,iframe{max-width:100%;height:auto}
+.screen-reader-text{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+.skip-link{position:absolute;left:-999px}.skip-link:focus{left:12px;top:12px;background:var(--card);padding:8px 12px;border-radius:8px;z-index:99}
+.site-header{background:var(--card);border-bottom:1px solid var(--line)}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 0}
+.site-branding{display:flex;align-items:center;gap:12px}.site-title{margin:0;font-size:1.35rem;font-weight:700}.site-title a{color:var(--text)}
+.site-description{margin:0;color:var(--muted);font-size:.85rem}
+.custom-logo{max-height:44px;width:auto;display:block}
+.main-navigation ul{list-style:none;margin:0;padding:0;display:flex;gap:4px;flex-wrap:wrap}
+.main-navigation a{display:block;padding:8px 12px;border-radius:10px;color:var(--text);font-weight:500}
+.main-navigation a:hover,.main-navigation .current-menu-item>a{background:color-mix(in srgb,var(--accent) 14%,transparent);text-decoration:none}
+.main-navigation .sub-menu{display:none;position:absolute;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;flex-direction:column;min-width:200px;z-index:20}
+.main-navigation li{position:relative}.main-navigation li:hover>.sub-menu,.main-navigation li:focus-within>.sub-menu{display:flex}
+.site-content{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;padding:28px 0}
+.site-content.no-sidebar{grid-template-columns:minmax(0,1fr)}
+@media(max-width:860px){.site-content{grid-template-columns:1fr}}
+.post-card,.entry,.widget,.comments-area,.page-header{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:20px}
+.entry-title{margin:0 0 6px;font-size:1.7rem;line-height:1.25}.entry-title a{color:var(--text)}
+.entry-meta{color:var(--muted);font-size:.85rem;margin-bottom:12px}
+.post-thumbnail img{border-radius:10px;margin-bottom:14px;width:100%;object-fit:cover}
+.entry-content>*:first-child{margin-top:0}.entry-content p,.entry-content li{overflow-wrap:anywhere}
+.read-more{display:inline-block;margin-top:6px;font-weight:600}
+.page-header h1{margin:0;font-size:1.5rem}.archive-description{color:var(--muted)}
+.widget-title,.widgettitle{margin:0 0 10px;font-size:1rem}.widget ul{margin:0;padding-left:18px}.widget li{margin:4px 0}
+.search-form{display:flex;gap:8px}.search-field{flex:1;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+.search-submit,input[type=submit],button{padding:9px 16px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+.navigation.pagination .nav-links,.nav-links{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 24px}
+.page-numbers{padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}.page-numbers.current{background:var(--accent);color:#fff;border-color:var(--accent)}
+.navigation ul.page-numbers{list-style:none;display:flex;gap:6px;padding:0}.post-navigation .nav-links{justify-content:space-between}
+.comment-list,.comment-list .children{list-style:none;padding-left:0}.comment-list .children{padding-left:22px}
+.comment-body{border-top:1px solid var(--line);padding:14px 0}.comment-meta{color:var(--muted);font-size:.85rem}
+.comment-form label{display:block;font-size:.85rem;color:var(--muted)}.comment-form input[type=text],.comment-form input[type=email],.comment-form input[type=url],.comment-form textarea{width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)}
+.site-footer{border-top:1px solid var(--line);padding:22px 0 34px;color:var(--muted);font-size:.9rem}.footer-navigation ul{list-style:none;display:flex;gap:14px;flex-wrap:wrap;padding:0;margin:0 0 8px}
+.alignleft{float:left;margin:0 16px 8px 0}.alignright{float:right;margin:0 0 8px 16px}.aligncenter{display:block;margin:0 auto}
+pre,code{background:var(--bg);border-radius:6px}pre{padding:12px;overflow:auto}code{padding:1px 5px}
+blockquote{margin:1em 0;padding:6px 18px;border-left:4px solid var(--accent);color:var(--muted)}

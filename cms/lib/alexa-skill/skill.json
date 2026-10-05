@@ -1,0 +1,57 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "de-DE": {
+          "name": "{{NAME}}",
+          "summary": "Höre {{NAME}} per Sprachbefehl.",
+          "description": "{{NAME}} bringt unsere Radiosender auf deinen Echo. Sag einfach, was du hören möchtest, und die Musik startet sofort als Live-Stream.\n\nSo funktioniert es:\n• \"Alexa, öffne {{INVOCATION}}\" startet den Standardsender.\n• \"Alexa, öffne {{INVOCATION}} und spiele {{EXAMPLE}}\" startet einen bestimmten Sender.\n• \"Alexa, frage {{INVOCATION}}, was gerade läuft\" nennt den aktuellen Titel.\n• \"Welche Sendung läuft gerade?\", \"Was kommt als Nächstes?\" und \"Wie ist der Sendeplan heute?\" informieren über das Programm.\n• Mit \"Pause\", \"Weiter\", \"Stopp\", \"nächster Sender\" und \"vorheriger Sender\" steuerst du die Wiedergabe.\n\nDie Sender: {{SENDER}}.\n\nDie Sender werden live über das Internet gestreamt. Der Skill speichert keine persönlichen Daten.",
+          "examplePhrases": [
+            "Alexa, öffne {{INVOCATION}}",
+            "Alexa, öffne {{INVOCATION}} und spiele {{EXAMPLE}}",
+            "Alexa, frage {{INVOCATION}}, was gerade läuft"
+          ],
+          "keywords": [
+            "Radio",
+            "Webradio",
+            "Musik",
+            "Livestream"
+          ],
+          "smallIconUri": "{{ORIGIN}}/icon-108.png",
+          "largeIconUri": "{{ORIGIN}}/icon-512.png"
+        }
+      },
+      "isAvailableWorldwide": false,
+      "distributionCountries": [
+        "DE",
+        "AT",
+        "CH"
+      ],
+      "testingInstructions": "Kein Konto und keine Kontoverknüpfung nötig. 1) \"Alexa, öffne {{INVOCATION}}\" startet den Standardsender. 2) \"Spiele {{EXAMPLE}}\" wechselt den Sender. 3) \"Was läuft gerade?\" nennt den aktuellen Titel, \"Welche Sendung läuft gerade?\", \"Was kommt als Nächstes?\" und \"Wie ist der Sendeplan heute?\" nennen das Programm (laut.fm-Programmdaten). 4) \"Pause\", \"Weiter\", \"Nächster\", \"Vorheriger\", \"Stopp\" und \"Hilfe\" funktionieren. Alle Sender werden als Live-Stream von laut.fm (HTTPS) abgespielt.",
+      "category": "MUSIC_AND_AUDIO"
+    },
+    "apis": {
+      "custom": {
+        "interfaces": [
+          {
+            "type": "AUDIO_PLAYER"
+          }
+        ]
+      }
+    },
+    "manifestVersion": "1.0",
+    "permissions": [],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "usesPersonalInfo": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "locales": {
+        "de-DE": {
+          "privacyPolicyUrl": "{{ORIGIN}}/"
+        }
+      }
+    }
+  }
+}

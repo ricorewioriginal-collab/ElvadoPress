@@ -1,0 +1,1 @@
+<?php // Stille ist Gold.

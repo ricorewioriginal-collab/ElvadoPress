@@ -1,0 +1,9 @@
+<?php
+// Beispiel – NICHT mit echten Zugangsdaten committen.
+// Das CMS erzeugt cms/data/local-auth.local.php serverseitig beim ersten Einrichten
+// des lokalen Zugangs (Login-Maske im CMS, wenn noch kein Zugang existiert).
+return [
+    'username' => '',
+    'password_hash' => '',
+    'updated_at' => '',
+];

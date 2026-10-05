@@ -1,0 +1,108 @@
+<?php
+declare(strict_types=1);
+
+header('Content-Type: application/rss+xml; charset=UTF-8');
+header('Cache-Control: public, max-age=300');
+
+require_once __DIR__.'/lib/product.php';
+function rrw_xml(string $s): string {
+    return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+}
+function rrw_cdata(string $s): string {
+    return '<![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $s) . ']]>';
+}
+// Multi-Brand: Links im Feed zeigen auf die Domain, über die der Feed abonniert wurde
+// (ricorewi-radio.de bzw. senderwelt.de); Inhalte sind für alle Marken dieselben.
+$rrwBase='https://www.ricorewi-radio.de';
+try{
+    require_once __DIR__.'/lib/seo.php';
+    require_once __DIR__.'/lib/brand.php';
+    $rrwBrandSite=rrw_read_json(__DIR__.'/data/site.json',[]);
+    $rrwBase=rtrim(rrw_brand_resolve($rrwBrandSite,(string)($_SERVER['HTTP_HOST']??''),null)['origin'],'/');
+}catch(Throwable $e){}
+header('Vary: Host');
+function rrw_cfg(): array {
+    $f=__DIR__.'/data/site.json';
+    if(!is_file($f))return [];
+    $j=json_decode((string)file_get_contents($f),true);
+    return is_array($j)?$j:[];
+}
+function rrw_public_news(): array {
+    $url='https://www.ricorewi-radio.de/cms/api.php?action=news_public&_='.time();
+    $raw='';
+    if(function_exists('curl_init')){
+        $ch=curl_init($url);
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>8,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_USERAGENT=>'RicoReWi-RSS/1.0']);
+        $raw=(string)curl_exec($ch);curl_close($ch);
+    } else $raw=(string)(@file_get_contents($url)?:'');
+    $j=json_decode($raw,true);
+    if(is_array($j)&&is_array($j['articles']??null))return $j['articles'];
+    $f=__DIR__.'/data/news.json';$rows=[];
+    if(is_file($f)){$x=json_decode((string)file_get_contents($f),true);if(is_array($x))$rows=$x;}
+    return array_values(array_filter($rows,function($a){
+        if(($a['status']??'draft')!=='published'||!empty($a['deleted_at']))return false;
+        $publishedAt=trim((string)($a['published_at']??''));
+        return $publishedAt===''||$publishedAt<=date('Y-m-d H:i:s');
+    }));
+}
+
+$cfg=rrw_cfg();
+$set=is_array($cfg['rss']??null)?$cfg['rss']:[];
+if(array_key_exists('enabled',$set) && !$set['enabled']){
+    http_response_code(404);
+    echo '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Feed deaktiviert</title></channel></rss>';
+    exit;
+}
+$title=(string)($set['title']??'RicoReWi Radio – News & Magazin');
+$description=(string)($set['description']??'News, Magazin, Musik, Radio und Community aus dem RicoReWi × AnMaCha Netzwerk.');
+$max=max(5,min(100,(int)($set['max_items']??50)));
+$includeExternal=!array_key_exists('include_external',$set)||!empty($set['include_external']);
+$rows=rrw_public_news();
+if(!$includeExternal)$rows=array_values(array_filter($rows,fn($a)=>empty($a['is_external'])));
+usort($rows,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
+$rows=array_slice($rows,0,$max);
+
+echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+echo '<?xml-stylesheet type="text/xsl" href="/cms/rss.xsl"?>' . "\n";
+?>
+<rss version="2.0"
+     xmlns:atom="http://www.w3.org/2005/Atom"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:media="http://search.yahoo.com/mrss/">
+<channel>
+  <title><?=rrw_xml($title)?></title>
+  <link><?=rrw_xml($rrwBase)?>/#news</link>
+  <description><?=rrw_xml($description)?></description>
+  <language>de-de</language>
+  <lastBuildDate><?=gmdate(DATE_RSS)?></lastBuildDate>
+  <generator><?=rrw_xml(rrw_product_generator())?></generator>
+  <atom:link href="<?=rrw_xml($rrwBase)?>/cms/rss.php" rel="self" type="application/rss+xml" />
+<?php foreach($rows as $a):
+    $external=!empty($a['is_external']);
+    $slug=(string)($a['slug']??'');
+    $link=$external?(string)($a['external_url']??''):$rrwBase.'/#news/'.rawurlencode($slug!==''?$slug:(string)($a['id']??''));
+    if($link==='')$link=$rrwBase.'/#news';
+    $pub=(string)($a['published_at']??$a['created_at']??'');
+    $ts=$pub!==''?strtotime($pub):false;
+    $desc=(string)($a['excerpt']??'');
+    $body=(string)($a['body_html']??'');
+    if(str_contains($body,'[')){if(!function_exists('rrw_expand_shortcodes'))require_once __DIR__.'/lib/publish.php';$body=rrw_expand_shortcodes($body);}
+    if($body==='')$body='<p>'.htmlspecialchars($desc,ENT_QUOTES,'UTF-8').'</p>';
+    $img=(string)($a['image_url']??'');
+    if($img!==''&&str_starts_with($img,'/'))$img=$rrwBase.$img;
+?>
+  <item>
+    <title><?=rrw_xml((string)($a['title']??''))?></title>
+    <link><?=rrw_xml($link)?></link>
+    <guid isPermaLink="false"><?=rrw_xml('rrw-news-'.(string)($a['id']??md5($link)))?></guid>
+    <pubDate><?=gmdate(DATE_RSS,$ts?:time())?></pubDate>
+    <category><?=rrw_xml((string)($a['category']??'News'))?></category>
+    <?php if(!empty($a['author'])):?><author><?=rrw_xml((string)$a['author'])?></author><?php endif; ?>
+    <description><?=rrw_cdata($desc)?></description>
+    <content:encoded><?=rrw_cdata($body)?></content:encoded>
+    <?php if($img!==''):?><media:content url="<?=rrw_xml($img)?>" medium="image" /><?php endif; ?>
+    <?php if($external && !empty($a['external_source'])):?><source url="<?=rrw_xml((string)($a['external_feed_url']??$link))?>"><?=rrw_xml((string)$a['external_source'])?></source><?php endif; ?>
+  </item>
+<?php endforeach; ?>
+</channel>
+</rss>

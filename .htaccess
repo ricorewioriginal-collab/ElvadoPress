@@ -1,0 +1,8 @@
+# Eigenständiges CMS: Laufzeitdaten sind nie direkt abrufbar, alle nicht vorhandenen Pfade liefert die WordPress-Theme-Laufzeit aus.
+DirectoryIndex index.php
+RewriteEngine On
+RewriteRule ^cms/(data|backups)/ - [F,L]
+RewriteCond %{REQUEST_URI} !^/cms/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ cms/wp-front.php [L]

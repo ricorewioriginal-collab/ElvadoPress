@@ -1,0 +1,12 @@
+<?php
+// Beispiel – NICHT mit echten Zugangsdaten committen.
+// Das CMS erzeugt cms/data/database.local.php serverseitig.
+return [
+    'driver' => 'none', // none | sqlite | mysql
+    'host' => '127.0.0.1',
+    'port' => 3306,
+    'database' => '',
+    'user' => '',
+    'password' => '',
+    'sqlite_path' => 'cms.sqlite',
+];
