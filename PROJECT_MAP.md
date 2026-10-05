@@ -12,7 +12,8 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/rss.php` | RSS-Ausgabe. |
 | `cms/lib/` | Serverseitige Fachlogik: Auth, Storage, Inhalte, Themes/Plugins, Branding, Apps, Assistant, Community, Demo usw. |
 | `cms/lib/radio.php`, `cms/radio.php` | Radio-Erweiterung: Sender/Quellen (laut.fm, Icecast, Shoutcast), Jetzt läuft, Sendeplan; öffentlicher JSON-Endpunkt. |
-| `cms/themes/` | mitgelieferte Themes: `rrw-classic` (Standard), `elvado-baukasten` (Homepage-Baukasten), `elvado-radio` (Radio). |
+| `cms/themes/` | mitgelieferte Themes: `rrw-classic` (Standard), `elvado-baukasten` (Homepage-Baukasten), `elvado-radio` (Radio), `elvado-band` (Band/Musiker). |
+| `cms/lib/themeconf.php`, `cms/lib/band.php` | Theme-Menüs aus Schema (Editor, Speichern, Bereinigung); Band-Schema. |
 | `cms/views/` | PHP-Panels/Teilansichten der Verwaltung. |
 | `cms/assets/` | JavaScript, CSS, Branding und statische Verwaltungsassets. |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |

@@ -1026,6 +1026,21 @@ if($action==='media_library_delete'){
     else rrw_json(['status'=>'error','message'=>'Medium nicht gefunden'],404);
     rrw_json(['status'=>'ok']);
 }
+// Theme-Konfiguration (Menüs wie „Band“, nur bei aktivem Theme; Schema je Theme in cms/lib/themeconf.php): state | get | save
+if(str_starts_with($action,'themeconf_')){
+    require_once __DIR__.'/lib/themeconf.php';
+    if($action==='themeconf_state'){ rrw_auth(false);rrw_json(['status'=>'ok','configs'=>rrw_tc_state($dataDir)]); }
+    $tcUser=rrw_auth(true);$tcB=rrw_body();$tcId=preg_replace('/[^a-z0-9_-]/','',(string)($_GET['id']??$tcB['id']??''));
+    if(!rrw_tc_entry($tcId))rrw_json(['status'=>'error','message'=>'Unbekannte Konfiguration'],404);
+    if($action==='themeconf_get')rrw_json(['status'=>'ok','schema'=>rrw_tc_public_schema($tcId),'config'=>rrw_tc_load($dataDir,$tcId),'active'=>rrw_tc_theme_active($dataDir,rrw_tc_entry($tcId)['theme'])]);
+    if($action==='themeconf_save'){
+        if(!is_array($tcB['config']??null))rrw_json(['status'=>'error','message'=>'Konfiguration fehlt'],400);
+        try{ $c=rrw_tc_save($dataDir,$tcId,$tcB['config']); }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],500); }
+        rrw_log_activity($activityLogFile,$tcUser,'themeconf_save','Theme-Einstellungen „'.$tcId.'“ gespeichert');
+        rrw_json(['status'=>'ok','config'=>$c]);
+    }
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
+}
 // Radio-Erweiterung (Menü „Radio“, erscheint bei aktivem Radio-Theme): Sender, Datenquelle, Sendeplan. Konfiguration in cms/data/.tools/radio.json
 if(str_starts_with($action,'radio_')){
     require_once __DIR__.'/lib/radio.php';

@@ -52,7 +52,7 @@ async function checkCmsFilesystem(){
  }
 }
 /* Design-Pakete (lib/pack.php): ohne das RicoReWi-Portal als Design verschwinden die Radio-Teile (Elemente mit data-pack) */
-function cmsPackApply(p){window.CMS_PACKS=p||{};document.body.classList.toggle('rrw-standalone',!!(typeof RRW_P!=='undefined'&&RRW_P.standalone));Object.keys(window.CMS_PACKS).forEach(k=>document.body.classList.toggle('no-pack-'+k,!window.CMS_PACKS[k]));window.WidgetsManager?.render?.();window.RadioAdmin?.refresh?.()}
+function cmsPackApply(p){window.CMS_PACKS=p||{};document.body.classList.toggle('rrw-standalone',!!(typeof RRW_P!=='undefined'&&RRW_P.standalone));Object.keys(window.CMS_PACKS).forEach(k=>document.body.classList.toggle('no-pack-'+k,!window.CMS_PACKS[k]));window.WidgetsManager?.render?.();window.RadioAdmin?.refresh?.();window.ThemeConf?.refresh?.()}
 async function cmsPackRefresh(){try{const d=await cmsApi('pack_status');cmsPackApply(d.packs)}catch(e){}}
 function cmsGoto(id){cmsTab(id,document.querySelector('[data-tab="'+id+'"]'))}
 async function loadDashboardStats(){

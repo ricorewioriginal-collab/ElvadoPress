@@ -14,6 +14,8 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 - Alexa-Verdrahtung: Radio-Sender → Skill-Sender (`cms/lib/alexa.php`: `rrw_alexa_radio_*`, `radio_sync`), Skill-Backend nutzt `radio_api` für Titel/Sendeplan eigener Streams, Alexa-Menü mit Block „Radio-Theme“, Test `scripts/test-alexa-radio.php`. Das geänderte Backend (`lambda/index.js`) muss bei Amazon neu eingespielt werden.
 - Sync nach ricorewi-radio: dort wird `scripts/smoke-test.php` als `test-standalone-build.php` übernommen (Erwartung: drei neutrale Themes). Nichts RicoReWi-Spezifisches im neuen Code.
 
+- Band-Theme `cms/themes/elvado-band` (Poster-Stil) + generische Theme-Konfiguration `cms/lib/themeconf.php`/`band.php` (Menü „Band“ nur bei aktivem Theme, Editor aus Schema `cms/assets/theme-config.js`, API `themeconf_*`). Plugin-Haken in allen drei Themes (Radio, Baukasten, Band). Doku `cms/docs/THEMES.md`, Test `scripts/test-band.php`. Im Browser geprüft (Startseite, Player-Klick, Mobil, Band-Menü/Editor). Smoke-Test erwartet jetzt vier neutrale Themes.
+
 ## Aktuell in Arbeit
 Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokumentiert.
 

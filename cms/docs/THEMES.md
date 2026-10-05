@@ -73,6 +73,19 @@ Das mitgelieferte Theme `cms/themes/elvado-baukasten` ist ein WordPress-Theme (l
 - **Alexa-Skill (verdrahtet):** Mit aktivem Radio-Theme übernimmt der Alexa-Skill-Baukasten die Sender aus dem Menü „Radio“ automatisch (Schalter `radio_sync` im Alexa-Menü, Block „Radio-Theme“): laut.fm-Sender über ihre Kennung (wie bisher), Icecast/Shoutcast/Nur-Stream als eigener Stream. Alexa spielt nur **https**-Streams; andere Sender werden übersprungen und im Alexa-Menü gemeldet. „Was läuft gerade?“ und der Sendeplan eigener Streams kommen über `cms/radio.php` (`radio_api` in der Skill-Konfiguration, nur wenn die Website über https erreichbar ist; Skill-Backend `cms/lib/alexa-skill/lambda/index.js` neu bei Amazon einspielen). Das Radio-Theme zeigt auf der Startseite „Alexa, öffne …“, sobald der Skill aktiv ist und seine Einstellungen abgerufen hat. Sender-Änderungen ändern das Sprachmodell (Hinweis „neu einspielen“).
 - Config: `cms/data/.tools/radio.json`. Tests: `php scripts/test-radio.php`, `php scripts/test-alexa-radio.php`.
 
+## Band-Theme „ElvadoPress Band“ (mitgeliefert)
+
+`cms/themes/elvado-band` ist ein WordPress-Theme für Bands und Musiker im **Poster-Stil** (bewusst anders als Radio-Theme und Baukasten: Papierton oder Schwarz, wuchtige Schlagzeilen, harte Kanten und Schatten, Laufband). Neutral, ohne Beispieldaten.
+
+- **Startseite:** Hero mit Name/Slogan und Knöpfen (Tickets für den nächsten Termin, aktuelles Release), Laufband, **Konzerte** (kommende Termine mit Status, Ticket-Links, optional Archiv), **Musik** (Releases mit Cover, Streaming-Links), **Videos**, **Über uns/Mitglieder**, **Galerie**, **News**, **Newsletter** (`[newsletter]`), **Booking & Presse**. Abschnitte ohne Inhalt oder mit ausgeschaltetem Schalter fehlen einfach. Ohne zugewiesenes Menü baut das Theme ein Anker-Menü aus den vorhandenen Abschnitten.
+- **Player mit Datenschutz:** YouTube-, Vimeo- und Spotify-Links erscheinen als Platzhalter; erst der Klick lädt den Player (YouTube über `youtube-nocookie.com`) und weist auf die Datenübertragung hin. Andere Anbieter werden nicht eingebettet.
+- **Suchmaschinen:** strukturierte Daten (`MusicGroup`, kommende `MusicEvent`s mit Ticket-Angebot, ohne abgesagte).
+- **Customizer („Band: Design“):** Akzentfarbe (Textfarbe darauf wird automatisch hell/dunkel), Grundton Papier/Schwarz, Schlagzeilen-Schrift (schmal, Serifen, Schreibmaschine), Anzahl sichtbarer Konzerte und News.
+- **Menü „Band“ im CMS:** erscheint automatisch, solange das Theme aktiv ist, und verschwindet beim Wechsel. Der Editor baut sich aus einem Schema auf (Auftritt, Konzerte, Veröffentlichungen, Videos, Mitglieder, Galerie, Links, Booking, Anzeige; Listen mit Hinzufügen/Sortieren/Duplizieren, Bilder aus der Mediathek). Daten: `cms/data/.tools/themeconf-band.json`.
+- **Eigene Theme-Menüs (Grundlage für weitere Themes):** `cms/lib/themeconf.php` stellt Schema → Menü, Editor (`cms/assets/theme-config.js`, Panel `panel-themeconf.php`), Speichern (`themeconf_get/save/state` in `cms/api.php`) und Bereinigung bereit. Ein Theme registriert sein Schema in `rrw_tc_registry()` (Vorbild `cms/lib/band.php`), liest die Daten mit `rrw_tc_load()`. Feldtypen: Text, Langtext, URL, Bild, E-Mail, Datum, Uhrzeit, Auswahl, Ja/Nein, Zahl.
+- **Erweiterbar durch Plugins** (gilt für alle mitgelieferten Themes): `wp_head`/`wp_footer`, `wp_enqueue_*`, Widget-Bereiche (Seitenleiste, bei Band/Radio zusätzlich „Startseite: Zusatzbereich“), Shortcodes in Inhalten, Menüs. Eigene Haken: Band `elvado_bd_sections` (Filter: Abschnitte ergänzen/umordnen), `elvado_bd_section_<id>` (Filter: HTML eines Abschnitts), `elvado_bd_before_section`/`elvado_bd_after_section`; Radio `elvado_rd_after_hero`, `elvado_rd_after_sections`; Baukasten `elvado_bk_before_section`/`elvado_bk_after_section`/`elvado_bk_after_sections`.
+- Tests: `php scripts/test-band.php`.
+
 ## Live-Customizer
 
 Der Customizer unterstützt unter anderem:
