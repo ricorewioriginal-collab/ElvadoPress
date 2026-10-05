@@ -1,5 +1,6 @@
 {
     "name": "ElvadoPress",
     "logo": "/cms/assets/brand/icon-192.png",
-    "control_center": "ElvadoPress"
+    "control_center": "ElvadoPress",
+    "update_repo": "ricorewioriginal-collab/ElvadoPress"
 }

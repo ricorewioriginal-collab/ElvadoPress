@@ -53,7 +53,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
   <div id="cmsApp" style="display:none">
     <section class="hero">
-      <div><div class="k"><i class="fas fa-shield-halved"></i> Verwaltung</div><h1><?=$ph('heading')?></h1><p>Hier verwaltest du Inhalte, Design, Plugins, Apps und Einstellungen deiner Website.<?=$sa?'':' Das '.$ph('control_center').' liefert nur Login und Berechtigungen.'?></p></div>
+      <div><div class="k"><i class="fas fa-shield-halved"></i> Verwaltung</div><h1><?=$ph('heading')?></h1><p>Hier verwaltest du Inhalte, Design, Plugins, Apps und Einstellungen deiner Website.<?=$sa?'':' Das '.$ph('control_center').' liefert nur Login und Berechtigungen.'?></p><div id="cmsVerBadge" class="hint" style="margin-top:4px"></div></div>
       <div class="hero-actions"><span id="cmsFsState" class="publish-state bad" hidden></span><span id="cmsPublishState" class="publish-state"><i class="fas fa-circle-check"></i> Alles gespeichert</span><a class="btn-g" href="<?=rrw_pack_available()?'https://www.ricorewi-radio.de/':'/'?>" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Website ansehen</a><button class="btn-a" onclick="cmsReload()"><i class="fas fa-rotate"></i> Aktualisieren</button></div>
     </section>
     <?php require __DIR__.'/views/sidebar.php'; ?>
@@ -154,7 +154,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/plugin-manager.js?v=4"></script>
 <script src="assets/system-manager.js?v=2"></script>
 <script src="assets/users-manager.js?v=2"></script>
-<script src="assets/standalone-manager.js?v=1"></script>
+<script src="assets/standalone-manager.js?v=1"></script><script src="assets/update-manager.js?v=1"></script>
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>

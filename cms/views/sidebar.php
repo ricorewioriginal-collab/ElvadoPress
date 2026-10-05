@@ -130,7 +130,7 @@
           <button class="tab" data-tab="database" onclick="cmsTab('database',this);window.SystemManager?.loadDatabase()"><i class="fas fa-database"></i>Datenbank</button>
           <button class="tab" data-tab="backups" onclick="cmsTab('backups',this);window.SystemManager?.loadBackup()"><i class="fas fa-clock-rotate-left"></i>Backups</button>
           <button class="tab" data-tab="architecture" onclick="cmsTab('architecture',this)"><i class="fas fa-diagram-project"></i>Systemübersicht</button>
-          <button class="tab" data-tab="system" hidden onclick="cmsTab('system',this);window.StandaloneManager?.load()"><i class="fas fa-sliders"></i>Betriebsart &amp; Produktname</button>
+          <button class="tab" data-tab="system" hidden onclick="cmsTab('system',this);window.StandaloneManager?.load();window.UpdateManager?.load()"><i class="fas fa-sliders"></i>Betriebsart &amp; Produktname</button>
         </div>
       </div>
           <button type="button" id="cmsFoldBtn" class="cms-fold-btn" title="Menü einklappen"><i class="fas fa-circle-chevron-left"></i><span>Menü einklappen</span></button>

@@ -527,6 +527,14 @@ function rrw_site_lock(string $dataDir): void {
 }
 rrw_ensure_dirs();
 $action=(string)($_GET['action']??'public');
+// Update-Überwachung: öffentlicher Lebenszeichen-Ping (prüft, dass das CMS startet) und – nur solange ein frisches Update überwacht wird – die Gesundheitsprüfung nach der Antwort
+if($action==='update_ping')rrw_json(['status'=>'ok','version'=>rrw_cms_version()]);
+if(is_file($dataDir.'/.update/state.json')&&str_contains((string)@file_get_contents($dataDir.'/.update/state.json'),'"pending"')){
+    register_shutdown_function(static function() use($dataDir){
+        if(function_exists('fastcgi_finish_request'))@fastcgi_finish_request();
+        try{ require_once __DIR__.'/src/autoload.php';\Elvado\Update\UpdateService::forCms(__DIR__,$dataDir)->watchdog(); }catch(Throwable $e){}
+    });
+}
 if(function_exists('rrw_demo_guard'))rrw_demo_guard($action,rrw_body());
 $site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));$GLOBALS['RRW_SITE']=$site;
 if(!isset($site['theme'])||!is_array($site['theme']))$site['theme']=['active'=>rrw_default_theme_id()];
@@ -1061,6 +1069,35 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
         }
     }catch(\Elvado\Ai\AiGatewayException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],$e->httpStatus());
     }catch(\Elvado\GitHub\GitHubSyncException|\Elvado\Database\DatabaseException|\RuntimeException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422);
+    }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>'Unerwarteter Fehler ('.get_class($e).')'],500); }
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
+}
+// CMS-Aktualisierung über GitHub (Menü System → Version & Update): Suche, Einspielen, Downgrade/Rückschritt, Einstellungen. Dienst: cms/src/Update/
+if(str_starts_with($action,'update_')){
+    require_once __DIR__.'/src/autoload.php';
+    $uUser=$action==='update_badge'?rrw_auth(false):rrw_auth(true);$uB=rrw_body();
+    try{
+        $uSvc=\Elvado\Update\UpdateService::forCms(__DIR__,$dataDir);
+        $uSvc->settings()->rememberBaseUrl(((!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https'?'https':'http').'://'.(string)($_SERVER['HTTP_HOST']??'').rtrim(str_replace('\\','/',dirname((string)($_SERVER['SCRIPT_NAME']??''))),'/'));
+        if($action==='update_badge'){ rrw_json(['status'=>'ok']+$uSvc->badge()); }
+        $uFull=static fn(array $s)=>$s+['rescue_token'=>$uSvc->rescueToken(),'webhook'=>'cms/update-webhook.php'];
+        if($action==='update_status'){ $uSvc->tick();rrw_json(['status'=>'ok']+$uFull($uSvc->status())); }
+        if($action==='update_check'){ rrw_json(['status'=>'ok']+$uFull($uSvc->check())); }
+        if($action==='update_versions'){ rrw_json(['status'=>'ok','versions'=>$uSvc->versions()]); }
+        if($action==='update_config_save'){ $uSvc->settings()->save(is_array($uB['settings']??null)?$uB['settings']:[]);rrw_log_activity($activityLogFile,$uUser,'update_config','CMS-Update: Einstellungen gespeichert');rrw_json(['status'=>'ok']+$uFull($uSvc->status())); }
+        if($action==='update_secret_rotate'){ $sec=$uSvc->settings()->rotateSecret();rrw_log_activity($activityLogFile,$uUser,'update_secret','CMS-Update: Webhook-Geheimnis erneuert');rrw_json(['status'=>'ok','secret'=>$sec]+$uFull($uSvc->status())); }
+        if($action==='update_confirm'){ $uSvc->confirm();rrw_json(['status'=>'ok']+$uFull($uSvc->status())); }
+        if($action==='update_apply'){
+            $uRes=$uSvc->apply((string)($uB['ref']??''),!empty($uB['downgrade']));
+            rrw_log_activity($activityLogFile,$uUser,'update_apply','CMS-Update: '.$uRes['from'].' → '.$uRes['to']);
+            rrw_json(['status'=>'ok','result'=>$uRes]+$uFull($uSvc->status()));
+        }
+        if($action==='update_rollback'){
+            $uRes=$uSvc->rollback((string)($uB['snapshot']??''));
+            rrw_log_activity($activityLogFile,$uUser,'update_rollback','CMS-Update: zurückgesetzt '.$uRes['from'].' → '.$uRes['to']);
+            rrw_json(['status'=>'ok','result'=>$uRes]+$uFull($uSvc->status()));
+        }
+    }catch(\RuntimeException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422);
     }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>'Unerwarteter Fehler ('.get_class($e).')'],500); }
     rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
 }

@@ -31,7 +31,8 @@
       <div class="card">
         <div class="tt"><i class="fas fa-code-compare"></i>Version &amp; Update</div>
         <div id="sysVersion" class="hint" style="margin-top:8px"></div>
-        <div class="hint" style="margin-top:6px">Das CMS überschreibt seinen Code nie selbst. Ein Update spielst du bewusst ein (Sicherung, neue Dateien kopieren, Version und Prüfsumme vergleichen). Siehe <code>cms/docs/STANDALONE.md</code>.</div>
+        <div id="updUi" style="margin-top:12px"><div class="hint">Lädt …</div></div>
+        <div class="hint" style="margin-top:12px">Updates kommen aus dem eingestellten GitHub-Repository (Releases/Tags oder Branch). Vor jedem Update entsteht eine Sicherung; schlägt die Gesundheitsprüfung fehl, wird automatisch zurückgespielt. Betreiberdaten, Medien, Plugins und eigene Themes bleiben unangetastet. Siehe <code>cms/docs/UPDATE.md</code>.</div>
         <div style="margin-top:10px"><button class="btn-g" onclick="StandaloneManager.checksum()"><i class="fas fa-fingerprint"></i> Prüfsumme berechnen</button> <span id="sysChecksum" class="hint"></span></div>
       </div>
     </section>
