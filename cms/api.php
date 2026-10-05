@@ -953,6 +953,8 @@ if($action==='save'){
     if(in_array($section,RRW_ADMIN_ONLY_SECTIONS,true)&&empty($authUser['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren dürfen diesen Bereich ändern'],403);
     rrw_site_lock($dataDir);
     $site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));if(!isset($site['theme'])||!is_array($site['theme']))$site['theme']=['active'=>rrw_default_theme_id()];$GLOBALS['RRW_SITE']=$site;
+    // Bereiche, die eine frische Installation noch nicht angelegt hat (die Oberfläche speichert sie beim ersten Mal): leer anlegen statt „Unbekannter CMS-Bereich“
+    if(!array_key_exists($section,$site)&&in_array($section,['pages','social','legal','apps','core_network'],true))$site[$section]=in_array($section,['pages'],true)?[]:(in_array($section,['core_network'],true)?['stations'=>[]]:[]);
     if(!array_key_exists($section,$site))rrw_json(['status'=>'error','message'=>'Unbekannter CMS-Bereich'],400);
     $baseRev=(string)($b['base_rev']??'');
     if($baseRev!==''&&$baseRev!==rrw_section_rev($site,$section))rrw_json(['status'=>'conflict','message'=>'Dieser Bereich wurde inzwischen an anderer Stelle geändert (z. B. im Control Center oder von einer anderen Person). Bitte neu laden, damit nichts überschrieben wird.','rev'=>rrw_section_rev($site,$section)],409);

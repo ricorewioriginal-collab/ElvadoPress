@@ -337,7 +337,7 @@ function rrw_clean_section(string $section,$value){
     if($section==='rss'){
         return [
             'enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),
-            'title'=>mb_substr(trim((string)($value['title']??'RicoReWi Radio – News & Magazin')),0,180),
+            'title'=>mb_substr(trim((string)($value['title']??(rrw_pack_available()?'RicoReWi Radio – News & Magazin':trim((string)(($GLOBALS['RRW_SITE']['portal']['site_name']??'')).' – News & Magazin')))),0,180),
             'description'=>mb_substr(trim((string)($value['description']??'')),0,500),
             'max_items'=>max(5,min(100,(int)($value['max_items']??50))),
             'include_external'=>!empty($value['include_external'])
