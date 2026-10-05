@@ -596,7 +596,7 @@ function renderFeeds(){
  const r=CMS?.rss||{},sources=CMS?.feed_sources||[];
  const g=id=>document.getElementById(id);
  if(g('rssEnabled'))g('rssEnabled').checked=r.enabled!==false;
- if(g('rssTitle'))g('rssTitle').value=r.title||'RicoReWi Radio – News & Magazin';
+ if(g('rssTitle'))g('rssTitle').value=r.title||'';
  if(g('rssDescription'))g('rssDescription').value=r.description||'';
  if(g('rssMaxItems'))g('rssMaxItems').value=r.max_items||50;
  if(g('rssIncludeExternal'))g('rssIncludeExternal').checked=!!r.include_external;

@@ -67,6 +67,9 @@ t('Theme „rrw-classic“ gewählt',isset($opts['stylesheet']['v'])&&@unseriali
 $r=http('GET',"$B/");
 t('Startseite wird vom Theme ausgeliefert',$r['code']===200&&str_contains($r['body'],'Mein Test-Radio'),'HTTP '.$r['code']);
 t('Startseite ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',$r['body']));
+$r=http('GET',"$B/cms/rss.php");
+t('RSS-Feed: eigener Titel und eigene Beiträge',$r['code']===200&&str_contains($r['body'],'<title>Mein Test-Radio – News &amp; Magazin</title>')&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),substr($r['body'],0,600));
+t('RSS-Feed ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',$r['body']));
 $r=http('GET',"$B/willkommen/");
 t('Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),'HTTP '.$r['code']);
 $r=http('GET',"$B/gibt-es-nicht/");
@@ -96,6 +99,7 @@ t('Verwaltung lädt',$r['code']===200&&str_contains($r['body'],'panel-settings')
 $hl=json_decode(http('GET',"$B/cms/api.php?action=health",[],$H)['body'],true)?:[];
 t('Dateisystem-Prüfung meldet keine Portal-Dateien (Startseite/Feed)',($hl['healthy']??false)===true&&!isset($hl['checks']['index_file'])&&!isset($hl['checks']['rss_file']),json_encode($hl));
 $pv=$r['body'];
+t('Verwaltung: Paket als nicht vorhanden gemeldet',str_contains($pv,'window.CMS_PACKS_AVAILABLE={"ricorewi-radio":false}'));
 t('Verwaltung: Soziale Profile neutral beschriftet',!str_contains($pv,'AnMaCha · TikTok')&&!str_contains($pv,'RicoReWi · TikTok'));
 foreach(['news-editor.js','alexa-manager.js','apps-manager.js','theme-manager.js'] as $jsf){ $js=(string)@file_get_contents($pkg.'/cms/assets/'.$jsf);
     t("$jsf: RicoReWi-/AnMaCha-Texte nur hinter der Portal-Prüfung",$js!==''&&preg_match_all('/(?:RicoReWi|AnMaCha)[^\n]{0,60}/',$js,$mm)>=0&&!preg_match('/>AnMaCha Redaktion<|\bname\s*=\s*[\'"]RicoReWi Radio[\'"]/',$js)); }

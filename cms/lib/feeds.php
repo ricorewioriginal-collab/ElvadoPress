@@ -15,16 +15,24 @@ function rrw_remote_feed_allowed(string $url): bool {
     if($ip&&$ip!==$host&&!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE))return false;
     return true;
 }
+// Kennung beim Abruf: mit RicoReWi-Paket wie bisher, sonst neutral mit dem Produktnamen.
+function rrw_feed_user_agent(bool $long=true): string {
+    if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
+    if(rrw_pack_available())return $long?'RicoReWi-Radio-Magazin/1.0 (+https://www.ricorewi-radio.de/)':'RicoReWi-Radio-Magazin/1.0';
+    if(!function_exists('rrw_product'))require_once __DIR__.'/product.php';
+    $n=(string)(rrw_product()['name']??'');$n=preg_replace('/[^A-Za-z0-9.-]/','',$n)?:'CMS';
+    return $n.'-Feeds/1.0';
+}
 function rrw_fetch_url(string $url,int $timeout=7): string {
     if(!rrw_remote_feed_allowed($url))return '';
     if(function_exists('curl_init')){
         $ch=curl_init($url);
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>5,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>$timeout,CURLOPT_USERAGENT=>'RicoReWi-Radio-Magazin/1.0 (+https://www.ricorewi-radio.de/)',CURLOPT_SSL_VERIFYPEER=>true]);
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>5,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>$timeout,CURLOPT_USERAGENT=>rrw_feed_user_agent(),CURLOPT_SSL_VERIFYPEER=>true]);
         $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$final=(string)curl_getinfo($ch,CURLINFO_EFFECTIVE_URL);curl_close($ch);
         if($raw===false||$code<200||$code>=400||!rrw_remote_feed_allowed($final))return '';
         return (string)$raw;
     }
-    $ctx=stream_context_create(['http'=>['timeout'=>$timeout,'user_agent'=>'RicoReWi-Radio-Magazin/1.0'],'https'=>['timeout'=>$timeout,'user_agent'=>'RicoReWi-Radio-Magazin/1.0']]);
+    $ua=rrw_feed_user_agent(false);$ctx=stream_context_create(['http'=>['timeout'=>$timeout,'user_agent'=>$ua],'https'=>['timeout'=>$timeout,'user_agent'=>$ua]]);
     return (string)(@file_get_contents($url,false,$ctx)?:'');
 }
 function rrw_feed_clean_text(string $s,int $max=1200): string {

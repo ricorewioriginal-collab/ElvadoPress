@@ -5,7 +5,10 @@ window.AppBuilder=(()=>{
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const BLOCKS={hero:'Willkommens-Karte',tiles:'Kacheln',stations:'Senderliste',text:'Text-Karte',link:'Link-Karte'};
  const TILES={favorites:'Favoriten',schedule:'Sendeplan',podcast:'Podcast',community:'Mitmachen',news:'News & Magazin',assistant:'KI-Assistent',directory:'Radioverzeichnis',shops:'Shops',help:'Hilfe',link:'Eigener Link'};
- const MENU={podcast:'Podcast',news:'News & Magazin',help:'Hilfe & Bedienung',shops:'Shops',assistant:'KI-Assistent',anmacha:'anmacha.de',portal:'Radioportal'};
+ const MENU_BASE={podcast:'Podcast',news:'News & Magazin',help:'Hilfe & Bedienung',shops:'Shops',assistant:'KI-Assistent'};
+ // Einträge der Hersteller-Apps (RicoReWi-Paket); im eigenständigen CMS nicht angeboten
+ const MENU_PACK={anmacha:'anmacha.de',portal:'Radioportal'};
+ function menu(){return window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']===false?MENU_BASE:Object.assign({},MENU_BASE,MENU_PACK);}
  const DEF={accent:'#b57cff',from:'#120d3f',to:'#5b1c84'};
  const root=()=>{try{return (typeof CMS!=='undefined'&&CMS)?CMS:(window.CMS||{});}catch(e){return window.CMS||{};}};
  const cfg=k=>{const c=window.AppsManager.get(k);if(!c)return null;const b=c.builder=c.builder||{};b.theme=b.theme||{};b.home=b.home||[];b.stations=b.stations||{order:[],hidden:[]};b.stations.order=b.stations.order||[];b.stations.hidden=b.stations.hidden||[];b.more_menu=b.more_menu||{hide:[],custom:[]};b.more_menu.hide=b.more_menu.hide||[];b.more_menu.custom=b.more_menu.custom||[];return b;};
@@ -38,7 +41,7 @@ window.AppBuilder=(()=>{
   return o.map((s,i)=>`<div class="ap-st"><label class="ap-check"><input type="checkbox" ${b.stations.hidden.includes(s)?'':'checked'} onchange="AppBuilder.toggleStation(${A(k)},'${esc(s)}',this.checked)"> ${esc(s)}</label>${ctl(k,i,o.length,'moveStation')}</div>`).join('');
  }
  function menuEditor(k,b){
-  const hide=Object.keys(MENU).map(m=>`<label class="ap-check"><input type="checkbox" ${b.more_menu.hide.includes(m)?'':'checked'} onchange="AppBuilder.toggleMenu(${A(k)},'${m}',this.checked)"> ${esc(MENU[m])}</label>`).join('');
+  const MENU=menu(),hide=Object.keys(MENU).map(m=>`<label class="ap-check"><input type="checkbox" ${b.more_menu.hide.includes(m)?'':'checked'} onchange="AppBuilder.toggleMenu(${A(k)},'${m}',this.checked)"> ${esc(MENU[m])}</label>`).join('');
   const cu=b.more_menu.custom.map((c,i)=>`<div class="ap-tile"><input class="fc" maxlength="40" placeholder="Titel" value="${esc(c.title||'')}" oninput="AppBuilder.set(${A(k)},'more_menu.custom.${i}.title',this.value)"><input class="fc" placeholder="https://…" value="${esc(c.url||'')}" oninput="AppBuilder.set(${A(k)},'more_menu.custom.${i}.url',this.value)"><input class="fc" maxlength="60" placeholder="Untertitel (optional)" value="${esc(c.sub||'')}" oninput="AppBuilder.set(${A(k)},'more_menu.custom.${i}.sub',this.value)"><button class="btn-g" onclick="AppBuilder.delMenu(${A(k)},${i})"><i class="fas fa-xmark"></i></button></div>`).join('');
   return `<div class="ap-checks">${hide}</div><div class="ap-sub">Eigene Einträge (max. 6, öffnen im Browser)</div>${cu}<button class="btn-g" onclick="AppBuilder.addMenu(${A(k)})" ${b.more_menu.custom.length>=6?'disabled':''}><i class="fas fa-plus"></i> Eintrag</button>`;
  }
