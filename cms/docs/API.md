@@ -1,4 +1,4 @@
-# RicoReWi Radio CMS API
+# ElvadoPress API
 
 Version: 1.1
 
