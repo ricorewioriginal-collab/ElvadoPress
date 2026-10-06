@@ -1,6 +1,8 @@
-# RicoReWi Radio CMS – Plugin API
+# ElvadoPress – native Plugin API
 
-Plugins erweitern das Portal ohne beliebigen serverseitigen PHP-Code auszuführen.
+Native ElvadoPress-Plugins dieser API erweitern die Website und Verwaltung in einer bewusst eingeschränkten Laufzeit, ohne beliebigen serverseitigen PHP-Code auszuführen.
+
+> **Wichtig:** Diese API ist nicht mit WordPress-Plugins gleichzusetzen. Die WordPress-Kompatibilitätsschicht besitzt einen eigenen Plugin-Laufzeitpfad. Ebenso dürfen zukünftige, von ElvadoPress selbst ausgelieferte serverseitige Essentials nicht einfach als ungeprüfte Drittanbieter-ZIPs in diese eingeschränkte API eingeordnet werden. Für vertrauenswürdige serverseitige Erweiterungen muss zuerst ein eigenes Berechtigungs-, Signatur-/Vertrauens- und Update-Modell festgelegt werden.
 
 ## ZIP-Struktur
 
@@ -29,7 +31,7 @@ mein-plugin/
 
 ## Frontend Runtime
 
-Aktive Plugins werden auf ricorewi-radio.de geladen.
+Aktive native Plugins werden auf der Website der jeweiligen ElvadoPress-Installation geladen.
 
 Globale Schnittstelle:
 
@@ -54,6 +56,8 @@ Plugins können eigene Events mit einem eindeutigen Namespace verwenden.
 
 ## Sicherheit
 
+Für über diese native ZIP-Schnittstelle installierte Drittanbieter-Plugins gilt weiterhin ausdrücklich:
+
 Nicht erlaubt:
 - PHP-Dateien
 - Server-Shell-Code
@@ -62,7 +66,7 @@ Nicht erlaubt:
 - `new Function()`
 - `document.write()`
 
-Die Plugin-ZIP-Installation akzeptiert nur bekannte Dateien.
+Die Plugin-ZIP-Installation akzeptiert nur bekannte Dateien. Diese Einschränkung darf nicht gelockert werden, nur um serverseitige Essentials zu ermöglichen; dafür ist eine getrennte, vertrauenswürdige Erweiterungsschicht erforderlich.
 
 ## Widgets
 
