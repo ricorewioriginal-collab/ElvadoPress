@@ -1078,6 +1078,25 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
                 rrw_log_activity($activityLogFile,$kUser,'ai_site_plan','KI-Website-Generator: Entwurf erstellt ('.count($plan['pages']).' Seiten, '.count($plan['posts']).' Beiträge)');
                 rrw_json(['status'=>'ok','plan'=>$plan]);
             }
+            if($action==='ai_dev_plan'||$action==='ai_dev_install'||$action==='ai_dev_check'){   // KI-Entwickler: Plugins, Widgets, Themes (nur Superadmin, nie in der Demo; Installation immer inaktiv)
+                if(empty($kUser['superadmin']))rrw_json(['status'=>'error','message'=>'Der KI-Entwickler ist nur für den Superadmin verfügbar.'],403);
+                $plDir=__DIR__.'/wp-content/plugins';$thDir=__DIR__.'/wp-content/themes';
+                if($action==='ai_dev_check'){$c=\Elvado\Ai\CodeBuilder::check(is_array($kB['plan']??null)?$kB['plan']:[]);rrw_json(['status'=>'ok','errors'=>$c['errors'],'warnings'=>$c['warnings'],'ok'=>$c['ok']]);}
+                if($action==='ai_dev_install'){
+                    $plan=is_array($kB['plan']??null)?$kB['plan']:[];
+                    $res=\Elvado\Ai\CodeBuilder::install($plan,$plDir,$thDir,(string)($kUser['user']??''),!empty($kB['confirm_warnings']));
+                    rrw_log_activity($activityLogFile,$kUser,'ai_dev_install','KI-Entwickler: '.\Elvado\Ai\CodeBuilder::KINDS[$res['kind']].' „'.$res['slug'].'“ installiert (inaktiv, '.$res['files'].' Dateien)');
+                    rrw_json(['status'=>'ok']+$res+['activate'=>$res['kind']==='theme'?'wp_theme_activate':'wp_plugin_activate','plugin_file'=>$res['kind']==='theme'?'':$res['slug'].'/'.$res['slug'].'.php']);
+                }
+                @set_time_limit(240);
+                $ex=[];foreach([$plDir,$thDir,__DIR__.'/themes'] as $d)foreach(glob($d.'/*',GLOB_ONLYDIR)?:[] as $x)$ex[]=basename($x);
+                $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}
+                $svc=new \Elvado\Ai\AiGatewayService($aiCfg,$lg,new \Elvado\Support\RateLimiter($dataDir.'/.ai/ratelimit'));
+                $plan=(new \Elvado\Ai\CodeBuilder($svc))->plan(['kind'=>(string)($kB['kind']??''),'prompt'=>(string)($kB['prompt']??''),'base'=>(string)($kB['base']??'child'),'previous'=>is_array($kB['previous']??null)?$kB['previous']:[],
+                    'instruction'=>(string)($kB['instruction']??''),'slug'=>(string)($kB['slug']??''),'existing'=>$ex,'user'=>(string)($kUser['user']??''),'provider'=>(string)($kB['provider']??'')]);
+                rrw_log_activity($activityLogFile,$kUser,'ai_dev_plan','KI-Entwickler: Entwurf für '.\Elvado\Ai\CodeBuilder::KINDS[$plan['kind']].' „'.$plan['slug'].'“ erstellt');
+                rrw_json(['status'=>'ok','plan'=>$plan]);
+            }
             if($action==='ai_logs'){ $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){} rrw_json(['status'=>'ok','available'=>$lg!==null,'summary'=>$lg?$lg->summary(30):[],'recent'=>$lg?$lg->recent(30):[]]); }
             if($action==='ai_generate'){
                 $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}   // Protokoll ist optional (ohne Datenbank/SQLite-Erweiterung entfällt es)

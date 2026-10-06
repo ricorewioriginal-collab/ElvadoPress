@@ -18,6 +18,13 @@ Menü **KI & Lovable → Website-Generator** (`cms/assets/ai-builder.js`, `cms/s
 - In der Demo gesperrt (`ai_site_plan`, `ai_generate`, `ai_test`, `ai_models`, `ai_config_save`, `ai_migrate_legacy`).
 - Test: `scripts/test-ai-sitebuilder.php` (Fake-Transport).
 
+## KI-Entwickler (Plugins, Widgets, Themes)
+Menü **KI & Lovable → KI-Entwickler** (`cms/assets/ai-dev.js`, `cms/src/Ai/CodeBuilder.php`, Aktionen `ai_dev_plan`, `ai_dev_check`, `ai_dev_install`): Beschreibung → Entwurf (Dateiblöcke `=== DATEI: pfad ===`) → Code ansehen/ändern → automatische Prüfung → **inaktiv** installieren → erst auf Klick aktivieren (`wp_plugin_activate` / `wp_theme_activate`). „Anpassen mit KI“ überarbeitet den vorhandenen Stand (gleicher Ordner).
+- **Arten:** Plugin (`wp-content/plugins/<slug>/<slug>.php` mit Plugin-Kopf), Widget (Plugin mit `WP_Widget` und Shortcode), Theme: *Kindtheme* von „ElvadoPress Baukasten“ (nur `style.css`, kein PHP/JS – sicherste Variante) oder eigenständig (`style.css`, `index.php`, Vorlagen).
+- **Sicherheit:** nur Superadmin, in der Demo gesperrt; Installation immer inaktiv; Server prüft beim Installieren erneut (Entwurf vom Browser wird nie vertraut). Prüfung: erlaubte Endungen (php, css, js, json, txt, md, html), Pfade ohne `..`/Dotfiles, ≤ 12 Dateien/120 KB je Datei, PHP-Syntax über den Tokenizer (`token_get_all(…, TOKEN_PARSE)`, kein `exec` nötig), **Fehler** (blockieren): `eval`, Backticks, `exec/system/shell_exec/passthru/popen/proc_open`, `assert`, `fsockopen`, `mail`, include/require von Adressen oder Benutzereingaben, PHP in CSS/JS/HTML, JS `eval/new Function/document.write`, CSS `expression()`; **Hinweise** (Bestätigung nötig): Dateischreib-/Netzwerkfunktionen, `unserialize`, `base64_decode`, `extract`, dynamische Funktionsaufrufe, externe Ressourcen u. a. Fremde Ordner ohne Markierungsdatei `.ai-generated.json` werden nie überschrieben.
+- **Grenze:** Die statische Prüfung ist keine vollständige Sicherheitsgarantie – KI-Code vor dem Aktivieren lesen und zuerst auf einer Kopie testen. Aktivierung schaltet bei einem Ladefehler über die vorhandene Plugin-Fehlerbehandlung wieder ab.
+- Test: `scripts/test-ai-codebuilder.php` (55 Prüfungen).
+
 ## Dateien
 | Pfad | Aufgabe |
 |---|---|
