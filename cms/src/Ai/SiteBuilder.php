@@ -50,8 +50,8 @@ final class SiteBuilder
     private function system(string $lang, string $tone, array $parts): string
     {
         $types = '';
-        foreach (['hero' => 'title, text, btn_label, btn_url', 'text' => 'title, body, align(left|center), bg', 'features' => 'title, items[{title,text}] (3 bis 6), columns(3|4), bg',
-            'image_text' => 'title, text, reverse(bool), btn_label, btn_url, bg', 'posts' => 'title, count(3-6), all_label, bg', 'cta' => 'title, text, btn_label, btn_url, bg'] as $t => $f) {
+        foreach (['hero' => 'title, text, btn_label, btn_url, image_query', 'text' => 'title, body, align(left|center), bg', 'features' => 'title, items[{title,text}] (3 bis 6), columns(3|4), bg',
+            'image_text' => 'title, text, reverse(bool), btn_label, btn_url, image_query, bg', 'posts' => 'title, count(3-6), all_label, bg', 'cta' => 'title, text, btn_label, btn_url, bg'] as $t => $f) {
             $types .= "- $t: $f\n";
         }
         return "Du bist Webdesigner und Texter und entwirfst komplette kleine Websites für ein Website-CMS. Schreibe alle Texte in $lang, im Ton: $tone. Erfinde keine konkreten Fakten " .
@@ -61,7 +61,8 @@ final class SiteBuilder
             '"palette":{"accent":"#rrggbb","bg":"#rrggbb","card":"#rrggbb","text":"#rrggbb","hero_bg":"#rrggbb","hero_text":"#rrggbb"},' .
             '"home":[{"type":"hero","props":{…}},…],' .
             '"pages":[{"title":"Über uns","blocks":[{"type":"heading","text":"…","level":2},{"type":"text","text":"Absatz"},{"type":"list","items":["…","…"]},{"type":"quote","text":"…"},{"type":"button","label":"Kontakt","url":"#"}]}],' .
-            '"posts":[{"title":"…","excerpt":"1–2 Sätze","paragraphs":["Absatz 1","Absatz 2","Absatz 3"]}]}' . "\n" .
+            '"posts":[{"title":"…","excerpt":"1–2 Sätze","image_query":"…","paragraphs":["Absatz 1","Absatz 2","Absatz 3"]}]}' . "\n" .
+            "image_query: 2 bis 4 englische Suchbegriffe für ein passendes freies Foto (z. B. \"wood workshop carpenter\"); keine Namen von Personen, Marken oder Orten.\n" .
             "Die Palette passt zur Branche und Stimmung; Text auf bg und card sowie hero_text auf hero_bg müssen gut lesbar sein (hoher Kontrast).\n" .
             "Erlaubte Abschnittstypen für home und ihre Felder:\n$types" .
             "Die Startseite beginnt mit hero und enthält 5 bis 8 Abschnitte (z. B. features, text, image_text, posts, cta). Verlinke Buttons nur mit \"#\" oder \"/seitenname.html\" zu deinen eigenen Seiten.\n" .
@@ -128,7 +129,7 @@ final class SiteBuilder
                 if ($pt === '' || !$paras) {
                     continue;
                 }
-                $posts[] = ['title' => $pt, 'excerpt' => self::str($p['excerpt'] ?? '', 240) ?: mb_substr($paras[0], 0, 200),
+                $posts[] = ['title' => $pt, 'excerpt' => self::str($p['excerpt'] ?? '', 240) ?: mb_substr($paras[0], 0, 200), 'image_query' => self::query($p['image_query'] ?? ''),
                     'body_html' => implode("\n", array_map(static fn(string $t): string => '<p>' . htmlspecialchars($t, ENT_QUOTES, 'UTF-8') . '</p>', $paras))];
             }
         }
@@ -157,6 +158,14 @@ final class SiteBuilder
         $s = strtr(mb_strtolower($s), ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss']);
         $s = trim(preg_replace('/[^a-z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s) ?? '', '-');
         return mb_substr($s !== '' ? $s : 'seite', 0, 60);
+    }
+
+    /** Suchbegriffe für ein Foto: Buchstaben, Ziffern, Leerzeichen, Bindestriche; höchstens 60 Zeichen. */
+    public static function query(mixed $v): string
+    {
+        $q = is_string($v) ? trim(preg_replace('/[^\p{L}\p{N} -]+/u', ' ', strip_tags($v)) ?? '') : '';
+        $q = trim(preg_replace('/\s+/u', ' ', $q) ?? '');
+        return mb_strlen($q) >= 3 ? mb_substr($q, 0, 60) : '';
     }
 
     private static function url(mixed $v): string
@@ -235,7 +244,7 @@ final class SiteBuilder
             $pr = is_array($s['props'] ?? null) ? $s['props'] : [];
             switch ($type) {
                 case 'hero':
-                    $out[] = ['type' => 'hero', 'props' => ['title' => self::str($pr['title'] ?? '', 120), 'text' => self::str($pr['text'] ?? '', 300), 'image' => '', 'btn_label' => self::str($pr['btn_label'] ?? '', 40), 'btn_url' => $link($pr['btn_url'] ?? '#')]];
+                    $out[] = ['type' => 'hero', 'props' => ['title' => self::str($pr['title'] ?? '', 120), 'text' => self::str($pr['text'] ?? '', 300), 'image' => '', 'image_query' => self::query($pr['image_query'] ?? ''), 'btn_label' => self::str($pr['btn_label'] ?? '', 40), 'btn_url' => $link($pr['btn_url'] ?? '#')]];
                     break;
                 case 'text':
                     $paras = array_filter(array_map(static fn($t) => self::str($t, 1500), preg_split('/\n{1,}/', (string)($pr['body'] ?? '')) ?: []), static fn($t) => $t !== '');
@@ -257,7 +266,7 @@ final class SiteBuilder
                     }
                     break;
                 case 'image_text':
-                    $out[] = ['type' => 'image_text', 'props' => ['title' => self::str($pr['title'] ?? '', 120), 'text' => self::str($pr['text'] ?? '', 800), 'image' => '', 'reverse' => !empty($pr['reverse']),
+                    $out[] = ['type' => 'image_text', 'props' => ['title' => self::str($pr['title'] ?? '', 120), 'text' => self::str($pr['text'] ?? '', 800), 'image' => '', 'image_query' => self::query($pr['image_query'] ?? ''), 'reverse' => !empty($pr['reverse']),
                         'btn_label' => self::str($pr['btn_label'] ?? '', 40), 'btn_url' => $link($pr['btn_url'] ?? '#'), 'bg' => $bg($pr['bg'] ?? '')]];
                     break;
                 case 'posts':

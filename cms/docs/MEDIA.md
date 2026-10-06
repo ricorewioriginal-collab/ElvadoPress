@@ -11,3 +11,10 @@ Die Mediathek (CMS → Medien) speichert Bilder unter `cms/media/library/<id>/` 
 - **API:** `stock_status`, `stock_search`, `stock_import`, `stock_config_save` (`cms/api.php`), Logik `cms/lib/stockmedia.php`, Oberfläche `cms/assets/stock-media.js` (`StockMedia.open({tab, onPick})` für eigene Erweiterungen).
 - **Hinweis zu den Lizenzen:** Die Nutzungsbedingungen der Anbieter gelten weiter (z. B. keine Weiterverbreitung als reine Bildersammlung). Bei Creative-Commons-Bildern ist die Namensnennung Pflicht; das CMS liefert den Text, setzen muss ihn der Redakteur dort, wo das Bild erscheint (bei Beiträgen und Seiten-Blöcken geschieht das automatisch).
 - Test: `php scripts/test-stockmedia.php` (Fake-Abruf, kein Netz).
+
+## Alt-Texte (Alternativtexte)
+- **Speicher:** `meta.json` des Bildes (`alt`, höchstens 250 Zeichen); in der Medienliste (`media_library_list` → `alt`), in der WordPress-Schicht als `alt_text` (REST) und `_wp_attachment_image_alt`. Speichern: Aktion `media_alt_save` (`id`, `alt`), Logik `rrw_media_alt_save()` in `cms/lib/media.php`.
+- **Oberfläche (Medien):** Feld „Alternativtext“ im Medien-Detail mit **KI-Vorschlag**; oben ein Hinweis „n Bilder ohne Alt-Text“ mit **Sammelvorschlag** (Vorschläge prüfen/ändern, erst „Alle gefüllten speichern“ speichert).
+- **KI-Vorschlag** (`ai_alt_suggest`, `cms/src/Ai/AltTexter.php`): Mit einem Anbieter mit Bildverständnis (OpenAI, Claude, Gemini; Einsatzzweck „Alt-Texte für Bilder“ in der KI-Zentrale, sonst der erste nutzbare) beschreibt die KI das Bild (kleine Variante, höchstens 1,2 MB, wird übertragen). Ohne solchen Anbieter entsteht der Vorschlag nur aus Titel der Bildquelle und Dateiname (Modus „text“); fehlen diese, gibt es eine verständliche Meldung. Nichts wird automatisch gespeichert.
+- **Baukasten-Theme:** Abschnitte „Hero“ und „Bild + Text“ haben das Feld `image_alt` (Bildbeschreibung); „Bild + Text“ setzt es als `alt`, der Hero als `role="img" aria-label`. Leer = dekorativ.
+- Tests: `php scripts/test-ai-alttext.php`.

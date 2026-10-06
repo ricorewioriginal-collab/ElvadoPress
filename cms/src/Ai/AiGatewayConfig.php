@@ -29,7 +29,7 @@ final class AiGatewayConfig
         return new self(self::clean(is_array($raw) ? $raw : []), $file, $ap);
     }
 
-    public const PURPOSES = ['content' => 'Beiträge & Texte im Editor', 'builder' => 'Website-Generator', 'developer' => 'KI-Entwickler (Themes, Widgets, Plugins)'];
+    public const PURPOSES = ['content' => 'Beiträge & Texte im Editor', 'builder' => 'Website-Generator', 'developer' => 'KI-Entwickler (Themes, Widgets, Plugins)', 'media' => 'Alt-Texte für Bilder (Anbieter mit Bildverständnis)'];
 
     /** @return list<array<string,mixed>> eigene OpenAI-kompatible Anbieter (ohne Schlüssel) */
     public function customProviders(): array
@@ -244,7 +244,7 @@ final class AiGatewayConfig
             $src = $this->keySource($id);
             $out['providers'][] = [
                 'id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'note' => $def['note'], 'verified' => $def['verified'], 'kind' => $def['kind'],
-                'free' => $def['free'], 'base_editable' => $def['base_editable'], 'custom' => $def['custom'], 'needs_key' => $def['needs_key'],
+                'free' => $def['free'], 'base_editable' => $def['base_editable'], 'custom' => $def['custom'], 'needs_key' => $def['needs_key'], 'vision' => in_array($id, AiGatewayService::VISION, true),
                 'base_url' => $this->baseUrl($id), 'model' => $this->model($id), 'models' => $def['models'],
                 'enabled' => $this->enabled($id), 'has_key' => $src !== '', 'key_source' => $src, 'key_from_assistant' => $src === 'assistant',
                 'usable' => $this->enabled($id) && ($src !== '' || !$def['needs_key']),

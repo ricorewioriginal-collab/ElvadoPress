@@ -24,6 +24,7 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/assets/ai-center.js`, `cms/views/panel-aicenter.php`, `cms/lib/ai-providers.json`, `cms/wp/core/ext/ai-central.php` | KI-Zentrale (zentrale KI-Konfiguration). |
 | `cms/assets/ai-builder.js`, `cms/src/Ai/SiteBuilder.php`, `cms/views/panel-aibuilder.php` | KI-Website-Generator. |
 | `cms/assets/ai-dev.js`, `cms/src/Ai/CodeBuilder.php`, `cms/views/panel-aidev.php` | KI-Entwickler (Plugins/Widgets/Themes). |
+| `cms/src/Ai/AltTexter.php`, `cms/assets/media-manager.js` (Alt-Texte) | KI-Alt-Texte und Mediathek-Oberfläche. |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |
 | `cms/data/` | Laufzeitdaten einer Installation; überwiegend nicht versioniert. |
 | `cms/docs/` | bestehende Fach- und Funktionsdokumentation; vor neuer Doku zuerst hier suchen. |

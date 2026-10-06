@@ -13,7 +13,7 @@
     ['Fotografin','Lena Kraft Fotografie: Hochzeiten, Porträts und Familienshootings in natürlichem Licht. Persönlich, ehrlich und mit Blick für den echten Moment.'],
     ['Verein','Der Sportverein TSV Neustadt: Fußball, Turnen und Laufgruppe für alle Altersstufen. Wir suchen neue Mitglieder, Trainer und Helfer.']
   ];
-  var s={step:'input',busy:false,status:null,plan:null,err:'',input:{description:'',name:'',tone:'modern',parts:{home:true,pages:true,posts:true}},opts:{activate:true,postsDraft:true,menu:true},applied:null,log:[]};
+  var s={step:'input',busy:false,status:null,plan:null,err:'',input:{description:'',name:'',tone:'modern',parts:{home:true,pages:true,posts:true}},opts:{activate:true,postsDraft:true,menu:true,images:true},applied:null,log:[]};
   function host(){return document.getElementById('aiBuilder')}
 
   function loadStatus(){
@@ -52,10 +52,10 @@
     var btn=function(l){return l?'<span class="aib-btn-s" style="background:'+esc(p.accent)+'">'+esc(l)+'</span>':''};
     var wrap=function(inner,style){return '<div class="aib-sec" style="background:'+esc(bg)+';color:'+fg+';'+(style||'')+'">'+inner+'</div>'};
     switch(sec.type){
-      case 'hero':return '<div class="aib-sec aib-hero-s" style="background:'+esc(p.hero_bg)+';color:'+esc(p.hero_text)+'"><b>'+esc(x.title)+'</b><div>'+esc(x.text)+'</div>'+btn(x.btn_label)+'</div>';
+      case 'hero':return '<div class="aib-sec aib-hero-s" style="background:'+esc(p.hero_bg)+';color:'+esc(p.hero_text)+'"><b>'+esc(x.title)+'</b><div>'+esc(x.text)+'</div>'+btn(x.btn_label)+(x.image_query?'<div class="aib-q"><i class="fas fa-image"></i> Bild: '+esc(x.image_query)+'</div>':'')+'</div>';
       case 'features':return wrap((x.title?'<b>'+esc(x.title)+'</b>':'')+'<div class="aib-cols">'+(x.items||[]).map(function(i){return '<div class="aib-colbox" style="background:'+esc(p.card)+';color:'+esc(p.text)+'"><b>'+esc(i.title)+'</b><div>'+esc(i.text)+'</div></div>'}).join('')+'</div>');
       case 'text':return wrap((x.title?'<b>'+esc(x.title)+'</b>':'')+'<div>'+String(x.body||'').replace(/<[^>]+>/g,' ').slice(0,260)+'</div>',x.align==='center'?'text-align:center':'');
-      case 'image_text':return wrap('<div class="aib-img"></div><div>'+(x.title?'<b>'+esc(x.title)+'</b>':'')+'<div>'+esc(x.text)+'</div>'+btn(x.btn_label)+'</div>','display:flex;gap:12px;align-items:center'+(x.reverse?';flex-direction:row-reverse':''));
+      case 'image_text':return wrap('<div class="aib-img"></div><div>'+(x.title?'<b>'+esc(x.title)+'</b>':'')+'<div>'+esc(x.text)+'</div>'+btn(x.btn_label)+(x.image_query?'<div class="aib-q"><i class="fas fa-image"></i> Bild: '+esc(x.image_query)+'</div>':'')+'</div>','display:flex;gap:12px;align-items:center'+(x.reverse?';flex-direction:row-reverse':''));
       case 'posts':return wrap('<b>'+esc(x.title)+'</b><div class="aib-cols">'+Array.from({length:Math.min(3,x.count||3)}).map(function(){return '<div class="aib-colbox" style="background:'+esc(p.card)+'"><div class="aib-img" style="height:34px"></div><i>Beitrag</i></div>'}).join('')+'</div>');
       case 'cta':return wrap('<b>'+esc(x.title)+'</b><div>'+esc(x.text)+'</div>'+btn(x.btn_label),'text-align:center');
     }
@@ -73,7 +73,8 @@
       +'<div><label class="news-lbl">Farbwelt</label><div class="aib-sws">'+swatches(p)+'</div><div class="hint">Wird im Theme „ElvadoPress Baukasten“ als Farben gesetzt.</div></div></div>'
       +'<div class="aib-opts2"><label class="wm-check"><input type="checkbox" '+(s.opts.activate?'checked':'')+' onchange="AiBuilder.opt(\'activate\',this.checked)"> Theme „ElvadoPress Baukasten“ aktivieren (nötig für Startseite und Farben)</label>'
       +'<label class="wm-check"><input type="checkbox" '+(s.opts.menu?'checked':'')+' onchange="AiBuilder.opt(\'menu\',this.checked)"> Neue Seiten ins Hauptmenü aufnehmen</label>'
-      +'<label class="wm-check"><input type="checkbox" '+(s.opts.postsDraft?'checked':'')+' onchange="AiBuilder.opt(\'postsDraft\',this.checked)"> Beiträge als Entwurf anlegen (nicht sofort veröffentlichen)</label></div></div>'
+      +'<label class="wm-check"><input type="checkbox" '+(s.opts.postsDraft?'checked':'')+' onchange="AiBuilder.opt(\'postsDraft\',this.checked)"> Beiträge als Entwurf anlegen (nicht sofort veröffentlichen)</label>'
+      +(imageQueries(pl,pl.posts.filter(function(x){return !x.off})).length?'<label class="wm-check"><input type="checkbox" '+(s.opts.images?'checked':'')+' onchange="AiBuilder.opt(\'images\',this.checked)"> Passende freie Bilder laden und mit Alt-Text versehen ('+imageQueries(pl,pl.posts.filter(function(x){return !x.off})).length+' Bilder; Quellen laut Menü „Medien“, Bildnachweise werden bei Bedarf als Seite angelegt)</label>':'')+'</div></div>'
       +(pl.home.length?'<div class="card"><div class="th"><div class="tt"><i class="fas fa-house"></i>Startseite ('+pl.home.length+' Abschnitte)</div></div><div class="aib-prev" style="background:'+esc(p.bg)+'">'+pl.home.map(function(x){return sec(x,p)}).join('')+'</div><div class="hint">Bilder wählst du nach dem Übernehmen im Homepage-Baukasten (Mediathek oder freie Bildquellen).</div></div>':'')
       +(pl.pages.length?'<div class="card"><div class="th"><div class="tt"><i class="fas fa-file-lines"></i>Seiten ('+pl.pages.length+')</div></div>'+pageHtml+'</div>':'')
       +(pl.posts.length?'<div class="card"><div class="th"><div class="tt"><i class="fas fa-newspaper"></i>Beiträge ('+pl.posts.length+')</div></div>'+postHtml+'</div>':'');
@@ -114,6 +115,26 @@
   function step(text,fn){
     return Promise.resolve().then(fn).then(function(){s.log.push({ok:true,text:text})}).catch(function(e){s.log.push({ok:false,text:text+' – '+(e.message||'Fehler')});throw e});
   }
+  function imageQueries(pl,postsNew){
+    var q=[];
+    (pl.home||[]).forEach(function(sec,i){var pr=sec.props||{};if(pr.image_query&&(sec.type==='hero'||sec.type==='image_text'))q.push({key:'home:'+i,q:pr.image_query,orient:'landscape',width:sec.type==='hero'?1600:1024})});
+    (postsNew||[]).forEach(function(po,j){if(po.image_query)q.push({key:'post:'+j,q:po.image_query,orient:'landscape',width:1024})});
+    return q.slice(0,8);
+  }
+  /* Freie Bilder laden und in den Entwurf eintragen; Fehler brechen das Übernehmen nicht ab */
+  function loadImages(pl,postsNew,credits){
+    var q=imageQueries(pl,postsNew);if(!q.length)return Promise.resolve('');
+    return api('ai_site_images',{queries:q}).then(function(d){
+      if(!d.usable)return 'Keine Bildquelle eingerichtet – ohne Bilder (Menü „Medien“ → Freie Bilder)';
+      var ok=0;(d.images||[]).forEach(function(im){
+        if(!im.ok)return;var m=/^(home|post):(\d+)$/.exec(im.key);if(!m)return;ok++;
+        if(m[1]==='home'){var pr=pl.home[+m[2]].props;pr.image=im.url;pr.image_alt=im.alt}else if(postsNew[+m[2]])postsNew[+m[2]].image_url=im.url;
+        if(im.attribution_required&&im.credit)credits.push(im.credit);
+      });
+      return ok+' von '+q.length+' Bildern geladen und mit Alt-Text versehen';
+    });
+  }
+  function freeSlug(base){var have={};(CMS.pages||[]).forEach(function(p){have[p.slug]=1});var s0=base,n=2;while(have[s0])s0=base+'-'+(n++);return s0}
   function apply(){
     if(s.busy)return;var pl=s.plan;
     if(!confirm('Entwurf übernehmen? Titel, Farben und Startseite werden ersetzt, neue Seiten und Beiträge werden hinzugefügt. Das lässt sich anschließend rückgängig machen.'))return;
@@ -131,6 +152,13 @@
     p0=p0.then(function(){try{localStorage.setItem(UNDO_KEY,JSON.stringify(snap))}catch(e){}s.applied=snap});
     // Schreiben
     if(s.opts.activate)p0=p0.then(function(){if(snap.theme===BK)return;return step('Theme „ElvadoPress Baukasten“ aktiviert',function(){return api('wp_theme_activate',{slug:BK})})});
+    var credits=[];
+    if(s.opts.images)p0=p0.then(function(){return loadImages(pl,postsNew,credits).then(function(msg){if(msg)s.log.push({ok:true,text:msg})}).catch(function(e){s.log.push({ok:false,text:'Bilder: '+(e.message||'Fehler')+' – weiter ohne Bilder'})})});
+    p0=p0.then(function(){
+      if(credits.length){var ul='<ul>'+credits.filter(function(c,i){return credits.indexOf(c)===i}).map(function(c){return '<li>'+esc(c)+'</li>'}).join('')+'</ul>';
+        pagesNew.push({title:'Bildnachweise',slug:freeSlug('bildnachweise'),bottom:true,blocks:[{id:'blk_'+Math.random().toString(36).slice(2,10),type:'heading',enabled:true,text:'Bildnachweise',level:2},{id:'blk_'+Math.random().toString(36).slice(2,10),type:'text',enabled:true,text:'Die Bilder auf dieser Website stammen aus freien Bildquellen. Urheber und Lizenzen:'},{id:'blk_'+Math.random().toString(36).slice(2,10),type:'html',enabled:true,html:ul}]})}
+      pl.home.forEach(function(x){if(x.props)delete x.props.image_query});
+    });
     p0=p0.then(function(){return step('Titel und Farben gesetzt',function(){
       var v={blogname:pl.site.title,blogdescription:pl.site.tagline};Object.keys(COLOR_IDS).forEach(function(k){v[COLOR_IDS[k]]=pl.palette[k]});
       return api('wp_theme_customize_save',{slug:BK,values:v});
@@ -143,11 +171,11 @@
     })});
     if(s.opts.menu&&pagesNew.length)p0=p0.then(function(){return step('Menüpunkte ergänzt',function(){
       var m=JSON.parse(JSON.stringify(CMS.menus||{top:[],bottom:[]}));m.top=m.top||[];
-      pagesNew.forEach(function(pg){m.top.push({id:'m_'+Math.random().toString(36).slice(2,8),label:pg.title.slice(0,40),target:'page:'+pg.slug,icon:'fa-file-lines',parent_id:'',enabled:true})});
+      m.bottom=m.bottom||[];pagesNew.forEach(function(pg){(pg.bottom?m.bottom:m.top).push({id:'m_'+Math.random().toString(36).slice(2,8),label:pg.title.slice(0,40),target:'page:'+pg.slug,icon:'fa-file-lines',parent_id:'',enabled:true})});
       return api('save',{section:'menus',value:m}).then(function(d){CMS.menus=d.value});
     })});
     if(postsNew.length)p0=p0.then(function(){return step(postsNew.length+' Beiträge angelegt'+(s.opts.postsDraft?' (Entwurf)':''),function(){
-      return postsNew.reduce(function(pr,po){return pr.then(function(){return api('news_save',{title:po.title,excerpt:po.excerpt,body_html:po.body_html,category:'News',status:s.opts.postsDraft?'draft':'published',tags:'',comments:'default'}).then(function(d){if(d&&d.id)snap.posts.push(d.id)})})},Promise.resolve());
+      return postsNew.reduce(function(pr,po){return pr.then(function(){return api('news_save',{title:po.title,excerpt:po.excerpt,body_html:po.body_html,image_url:po.image_url||'',category:'News',status:s.opts.postsDraft?'draft':'published',tags:'',comments:'default'}).then(function(d){if(d&&d.id)snap.posts.push(d.id)})})},Promise.resolve());
     })});
     p0.then(function(){
       snap.applied={pages:pagesNew.map(function(p){return p.slug})};try{localStorage.setItem(UNDO_KEY,JSON.stringify(snap))}catch(e){}

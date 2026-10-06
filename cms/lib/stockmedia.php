@@ -191,9 +191,56 @@ function rrw_stock_import(string $dataDir,string $p,string $id): array {
         if(!rrw_stock_download($url,$tmp))throw new RuntimeException('Das Bild konnte nicht heruntergeladen werden (zu groß oder nicht erreichbar).');
         if($p==='unsplash'&&!empty($it['track'])&&str_starts_with($it['track'],'https://api.unsplash.com/'))rrw_stock_http($it['track'],['Authorization: Client-ID '.(string)rrw_stock_usable($dataDir,$p),'Accept-Version: v1']);   // Unsplash verlangt die Meldung des Downloads
         $base=preg_replace('/[^a-z0-9]+/','-',mb_strtolower($it['title']!==''?$it['title']:$p));$base=trim(substr($base,0,50),'-');$name=($base!==''?$base:$p).'-'.$p.'-'.$id;
-        $credit=['provider'=>$p,'provider_name'=>rrw_stock_providers()[$p]['name'],'author'=>$it['author'],'author_url'=>$it['author_url'],'source_url'=>$it['source_url'],'license'=>$it['license'],'license_url'=>$it['license_url'],'attribution_required'=>$it['attribution_required'],'text'=>$it['credit']];
+        $credit=['provider'=>$p,'provider_name'=>rrw_stock_providers()[$p]['name'],'title'=>$it['title'],'author'=>$it['author'],'author_url'=>$it['author_url'],'source_url'=>$it['source_url'],'license'=>$it['license'],'license_url'=>$it['license_url'],'attribution_required'=>$it['attribution_required'],'text'=>$it['credit']];
         $r=rrw_media_library_store(['tmp_name'=>$tmp,'size'=>(int)@filesize($tmp),'name'=>$name],rrw_media_sizes('64,128,192,256,512,1024,1600'),90,'rename',$credit);
     } finally { if(is_file($tmp))@unlink($tmp); }
     $r['credit']=$it['credit'];$r['attribution_required']=$it['attribution_required'];
     return $r;
+}
+
+/**
+ * Passendes Bild zu einem Suchbegriff finden (für den Website-Generator): Anbieter in der Reihenfolge Pixabay, Pexels, Unsplash, Openverse, Wikimedia Commons;
+ * bevorzugt Bilder ohne Namensnennungspflicht und mit ausreichender Auflösung. Ergebnis: Item (wie rrw_stock_search) oder null.
+ */
+function rrw_stock_pick(string $dataDir,string $q,string $orient='landscape'): ?array {
+    $best=null;$bestScore=-1;
+    foreach(['pixabay','pexels','unsplash','openverse','wikimedia'] as $p){
+        if(rrw_stock_usable($dataDir,$p)===null)continue;
+        try{ $r=rrw_stock_search($dataDir,$p,$q,1,$orient); }catch(Throwable $e){ continue; }
+        foreach(array_slice((array)($r['items']??[]),0,8) as $it){
+            $w=(int)($it['width']??0);$h=(int)($it['height']??0);
+            $score=($it['attribution_required']?0:100)+($w>=1600?30:($w>=1000?20:($w>=700?5:0)))+($orient==='landscape'&&$w>$h?10:0)+($p==='wikimedia'?-10:0);
+            if($w>0&&$w<600)$score-=50;
+            if($score>$bestScore){$bestScore=$score;$best=$it;}
+        }
+        if($best!==null&&$bestScore>=120)break;   // gutes, frei nutzbares Bild gefunden
+    }
+    return $best;
+}
+
+/**
+ * Bilder für einen Website-Entwurf laden. $queries: [{key,q,orient?,width?}] (höchstens $max). Je Anfrage: passendes Bild suchen, in die Mediathek übernehmen, Alt-Text bestimmen und speichern.
+ * $altFn(array $meta,string $file,string $q,string $title): string liefert einen KI-Vorschlag (Fehler werden abgefangen; Rückfall: Titel der Bildquelle bzw. Suchbegriff).
+ * @return list<array<string,mixed>> je Anfrage: key, ok, url, alt, credit, attribution_required, provider, error
+ */
+function rrw_stock_fetch_for_plan(string $dataDir,array $queries,callable $altFn,int $max=8): array {
+    require_once __DIR__.'/media.php';
+    $out=[];
+    foreach(array_slice($queries,0,$max) as $qq){
+        $key=(string)($qq['key']??'');$q=trim(preg_replace('/\s+/u',' ',strip_tags((string)($qq['q']??''))));$row=['key'=>$key,'ok'=>false,'url'=>'','alt'=>'','credit'=>'','attribution_required'=>false,'provider'=>'','error'=>''];
+        try{
+            if($q==='')throw new RuntimeException('kein Suchbegriff');
+            $pick=rrw_stock_pick($dataDir,$q,in_array(($qq['orient']??''),['landscape','portrait','square'],true)?(string)$qq['orient']:'landscape');
+            if($pick===null)throw new RuntimeException('kein passendes Bild gefunden');
+            $r=rrw_stock_import($dataDir,(string)$pick['provider'],(string)$pick['id']);
+            $meta=(array)$r['item'];$url=rrw_media_pick_variant($meta,max(320,min(2400,(int)($qq['width']??1600))));
+            $alt='';
+            try{ $src=rrw_media_alt_source((string)$meta['id']);$alt=trim((string)$altFn($src['meta'],$src['file'],$q,(string)($pick['title']??''))); }catch(Throwable $e){}
+            if($alt==='')$alt=trim((string)($pick['title']??''))!==''?mb_substr(trim((string)$pick['title']),0,125):mb_strtoupper(mb_substr($q,0,1)).mb_substr($q,1);
+            try{ rrw_media_alt_save((string)$meta['id'],$alt); }catch(Throwable $e){}
+            $row=['key'=>$key,'ok'=>true,'url'=>$url,'alt'=>$alt,'credit'=>(string)($r['credit']??''),'attribution_required'=>!empty($r['attribution_required']),'provider'=>(string)$pick['provider'],'error'=>'','id'=>(string)$meta['id']];
+        }catch(Throwable $e){ $row['error']=mb_substr($e->getMessage(),0,160); }
+        $out[]=$row;
+    }
+    return $out;
 }

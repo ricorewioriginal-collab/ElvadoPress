@@ -60,7 +60,7 @@ function elvado_bk_section(array $s,int $n=0): void {
     case 'hero':
         $img=esc_url($g('image'));$title=$g('title')?:get_bloginfo('name');$text=$g('text')?:get_bloginfo('description');
         $st=($img!==''?'background-image:url(\''.$img.'\');':'').((int)$p['height']>0?'min-height:'.(int)$p['height'].'px;display:flex;align-items:center;':'');
-        echo '<section class="bk-section bk-hero bk-center'.($img!==''&&!empty($p['overlay'])?' has-overlay':'').'" id="bk-'.esc_attr((string)($s['id']??$n)).'" data-bk="'.esc_attr((string)($s['id']??$n)).'"'.($st!==''?' style="'.esc_attr($st).'"':'').'><div class="bk-wrap" style="width:100%"><h1>'.esc_html($title).'</h1>'.($text!==''?'<p>'.esc_html($text).'</p>':'').elvado_bk_btn($g('btn_label'),$g('btn_url')).'</div></section>';return;
+        $ia=$g('image_alt');echo '<section class="bk-section bk-hero bk-center'.($img!==''&&!empty($p['overlay'])?' has-overlay':'').'"'.($img!==''&&$ia!==''?' role="img" aria-label="'.esc_attr($ia).'"':'').' id="bk-'.esc_attr((string)($s['id']??$n)).'" data-bk="'.esc_attr((string)($s['id']??$n)).'"'.($st!==''?' style="'.esc_attr($st).'"':'').'><div class="bk-wrap" style="width:100%"><h1>'.esc_html($title).'</h1>'.($text!==''?'<p>'.esc_html($text).'</p>':'').elvado_bk_btn($g('btn_label'),$g('btn_url')).'</div></section>';return;
     case 'text':
         if($g('body')==='')return;echo $open.'<div class="bk-wrap'.$c.'">'.$h2().wpautop(wp_kses_post($g('body'))).'</div></section>';return;
     case 'features':
@@ -69,7 +69,7 @@ function elvado_bk_section(array $s,int $n=0): void {
         echo $open.'<div class="bk-wrap">'.($g('title')!==''?'<h2 class="bk-title bk-center">'.esc_html($g('title')).'</h2>':'').'<div class="bk-features"'.($cols>0?' style="grid-template-columns:repeat('.$cols.',minmax(0,1fr))"':'').'>'.$items.'</div></div></section>';return;
     case 'image_text':
         $img=esc_url($g('image'));if($img===''&&$g('text')==='')return;
-        echo $open.'<div class="bk-wrap bk-split'.(!empty($p['reverse'])?' rev':'').'">'.($img!==''?'<div class="bk-split-img"><img src="'.$img.'" alt="" loading="lazy"></div>':'').'<div>'.$h2().wpautop(wp_kses_post($g('text'))).elvado_bk_btn($g('btn_label'),$g('btn_url')).'</div></div></section>';return;
+        echo $open.'<div class="bk-wrap bk-split'.(!empty($p['reverse'])?' rev':'').'">'.($img!==''?'<div class="bk-split-img"><img src="'.$img.'" alt="'.esc_attr($g('image_alt')).'" loading="lazy"></div>':'').'<div>'.$h2().wpautop(wp_kses_post($g('text'))).elvado_bk_btn($g('btn_label'),$g('btn_url')).'</div></div></section>';return;
     case 'posts':
         $a=['post_type'=>'post','posts_per_page'=>max(1,min(12,(int)$p['count'])),'ignore_sticky_posts'=>true];if($g('category')!=='')$a['category_name']=sanitize_title($g('category'));
         $q=new WP_Query($a);if(!$q->have_posts()){ wp_reset_postdata();return; }
