@@ -45,7 +45,7 @@ function uploadBlockImage(cb){
 function setBody(html){
   const host=document.getElementById('newsBody');if(!host)return;
   if(!window.EPB){host.innerHTML='<div class="empty">Block-Editor nicht geladen.</div>';return}
-  if(!be||!host.contains(be.el)){be=EPB.create(host,{html:html||'',onChange:()=>updateInfo(),pickImage:pickBlockImage,upload:uploadBlockImage,uploadFile:(file,cb)=>{if(file.size>8*1024*1024)return say('Bild darf maximal 8 MB groß sein','error');const fd=new FormData();fd.append('file',file);fetch(CMS_API+'?action=news_thumbnail_upload',{method:'POST',headers:cmsNewsHeaders(false),body:fd}).then(r=>r.json()).then(d=>{if(d.status==='ok')cb({url:d.url,alt:''});else say(d.message||'Upload fehlgeschlagen','error')}).catch(e=>say(e.message,'error'))},canRaw:canRawHtml()})}
+  if(!be||!host.contains(be.el)){be=EPB.create(host,{html:html||'',onChange:()=>updateInfo(),pickImage:pickBlockImage,aiImage:window.AiMedia?(cb=>AiMedia.dialog({onPick:cb})):null,upload:uploadBlockImage,uploadFile:(file,cb)=>{if(file.size>8*1024*1024)return say('Bild darf maximal 8 MB groß sein','error');const fd=new FormData();fd.append('file',file);fetch(CMS_API+'?action=news_thumbnail_upload',{method:'POST',headers:cmsNewsHeaders(false),body:fd}).then(r=>r.json()).then(d=>{if(d.status==='ok')cb({url:d.url,alt:''});else say(d.message||'Upload fehlgeschlagen','error')}).catch(e=>say(e.message,'error'))},canRaw:canRawHtml()})}
   else be.setHTML(html||'');
 }
 const getBody=()=>be?be.getHTML():'';
@@ -366,7 +366,7 @@ function editorHtml(){
         <details class="card editor-box np-panel" open><summary><i class="fas fa-image"></i> Beitragsbild</summary>
           <div style="display:flex;gap:7px;align-items:center">
             <input id="newsImage" class="fc w-100" placeholder="Bild-URL oder Upload">
-            <button type="button" class="btn-g" onclick="NewsMagazine.openMediaPicker()" title="Aus Mediathek wählen"><i class="fas fa-photo-film"></i></button><button type="button" class="btn-g" onclick="NewsMagazine.pickFeatured()" title="Freie Bilder (Pixabay, Pexels, Unsplash …)"><i class="fas fa-images"></i></button>
+            <button type="button" class="btn-g" onclick="NewsMagazine.openMediaPicker()" title="Aus Mediathek wählen"><i class="fas fa-photo-film"></i></button><button type="button" class="btn-g" onclick="NewsMagazine.pickFeatured()" title="Freie Bilder (Pixabay, Pexels, Unsplash …)"><i class="fas fa-images"></i></button><button type="button" class="btn-g" onclick="NewsMagazine.aiFeatured()" title="Bild mit KI erzeugen"><i class="fas fa-wand-magic-sparkles"></i></button>
             <button type="button" class="btn-g" onclick="document.getElementById('newsThumbFile').click()" title="Thumbnail hochladen"><i class="fas fa-upload"></i></button>
             <input id="newsThumbFile" type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="NewsMagazine.uploadThumb(this)">
           </div>
@@ -718,9 +718,13 @@ function insertImage(){
   if(!be)return;
   pickBlockImage(r=>{be.insertImage(r)});
 }
+function aiFeatured(){
+  if(!window.AiMedia)return say('KI-Bilder nicht verfügbar','error');
+  AiMedia.dialog({prompt:(document.getElementById('newsTitle')||{}).value||'',onPick:r=>{document.getElementById('newsImage').value=r.url;renderThumbPreview()}});
+}
 function pickFeatured(){
   if(!window.StockMedia){say('Bildauswahl nicht verfügbar','error');return}
   StockMedia.open({tab:'stock',onPick:(item,info)=>{document.getElementById('newsImage').value=info.url;renderThumbPreview()}});
 }
-window.NewsMagazine={slugPreview,bodyApi:()=>be,insertImage,pickFeatured,importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
+window.NewsMagazine={slugPreview,bodyApi:()=>be,insertImage,pickFeatured,aiFeatured,importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
 })();

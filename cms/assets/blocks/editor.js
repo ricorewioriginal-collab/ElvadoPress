@@ -282,6 +282,7 @@
         const typing=ae&&side.contains(ae)&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)&&ae.type!=='checkbox';
         if(!typing)renderSide();
       },
+      aiImage:opts.aiImage||null,
       pickImage(cb){if(opts.pickImage)opts.pickImage(cb);else{const u=prompt('Bild-Adresse (https://…)');if(u)cb({url:u.trim()})}},
       renderList(parent){
         const w=h('div',{class:'epb-sublist'});
