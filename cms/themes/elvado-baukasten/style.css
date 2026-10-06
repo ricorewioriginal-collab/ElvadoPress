@@ -51,6 +51,9 @@ img,video,iframe{max-width:100%;height:auto}
 .bk-split{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}.bk-split.rev .bk-split-img{order:2}
 .bk-split-img img{border-radius:var(--radius);display:block;width:100%}
 @media(max-width:760px){.bk-split{grid-template-columns:1fr}.bk-split.rev .bk-split-img{order:0}}
+/* Feste Spaltenzahl (Abschnitt „Vorteile“) wird auf schmalen Bildschirmen reduziert statt seitlich zu scrollen */
+@media(max-width:760px){.bk-features[style]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:480px){.bk-features[style]{grid-template-columns:minmax(0,1fr)!important}}
 .bk-posts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.bk-posts .post-card{margin:0}
 .bk-cta{background:var(--accent);color:var(--on-accent);text-align:center}.bk-cta .btn{background:var(--on-accent);color:var(--accent)}
 .bk-alt{background:var(--card)}

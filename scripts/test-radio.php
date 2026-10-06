@@ -95,7 +95,7 @@ $cm=rrw_radio_clean(['stations'=>[['id'=>'a','source'=>'lautfm','lautfm_id'=>'te
 t('Manueller Sendeplan hat Vorrang',rrw_radio_schedule($data,$cm,$cm['stations'][0])[0]['title']==='Eigene');
 // Speichern + Theme aktiv
 $saved=rrw_radio_save($data,['stations'=>[['id'=>'main','name'=>'Test FM','source'=>'lautfm','lautfm_id'=>'testfm','logo'=>'https://img.example/logo.png','tagline'=>'Der Beste','genre'=>'Rock','website'=>'https://example.org'],['id'=>'zwei','name'=>'Zwei','source'=>'static','stream_url'=>'https://stream.example/zwei']],'default'=>'main','links'=>[['label'=>'Insta','url'=>'https://insta.example/x']],
-  'schedule'=>[['day'=>1,'from'=>'06:00','to'=>'10:00','title'=>'Morgenshow','host'=>'Max']]]);
+  'schedule'=>[['day'=>(int)date('N'),'from'=>'06:00','to'=>'10:00','title'=>'Morgenshow','host'=>'Max']]]);
 t('Speichern/Laden',rrw_radio_load($data)==$saved&&count(glob($data.'/.tools/radio-cache/*.json')?:[])===0);
 t('Konfig-Ordner gesperrt',is_file($data.'/.tools/.htaccess'));
 t('Theme inaktiv ohne Flag',!rrw_radio_theme_active($data));

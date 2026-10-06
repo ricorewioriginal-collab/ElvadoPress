@@ -26,7 +26,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <?php if(!$sa): ?><link rel="stylesheet" href="/control/shared.css"><?php endif; ?>
-<link rel="stylesheet" href="assets/cms.css?v=32">
+<link rel="stylesheet" href="assets/cms.css?v=33">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
 </head>
