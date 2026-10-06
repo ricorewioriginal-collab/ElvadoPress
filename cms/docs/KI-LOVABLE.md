@@ -11,6 +11,13 @@ Menü **KI & Lovable → KI-Zentrale** (`cms/assets/ai-center.js`, `cms/views/pa
 
 Neutrale CMS-Erweiterung (objektorientiert, PSR-4-Namensraum `Elvado\` in `cms/src/`, Autoload `cms/src/autoload.php`). Das übrige CMS bleibt prozedural; es gibt keinen Composer- oder Build-Schritt für PHP.
 
+## KI-Website-Generator
+Menü **KI & Lovable → Website-Generator** (`cms/assets/ai-builder.js`, `cms/src/Ai/SiteBuilder.php`, Aktion `ai_site_plan`): Idee beschreiben → Entwurf aus Titel/Untertitel, Farbwelt, Startseite (Abschnitte des Homepage-Baukastens), Seiten und Beiträgen → Vorschau (einzelne Seiten/Beiträge abwählbar) → **Übernehmen** → **Rückgängig**.
+- Die KI liefert nur JSON (Anbieter des Einsatzzwecks „Website-Generator“, 150 s Zeitrahmen, bis 6000 Token; Aufgabe `site` ist intern und nicht aus der Oberfläche aufrufbar). `SiteBuilder::normalize()` prüft alles streng: nur bekannte Abschnittstypen, keine Bild-Adressen, kein HTML/Skript, Links nur `#`, `/seite.html` (zu vorhandenen Seiten), https oder mailto, Farben mit Kontrast ≥ 4,5, eindeutige und nicht reservierte Seitenadressen (kein Impressum/Datenschutz).
+- Übernehmen läuft über vorhandene Aktionen: `wp_theme_activate`, `wp_theme_customize_save` (Titel, Untertitel, Farben), `wp_bk_save` (Startseite), `save` (pages, menus), `news_save` (Beiträge, standardmäßig Entwurf). Vorher wird der Zustand gesichert (Browser-`localStorage`, Schlüssel `ep_builder_undo`); Rückgängig stellt Titel, Farben, Startseite, Seiten, Menüs, vorheriges Theme wieder her und verschiebt die Beiträge in den Papierkorb.
+- In der Demo gesperrt (`ai_site_plan`, `ai_generate`, `ai_test`, `ai_models`, `ai_config_save`, `ai_migrate_legacy`).
+- Test: `scripts/test-ai-sitebuilder.php` (Fake-Transport).
+
 ## Dateien
 | Pfad | Aufgabe |
 |---|---|

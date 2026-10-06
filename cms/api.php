@@ -1067,6 +1067,17 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
                 $list=$resp->ok()?rrw_assistant_parse_models($resp->json()):[];
                 rrw_json(['status'=>'ok','ok'=>true,'models'=>$list?:$fallback,'source'=>$list?'provider':'catalog']);
             }
+            if($action==='ai_site_plan'){   // KI-Website-Generator: Entwurf aus einer Beschreibung (wird nicht gespeichert)
+                @set_time_limit(200);
+                $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}
+                $svc=new \Elvado\Ai\AiGatewayService($aiCfg,$lg,new \Elvado\Support\RateLimiter($dataDir.'/.ai/ratelimit'));
+                $slugs=[];foreach((array)($site['pages']??[]) as $pg)if(is_array($pg))$slugs[]=(string)($pg['slug']??'');
+                $plan=(new \Elvado\Ai\SiteBuilder($svc))->plan(['description'=>(string)($kB['description']??''),'name'=>(string)($kB['name']??''),'tone'=>(string)($kB['tone']??''),'language'=>(string)($kB['language']??''),
+                    'parts'=>['home'=>!isset($kB['parts']['home'])||!empty($kB['parts']['home']),'pages'=>!isset($kB['parts']['pages'])||!empty($kB['parts']['pages']),'posts'=>!isset($kB['parts']['posts'])||!empty($kB['parts']['posts'])],
+                    'existing_slugs'=>$slugs,'user'=>(string)($kUser['user']??''),'provider'=>(string)($kB['provider']??'')]);
+                rrw_log_activity($activityLogFile,$kUser,'ai_site_plan','KI-Website-Generator: Entwurf erstellt ('.count($plan['pages']).' Seiten, '.count($plan['posts']).' Beiträge)');
+                rrw_json(['status'=>'ok','plan'=>$plan]);
+            }
             if($action==='ai_logs'){ $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){} rrw_json(['status'=>'ok','available'=>$lg!==null,'summary'=>$lg?$lg->summary(30):[],'recent'=>$lg?$lg->recent(30):[]]); }
             if($action==='ai_generate'){
                 $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}   // Protokoll ist optional (ohne Datenbank/SQLite-Erweiterung entfällt es)

@@ -170,6 +170,8 @@ const RRW_DEMO_BLOCKED=[
     'app_build_save','app_build_start','app_build_check','app_build_download','app_build_brand_save','app_build_brand_delete',
     'assistant_chat','assistant_send','assistant_voice','assistant_test','assistant_models','feed_test','services_status','directory_admin_save','apps_geo_update',
     'member_register','member_reset_request','member_reset','redirects_save','lovable_sync','local_auth_setup',
+    // KI-Zentrale und KI-Funktionen: Schlüssel, Verbindungstests (auch zu lokalen Adressen) und Anfragen an fremde Dienste gibt es in der Demo nicht
+    'ai_config_save','ai_test','ai_models','ai_migrate_legacy','ai_generate','ai_site_plan','ai_dev_plan','ai_dev_install',
 ];
 /** WordPress-Verwaltungsseiten, die in der Demo gesperrt sind. */
 const RRW_DEMO_WP_PAGES='#^(plugin-install|plugin-editor|theme-install|theme-editor|update|update-core|import|erase-personal-data|export-personal-data|site-health|network/.*)\.php$#';

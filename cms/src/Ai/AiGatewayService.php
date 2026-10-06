@@ -25,6 +25,8 @@ final class AiGatewayService
     public const MAX_PROMPT_CHARS = 8000;
     public const MAX_TEXT_CHARS = 20000;
     public const MAX_OUTPUT_TOKENS = 4000;
+    /** Aufgaben für größere Ergebnisse (Website-Entwurf, Code); nur von serverseitigen Aufrufern mit 'internal' => true nutzbar, nie direkt aus der Oberfläche. */
+    public const INTERNAL_TASKS = ['site' => 8000, 'code' => 12000];
     public const TASKS = ['text' => 'Text schreiben', 'rewrite' => 'Text überarbeiten', 'translate' => 'Übersetzen', 'summarize' => 'Zusammenfassen', 'json' => 'Strukturierte Daten (JSON)', 'layout' => 'Seitenlayout (JSON für den Homepage-Baukasten)'];
     /** Abschnittstypen des Homepage-Baukastens (cms/themes/elvado-baukasten/inc/layout.php) mit den wichtigsten Feldern für den Prompt. */
     public const LAYOUT_TYPES = [
@@ -142,7 +144,8 @@ final class AiGatewayService
         }
         $def = $cat[$pid];
         $task = (string)($req['task'] ?? 'text');
-        if (!isset(self::TASKS[$task])) {
+        $internal = !empty($req['internal']) && isset(self::INTERNAL_TASKS[$task]);
+        if (!isset(self::TASKS[$task]) && !$internal) {
             throw new AiGatewayException('Unbekannte Aufgabe.', 400);
         }
         $prompt = trim((string)($req['prompt'] ?? ''));
@@ -169,14 +172,16 @@ final class AiGatewayService
             $model = $this->config->model($pid);
         }
         $temperature = max(0.0, min(1.5, (float)($req['temperature'] ?? ($task === 'json' || $task === 'layout' ? 0.2 : 0.7))));
-        $maxTokens = max(64, min(self::MAX_OUTPUT_TOKENS, (int)($req['max_tokens'] ?? 1200)));
-        [$system, $userMsg] = $this->messages($task, $prompt, $text, (string)($req['language'] ?? ''));
-        $wantJson = in_array($task, ['json', 'layout'], true);
+        $maxTokens = max(64, min($internal ? self::INTERNAL_TASKS[$task] : self::MAX_OUTPUT_TOKENS, (int)($req['max_tokens'] ?? 1200)));
+        [$system, $userMsg] = ($internal && is_string($req['system'] ?? null) && $req['system'] !== '')
+            ? [(string)$req['system'], $prompt . ($text !== '' ? "\n\n" . $text : '')]
+            : $this->messages($task, $prompt, $text, (string)($req['language'] ?? ''));
+        $wantJson = in_array($task, ['json', 'layout'], true) || ($internal && !empty($req['json']));
 
         $t0 = microtime(true);
         $status = 0;
         try {
-            $r = $this->call($def, $pid, $key, $model, $system, $userMsg, $temperature, $maxTokens, $wantJson);
+            $r = $this->call($def, $pid, $key, $model, $system, $userMsg, $temperature, $maxTokens, $wantJson, $internal ? 150 : 60);
             $status = 200;
             $data = null;
             if ($wantJson) {
@@ -221,10 +226,10 @@ final class AiGatewayService
     }
 
     /** @return array{text:string,prompt_tokens:?int,completion_tokens:?int} */
-    private function call(array $def, string $pid, string $key, string $model, string $system, string $user, float $temp, int $maxTokens, bool $wantJson): array
+    private function call(array $def, string $pid, string $key, string $model, string $system, string $user, float $temp, int $maxTokens, bool $wantJson, int $timeout = 60): array
     {
         $base = $this->config->baseUrl($pid);
-        $opts = ['timeout' => 60, 'max_bytes' => 2_000_000, 'allow_local' => !empty($def['custom'])];
+        $opts = ['timeout' => $timeout, 'max_bytes' => 2_000_000, 'allow_local' => !empty($def['custom'])];
         switch ($def['kind']) {
             case 'anthropic':
                 $resp = Http::postJson($base . '/messages', [
