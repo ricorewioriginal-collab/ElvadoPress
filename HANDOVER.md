@@ -4,6 +4,7 @@
 ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSION`: **1.0.0**. Das CMS ist PHP-basiert, dateibasiert mit optionalem Datenbankspiegel, besitzt eine WordPress-Kompatibilitätsschicht und optionale App-/Alexa-/KI-Erweiterungen. CI prüft Syntax, Smoke-Test und die vorhandenen Funktionstests.
 
 ## Zuletzt abgeschlossen
+- Freie Bilder: Schlüssel/Quellen jetzt unter Einstellungen › Medien (Mediathek zeigt nur Hinweis + Suche); Openverse-Fehler behoben (anonym höchstens `page_size=20`, vorher 24 → 401 → „Bildquelle antwortet nicht“); Fehlermeldungen nach HTTP-Status (`rrw_stock_error_message`), Wikimedia mit beschreibendem User-Agent.
 - Tests für Beitragsfelder: `scripts/test-news-fields.php` (Slug-Eindeutigkeit, Kommentare default/open/closed, noindex, kanonische Adresse, Ausgabe im WP-Theme, Sitemap). Dafür `rrw_news_unique_slug()` und `rrw_news_seo_fields()` aus `news_save` nach `cms/lib/publish.php` ausgelagert (Verhalten unverändert).
 - Admin-Design pro Benutzer (Server: `cms/data/.prefs/admin.json`, API `admin_prefs_get/save`, localStorage nur als Zwischenspeicher); `test-apps.php` legt den Hash-Zwischenspeicher nicht mehr im echten `cms/data` an (`RRW_DATA_DIR`).
 - KI-Bilder im Website-Generator und Beitragseditor (`AiMedia.dialog/generate`), Modellwahl im KI-Entwickler, Customizer-Schnellzugriff und „In Vorschau wählen“ (`customizer-extras.js`); Browserprüfung mit simulierten Anbieterantworten.

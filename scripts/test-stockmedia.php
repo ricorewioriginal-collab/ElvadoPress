@@ -54,7 +54,11 @@ $r=rrw_stock_search($data,'openverse','katze');t('Openverse: ohne Schlüssel, Li
 $r=rrw_stock_search($data,'wikimedia','dom');t('Wikimedia: nur Rasterbilder, Urheber ohne HTML, Lizenz',count($r['items'])===1&&$r['items'][0]['author']==='Max Foto'&&$r['items'][0]['license']==='CC BY-SA 4.0'&&str_contains($r['items'][0]['credit'],'Wikimedia Commons'));
 foreach([['',1],[str_repeat('x',101),1]] as [$q,$pg]){ try{ rrw_stock_search($data,'openverse',$q,$pg);$e='';}catch(Throwable $x){ $e=$x->getMessage(); }t('Leerer/zu langer Suchbegriff abgelehnt',$e!==''); }
 try{ rrw_stock_search($data,'gibtsnicht','x');$e='';}catch(Throwable $x){ $e=$x->getMessage(); }t('Unbekannter Anbieter abgelehnt',$e!=='');
-$GLOBALS['rrw_stock_http']=fn($u,$h)=>'';try{ rrw_stock_search($data,'openverse','neuer begriff');$e='';}catch(Throwable $x){ $e=$x->getMessage(); }t('Quelle antwortet nicht: verständliche Meldung',str_contains($e,'antwortet nicht'));
+$GLOBALS['rrw_stock_http']=fn($u,$h)=>'';try{ rrw_stock_search($data,'openverse','neuer begriff');$e='';}catch(Throwable $x){ $e=$x->getMessage(); }t('Quelle nicht erreichbar: verständliche Meldung',str_contains($e,'nicht erreichbar'));
+$status=function(int $code,string $body) use($data){ $GLOBALS['rrw_stock_http']=function($u,$h) use($code,$body){ $GLOBALS['rrw_stock_last']=['code'=>$code,'body'=>$body];return ''; };try{ rrw_stock_search($data,'openverse','status-'.$code);return ''; }catch(Throwable $x){ return $x->getMessage(); } };
+t('Fehlermeldungen nach HTTP-Status: 401 Schlüssel, 429 Limit, 400 mit Hinweis des Anbieters, 500 mit Status',str_contains($status(401,'{"detail":"x"}'),'Schlüssel')&&str_contains($status(429,''),'Limit')&&str_contains($status(400,'{"detail":"page_size may not exceed 20"}'),'page_size may not exceed 20')&&str_contains($status(503,''),'HTTP 503'));
+$GLOBALS['rrw_stock_http']=$fake;$calls=[];rrw_stock_search($data,'openverse','seitengroesse');
+t('Openverse: höchstens 20 Treffer je Seite (anonym erlaubt) – sonst lehnt Openverse mit 401 ab',preg_match('/page_size=(\d+)/',(string)end($calls)[0],$m)===1&&(int)$m[1]<=20);
 // Übernahme
 $GLOBALS['rrw_stock_http']=$fake;
 $r=rrw_stock_import($data,'pixabay','77');$m=$r['item'];

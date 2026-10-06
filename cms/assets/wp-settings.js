@@ -2,7 +2,7 @@
    Server: wp_settings, wp_settings_save (cms/wp/settings-api.php), wp_reading(_save) und wp_permalinks(_save) (cms/wp/links-api.php). */
 (function(){
   'use strict';
-  var HINTS={general:'Titel, Sprache, Zeitzone und Formate der Website.',writing:'Vorgaben für neue Beiträge.',reading:'Startseite, Beitragsanzahl und Sichtbarkeit für Suchmaschinen.',discussion:'Kommentare auf deiner Website.',media:'Größen für automatisch erzeugte Bilder.',permalinks:'Form der Adressen deiner Beiträge.'};
+  var HINTS={general:'Titel, Sprache, Zeitzone und Formate der Website.',writing:'Vorgaben für neue Beiträge.',reading:'Startseite, Beitragsanzahl und Sichtbarkeit für Suchmaschinen.',discussion:'Kommentare auf deiner Website.',media:'Größen für automatisch erzeugte Bilder und die Quellen für freie Bilder.',permalinks:'Form der Adressen deiner Beiträge.'};
   var TITLES={general:'Allgemeine Einstellungen',writing:'Schreibeinstellungen',reading:'Leseeinstellungen',discussion:'Diskussionseinstellungen',media:'Medieneinstellungen',permalinks:'Permalink-Einstellungen'};
   var cur='general',data=null,rd=null,pl=null;
   function $(id){return document.getElementById(id)}
@@ -47,6 +47,7 @@
       h+=data.fields.map(field).join('');
     }
     box.innerHTML=h+'<div style="margin-top:14px"><button class="btn-a" type="button" onclick="WpSettings.save()"><i class="fas fa-floppy-disk"></i> Änderungen speichern</button></div>';
+    if(cur==='media'&&data){box.insertAdjacentHTML('beforeend','<div id="stockSettings" class="card" style="margin-top:22px"></div>');if(window.StockMedia&&StockMedia.settings)StockMedia.settings()}
     box.onchange=function(e){
       if(e.target.name==='wpsMode'){var on=e.target.value==='page';['wpsFront','wpsPosts'].forEach(function(i){$(i).disabled=!on})}
       if(e.target.name==='wpsPl'){var c=$('wpsPlStruct');c.disabled=e.target.value!=='custom';if(!c.disabled)c.focus()}
