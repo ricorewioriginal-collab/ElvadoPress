@@ -115,6 +115,16 @@ t('app_config?brand=<eigene App>: Hinweis und Wartung dieser App, nicht der Haup
     eq($o['brand'],'meinshop');eq($o['notice']['title'],'Hallo');eq($o['maintenance']['title'],'Wartungsarbeiten');eq($o['update']['available'],false);eq($o['update']['required'],false);
     $o2=rrw_apps_public($site,$root,rrw_apps_own_brand($own,'meinradio'),'android','1.0.0','',str_repeat('s',32));eq($o2['notice'],null);eq($o2['maintenance'],null);eq($o2['features']['directory'],false);
 });
+t('Baukasten-App: Tab-Leiste wird bereinigt und über app_config geliefert',function() use($root){
+    $tabs=rrw_apps_tabs_clean([['title'=>'Start','icon'=>'home','url'=>'/'],['title'=>'Shop','icon'=>'unbekannt','url'=>'https://shop.example.org/x'],
+        ['title'=>'Böse','icon'=>'star','url'=>'javascript:alert(1)'],['title'=>'Protokoll','icon'=>'star','url'=>'//evil.example/'],['title'=>'','icon'=>'star','url'=>'/leer/'],
+        ['title'=>str_repeat('x',40),'icon'=>'info','url'=>'/lang/'],['title'=>'6','icon'=>'info','url'=>'/6/'],['title'=>'7','icon'=>'info','url'=>'/7/']]);
+    eq(count($tabs),5);eq($tabs[0]['url'],'/');eq($tabs[1]['icon'],'star');eq(mb_strlen($tabs[2]['title']),16);
+    $site=['apps'=>rrw_apps_clean(['managed'=>['meinshop:android'=>['builder'=>['tabs'=>[['title'=>'A','icon'=>'home','url'=>'/'],['title'=>'B','icon'=>'shop','url'=>'/shop/']]]]]])];
+    $o=rrw_apps_public($site,$root,['brand'=>'meinshop'],'android','1.0.0','',str_repeat('s',32));
+    eq(count($o['tabs']),2);eq($o['tabs'][1]['url'],'/shop/');
+    eq(rrw_apps_public(['apps'=>rrw_apps_clean([])],$root,['brand'=>'meinshop'],'android','1.0.0','',str_repeat('s',32))['tabs'],[]);
+});
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exec('rm -rf '.escapeshellarg($root));
 exit($fail?1:0);

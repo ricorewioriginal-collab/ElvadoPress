@@ -16,7 +16,8 @@ public static class Brand
     public static string SiteBase => Website.TrimEnd('/');
     // App-Typ aus brand.json: "radio" (Standard, Radio-App) oder "web" (die Website als eigene App für beliebige Seiten)
     public static string Type { get; private set; } = "radio";
-    public static bool IsWeb => Type == "web";
+    public static bool IsWeb => Type == "web" || Type == "content";
+    public static bool IsContent => Type == "content";
     public static string ThemeColor { get; private set; } = "#070A1C";
     // Marken mit Radioverzeichnis: Verzeichnis-Suche, Fremd-Streams, Melden. Kommt aus brand.json ("directory": true).
     private static bool _buildDirectory;
@@ -45,7 +46,7 @@ public static class Brand
             using var doc = JsonDocument.Parse(File.ReadAllText(path));
             if (doc.RootElement.TryGetProperty("id", out var bid) && bid.ValueKind == JsonValueKind.String && System.Text.RegularExpressions.Regex.IsMatch(bid.GetString() ?? "", "^[a-z][a-z0-9]{2,19}$")) Id = bid.GetString()!;
             if (doc.RootElement.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(n.GetString())) Name = n.GetString()!;
-            if (doc.RootElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && string.Equals(t.GetString(), "web", StringComparison.OrdinalIgnoreCase)) Type = "web";
+            if (doc.RootElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && (string.Equals(t.GetString(), "web", StringComparison.OrdinalIgnoreCase) || string.Equals(t.GetString(), "content", StringComparison.OrdinalIgnoreCase))) Type = t.GetString()!.ToLowerInvariant();
             if (doc.RootElement.TryGetProperty("themeColor", out var tc) && tc.ValueKind == JsonValueKind.String && System.Text.RegularExpressions.Regex.IsMatch(tc.GetString() ?? "", "^#[0-9a-fA-F]{6}$")) ThemeColor = tc.GetString()!;
             if (doc.RootElement.TryGetProperty("directory", out var d) && d.ValueKind == JsonValueKind.True) _buildDirectory = true;
             if (doc.RootElement.TryGetProperty("communityBase", out var cb) && cb.ValueKind == JsonValueKind.String && Uri.TryCreate(cb.GetString(), UriKind.Absolute, out var cbu) && cbu.Scheme == Uri.UriSchemeHttps) CommunityBase = cb.GetString()!.TrimEnd('/') + "/";

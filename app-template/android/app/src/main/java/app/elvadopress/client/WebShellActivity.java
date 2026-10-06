@@ -24,6 +24,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.ProgressBar;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -42,6 +43,9 @@ public class WebShellActivity extends Activity {
     private FrameLayout root;
     private LinearLayout noticeBar;
     private LinearLayout blockView;
+    private LinearLayout tabBar;
+    private List<String[]> tabs = new java.util.ArrayList<>();
+    private int activeTab = 0;
     private int bgColor = Color.rgb(7, 10, 28);
 
     @Override
@@ -111,6 +115,11 @@ public class WebShellActivity extends Activity {
 
         column.addView(noticeBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         column.addView(web, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        tabBar = new LinearLayout(this);
+        tabBar.setOrientation(LinearLayout.HORIZONTAL);
+        tabBar.setBackgroundColor(bg);
+        tabBar.setVisibility(View.GONE);
+        column.addView(tabBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         int h = Math.round(3 * getResources().getDisplayMetrics().density);
         root.addView(progress, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, h));
@@ -118,7 +127,41 @@ public class WebShellActivity extends Activity {
 
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl(launchUrl);
+        // Baukasten-App: zuletzt bekannte Tab-Leiste sofort zeigen (auch offline), danach aus dem CMS aktualisieren
+        if (isContentApp()) setTabs(WebRuntime.parseTabs(prefs.getString("tabs_json", ""), getString(R.string.site_base)));
         loadRuntime();
+    }
+
+    private boolean isContentApp() { return "content".equals(BuildConfig.APP_TYPE); }
+
+    /** Tab-Leiste unten (Baukasten-App): nur bei mindestens zwei Einträgen; jeder Tab lädt seine Seite der Website. */
+    private void setTabs(List<String[]> list) {
+        tabs = list;
+        tabBar.removeAllViews();
+        if (list.size() < 2) { tabBar.setVisibility(View.GONE); return; }
+        int light = Color.rgb(235, 238, 250);
+        int active = Color.WHITE;
+        for (int i = 0; i < list.size(); i++) {
+            final int idx = i;
+            String[] t = list.get(i);
+            LinearLayout cell = new LinearLayout(this);
+            cell.setOrientation(LinearLayout.VERTICAL);
+            cell.setGravity(Gravity.CENTER);
+            cell.setPadding(dp(2), dp(6), dp(2), dp(6));
+            TextView g = text(WebRuntime.tabGlyph(t[1]), 20, i == activeTab ? active : light, false);
+            g.setGravity(Gravity.CENTER);
+            TextView l = text(t[0], 11, i == activeTab ? active : light, i == activeTab);
+            l.setGravity(Gravity.CENTER);
+            l.setSingleLine(true);
+            l.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            cell.addView(g);
+            cell.addView(l);
+            cell.setAlpha(i == activeTab ? 1f : 0.7f);
+            cell.setContentDescription(t[0]);
+            cell.setOnClickListener(v -> { activeTab = idx; web.loadUrl(tabs.get(idx)[2]); setTabs(tabs); });
+            tabBar.addView(cell, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        }
+        tabBar.setVisibility(View.VISIBLE);
     }
 
     // ---- Laufzeit-Einstellungen aus dem CMS (nie blockierend: bei jedem Fehler läuft die App normal)
@@ -129,6 +172,10 @@ public class WebShellActivity extends Activity {
     }
 
     private void applyRuntime(WebRuntime.Config c) {
+        if (isContentApp() && c.ok && !c.tabsJson.equals(prefs.getString("tabs_json", ""))) {
+            prefs.edit().putString("tabs_json", c.tabsJson).apply();
+            setTabs(c.tabs);
+        }
         if (c.maintenance) {
             showBlock(c.maintenanceTitle.isEmpty() ? "Wartungsarbeiten" : c.maintenanceTitle,
                     c.maintenanceText.isEmpty() ? "Die App ist vorübergehend nicht verfügbar. Bitte versuche es später erneut." : c.maintenanceText, "", "Erneut prüfen");

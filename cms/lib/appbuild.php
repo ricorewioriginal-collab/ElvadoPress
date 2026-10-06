@@ -13,7 +13,7 @@ const RRW_AB_WIN_PROJECT_OLD='windows-native/RicoReWi.Radio.Windows.csproj';  //
 // Plattformen: Workflow-Datei, Anfang des Lauf-Titels (run-name), Muster des Release-Tags und Dateiendungen der Pakete
 const RRW_AB_PLATFORMS=['android'=>['label'=>'Android','workflow'=>RRW_AB_WORKFLOW,'title'=>'App ','tag'=>'app-%s-','tagre'=>'/^app-%s-\d+$/','ext'=>'apk|aab'],
                         'windows'=>['label'=>'Windows','workflow'=>RRW_AB_WORKFLOW_WIN,'title'=>'Windows ','tag'=>'app-%s-win-','tagre'=>'/^app-%s-win-\d+$/','ext'=>'exe']];
-const RRW_AB_TYPES=['radio'=>'Radio-App','web'=>'Website-App'];
+const RRW_AB_TYPES=['radio'=>'Radio-App','web'=>'Website-App','content'=>'Baukasten-App'];
 const RRW_AB_RESERVED=['ricorewi','senderwelt','debug','release','developer','main','test','android','app'];
 const RRW_AB_MAX_BRANDS=8;
 const RRW_AB_MAX_SCREENSHOTS=8;
@@ -157,7 +157,7 @@ function rrw_ab_merge_brands(array $d, array $brand): array {
     if(!is_array($list))return [null,'android/brands.json im Repository ist unlesbar.'];
     $entry=['id'=>$brand['id'],'applicationId'=>$brand['applicationId'],'appName'=>$brand['appName'],'launchUrl'=>$brand['launchUrl'],'site'=>$brand['site'],'filePrefix'=>$brand['filePrefix']];
     if(!empty($brand['directory']))$entry['directory']=true;
-    if(($brand['type']??'radio')==='web')$entry['type']='web';
+    if(in_array(($brand['type']??'radio'),['web','content'],true))$entry['type']=$brand['type'];
     if(($brand['themeColor']??'')!=='')$entry['themeColor']=$brand['themeColor'];
     $out=[];$done=false;
     // Zusätzliche Angaben, die von Hand in brands.json stehen (z. B. "radio": {"podcast": true, "shops": […]}), bleiben beim Speichern erhalten

@@ -60,7 +60,7 @@ android {
                 resValue 'string', 'theme_color', (b.themeColor ?: '#070A1C')   // Statusleiste/Hintergrund (App-Typ web)
                 // Optionale Funktionen der Radio-App je Marke ("radio" im Eintrag von android/brands.json): podcast, communityBase, shops – siehe ANLEITUNG.md
                 buildConfigField 'String', 'RADIO_CONFIG', javaString(groovy.json.JsonOutput.toJson(b.radio ?: [:]))
-                buildConfigField 'String', 'APP_TYPE', '"' + (b.type == 'web' ? 'web' : 'radio') + '"'   // radio = Radio-App (Standard), web = Website als App
+                buildConfigField 'String', 'APP_TYPE', '"' + (b.type in ['web', 'content'] ? b.type : 'radio') + '"'   // radio = Radio-App (Standard), web = Website als App, content = Baukasten-App (Tab-Leiste mit eigenen Inhalten)
                 resValue 'bool', 'has_directory', (b.directory ? 'true' : 'false')  // Radioverzeichnis-Funktionen (Marken mit Verzeichnis)
                 resValue 'string', 'asset_statements', '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"' + b.site + '"}}]'
             }

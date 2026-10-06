@@ -10,7 +10,7 @@ import org.junit.Test;
 public class WebRuntimeTest {
     private static WebRuntime.Config parse(String json) throws Exception {
         WebRuntime.Config c = new WebRuntime.Config();
-        WebRuntime.parse(json, c);
+        WebRuntime.parse(json, c, "https://example.org");
         return c;
     }
 
@@ -57,5 +57,23 @@ public class WebRuntimeTest {
     public void fehlerAntwortWirdIgnoriert() throws Exception {
         WebRuntime.Config c = parse("{\"status\":\"error\",\"maintenance\":{\"title\":\"x\"}}");
         assertFalse(c.maintenance);
+    }
+
+    @Test
+    public void tabLeisteLoestPfadeAufUndVerwirftUnsicheres() throws Exception {
+        WebRuntime.Config c = parse("{\"status\":\"ok\",\"tabs\":[{\"title\":\"Start\",\"icon\":\"home\",\"url\":\"/\"},"
+                + "{\"title\":\"Shop\",\"icon\":\"shop\",\"url\":\"https://shop.example.org/\"},"
+                + "{\"title\":\"Böse\",\"icon\":\"star\",\"url\":\"javascript:alert(1)\"},"
+                + "{\"title\":\"\",\"icon\":\"star\",\"url\":\"/leer/\"}]}");
+        assertEquals(2, c.tabs.size());
+        assertEquals("https://example.org/", c.tabs.get(0)[2]);
+        assertEquals("home", c.tabs.get(0)[1]);
+        assertEquals("https://shop.example.org/", c.tabs.get(1)[2]);
+    }
+
+    @Test
+    public void ohneTabsKeineLeiste() throws Exception {
+        assertTrue(parse("{\"status\":\"ok\"}").tabs.isEmpty());
+        assertTrue(WebRuntime.parseTabs("kaputt", "https://example.org").isEmpty());
     }
 }

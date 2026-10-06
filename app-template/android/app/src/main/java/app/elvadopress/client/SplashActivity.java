@@ -73,7 +73,7 @@ public class SplashActivity extends Activity {
         }
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent mainIntent = new Intent(this, "web".equals(BuildConfig.APP_TYPE) ? WebShellActivity.class : MainActivity.class);   // App-Typ "web": Website als App (siehe android/brands.json)
+            Intent mainIntent = new Intent(this, !"radio".equals(BuildConfig.APP_TYPE) ? WebShellActivity.class : MainActivity.class);   // App-Typ "web": Website als App (siehe android/brands.json)
             String screenshotScreen = getIntent().getStringExtra("screenshot_screen");
             if (screenshotScreen != null && !screenshotScreen.trim().isEmpty()) {
                 mainIntent.putExtra("screenshot_screen", screenshotScreen);

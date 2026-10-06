@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   var st=null,loaded=false,edit=null,timers={},media=null,shots=[],pickFor='icon';
-  var TYPES={radio:'Radio-App',web:'Website-App'},PLAT={android:'Android',windows:'Windows'};
+  var TYPES={radio:'Radio-App',web:'Website-App',content:'Baukasten-App'},PLAT={android:'Android',windows:'Windows'};
   function buildBtns(b){
     var pl=(b.platforms&&b.platforms.length)?b.platforms:['android'];
     return pl.map(function(p,i){return '<button class="'+(i===0?'btn-a':'btn-g')+'" type="button" onclick="AppBuild.start(\''+esc(b.id)+'\',\''+p+'\')"><i class="fas '+(p==='windows'?'fa-windows fab':'fa-android fab')+'"></i> '+(pl.length>1?esc(PLAT[p])+' bauen':'App bauen')+'</button>'}).join('');
@@ -28,7 +28,7 @@
   function brandForm(b){
     var n=b.id?false:true;
     return '<div class="ab-form"><div class="ab-grid">'
-      +'<label>App-Typ<select class="fc" id="abfType" onchange="AppBuild.typeChange()"><option value="radio"'+((b.type||'radio')==='radio'?' selected':'')+'>Radio-App (Sender, Sendeplan, Player …)</option><option value="web"'+(b.type==='web'?' selected':'')+'>Website-App (deine Website als App – für jedes Thema: Shop, Verein, Magazin, Portfolio …)</option></select></label>'
+      +'<label>App-Typ<select class="fc" id="abfType" onchange="AppBuild.typeChange()"><option value="radio"'+((b.type||'radio')==='radio'?' selected':'')+'>Radio-App (Sender, Sendeplan, Player …)</option><option value="web"'+(b.type==='web'?' selected':'')+'>Website-App (deine Website als App – für jedes Thema: Shop, Verein, Magazin, Portfolio …)</option><option value="content"'+(b.type==='content'?' selected':'')+'>Baukasten-App (eigene Inhalte: Tab-Leiste mit Seiten aus dem CMS, Hinweise, Wartung – ohne neuen Bau änderbar)</option></select></label>'
       +'<div><div class="news-lbl">Plattformen</div><div class="ab-row"><label class="ab-chk"><input type="checkbox" id="abfAnd"'+((b.platforms||['android']).indexOf('android')>=0?' checked':'')+'> Android</label><label class="ab-chk"><input type="checkbox" id="abfWin"'+((b.platforms||[]).indexOf('windows')>=0?' checked':'')+'> Windows</label></div></div>'
       +'<label>App-Name<input class="fc" id="abfName" maxlength="30" value="'+esc(b.appName||'')+'" oninput="AppBuild.autoFill()"></label>'
       +'<label>Marken-ID <span class="hint">(intern, nicht änderbar)</span><input class="fc" id="abfId" maxlength="20" value="'+esc(b.id||'')+'" '+(n?'':'readonly')+'></label>'
@@ -86,7 +86,7 @@
   }
   async function saveBrand(){
     var pl=[];if($('abfAnd').checked)pl.push('android');if($('abfWin').checked)pl.push('windows');
-    var ty=$('abfType').value,body={id:$('abfId').value.trim(),appName:$('abfName').value.trim(),applicationId:$('abfPkg').value.trim(),site:$('abfSite').value.trim(),filePrefix:$('abfPrefix').value.trim(),directory:ty==='radio'&&$('abfDir').checked,icon:$('abfIcon').value,type:ty,platforms:pl,themeColor:(ty==='web'||$('abfColor').dataset.touched)?$('abfColor').value:'',
+    var ty=$('abfType').value,body={id:$('abfId').value.trim(),appName:$('abfName').value.trim(),applicationId:$('abfPkg').value.trim(),site:$('abfSite').value.trim(),filePrefix:$('abfPrefix').value.trim(),directory:ty==='radio'&&$('abfDir').checked,icon:$('abfIcon').value,type:ty,platforms:pl,themeColor:(ty!=='radio'||$('abfColor').dataset.touched)?$('abfColor').value:'',
       splash:$('abfSplash').value,headerLogo:$('abfLogo').value,iconBg:$('abfIconBg').dataset.set?$('abfIconBg').value:'',screenshots:shots.slice(),shortDescription:$('abfShort').value.trim(),fullDescription:$('abfFull').value.trim()};
     try{st=await call('app_build_brand_save',body);edit=null;draw();toast('App gespeichert ✓')}catch(e){toast(e.message,true)}
   }
@@ -114,6 +114,6 @@
   }
   document.addEventListener('input',function(e){if(e.target&&(e.target.id==='abfId'||e.target.id==='abfPrefix'))e.target.dataset.touched='1'});
   window.AppBuild={load:load,saveConn:saveConn,clearToken:clearToken,check:check,saveBrand:saveBrand,start:start,remove:remove,autoFill:autoFill,setIcon:setIcon,pickIcon:function(){return pickImage('icon')},setSplash:setSplash,setLogo:setLogo,pickImage:pickImage,choose:choose,delShot:function(i){shots.splice(i,1);drawShots()},
-    typeChange:function(){var web=$('abfType').value==='web';$('abfDirRow').hidden=web},
+    typeChange:function(){var web=$('abfType').value!=='radio';$('abfDirRow').hidden=web},
     edit:function(id){edit=id;var cur=(st.brands||[]).filter(function(x){return x.id===id})[0];shots=((cur&&cur.screenshots)||[]).slice();draw();if($('abfType')){AppBuild.typeChange();drawShots()}},cancel:function(){edit=null;draw()}};
 })();

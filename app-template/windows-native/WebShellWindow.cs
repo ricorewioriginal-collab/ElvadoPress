@@ -27,6 +27,9 @@ public class WebShellWindow : Window
     private readonly StackPanel _notice = new() { VerticalAlignment = System.Windows.VerticalAlignment.Top, Visibility = Visibility.Collapsed };
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(6) };
     private Border? _block;
+    private readonly StackPanel _tabBar = new() { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed };
+    private List<(string Title, string Icon, string Url)> _tabs = new();
+    private int _activeTab;
 
     public WebShellWindow()
     {
@@ -40,9 +43,17 @@ public class WebShellWindow : Window
             if (File.Exists(icon)) Icon = BitmapFrame.Create(new Uri(icon));
         }
         catch { }
+        // Zeilen: Website (füllt aus) und – nur bei Baukasten-Apps mit mindestens zwei Tabs – die Tab-Leiste unten
+        _root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Grid.SetRow(_web, 0);
+        Grid.SetRow(_tabBar, 1);
+        Grid.SetRowSpan(_notice, 2);
         _root.Children.Add(_web);
+        _root.Children.Add(_tabBar);
         _root.Children.Add(_notice);
         Content = _root;
+        if (Brand.IsContent) SetTabs(WebRuntime.ParseTabs(WebRuntime.TabsCache, Brand.SiteBase));
         Loaded += async (_, _) => { await InitAsync(); await ApplyRuntimeAsync(); };
     }
 
@@ -51,11 +62,36 @@ public class WebShellWindow : Window
     private async Task ApplyRuntimeAsync()
     {
         var c = await WebRuntime.FetchAsync(_http);
+        if (Brand.IsContent && c.Ok && c.TabsJson != WebRuntime.TabsCache) { WebRuntime.TabsCache = c.TabsJson; SetTabs(c.Tabs); }
         if (c.Maintenance) ShowBlock(c.MaintenanceTitle, c.MaintenanceText.Length > 0 ? c.MaintenanceText : "Die App ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.", "");
         else if (c.UpdateRequired) ShowBlock("Update erforderlich", "Diese Version der App wird nicht mehr unterstützt. Bitte installiere die neueste Version.", c.UpdateUrl);
         else HideBlock();
         if (!c.Maintenance && !c.UpdateRequired && c.HasNotice && c.NoticeId != WebRuntime.NoticeSeen) ShowNotice(c);
         else _notice.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>Tab-Leiste unten (Baukasten-App): nur ab zwei Einträgen; jeder Tab lädt seine Seite der Website.</summary>
+    private void SetTabs(List<(string Title, string Icon, string Url)> list)
+    {
+        _tabs = list;
+        _tabBar.Children.Clear();
+        if (list.Count < 2) { _tabBar.Visibility = Visibility.Collapsed; return; }
+        var bg = System.Windows.Media.Color.FromRgb(7, 10, 28);
+        try { bg = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(Brand.ThemeColor); } catch { }
+        _tabBar.Background = new SolidColorBrush(bg);
+        for (var i = 0; i < list.Count; i++)
+        {
+            var idx = i;
+            var on = i == _activeTab;
+            var cell = new StackPanel { Margin = new Thickness(6, 4, 6, 4), Opacity = on ? 1 : 0.7, Cursor = System.Windows.Input.Cursors.Hand, Background = Brushes.Transparent, ToolTip = list[i].Title };
+            cell.Children.Add(new TextBlock { Text = WebRuntime.TabGlyph(list[i].Icon), FontSize = 20, Foreground = Brushes.White, TextAlignment = TextAlignment.Center });
+            cell.Children.Add(new TextBlock { Text = list[i].Title, FontSize = 11, Foreground = Brushes.White, FontWeight = on ? FontWeights.Bold : FontWeights.Normal, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            cell.MouseLeftButtonUp += (_, _) => { _activeTab = idx; _web.CoreWebView2?.Navigate(_tabs[idx].Url); SetTabs(_tabs); };
+            cell.Width = Math.Max(80, 560.0 / list.Count);
+            _tabBar.Children.Add(cell);
+        }
+        _tabBar.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+        _tabBar.Visibility = Visibility.Visible;
     }
 
     private void ShowNotice(WebRuntimeConfig c)

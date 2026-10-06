@@ -26,7 +26,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <?php if(!$sa): ?><link rel="stylesheet" href="/control/shared.css"><?php endif; ?>
-<link rel="stylesheet" href="assets/cms.css?v=41">
+<link rel="stylesheet" href="assets/cms.css?v=42">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
 <script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
@@ -159,7 +159,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/theme-manager.js?v=9"></script>
 <script src="assets/brands-manager.js?v=4"></script>
 <script src="assets/directory-manager.js?v=2"></script><script src="assets/services-manager.js?v=1"></script>
-<script src="assets/app-build.js?v=8"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=5"></script>
+<script src="assets/app-build.js?v=9"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=7"></script>
 <script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=4"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script>
@@ -185,7 +185,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
 <script src="assets/header-builder.js?v=1"></script>
-<script src="assets/cms-app.js?v=43"></script>
+<script src="assets/cms-app.js?v=44"></script>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
 </body>

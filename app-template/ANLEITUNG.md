@@ -113,12 +113,39 @@ Die App lädt `https://<deine-website>/` im Vollbild:
 * Farbe, Name, Icon und Startbild kommen aus den App-Feldern; Hinweise und Wartung aus *Apps verwalten* (Abschnitt 4).
 * Die Website selbst gestaltest du wie gewohnt im CMS (Themes, Baukasten, Widgets) – die App zeigt immer den aktuellen Stand.
 
-## 7. Selbst bauen (ohne GitHub)
+## 7. Die Baukasten-App im Detail
+
+Die **Baukasten-App** (`content`) ist die Vorlage für eine **eigene App mit eigenen Inhalten**, ohne dass du Programmcode anfasst: Die App zeigt unten eine **Tab-Leiste**, jeder Tab öffnet eine Seite deiner Website. Was dort steht, pflegst du wie gewohnt im CMS (Seiten, Beiträge, Shop, Formulare, Community …) – die App spiegelt es.
+
+**Einrichten:** *Apps → Eigene App bauen* → App-Typ **Baukasten-App** → bauen. Danach unter *Apps → Apps verwalten → (deine App) → Inhalte der App*:
+
+| Feld | Bedeutung |
+| --- | --- |
+| Symbol | eines von zwölf mitgelieferten Symbolen (Start, Neuigkeiten, Info, Shop, Termine, Kontakt, Karte, Nachricht, Profil, Favoriten, Medien, Menü) |
+| Titel | Beschriftung des Tabs (bis 16 Zeichen) |
+| Adresse | Pfad auf deiner Website (`/kontakt/`) oder volle `https://`-Adresse (z. B. ein Shop) |
+| ‹ › 🗑 | Reihenfolge ändern, Tab entfernen |
+| Vorlage laden | fertige Tab-Leiste für Verein, Shop, Magazin, Restaurant/Café oder Dienstleister – danach Pfade an deine Seiten anpassen |
+
+Mit **Speichern** gilt die neue Leiste sofort in allen installierten Apps (beim nächsten Start; die zuletzt bekannte Leiste bleibt auch offline erhalten). Ein **neuer Build ist nicht nötig**. Weniger als zwei Tabs blenden die Leiste aus.
+
+**Gut zu wissen**
+
+* Die App zeigt deine Website im Vollbild – ein eigenes App-Aussehen (ohne Kopf/Fuß der Website) erreichst du über ein schlankes Theme oder eine Seitenvorlage für die App-Seiten.
+* Hinweis, Wartungsmodus und Pflicht-Update funktionieren wie bei der Website-App (Abschnitt 4).
+* Fremde Adressen, E-Mail und Telefon öffnen außerhalb der App; ein Tab mit fremder `https://`-Adresse lädt sie ausnahmsweise in der App.
+* Technisch: Die Leiste steht als `tabs` in der Antwort von `cms/api.php?action=app_config&brand=<id>`; Android und Windows lesen sie beim Start (`WebRuntime`).
+
+### Weitere Vorlagen
+
+Der Katalog der Vorlagen steht in [`templates.json`](templates.json). Eine neue Vorlage (z. B. Podcast-App, Community-App) besteht immer aus: einem Typ-Eintrag in `RRW_AB_TYPES` (`cms/lib/appbuild.php`), der Auswertung des Typs in `android/app/build.gradle` und `windows-native/Brand.cs` sowie den Einstellungen unter *Apps verwalten*. Siehe [VORLAGEN.md](VORLAGEN.md).
+
+## 8. Selbst bauen (ohne GitHub)
 
 Voraussetzungen: JDK 17, Android-SDK (Plattform 36, Build-Tools 36.0.0, `ANDROID_HOME`), Gradle 9.6 oder neuer.
 
 ```bash
-# Marke in android/brands.json eintragen (id, applicationId, appName, launchUrl, site, filePrefix, optional type "web" und themeColor),
+# Marke in android/brands.json eintragen (id, applicationId, appName, launchUrl, site, filePrefix, optional type "web" bzw. "content" und themeColor),
 # Icon nach android/app/src/<id>/res/drawable-nodpi/app_logo.png kopieren (z. B. icon-512.png), dann:
 gradle -p android assemble<Id>Developer        # <Id> mit großem Anfangsbuchstaben, z. B. assembleMeinshopDeveloper
 # APK: android/app/build/outputs/apk/<id>/developer/app-<id>-developer.apk
@@ -126,11 +153,11 @@ gradle -p android assemble<Id>Developer        # <Id> mit großem Anfangsbuchsta
 
 Windows (nur unter Windows mit .NET-SDK 8): `dotnet publish -c Release -r win-x64 -p:BrandAppName="Meine App"` im Ordner `windows-native/`, Installer mit Inno Setup (`installer.iss`). Zum reinen Prüfen reicht `scripts/verify-app-template.sh` im ElvadoPress-Repository (baut zwei Beispiel-Apps und führt die Tests aus).
 
-## 8. Die Vorlage aktualisieren
+## 9. Die Vorlage aktualisieren
 
 Neue Funktionen und Korrekturen der Apps kommen mit neuen ElvadoPress-Versionen (Ordner `app-template/`). So übernimmst du sie: neues `app-template.zip` laden, entpacken und in deinem App-Repository **alle Dateien außer** `android/brands.json` und dem Ordner `brands/` ersetzen (die gehören deinen Apps). Danach die Apps neu bauen.
 
-## 9. Fehlersuche
+## 10. Fehlersuche
 
 | Meldung / Problem | Ursache und Lösung |
 | --- | --- |
@@ -144,7 +171,7 @@ Neue Funktionen und Korrekturen der Apps kommen mit neuen ElvadoPress-Versionen 
 | App zeigt trotz Wartungsmodus die Website | Wartungsmodus nur beim App-Start abgefragt; App neu starten |
 | Radio-App ohne Sender | Keine eigenen Sender eingetragen oder „Builder aktiv“ ausgeschaltet (Abschnitt 5) |
 
-## 10. Technische Hinweise
+## 11. Technische Hinweise
 
 * **Paketnamen:** `applicationId` (die Kennung der App) vergibst du pro App. Der Quelltext-Namensraum `app.elvadopress.client` (Android) bzw. `ElvadoPress.App.Windows` ist intern und für Nutzer unsichtbar.
 * **Tests:** `android/app/src/test` (JUnit, Auswertung der CMS-Antwort der Website-App) und `windows-native/tests/RuntimeCheck` (dasselbe für Windows). Aufruf gesammelt über `scripts/verify-app-template.sh` im ElvadoPress-Repository.

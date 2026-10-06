@@ -10,4 +10,7 @@ var d = WebRuntime.Parse("{\"status\":\"ok\",\"notice\":{\"id\":\"i\",\"level\":
 T("hinweis", d.HasNotice && d.NoticeLevel == "info" && d.NoticeUrl == "" && d.NoticeLabel == "L");
 T("fehlerstatus", !WebRuntime.Parse("{\"status\":\"error\",\"maintenance\":{}}").Maintenance);
 T("kaputtes json", !WebRuntime.Parse("{nein").Maintenance);
-Console.WriteLine(fails == 0 ? "C#: 6 Prüfungen bestanden" : fails + " fehlgeschlagen"); return fails;
+var tb = WebRuntime.Parse("{\"status\":\"ok\",\"tabs\":[{\"title\":\"Start\",\"icon\":\"home\",\"url\":\"/\"},{\"title\":\"Shop\",\"icon\":\"shop\",\"url\":\"https://shop.example.org/\"},{\"title\":\"Böse\",\"icon\":\"star\",\"url\":\"javascript:x\"},{\"title\":\"\",\"icon\":\"star\",\"url\":\"/leer/\"}]}", "https://example.org");
+T("tabs", tb.Ok && tb.Tabs.Count == 2 && tb.Tabs[0].Url == "https://example.org/" && tb.Tabs[0].Icon == "home" && tb.Tabs[1].Url == "https://shop.example.org/");
+T("keine tabs", WebRuntime.Parse("{\"status\":\"ok\"}", "https://example.org").Tabs.Count == 0 && WebRuntime.ParseTabs("kaputt", "https://example.org").Count == 0);
+Console.WriteLine(fails == 0 ? "C#: 8 Prüfungen bestanden" : fails + " fehlgeschlagen"); return fails;

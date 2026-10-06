@@ -58,4 +58,12 @@ t('Release-Workflow hängt app-template.zip an (mit Prüfsumme)',str_contains($r
 $doc=(string)file_get_contents($T.'/ANLEITUNG.md');
 foreach(['Apps → Eigene App bauen','Apps verwalten','Wartungsmodus','brands.json','create-developer-keystore','Fehlersuche','Website-App','Radio-App'] as $w)t("Anleitung behandelt: $w",str_contains($doc,$w));
 t('Anleitung nennt jedes Feld des Formulars (CMS: app-build.js)',(function() use($doc){ $js=(string)file_get_contents(__DIR__.'/../cms/assets/app-build.js');foreach(['App-Typ','Plattformen','App-Name','Marken-ID','Paketname','Website','Dateiname-Anfang','Farbe','App-Icon','Startbild','Kopfzeile','Screenshots'] as $l)if(!str_contains($js,$l)||!str_contains($doc,$l))return false;return true; })());
+// Katalog der Vorlagen
+$cat=json_decode((string)file_get_contents($T.'/templates.json'),true);$ctypes=array_column($cat['vorlagen']??[],'type');sort($ctypes);$ktypes=array_keys(RRW_AB_TYPES);sort($ktypes);
+t('templates.json listet genau die App-Typen des CMS',$ctypes===$ktypes,implode(',',$ctypes).' vs '.implode(',',$ktypes));
+$vor=(string)file_get_contents($T.'/VORLAGEN.md');
+t('VORLAGEN.md und README nennen jede Vorlage',(function() use($cat,$vor){ $rd=(string)file_get_contents(__DIR__.'/../app-template/README.md');foreach($cat['vorlagen'] as $v)if(!str_contains($vor,$v['name'])||!str_contains($rd,$v['name']))return false;return true; })());
+t('Android und Windows kennen den Typ „content“ (Baukasten-App)',str_contains($gr,"'content'")&&str_contains((string)file_get_contents($T.'/windows-native/Brand.cs'),'"content"')&&str_contains($ww,"'content'"));
+t('Baukasten-App: Tab-Leiste in Android und Windows, Tests vorhanden',str_contains((string)file_get_contents($jdir.'/WebShellActivity.java'),'setTabs')&&str_contains((string)file_get_contents($T.'/windows-native/WebShellWindow.cs'),'SetTabs')&&str_contains((string)file_get_contents($T.'/windows-native/tests/RuntimeCheck/Program.cs'),'tabs'));
+t('Tab-Vorlagen des Katalogs gibt es in der Oberfläche',(function() use($cat){ $js=(string)file_get_contents(__DIR__.'/../cms/assets/apps-manager.js');foreach($cat['vorlagen'] as $v)foreach($v['vorlagen_tabs']??[] as $p)if(!str_contains($js,$p.':{label'))return false;return true; })());
 echo $fail?"$fail von $n Prüfungen fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);
