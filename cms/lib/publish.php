@@ -401,8 +401,8 @@ function rrw_clean_section(string $section,$value){
     }
     if($section==='seo'){
         $base=trim((string)($value['canonical_base']??rrw_default_canonical_base()));
-        if(!preg_match('#^https://[a-z0-9.-]+(:\d{2,5})?$#i',$base))$base=rrw_default_canonical_base()?:'https://www.ricorewi-radio.de';
-        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??'RicoReWi Radioportal')),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?$value['robots']:'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
+        if(!preg_match('#^https://[a-z0-9.-]+(:\d{2,5})?$#i',$base))$base=rrw_default_canonical_base();
+        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??(rrw_pack_available()?'RicoReWi Radioportal':(($GLOBALS['RRW_SITE']['portal']['site_name']??'')?:rrw_product_name())))),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?$value['robots']:'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
     }
     if($section==='storage'){
         return ['mode'=>in_array(($value['mode']??'files'),['files','files+database'],true)?$value['mode']:'files','database_mirror'=>!empty($value['database_mirror'])];
@@ -500,7 +500,8 @@ function rrw_rss_xml(array $site): string {
     $out="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     $out.="<?xml-stylesheet type=\"text/xsl\" href=\"/cms/rss.xsl\"?>\n";
     $out.="<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:media=\"http://search.yahoo.com/mrss/\">\n<channel>\n";
-    $out.="<title>".$x($title)."</title><link>".$x($ric?'https://www.ricorewi-radio.de/#news':$rb.'/')."</link><description>".$x($desc)."</description><language>de-de</language><lastBuildDate>".gmdate(DATE_RSS)."</lastBuildDate><generator>".htmlspecialchars(rrw_product_generator(),ENT_XML1|ENT_QUOTES,'UTF-8')."</generator><atom:link href=\"https://www.ricorewi-radio.de/rss.xml\" rel=\"self\" type=\"application/rss+xml\" />\n";
+    $self=$ric?'https://www.ricorewi-radio.de/rss.xml':$rb.'/rss.xml';
+    $out.="<title>".$x($title)."</title><link>".$x($ric?'https://www.ricorewi-radio.de/#news':$rb.'/')."</link><description>".$x($desc)."</description><language>de-de</language><lastBuildDate>".gmdate(DATE_RSS)."</lastBuildDate><generator>".htmlspecialchars(rrw_product_generator(),ENT_XML1|ENT_QUOTES,'UTF-8')."</generator><atom:link href=\"".$x($self)."\" rel=\"self\" type=\"application/rss+xml\" />\n";
     foreach($published as $a){
         $external=!empty($a['is_external']);$slug=(string)($a['slug']??'');
         $key=rawurlencode($slug!==''?$slug:(string)($a['id']??''));
