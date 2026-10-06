@@ -1,15 +1,15 @@
 # Eigenständiger Betrieb
 
-Das CMS läuft in zwei Betriebsarten. **Standard ist unverändert der bisherige Betrieb mit Anbindung an das AnMaCha Control Center.** Der eigenständige Betrieb ist eine Einstellung, die nur zusätzlich greift; bestehende Daten (`site.json`, `news.json`, Seiten, Menüs, Widgets, Marken, Apps …) werden dafür nie umgeschrieben.
+ElvadoPress läuft eigenständig oder – für bestehende integrierte Installationen – mit Anbindung an ein Control Center. **Eine frische ElvadoPress-Installation wird standardmäßig eigenständig eingerichtet (`control_center: false`).** Der verbundene Modus bleibt aus Kompatibilitätsgründen erhalten; bestehende Daten (`site.json`, `news.json`, Seiten, Menüs, Widgets, Marken, Apps …) werden beim Umschalten nie umgeschrieben.
 
 ## Betriebsmodi
 
-| | Mit Control Center (Standard) | Eigenständig |
+| | Eigenständig (Standard bei Neuinstallation) | Mit Control Center (Kompatibilitäts-/Integrationsmodus) |
 |---|---|---|
-| Anmeldung | lokaler Zugang **oder** Control-Center-Token | nur lokaler Zugang |
-| Anfragen an `…/control/cron.php` | ja (Berechtigung, Altdaten, News-Rückfall) | **keine** |
-| Studiomail/Voicemail des KI-Assistenten | über das Control Center | „nicht verfügbar im eigenständigen Betrieb“ |
-| Altdaten-Übernahme | möglich | nicht verfügbar |
+| Anmeldung | nur lokaler Zugang | lokaler Zugang **oder** Control-Center-Token |
+| Anfragen an `…/control/cron.php` | **keine** | ja (Berechtigung, Altdaten, News-Rückfall) |
+| Studiomail/Voicemail des KI-Assistenten | „nicht verfügbar im eigenständigen Betrieb“ | über das Control Center |
+| Altdaten-Übernahme | nicht verfügbar | möglich |
 
 Die Einstellung steht in `cms/data/system.local.json` (wird vom CMS verwaltet, nicht ins Repository einchecken):
 
@@ -17,7 +17,7 @@ Die Einstellung steht in `cms/data/system.local.json` (wird vom CMS verwaltet, n
 { "control_center": false, "language": "de", "timezone": "Europe/Berlin", "installed_at": "2026-01-01T12:00:00+01:00" }
 ```
 
-Fehlt die Datei oder das Feld `control_center`, gilt der bisherige Betrieb. Umschalten: Verwaltung → System → **Betrieb & Produkt** (nur Administratoren). Zum Ausschalten der Anbindung muss ein lokaler Administrator unter „Redakteure“ existieren, sonst lehnt das CMS ab (Aussperr-Schutz). Zurückschalten ist jederzeit möglich.
+Bei einer frischen Installation schreibt der Assistent `control_center: false`. Bei einer bereits bestehenden Installation ohne dieses Feld bleibt aus Rückwärtskompatibilität das bisherige Verhalten erhalten; dadurch wird keine Altinstallation stillschweigend umgestellt. Umschalten: Verwaltung → System → **Betrieb & Produkt** (nur Administratoren). Zum Ausschalten der Anbindung muss ein lokaler Administrator unter „Redakteure“ existieren, sonst lehnt das CMS ab (Aussperr-Schutz). Zurückschalten ist jederzeit möglich.
 
 ### Wo das Control Center eingebunden ist
 
@@ -44,7 +44,7 @@ Erneut einrichten: Nur durch bewusstes Löschen von `cms/data/install.lock` **un
 
 ## Produktname ändern
 
-Alle sichtbaren Bezeichnungen der Verwaltung kommen zentral aus `cms/lib/product.php`. Ohne `cms/data/product.json` gilt die bisherige Anzeige („RicoReWi Radio CMS“, „RicoReWi Radio Verwaltung“ …). Ändern: Verwaltung → System → **Betrieb & Produkt** → Produktname (oder die Datei von Hand anlegen):
+Alle sichtbaren Bezeichnungen der Verwaltung kommen zentral aus `cms/lib/product.php`. In ElvadoPress liefert `cms/lib/product.default.json` die neutralen Produktvorgaben; `cms/data/product.json` kann sie installationsbezogen überschreiben. Historische Hersteller-Fallbacks in `product.php` dienen nur der Rückwärtskompatibilität mit älteren integrierten Installationen. Ändern: Verwaltung → System → **Betrieb & Produkt** → Produktname (oder die Datei von Hand anlegen):
 
 ```json
 { "name": "MeinCMS", "logo": "/assets/logo.png", "control_center": "Mein Dashboard" }
