@@ -45,6 +45,7 @@ Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokum
 
 ## Bekannte Probleme
 - `INSTALL.md` enthält noch historisch gewachsene RicoReWi-/Control-Center-Formulierungen, die teilweise nicht zum aktuellen eigenständigen ElvadoPress-Status passen. Siehe `KNOWN_ISSUES.md`.
+- Baukasten-App: **App-Modus** (`cms/lib/appmode.php`, eingehängt in `cms/wp-front.php`; Erkennung per User-Agent, Einstellung `builder.chrome`), Seitenwähler (`wp_link_targets`) und Live-Vorschau im Tab-Editor (`apps-manager.js`).
 - Fix: Der „Speichern“-Knopf der App-Verwaltung rief die Kurzfassung in `cms-app.js` auf (die später geladen wird und `window.saveApps` überschrieb) und speicherte nur die Plattform-Schalter – Einstellungen je App gingen verloren. `saveApps()` nutzt jetzt `AppsManager.collect()`.
 - App-Vorlage (`app-template/`) und Verwaltung eigener Apps sind umgesetzt, aber noch nicht auf Geräten erprobt (siehe `KNOWN_ISSUES.md`); Alexa-Ausbau offen.
 

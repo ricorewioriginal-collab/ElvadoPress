@@ -1423,6 +1423,16 @@ if(str_starts_with($action,'wp_')){
         $out=[];foreach((array)$rows as $r)$out[]=['id'=>(int)$r->ID,'title'=>(string)$r->post_title,'status'=>$r->post_status,'type'=>$r->post_type,'modified'=>$r->post_modified,'elementor'=>get_post_meta((int)$r->ID,'_elementor_edit_mode',true)==='builder','url'=>get_permalink((int)$r->ID)];
         rrw_json(['status'=>'ok','items'=>$out,'elementor'=>in_array('elementor/elementor.php',(array)get_option_active_plugins(),true)]);
     }
+    // Auswahlliste für Links (z. B. Tabs der Baukasten-App): veröffentlichte Seiten, Beiträge und Kategorien als Pfad auf dieser Website
+    if($action==='wp_link_targets'){
+        global $wpdb;$out=[['group'=>'Allgemein','title'=>'Startseite','path'=>'/']];
+        $path=function($u){ $u=(string)$u;$x=parse_url($u);if(!is_array($x)||!isset($x['path']))return '';return $x['path'].(isset($x['query'])?'?'.$x['query']:''); };
+        $rows=$wpdb?$wpdb->get_results("SELECT ID,post_title,post_type FROM {$wpdb->posts} WHERE post_type IN ('page','post') AND post_status='publish' ORDER BY post_type='page' DESC, post_title ASC LIMIT 300"):[];
+        foreach((array)$rows as $r){ $pa=$path(get_permalink((int)$r->ID));if($pa!==''&&trim((string)$r->post_title)!=='')$out[]=['group'=>$r->post_type==='page'?'Seiten':'Beiträge','title'=>(string)$r->post_title,'path'=>$pa]; }
+        $terms=get_terms(['taxonomy'=>'category','hide_empty'=>false]);
+        foreach(is_array($terms)?$terms:[] as $t){ $l=get_term_link($t);if(is_string($l)&&($pa=$path($l))!=='')$out[]=['group'=>'Kategorien','title'=>(string)$t->name,'path'=>$pa]; }
+        rrw_json(['status'=>'ok','items'=>$out]);
+    }
     if($action==='wp_page_create'){
         $title=trim((string)($b['title']??''));if($title===''||mb_strlen($title)>200)$title='Neue Seite';
         $id=wp_insert_post(['post_type'=>'page','post_title'=>$title,'post_status'=>'draft','post_content'=>'']);

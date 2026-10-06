@@ -125,6 +125,23 @@ t('Baukasten-App: Tab-Leiste wird bereinigt und über app_config geliefert',func
     eq(count($o['tabs']),2);eq($o['tabs'][1]['url'],'/shop/');
     eq(rrw_apps_public(['apps'=>rrw_apps_clean([])],$root,['brand'=>'meinshop'],'android','1.0.0','',str_repeat('s',32))['tabs'],[]);
 });
+t('App-Modus: Erkennung am User-Agent, Einstellung je App, Body-Klasse und Stile',function() use($root){
+    require_once __DIR__.'/../cms/lib/appmode.php';
+    $_GET=[];$_COOKIE=[];$_SERVER['HTTP_USER_AGENT']='Mozilla/5.0';eq(rrw_appmode_detect(),null);
+    $_SERVER['HTTP_USER_AGENT']='Mozilla/5.0 (Linux) ElvadoPressApp/1.0 (brand=meinshop; platform=windows)';$a=rrw_appmode_detect();eq($a['brand'],'meinshop');eq($a['platform'],'windows');
+    $_SERVER['HTTP_USER_AGENT']='ElvadoPressApp/1.0 (brand=../x; platform=android)';eq(rrw_appmode_detect(),null);
+    $_SERVER['HTTP_USER_AGENT']='ElvadoPressApp/1.0';eq(rrw_appmode_detect(),null);   // Hintergrundabfragen der App tragen keine Marke
+    $own=['meinshop'=>['type'=>'content'],'meinweb'=>['type'=>'web']];$site=['apps'=>['managed'=>[]]];
+    eq(rrw_appmode_hide(['brand'=>'meinshop','platform'=>'android'],$own,$site),true);   // Baukasten-App: automatisch ausblenden
+    eq(rrw_appmode_hide(['brand'=>'meinweb','platform'=>'android'],$own,$site),false);   // Website-App: unverändert
+    eq(rrw_appmode_hide(['brand'=>'fremd','platform'=>'android'],$own,$site),false);     // unbekannte Marke: nichts ändern
+    $site['apps']['managed']['meinweb:android']['builder']['chrome']='hide';eq(rrw_appmode_hide(['brand'=>'meinweb','platform'=>'android'],$own,$site),true);
+    $site['apps']['managed']['meinshop:android']['builder']['chrome']='keep';eq(rrw_appmode_hide(['brand'=>'meinshop','platform'=>'android'],$own,$site),false);
+    eq(rrw_apps_builder_clean(['chrome'=>'quatsch'])['chrome'],'auto');eq(rrw_apps_builder_clean(['chrome'=>'hide'])['chrome'],'hide');
+    $h=rrw_appmode_inject('<html><head><title>x</title></head><body id="a" class="home blog"><header class="site-header"></header></body></html>',true);
+    eq(str_contains($h,'<body id="a" class="home blog elvado-app">'),true);eq(str_contains($h,'.site-header'),true);eq(strpos($h,'elvado-app-css')<strpos($h,'</head>'),true);
+    eq(str_contains(rrw_appmode_inject('<html><head></head><body><p>x</p></body></html>',true),'<body class="elvado-app">'),true);
+});
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exec('rm -rf '.escapeshellarg($root));
 exit($fail?1:0);

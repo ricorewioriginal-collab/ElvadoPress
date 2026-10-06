@@ -175,6 +175,8 @@ public class WebShellWindow : Window
             var core = _web.CoreWebView2;
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
+            // Die Website erkennt die App (App-Modus: Kopf/Fuß ausblenden) am User-Agent – Format siehe cms/lib/appmode.php
+            if (Brand.Id.Length > 0) core.Settings.UserAgent += " ElvadoPressApp/1.0 (brand=" + Brand.Id + "; platform=windows)";
             core.NavigationStarting += (_, e) =>
             {
                 if (e.Uri == RetryUrl) { e.Cancel = true; core.Navigate(Brand.Website); return; }
