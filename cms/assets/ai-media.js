@@ -8,6 +8,11 @@
   function host(){return document.getElementById('aiMedia')}
   function prov(){return (st.data.providers||[]).filter(function(p){return p.id===st.provider})[0]}
   function models(){var p=prov();return p?(p[st.kind]||[]):[]}
+  function modelOpts(){
+    var ms=models(),own=st.ownModel||(st.model!==''&&ms.indexOf(st.model)<0);st.ownModel=own;
+    return ms.map(function(m){return '<option value="'+esc(m)+'"'+(!own&&m===st.model?' selected':'')+'>'+esc(m)+'</option>'}).join('')+'<option value="__custom__"'+(own?' selected':'')+'>Eigener Modellname …</option>';
+  }
+  function pick(v){if(v==='__custom__'){st.ownModel=true}else{st.ownModel=false;st.model=v}draw()}
   function load(){
     api('ai_media_providers').then(function(d){
       st.data=d;if(!prov()&&d.providers.length)st.provider=d.providers[0].id;
@@ -22,7 +27,7 @@
     h.innerHTML='<div class="card"><div class="th"><div class="tt"><i class="fas fa-image"></i>Bilder &amp; Videos mit KI</div></div>'
       +'<div class="aim-grid"><label>Anbieter<select class="fc" onchange="AiMedia.set(\'provider\',this.value)">'+ps.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===st.provider?' selected':'')+'>'+esc(x.label)+'</option>'}).join('')+'</select></label>'
       +'<label>Art<select class="fc" onchange="AiMedia.set(\'kind\',this.value)"><option value="image"'+(st.kind==='image'?' selected':'')+'>Bild</option><option value="video"'+(st.kind==='video'?' selected':'')+(p&&!(p.video||[]).length?' disabled':'')+'>Video</option></select></label>'
-      +'<label>Modell<input class="fc" list="aimModels" value="'+esc(st.model)+'" oninput="AiMedia.model=this.value" onchange="AiMedia.set(\'model\',this.value)"><datalist id="aimModels">'+models().map(function(m){return '<option value="'+esc(m)+'">'}).join('')+'</datalist></label>'
+      +'<label>Modell<select class="fc" onchange="AiMedia.pick(this.value)">'+modelOpts()+'</select>'+(st.ownModel?'<input class="fc" style="margin-top:6px" placeholder="Modellname" value="'+esc(st.model)+'" oninput="AiMedia.model=this.value">':'')+'</label>'
       +'<label>Format<select class="fc" onchange="AiMedia.set(\'ratio\',this.value)">'+(st.data.ratios||[]).map(function(r){return '<option'+(r===st.ratio?' selected':'')+'>'+esc(r)+'</option>'}).join('')+'</select></label></div>'
       +'<label class="news-lbl">Beschreibung</label><textarea class="aib-text" rows="4" placeholder="z. B. Moderner Studioraum mit Mikrofon, warmes Licht, fotorealistisch" oninput="AiMedia.prompt(this.value)">'+esc(st.prompt)+'</textarea>'
       +(st.kind==='video'?'<label class="news-lbl" style="margin-top:10px">Startbild-Adresse (optional, https – für „image-to-video“-Modelle)</label><input class="fc" style="width:100%" value="'+esc(st.ref)+'" oninput="AiMedia.ref(this.value)">':'')
@@ -34,7 +39,7 @@
         +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+(st.saved?'<span class="hint"><i class="fas fa-check"></i> Gespeichert: '+(st.saved.kind==='video'?'<code>'+esc(st.saved.url)+'</code>':'in der Mediathek (Alt-Text dort ergänzen)')+'</span>':'<button class="btn-a" onclick="AiMedia.save()"><i class="fas fa-download"></i> '+(st.res.kind==='video'?'Video speichern':'In die Mediathek übernehmen')+'</button>')+'</div></div>':'')
       +'</div>';
   }
-  function set(k,v){st[k]=v;if(k==='provider'||k==='kind'){var p=prov();if(k==='provider'&&p&&!(p[st.kind]||[]).length)st.kind=(p.image||[]).length?'image':'video';st.model=models()[0]||''}draw()}
+  function set(k,v){st[k]=v;if(k==='provider'||k==='kind'){st.ownModel=false;var p=prov();if(k==='provider'&&p&&!(p[st.kind]||[]).length)st.kind=(p.image||[]).length?'image':'video';st.model=models()[0]||''}draw()}
   function poll(){
     clearTimeout(timer);
     timer=setTimeout(function(){
@@ -58,5 +63,5 @@
     var r=st.res;if(!r)return;
     api('ai_media_save',{kind:r.kind,url:r.url||'',b64:r.b64||'',prompt:st.prompt}).then(function(d){st.saved=d;draw();toast(r.kind==='video'?'Video gespeichert ✓':'In der Mediathek ✓')}).catch(function(e){toast(e.message,true)});
   }
-  window.AiMedia={open:load,set:set,start:start,save:save,prompt:function(v){st.prompt=v},ref:function(v){st.ref=v},set model(v){st.model=v},get model(){return st.model}};
+  window.AiMedia={open:load,pick:pick,set:set,start:start,save:save,prompt:function(v){st.prompt=v},ref:function(v){st.ref=v},set model(v){st.model=v},get model(){return st.model}};
 })();

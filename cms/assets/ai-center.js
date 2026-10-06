@@ -19,8 +19,14 @@
 
   function load(){
     var h=host();if(h&&!st)h.innerHTML='<div class="empty"><i class="fas fa-spinner fa-spin"></i>Lädt …</div>';
-    return api('ai_config_get').then(function(d){st=d.config;edit={custom:null,purposes:Object.assign({},st.purposes||{}),default_provider:st.default_provider||'',rate_limit:st.rate_limit,providers:{}};draw()})
+    return api('ai_config_get').then(function(d){st=d.config;edit={custom:null,purposes:Object.assign({},st.purposes||{}),default_provider:st.default_provider||'',rate_limit:st.rate_limit,providers:{}};draw();autoModels()})
       .catch(function(e){if(h)h.innerHTML='<div class="empty">'+esc(e.message||'Fehler')+(e.httpStatus===403?' – die KI-Zentrale ist nur für Administratoren.':'')+'</div>'});
+  }
+  function autoModels(){   // Modelllisten der Anbieter mit Schlüssel einmal im Hintergrund holen, damit die Auswahl vollständig ist
+    st.providers.forEach(function(p){
+      if(!p.has_key||!p.enabled||models[p.id]||p.kind==='fal')return;models[p.id]={msg:''};
+      api('ai_models',{provider:p.id}).then(function(d){if(d.source==='provider')models[p.id]={list:d.models||[],msg:''};else delete models[p.id];redrawKeepFocus()}).catch(function(){delete models[p.id]});
+    });
   }
   function edits(id){return edit.providers[id]||(edit.providers[id]={})}
   function provs(){return st.providers}
@@ -35,6 +41,13 @@
     if(p.key_source==='assistant')return '<span class="aic-warn"><i class="fas fa-key"></i> Schlüssel noch im Assistenten – oben „Alte Schlüssel übernehmen“</span>';
     return p.needs_key?'<span class="aic-warn"><i class="fas fa-key"></i> Schlüssel nötig</span>':'<span class="aic-mute"><i class="fas fa-unlock"></i> Kein Schlüssel nötig</span>';
   }
+  function modelPick(p,ms,model,e){   // Auswahlfeld mit allen bekannten Modellen; „Eigener Name“ zeigt zusätzlich ein Textfeld
+    var ids=ms.map(function(m){return m.id}),own=e.customModel||(model!==''&&ids.indexOf(model)<0);
+    var h='<select class="fc w-100" onchange="AiCenter.pickModel(\''+esc(p.id)+'\',this.value)">'+ms.map(function(m){return '<option value="'+esc(m.id)+'"'+(!own&&m.id===model?' selected':'')+'>'+esc(m.id)+(m.free===true?' (kostenlos)':'')+'</option>'}).join('')
+      +'<option value="__custom__"'+(own?' selected':'')+'>Eigener Modellname …</option></select>';
+    return own?'<div style="flex:1;display:grid;gap:6px;min-width:0">'+h+'<input class="fc w-100" placeholder="Modellname" value="'+esc(model)+'" oninput="AiCenter.set(\''+esc(p.id)+'\',\'model\',this.value)"></div>':h;
+  }
+  function pickModel(id,v){if(v==='__custom__'){edits(id).customModel=true}else{edits(id).customModel=false;set(id,'model',v)}draw()}
   function providerCard(p){
     var e=edit.providers[p.id]||{};var en=e.enabled!==undefined?e.enabled:p.enabled;var model=e.model!==undefined?e.model:p.model;
     var ms=(models[p.id]&&models[p.id].list)||(p.models||[]).map(function(m){return {id:m}});
@@ -48,8 +61,9 @@
       +'<div class="aic-grid">'
       +'<div><label class="news-lbl">API-Schlüssel'+(p.needs_key?'':' (optional)')+'</label><div class="aic-row"><input class="fc w-100" type="password" autocomplete="new-password" placeholder="'+(p.has_key?'•••••• (hinterlegt – leer lassen = behalten)':(p.needs_key?'Schlüssel einfügen':'nicht nötig'))+'" value="'+esc(e.api_key&&e.api_key!=='__clear__'?e.api_key:'')+'" oninput="AiCenter.set(\''+esc(p.id)+'\',\'api_key\',this.value)">'
       +(p.key_source==='central'?'<button class="btn-g" type="button" title="Gespeicherten Schlüssel entfernen" onclick="AiCenter.clearKey(\''+esc(p.id)+'\')"><i class="fas fa-trash"></i></button>':'')+'</div></div>'
-      +'<div><label class="news-lbl">Modell</label><div class="aic-row"><input class="fc w-100" list="aicm_'+esc(p.id)+'" value="'+esc(model)+'" oninput="AiCenter.set(\''+esc(p.id)+'\',\'model\',this.value)"><datalist id="aicm_'+esc(p.id)+'">'+ms.map(function(m){return '<option value="'+esc(m.id)+'">'}).join('')+'</datalist>'
-      +'<button class="btn-g" type="button" title="Beim Anbieter nachfragen, welche Modelle es gibt" onclick="AiCenter.loadModels(\''+esc(p.id)+'\')"><i class="fas fa-list"></i></button></div></div>'
+      +'<div><label class="news-lbl">Modell</label><div class="aic-row">'+modelPick(p,ms,model,e)
+      +'<button class="btn-g" type="button" title="Beim Anbieter nachfragen, welche Modelle es gibt" onclick="AiCenter.loadModels(\''+esc(p.id)+'\')"><i class="fas fa-list"></i></button></div>'
+      +(models[p.id]&&models[p.id].msg?'<div class="hint">'+esc(models[p.id].msg)+'</div>':'')+'</div>'
       +(p.custom?'<div><label class="news-lbl">Bezeichnung</label><input class="fc w-100" value="'+esc(p.label)+'" oninput="AiCenter.setCustom(\''+esc(p.id)+'\',\'label\',this.value)"></div><div class="aic-row" style="align-items:flex-end;gap:14px"><label class="wm-check"><input type="checkbox" '+(p.needs_key?'checked':'')+' onchange="AiCenter.setCustom(\''+esc(p.id)+'\',\'needs_key\',this.checked)"> Schlüssel nötig</label><label class="wm-check"><input type="checkbox" '+(p.free?'checked':'')+' onchange="AiCenter.setCustom(\''+esc(p.id)+'\',\'free\',this.checked)"> kostenlos</label></div>':'')
       +(p.base_editable||p.custom?'<div style="grid-column:1/-1"><label class="news-lbl">Basis-Adresse'+(p.custom?' (OpenAI-kompatibel, ohne /chat/completions)':'')+'</label><input class="fc w-100" '+(p.custom?'disabled':'')+' value="'+esc(e.base_url!==undefined?e.base_url:p.base_url)+'" oninput="AiCenter.set(\''+esc(p.id)+'\',\'base_url\',this.value)"></div>':'')
       +'</div>'
@@ -153,5 +167,5 @@
     }).catch(function(e){if(el)el.textContent=e.message});
   }
   function open(){if(!st)load();else{draw();load()}}
-  window.AiCenter={open:open,load:load,set:set,setPurpose:setPurpose,setRate:setRate,clearKey:clearKey,addCustom:addCustom,setCustom:setCustom,removeCustom:removeCustom,test:test,loadModels:loadModels,save:function(){return save(false)},migrate:migrate,logs:logs,state:function(){return st}};
+  window.AiCenter={open:open,load:load,set:set,setPurpose:setPurpose,setRate:setRate,clearKey:clearKey,addCustom:addCustom,setCustom:setCustom,removeCustom:removeCustom,test:test,loadModels:loadModels,pickModel:pickModel,save:function(){return save(false)},migrate:migrate,logs:logs,state:function(){return st}};
 })();

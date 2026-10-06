@@ -364,3 +364,25 @@ body.no-pack-ricorewi-radio:not(.rrw-standalone) [data-pack-app="ricorewi-radio"
 .aim-out{margin-top:16px;display:grid;gap:12px}
 .aim-out img,.aim-out video{max-width:100%;max-height:60vh;border-radius:10px}
 .aim-bar{height:6px;border-radius:99px;background:rgba(128,128,128,.25);overflow:hidden}.aim-bar>i{display:block;height:100%;background:var(--accent,#7c5cff);transition:width .4s}
+
+/* Live-Customizer mobil: Vorschau oben, Bedienfeld unten (wie im WordPress-Customizer), „Ausblenden“ zeigt nur die Vorschau */
+.cz-hide{display:none}
+@media(max-width:850px){
+ .theme-customizer{inset:0;height:100vh;height:100dvh;z-index:100000;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+ .theme-customizer-preview{display:flex!important;grid-row:1;grid-column:1;padding:0}
+ .theme-customizer-side{grid-row:2;grid-column:1;height:52vh;height:52dvh;border-right:0;border-top:1px solid var(--border);overflow:hidden}
+ .theme-customizer-controls{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+ .theme-customizer-heading{padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+ .theme-customizer-heading .hint{display:none}
+ .theme-customizer-heading h2{margin:0;font-size:1rem;flex:1;min-width:80px}
+ .theme-customizer-heading .btn-g{padding:6px 10px;font-size:.78rem}
+ .theme-customizer-top{height:46px;flex:none}
+ .theme-customizer-close{width:46px;height:46px}
+ .theme-customizer-devices{flex:none;position:static;padding:6px}
+ .cz-hide{display:inline-flex}
+ .theme-preview-browser{border-radius:0;box-shadow:none}
+ .theme-preview-bar{display:none}
+ .theme-customizer.hide-panel .theme-customizer-side{height:auto}
+ .theme-customizer.hide-panel .theme-customizer-side>.theme-customizer-heading,.theme-customizer.hide-panel .theme-customizer-side>.theme-customizer-controls,.theme-customizer.hide-panel .theme-customizer-side>.cz-theme-row,.theme-customizer.hide-panel .theme-customizer-side>.cz-actions{display:none!important}
+ .theme-customizer-publish .btn-a{padding:6px 10px;font-size:.8rem}
+}
