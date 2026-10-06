@@ -26,6 +26,12 @@ t('Ungültige Branding-Angaben werden abgelehnt',function() use($base){
         [$b,$e]=clean($bad+$base);if($b!==null||$e==='')throw new RuntimeException('nicht abgelehnt: '.json_encode($bad));
     }
 });
+t('Marken-IDs, die Gradle als Flavor ablehnt (test…, androidtest…, Build-Typen), werden abgelehnt',function() use($base){
+    foreach(['testradio','tester','androidtestx','debug','release','developer','main'] as $id){
+        [$b,$e]=clean(['id'=>$id]+$base);if($b!==null||$e==='')throw new RuntimeException('nicht abgelehnt: '.$id);
+    }
+    [$b,$e]=clean(['id'=>'meinradio']+$base);eq($e,'');eq($b['id'],'meinradio');
+});
 t('Texte werden begrenzt',function() use($base){
     [$b]=clean(['shortDescription'=>str_repeat('k',200),'fullDescription'=>str_repeat('l',9000)]+$base);eq(mb_strlen($b['shortDescription']),80);eq(mb_strlen($b['fullDescription']),4000);
 });

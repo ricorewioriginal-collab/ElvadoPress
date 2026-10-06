@@ -1,0 +1,95 @@
+name: Windows custom brand
+
+# Baut die Windows-App einer einzelnen Marke aus android/brands.json (gestartet vom Build-Assistenten im CMS: Apps → Eigene App bauen).
+# Radio-Apps und Website-Apps (type "web") nutzen dieselbe Code-Basis; das Ergebnis liegt als Pre-Release „app-<marke>-win-<nr>“ im Repository
+# (Installer und portable EXE). Das CMS listet und liefert die Dateien aus.
+run-name: Windows ${{ inputs.brand }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      brand:
+        description: 'Marken-ID aus android/brands.json'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-custom-${{ inputs.brand }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      BRAND: ${{ inputs.brand }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Marke prüfen
+        shell: pwsh
+        run: |
+          if ($env:BRAND -notmatch '^[a-z][a-z0-9]{2,19}$') { throw "Ungültige Marken-ID: $env:BRAND" }
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Marke aus android/brands.json lesen
+        shell: pwsh
+        run: |
+          $b = (Get-Content android/brands.json -Raw | ConvertFrom-Json) | Where-Object { $_.id -eq $env:BRAND } | Select-Object -First 1
+          if (-not $b) { throw "Marke $env:BRAND steht nicht in android/brands.json" }
+          if ($b.appName -notmatch '^[\p{L}\p{N} ._-]{1,30}$') { throw "Ungültiger App-Name" }
+          if ($b.filePrefix -notmatch '^[A-Za-z0-9-]{2,30}$') { throw "Ungültiger Dateiname-Anfang" }
+          if ($b.site -notmatch '^https://[A-Za-z0-9.:-]+$') { throw "Ungültige Website" }
+          $type = if ($b.type -eq 'web') { 'web' } else { 'radio' }
+          $theme = if ($b.themeColor -match '^#[0-9a-fA-F]{6}$') { $b.themeColor } else { '#070A1C' }
+          "APP_NAME=$($b.appName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_PREFIX=$($b.filePrefix)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_SITE=$($b.site)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_TYPE=$type" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_THEME=$theme" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "APP_DIR=$([bool]$b.directory)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Bilder und Marken-Konfiguration bereitstellen
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path windows-native/assets/config | Out-Null
+          foreach ($f in 'app_icon.png','logo-lockup.png','startscreen.png') { Copy-Item "android-app/assets/config/$f" "windows-native/assets/config/$f" -Force }
+          if (Test-Path "brands/$env:BRAND/app_logo.png") {
+            Copy-Item "brands/$env:BRAND/app_logo.png" windows-native/assets/config/app_icon.png -Force
+            Copy-Item "brands/$env:BRAND/app_logo.png" windows-native/assets/config/logo-lockup.png -Force
+            Write-Host "Eigenes Icon: ja"
+          } else { Write-Host "Eigenes Icon: nein (Standard-Icon)" }
+          foreach ($f in 'logo-lockup','startscreen') { if (Test-Path "brands/$env:BRAND/$f.png") { Copy-Item "brands/$env:BRAND/$f.png" "windows-native/assets/config/$f.png" -Force } }
+          $cfg = [ordered]@{ id = $env:BRAND; name = $env:APP_NAME; website = "$env:APP_SITE/"; type = $env:APP_TYPE; themeColor = $env:APP_THEME }
+          if ($env:APP_DIR -eq 'True') { $cfg.directory = $true }
+          $cfg | ConvertTo-Json -Compress | Set-Content windows-native/assets/config/brand.json -Encoding utf8
+
+      - name: Bauen
+        working-directory: windows-native
+        shell: pwsh
+        run: |
+          dotnet restore
+          dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true "-p:BrandAppName=$env:APP_NAME" -o publish
+
+      - name: Installer bauen
+        working-directory: windows-native
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $v = [string]([xml](Get-Content "ElvadoPress.App.Windows.csproj")).Project.PropertyGroup.Version
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$v" "/DAppName=$env:APP_NAME" "/DOutBase=$env:APP_PREFIX-Setup-x64" /DPublishDir=publish installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "Installer-Build fehlgeschlagen" }
+          Copy-Item "Output\$env:APP_PREFIX-Setup-x64.exe" "$env:APP_PREFIX-Setup-x64.exe" -Force
+          Copy-Item "publish\$env:APP_NAME.exe" "$env:APP_PREFIX-Portable-x64.exe" -Force
+
+      - name: Als Pre-Release bereitstellen
+        shell: pwsh
+        run: |
+          $tag = "app-$env:BRAND-win-$env:GITHUB_RUN_NUMBER"
+          gh release create $tag "windows-native/$env:APP_PREFIX-Setup-x64.exe" "windows-native/$env:APP_PREFIX-Portable-x64.exe" --prerelease --title "Windows $env:BRAND (Build $env:GITHUB_RUN_NUMBER)" --notes "Gebaut vom Build-Assistenten im CMS. Nicht signiert: Windows SmartScreen kann eine Warnung zeigen."

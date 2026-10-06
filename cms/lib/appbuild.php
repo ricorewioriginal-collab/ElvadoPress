@@ -42,6 +42,8 @@ function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
     $id=strtolower(trim((string)($in['id']??'')));
     if(!preg_match('/^[a-z][a-z0-9]{2,19}$/',$id))return [null,'Die Marken-ID besteht aus 3–20 Kleinbuchstaben/Ziffern und beginnt mit einem Buchstaben.'];
     if(in_array($id,RRW_AB_RESERVED,true))return [null,'Die Marken-ID „'.$id.'“ ist reserviert.'];
+    // Gradle verbietet Product-Flavor-Namen, die mit „test“ oder „androidTest“ beginnen (sonst bricht der Build mit „ProductFlavor names cannot start with 'test'“ ab)
+    if(str_starts_with($id,'test')||str_starts_with($id,'androidtest'))return [null,'Die Marken-ID darf nicht mit „test“ oder „androidtest“ beginnen (Android-Build-Regel). Bitte eine andere ID wählen.'];
     $pkg=strtolower(trim((string)($in['applicationId']??'')));
     if(!preg_match('/^[a-z][a-z0-9_]{0,30}(\.[a-z][a-z0-9_]{0,30}){1,4}$/',$pkg))return [null,'Der Paketname sieht aus wie de.meinradio.app (Kleinbuchstaben, mindestens zwei Teile mit Punkt).'];
     foreach(explode('.',$pkg) as $seg)if(in_array($seg,['abstract','assert','boolean','break','byte','case','catch','char','class','const','continue','default','do','double','else','enum','extends','final','finally','float','for','goto','if','implements','import','instanceof','int','interface','long','native','new','package','private','protected','public','return','short','static','strictfp','super','switch','synchronized','this','throw','throws','transient','try','void','volatile','while','true','false','null'],true))return [null,'Im Paketnamen ist „'.$seg.'“ ein reserviertes Wort.'];
