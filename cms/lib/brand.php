@@ -15,14 +15,14 @@ if(!function_exists('rrw_read_json')){
     }
 }
 if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
-function rrw_brand_default_id(): string { return 'ricorewi-radio'; }
+function rrw_brand_default_id(): string { return rrw_pack_available()?'ricorewi-radio':'site'; }
 // Standard-Registry: RicoReWi Radio (Hauptmarke, erbt alle bisherigen globalen Werte) und
 // SenderWelt (vorbereitet, neutrale Platzhalter-Assets bis im CMS echte Dateien gewählt werden).
 function rrw_brand_defaults(): array {
     // Eigenständiges CMS (ohne das RicoReWi-Paket): nur die eigene Hauptmarke, benannt nach der Website
     if(!rrw_pack_available()){
         $nm=trim((string)($GLOBALS['RRW_SITE']['portal']['site_name']??''));if($nm==='')$nm='Meine Website';
-        return ['default'=>'ricorewi-radio','items'=>[rrw_brand_blank(['id'=>'ricorewi-radio','name'=>$nm,'short_name'=>$nm,'canonical_mode'=>'own','enabled'=>true,'builtin'=>true])]];
+        return ['default'=>'site','items'=>[rrw_brand_blank(['id'=>'site','name'=>$nm,'short_name'=>$nm,'canonical_mode'=>'own','enabled'=>true,'builtin'=>true])]];
     }
     return [
         'default'=>'ricorewi-radio',
@@ -85,8 +85,9 @@ function rrw_brands_clean($value): array {
     }
     // Eingebaute Marken dürfen nicht fehlen (sonst Standard-Eintrag ergänzen).
     foreach($defaults['items'] as $d)if(!isset($seen[$d['id']]))$items[]=$d;
-    $default=rrw_brand_id_clean((string)($value['default']??'ricorewi-radio'));
-    if(!in_array($default,array_column($items,'id'),true))$default='ricorewi-radio';
+    $fallbackDefault=rrw_brand_default_id();
+    $default=rrw_brand_id_clean((string)($value['default']??$fallbackDefault));
+    if(!in_array($default,array_column($items,'id'),true))$default=$fallbackDefault;
     return ['default'=>$default,'items'=>$items];
 }
 function rrw_brands_registry(array $site): array { return rrw_brands_clean($site['brands']??rrw_brand_defaults()); }
