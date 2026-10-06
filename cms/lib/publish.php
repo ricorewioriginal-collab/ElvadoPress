@@ -770,7 +770,7 @@ function rrw_theme_layout_clean($layout): array {
 // Merkt sich Variante, Einstellungen und Widget-Anordnung des aktiven Themes unter
 // theme.mods[<id>], damit sie beim Wechsel zu einem anderen Theme erhalten bleiben.
 function rrw_theme_remember_mods(array $site): array {
-    $active=rrw_theme_id((string)($site['theme']['active']??'ricorewi-neon'));if($active==='')return $site;
+    $active=rrw_theme_id((string)($site['theme']['active']??rrw_default_theme_id()));if($active==='')return $site;
     $mods=is_array($site['theme']['mods']??null)?$site['theme']['mods']:[];
     $mods[$active]=['variant'=>(string)($site['theme']['variant']??'default'),'settings'=>is_array($site['theme']['settings']??null)?$site['theme']['settings']:[],'widget_areas'=>array_values(is_array($site['widget_areas']??null)?$site['widget_areas']:[]),'saved_at'=>date('Y-m-d H:i:s')];
     $site['theme']['mods']=$mods;
