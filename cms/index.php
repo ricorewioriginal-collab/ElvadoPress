@@ -37,7 +37,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <main class="cms">
   <div id="cmsDenied" class="card access-denied" style="display:none">
     <i class="fas fa-lock"></i><h2>Kein Zugriff</h2>
-    <p>Die RicoReWi-Radio-Verwaltung ist nur für Superadmins und ausdrücklich in der Administration freigegebene Benutzer verfügbar.</p>
+    <p>Du hast keine Berechtigung für diese Verwaltung. Melde dich mit einem berechtigten ElvadoPress-Benutzerkonto an.</p>
     <?php if($sa): ?><a class="btn-g" href="/"><i class="fas fa-arrow-left"></i> Zur Website</a><?php else: ?><a class="btn-g" href="/control/"><i class="fas fa-arrow-left"></i> Zurück zum Dashboard</a><?php endif; ?>
   </div>
   <div id="cmsLogin" class="card access-denied" style="display:none">

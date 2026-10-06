@@ -1,4 +1,4 @@
-# RicoReWi Radio CMS – Speicher, Datenbank und Backups
+# ElvadoPress – Speicher, Datenbank und Backups
 
 ## Standard: Datei-CMS
 

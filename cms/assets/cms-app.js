@@ -688,7 +688,7 @@ async function uploadBranding(kind){
 
 function renderCoreNetwork(){
  const h=document.getElementById('coreStationList');if(!h)return;const list=CMS?.core_network?.stations||[];
- h.innerHTML=list.map(st=>`<div class="core-row"><div><div class="core-name"><i class="fas fa-radio" style="color:var(--cyan);margin-right:7px"></i>${escCms(st)}</div><div class="core-meta">Core-Netzwerk · laut.fm</div></div><div>${st==='ricorewi'?'<span class="hint"><i class="fas fa-lock"></i> geschützt</span>':CMS_IS_SA?'<button class="btn-d" onclick="removeCore(\''+escCms(st)+'\')"><i class="fas fa-trash"></i> Entfernen</button>':'<span class="hint"><i class="fas fa-shield-halved"></i> Superadmin nötig</span>'}</div></div>`).join('')||'<div class="empty">Keine Sender.</div>';
+ h.innerHTML=list.map(st=>`<div class="core-row"><div><div class="core-name"><i class="fas fa-radio" style="color:var(--cyan);margin-right:7px"></i>${escCms(st)}</div><div class="core-meta">Core-Netzwerk · laut.fm</div></div><div>${st==='ricorewi'&&(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio'])?'<span class="hint"><i class="fas fa-lock"></i> geschützt</span>':CMS_IS_SA?'<button class="btn-d" onclick="removeCore(\''+escCms(st)+'\')"><i class="fas fa-trash"></i> Entfernen</button>':'<span class="hint"><i class="fas fa-shield-halved"></i> Superadmin nötig</span>'}</div></div>`).join('')||'<div class="empty">Keine Sender.</div>';
 }
 async function validateAndAddCore(){
  const st=(document.getElementById('coreNewStation')?.value||'').trim().toLowerCase(),out=document.getElementById('coreValidation');

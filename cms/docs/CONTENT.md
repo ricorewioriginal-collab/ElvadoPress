@@ -1,4 +1,4 @@
-# RicoReWi Radio CMS – Dateibasierte Inhalte
+# ElvadoPress – Dateibasierte Inhalte
 
 Das System ist vom Prinzip dateibasierter CMS wie Grav inspiriert, enthält aber keinen übernommenen Grav-Code.
 

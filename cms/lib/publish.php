@@ -313,7 +313,7 @@ function rrw_clean_section(string $section,$value){
     }
     if($section==='social'){foreach(['ricorewi_tiktok','ricorewi_instagram','anmacha_tiktok','anmacha_instagram'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,120);return $o??[];}
     if($section==='branding'){foreach(['portal_logo','portal_icon','favicon','android_inapp_logo','android_startscreen','android_app_icon','windows_logo'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
-    if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
+    if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(rrw_pack_available()&&!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
     if($section==='services'&&!rrw_pack_available()){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';return rrw_services_clean($value); }
     if($section==='services'){foreach(['radio_portal','control_center','public_api','news_api','tracker','apps_page','nextcloud','owncast','castopod','airdeck'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='pages'){
@@ -401,8 +401,8 @@ function rrw_clean_section(string $section,$value){
     }
     if($section==='seo'){
         $base=trim((string)($value['canonical_base']??rrw_default_canonical_base()));
-        if(!preg_match('#^https://[a-z0-9.-]+(:\d{2,5})?$#i',$base))$base=rrw_default_canonical_base()?:'https://www.ricorewi-radio.de';
-        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??'RicoReWi Radioportal')),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?$value['robots']:'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
+        if(!preg_match('#^https://[a-z0-9.-]+(:\d{2,5})?$#i',$base))$base=rrw_default_canonical_base();
+        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??(rrw_pack_available()?'RicoReWi Radioportal':(($GLOBALS['RRW_SITE']['portal']['site_name']??'')?:rrw_product_name())))),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?$value['robots']:'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
     }
     if($section==='storage'){
         return ['mode'=>in_array(($value['mode']??'files'),['files','files+database'],true)?$value['mode']:'files','database_mirror'=>!empty($value['database_mirror'])];
@@ -432,16 +432,20 @@ function rrw_generate_custom_pages(array $site,string $root): void {
     $nav='';foreach($menus as $m){if(empty($m['enabled'])||!empty($m['parent_id']))continue;$target=(string)($m['target']??'');$href='#';if(str_starts_with($target,'page:'))$href='/'.rrw_slug(substr($target,5)).'.html';elseif(str_starts_with($target,'system:'))$href='/#'.substr($target,7);elseif(str_starts_with($target,'http')||str_starts_with($target,'/'))$href=$target;$nav.='<a href="'.htmlspecialchars($href,ENT_QUOTES,'UTF-8').'">'.htmlspecialchars((string)($m['label']??''),ENT_QUOTES,'UTF-8').'</a>';}
     rrw_page_schedule_write($root.'/cms/data',(array)($site['pages']??[]));
     foreach((array)($site['pages']??[]) as $p){if(($p['type']??'')!=='custom'||empty($p['enabled']))continue;$slug=rrw_slug((string)($p['slug']??$p['title']??'seite'));$file=$root.'/'.$slug.'.html';$wanted[$file]=true;$title=htmlspecialchars((string)($p['headline']?:$p['title']??$slug),ENT_QUOTES,'UTF-8');$intro=htmlspecialchars((string)($p['intro']??''),ENT_QUOTES,'UTF-8');$body=rrw_render_blocks(array_merge((array)($p['blocks_before']??[]),(array)($p['blocks_after']??[])),$widgets);
-        $mt=trim((string)($p['meta_title']??''));$metaTitle=htmlspecialchars($mt!==''?$mt:(string)($p['headline']?:$p['title']??$slug).' – RicoReWi Radio',ENT_QUOTES,'UTF-8');
+        $siteName=trim((string)($site['portal']['site_name']??''))?:rrw_product_name();$pageSuffix=rrw_pack_available()?'RicoReWi Radio':$siteName;
+        $mt=trim((string)($p['meta_title']??''));$metaTitle=htmlspecialchars($mt!==''?$mt:(string)($p['headline']?:$p['title']??$slug).' – '.$pageSuffix,ENT_QUOTES,'UTF-8');
         $md=trim((string)($p['meta_description']??''));if($md==='')$md=trim((string)($p['intro']??''));
         $metaTags=($md!==''?'<meta name="description" content="'.htmlspecialchars(mb_substr($md,0,300),ENT_QUOTES,'UTF-8').'">':'').(!empty($p['noindex'])?'<meta name="robots" content="noindex,follow">':'');
-        $activeTheme=rrw_theme_id((string)($site['theme']['active']??'ricorewi-neon'));
+        $activeTheme=rrw_theme_id((string)($site['theme']['active']??(rrw_pack_available()?'ricorewi-neon':'rrw-classic')));
         $themeLink=$activeTheme!=='ricorewi-neon'?'<link rel="stylesheet" href="/cms/themes/'.htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8').'/theme.css">':'';
         $ts=is_array($site['theme']['settings']??null)?$site['theme']['settings']:[];
         $safeColor=function($v,$fallback){$v=trim((string)$v);return preg_match('/^#[0-9a-fA-F]{6}$/',$v)?$v:$fallback;};
         $themeVars='<style>:root{--rrw-theme-accent:'.$safeColor($ts['accent']??'','#b57cff').';--rrw-theme-accent2:'.$safeColor($ts['accent2']??'','#22d3ee').';--rrw-theme-background:'.$safeColor($ts['background']??'','#06060a').';--rrw-theme-surface:'.$safeColor($ts['surface']??'','#101522').';--rrw-theme-text:'.$safeColor($ts['text']??'','#f4f6ff').';--rrw-theme-radius:'.max(0,min(40,(float)($ts['radius']??16))).';--rrw-theme-content-width:'.max(800,min(1900,(float)($ts['content_width']??1320))).';--rrw-theme-font-scale:'.max(.75,min(1.4,(float)($ts['font_scale']??1))).';}</style>';
         $customCss=trim((string)($ts['custom_css']??''));if($customCss!=='')$themeVars.='<style>'.$customCss.'</style>';
-        $html=RRW_CMS_MARKER."\n<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>$metaTitle</title>$metaTags<link rel=\"icon\" href=\"/icon-192.png\"><link rel=\"stylesheet\" href=\"/cms/generated/page.css\">".$themeLink.$themeVars."</head><body data-rrw-theme=\"".htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8')."\"><header><a class=\"brand\" href=\"/\"><img src=\"/logo-lockup.png\" alt=\"RicoReWi Radio\"></a><nav>$nav</nav></header><main><article><h1>$title</h1>".($intro!==''?"<p class=\"intro\">$intro</p>":'').$body."</article></main><footer><a href=\"/\">RicoReWi Radioportal</a></footer></body></html>";
+        $pageLogo=(string)($site['branding']['portal_logo']??(rrw_pack_available()?'/logo-lockup.png':rrw_product_logo()));if($pageLogo==='')$pageLogo='/cms/assets/brand/icon-192.png';
+        $pageBrand=htmlspecialchars($siteName,ENT_QUOTES,'UTF-8');$pageLogoEsc=htmlspecialchars($pageLogo,ENT_QUOTES,'UTF-8');
+        $footerLabel=rrw_pack_available()?'RicoReWi Radioportal':$siteName;
+        $html=RRW_CMS_MARKER."\n<!doctype html><html lang=\"de\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>$metaTitle</title>$metaTags<link rel=\"icon\" href=\"/icon-192.png\"><link rel=\"stylesheet\" href=\"/cms/generated/page.css\">".$themeLink.$themeVars."</head><body data-rrw-theme=\"".htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8')."\"><header><a class=\"brand\" href=\"/\"><img src=\"$pageLogoEsc\" alt=\"$pageBrand\"></a><nav>$nav</nav></header><main><article><h1>$title</h1>".($intro!==''?"<p class=\"intro\">$intro</p>":'').$body."</article></main><footer><a href=\"/\">".htmlspecialchars($footerLabel,ENT_QUOTES,'UTF-8')."</a></footer></body></html>";
         rrw_write_atomic($file,$html);
     }
     foreach(glob($root.'/*.html')?:[] as $file){if(isset($wanted[$file]))continue;$head=(string)@file_get_contents($file,false,null,0,128);if(str_contains($head,RRW_CMS_MARKER))@unlink($file);}
@@ -496,7 +500,8 @@ function rrw_rss_xml(array $site): string {
     $out="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     $out.="<?xml-stylesheet type=\"text/xsl\" href=\"/cms/rss.xsl\"?>\n";
     $out.="<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\" xmlns:media=\"http://search.yahoo.com/mrss/\">\n<channel>\n";
-    $out.="<title>".$x($title)."</title><link>".$x($ric?'https://www.ricorewi-radio.de/#news':$rb.'/')."</link><description>".$x($desc)."</description><language>de-de</language><lastBuildDate>".gmdate(DATE_RSS)."</lastBuildDate><generator>".htmlspecialchars(rrw_product_generator(),ENT_XML1|ENT_QUOTES,'UTF-8')."</generator><atom:link href=\"https://www.ricorewi-radio.de/rss.xml\" rel=\"self\" type=\"application/rss+xml\" />\n";
+    $self=$ric?'https://www.ricorewi-radio.de/rss.xml':$rb.'/rss.xml';
+    $out.="<title>".$x($title)."</title><link>".$x($ric?'https://www.ricorewi-radio.de/#news':$rb.'/')."</link><description>".$x($desc)."</description><language>de-de</language><lastBuildDate>".gmdate(DATE_RSS)."</lastBuildDate><generator>".htmlspecialchars(rrw_product_generator(),ENT_XML1|ENT_QUOTES,'UTF-8')."</generator><atom:link href=\"".$x($self)."\" rel=\"self\" type=\"application/rss+xml\" />\n";
     foreach($published as $a){
         $external=!empty($a['is_external']);$slug=(string)($a['slug']??'');
         $key=rawurlencode($slug!==''?$slug:(string)($a['id']??''));
@@ -766,7 +771,7 @@ function rrw_theme_layout_clean($layout): array {
 // Merkt sich Variante, Einstellungen und Widget-Anordnung des aktiven Themes unter
 // theme.mods[<id>], damit sie beim Wechsel zu einem anderen Theme erhalten bleiben.
 function rrw_theme_remember_mods(array $site): array {
-    $active=rrw_theme_id((string)($site['theme']['active']??'ricorewi-neon'));if($active==='')return $site;
+    $active=rrw_theme_id((string)($site['theme']['active']??rrw_default_theme_id()));if($active==='')return $site;
     $mods=is_array($site['theme']['mods']??null)?$site['theme']['mods']:[];
     $mods[$active]=['variant'=>(string)($site['theme']['variant']??'default'),'settings'=>is_array($site['theme']['settings']??null)?$site['theme']['settings']:[],'widget_areas'=>array_values(is_array($site['widget_areas']??null)?$site['widget_areas']:[]),'saved_at'=>date('Y-m-d H:i:s')];
     $site['theme']['mods']=$mods;

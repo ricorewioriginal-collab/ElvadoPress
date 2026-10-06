@@ -44,7 +44,7 @@ Erneut einrichten: Nur durch bewusstes Löschen von `cms/data/install.lock` **un
 
 ## Produktname ändern
 
-Alle sichtbaren Bezeichnungen der Verwaltung kommen zentral aus `cms/lib/product.php`. Ohne `cms/data/product.json` gilt die bisherige Anzeige („RicoReWi Radio CMS“, „RicoReWi Radio Verwaltung“ …). Ändern: Verwaltung → System → **Betrieb & Produkt** → Produktname (oder die Datei von Hand anlegen):
+Alle sichtbaren Bezeichnungen der Verwaltung kommen zentral aus `cms/lib/product.php`. In ElvadoPress liefert `cms/lib/product.default.json` die neutralen Standardwerte; `cms/data/product.json` kann sie installationsbezogen überschreiben. Die RicoReWi-Fallbacks in `product.php` dienen ausschließlich älteren integrierten Installationen. Ändern: Verwaltung → System → **Betrieb & Produkt** → Produktname (oder die Datei von Hand anlegen):
 
 ```json
 { "name": "MeinCMS", "logo": "/assets/logo.png", "control_center": "Mein Dashboard" }
