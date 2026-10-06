@@ -1920,7 +1920,7 @@ if($action==='news_public'){
     $published=array_values(array_filter($news,'rrw_news_is_live'));
     $published=array_map(fn($a)=>$a+['views'=>rrw_news_view_count($newsViews,(int)($a['id']??0))],$published);
     $published=array_merge($published,rrw_external_feed_articles($site));
-    usort($published,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
+    usort($published,'rrw_news_cmp_desc');
     foreach($published as &$pa)if(isset($pa['body_html'])&&is_string($pa['body_html'])&&str_contains($pa['body_html'],'['))$pa['body_html']=rrw_expand_shortcodes($pa['body_html']);unset($pa);
     $slug=trim((string)($_GET['slug']??''));
     if($slug!==''){
@@ -2087,7 +2087,7 @@ if($action==='news_save'){
     $now=date('Y-m-d H:i:s');$existing=null;foreach($news as $a)if((int)($a['id']??0)===$id){$existing=$a;break;}
     if($existing!==null&&!rrw_news_can_edit($existing,$newsAuth))rrw_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);
     $slug=rrw_slug((string)($b['slug']??($existing['slug']??$b['title']??'news')));
-    $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?$b['image_mode']:'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>rrw_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>trim((string)($b['published_at']??''))?:$now,'body_html'=>rrw_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??rrw_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'seo_title'=>mb_substr(trim((string)($b['seo_title']??'')),0,70),'seo_description'=>mb_substr(trim((string)($b['seo_description']??'')),0,200),'updated_at'=>$now,'created_at'=>$now];
+    $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?$b['image_mode']:'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>rrw_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>rrw_news_date($b['published_at']??'',$now),'body_html'=>rrw_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??rrw_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'seo_title'=>mb_substr(trim((string)($b['seo_title']??'')),0,70),'seo_description'=>mb_substr(trim((string)($b['seo_description']??'')),0,200),'updated_at'=>$now,'created_at'=>$now];
     if($existing!==null)rrw_news_save_revision($revisionsFile,$id,$existing);
     $found=false;foreach($news as &$a)if((int)($a['id']??0)===$id){$article['created_at']=$a['created_at']??$now;$a=$article;$found=true;break;}unset($a);if(!$found)$news[]=$article;
     rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));rrw_log_activity($activityLogFile,$newsAuth,$existing!==null?'news_update':'news_create',($existing!==null?'Beitrag „':'Neuer Beitrag „').$article['title'].'“ '.($existing!==null?'bearbeitet':'angelegt'));rrw_json(['status'=>'ok','id'=>$id]);
@@ -2105,7 +2105,7 @@ if($action==='news_quick_edit'){
     if(array_key_exists('category',$b))$news[$idx]['category']=mb_substr((string)$b['category'],0,80);
     if(array_key_exists('status',$b))$news[$idx]['status']=($b['status']==='published')?'published':'draft';
     if(array_key_exists('featured',$b))$news[$idx]['featured']=!empty($b['featured'])?1:0;
-    if(array_key_exists('published_at',$b)&&trim((string)$b['published_at'])!=='')$news[$idx]['published_at']=trim((string)$b['published_at']);
+    if(array_key_exists('published_at',$b)&&($pubNorm=rrw_news_date($b['published_at']??''))!=='')$news[$idx]['published_at']=$pubNorm;
     if($news[$idx]['title']==='')rrw_json(['status'=>'error','message'=>'Titel darf nicht leer sein'],400);
     $news[$idx]['updated_at']=date('Y-m-d H:i:s');
     rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");

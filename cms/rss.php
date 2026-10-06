@@ -70,7 +70,9 @@ $max=max(5,min(100,(int)($set['max_items']??50)));
 $includeExternal=!array_key_exists('include_external',$set)||!empty($set['include_external']);
 $rows=rrw_public_news($cfg);
 if(!$includeExternal)$rows=array_values(array_filter($rows,fn($a)=>empty($a['is_external'])));
-usort($rows,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
+// neueste zuerst, über Zeitstempel (Zeichenkettenvergleich versagt bei gemischten Formaten wie „…T10:00“)
+$rrwTs=static fn($x)=>strtotime((string)(($x['published_at']??'')!==''?$x['published_at']:($x['created_at']??'')))?:0;
+usort($rows,fn($a,$b)=>$rrwTs($b)<=>$rrwTs($a));
 $rows=array_slice($rows,0,$max);
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
