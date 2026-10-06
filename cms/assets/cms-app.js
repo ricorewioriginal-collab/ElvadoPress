@@ -518,7 +518,14 @@ function dragPage(e,index){DRAG_PAGE=index;e.dataTransfer.effectAllowed='move'}
 function dropPage(e,index){e.preventDefault();if(DRAG_PAGE===null)return;const a=CMS.pages,it=a.splice(DRAG_PAGE,1)[0];let at=index;if(DRAG_PAGE<index)at--;a.splice(at,0,it);DRAG_PAGE=null;renderPages()}
 async function uploadBlockImage(zone,i){const input=document.getElementById('imgfile-'+zone+'-'+i),file=input?.files?.[0];if(!file)return cmsToast('Bitte Bild auswählen',true);const fd=new FormData();fd.append('file',file);try{const r=await fetch(CRON+'?action=media_upload',{method:'POST',headers:cmsHeaders(false),body:fd});const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');updBlock(zone,i,'url',d.url);renderBlocks(zone);cmsToast('Bild hochgeladen ✓')}catch(e){cmsToast(e.message,true)}}
 function previewCurrentPage(){const p=currentPage();if(!p)return cmsToast('Keine Seite gewählt',true);if(p.type==='custom'){window.open(location.origin+'/'+encodeURIComponent(p.slug)+'.html','_blank','noopener');return}const hash=p.system_target==='start'?'':p.system_target;window.open(location.origin+'/' +(hash?'#'+hash:''),'_blank','noopener')}
-async function savePages(){const p=currentPage();if(p?.type==='system'&&p.system_target==='start')await saveSection('portal',CMS.portal||{});await saveSection('pages',CMS.pages||[])}
+async function savePages(){
+ // Aktuelle Formularwerte vor dem Veröffentlichen sicher ins Seitenmodell übernehmen.
+ // Dadurch gehen auch Werte nicht verloren, wenn der Nutzer direkt aus einem Feld auf „Speichern“ klickt.
+ pageFieldChanged();
+ const p=currentPage();
+ if(p?.type==='system'&&p.system_target==='start')await saveSection('portal',CMS.portal||{});
+ await saveSection('pages',CMS.pages||[]);
+}
 
 function pageTargetOptions(cur){
  const sys=(CMS.pages||[]).filter(p=>p.type==='system'&&p.enabled!==false).map(p=>'<option value="system:'+escCms(p.system_target)+'" '+(cur==='system:'+p.system_target?'selected':'')+'>System: '+escCms(p.title)+'</option>').join('');
