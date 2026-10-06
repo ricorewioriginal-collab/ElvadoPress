@@ -38,7 +38,8 @@ final class Http
         if (self::$transport !== null) {
             return (self::$transport)($method, $url, $headers, $body, $opts);
         }
-        if (!self::publicHost($host)) {
+        $local = !empty($opts['allow_local']) && in_array($host, ['localhost', '127.0.0.1', '[::1]', '::1'], true);   // nur für vom Administrator eingerichtete eigene KI-Anbieter (Ollama, LM Studio)
+        if (!$local && !self::publicHost($host)) {
             return new HttpResponse(0, '', [], 'Adresse nicht erlaubt');
         }
         if (!function_exists('curl_init')) {

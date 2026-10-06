@@ -2,9 +2,9 @@
 declare(strict_types=1);
 // cms/src/Ai/AiGatewayConfig.php
 //
-// Einstellungen des KI-Gateways: API-Schlüssel, gewählte Modelle, Basis-Adressen, Limits. Datei: cms/data/.ai/gateway.json (gesperrter Ordner).
-// Schlüssel verlassen den Server nie (Admin-Sicht meldet nur "gesetzt"). Zusätzlich gelten Schlüssel des KI-Assistenten (site.json → assistant.providers),
-// wenn dort derselbe Anbieter (openai, openrouter, gemini) eingerichtet ist – so muss man Schlüssel nicht doppelt eintragen.
+// Zentrale KI-Konfiguration („KI-Zentrale“): API-Schlüssel, Modelle, Basis-Adressen, eigene Anbieter, Einsatzzwecke, Limits. Datei: cms/data/.ai/gateway.json (gesperrter Ordner).
+// Schlüssel verlassen den Server nie (Admin-Sicht meldet nur "gesetzt"). Der KI-Assistent (cms/lib/assistant.php) bezieht seine Schlüssel und eigenen Anbieter von hier;
+// Schlüssel, die früher im Assistenten (site.json → assistant.providers) eingetragen wurden, gelten weiter, bis sie übernommen werden (migrateAssistantKeys()).
 
 namespace Elvado\Ai;
 
@@ -29,11 +29,45 @@ final class AiGatewayConfig
         return new self(self::clean(is_array($raw) ? $raw : []), $file, $ap);
     }
 
+    public const PURPOSES = ['content' => 'Beiträge & Texte im Editor', 'builder' => 'Website-Generator', 'developer' => 'KI-Entwickler (Themes, Widgets, Plugins)'];
+
+    /** @return list<array<string,mixed>> eigene OpenAI-kompatible Anbieter (ohne Schlüssel) */
+    public function customProviders(): array
+    {
+        return $this->data['custom'];
+    }
+
+    /** Anbieter-Katalog inklusive eigener Anbieter. @return array<string,array<string,mixed>> */
+    public function catalog(): array
+    {
+        return AiGatewayService::catalog($this->data['custom']);
+    }
+
     /** @return array<string,mixed> */
     private static function clean(array $in): array
     {
-        $out = ['providers' => [], 'rate_limit' => max(5, min(1000, (int)($in['rate_limit'] ?? 60))), 'default_provider' => ''];
-        $cat = AiGatewayService::catalog();
+        $out = ['providers' => [], 'custom' => [], 'purposes' => [], 'rate_limit' => max(5, min(1000, (int)($in['rate_limit'] ?? 60))), 'default_provider' => ''];
+        $builtin = AiGatewayService::catalog();
+        foreach (array_slice(is_array($in['custom'] ?? null) ? $in['custom'] : [], 0, 10) as $c) {
+            if (!is_array($c)) {
+                continue;
+            }
+            $id = preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($c['id'] ?? '')));
+            $base = rtrim(trim((string)($c['base_url'] ?? '')), '/');
+            $model = trim((string)($c['model'] ?? ''));
+            if (!preg_match('/^[a-z][a-z0-9_-]{1,30}$/', (string)$id) || isset($builtin[$id]) || isset($out['custom'][$id]) || !self::baseUrlOk($base) || !preg_match('~^[\w.:/@+-]{1,120}$~u', $model)) {
+                continue;
+            }
+            $models = $c['models'] ?? [];
+            if (is_string($models)) {
+                $models = preg_split('/[\r\n,;]+/', $models) ?: [];
+            }
+            $out['custom'][$id] = ['id' => $id, 'label' => mb_substr(trim((string)($c['label'] ?? '')), 0, 80) ?: $id, 'base_url' => $base, 'model' => $model,
+                'models' => array_slice(array_values(array_unique(array_filter(array_map(static fn($m) => trim((string)$m), (array)$models), static fn($m) => $m !== '' && $m !== $model && preg_match('~^[\w.:/@+-]{1,120}$~u', $m)))), 0, 20),
+                'needs_key' => !array_key_exists('needs_key', $c) || !empty($c['needs_key']), 'free' => !empty($c['free'])];
+        }
+        $out['custom'] = array_values($out['custom']);
+        $cat = AiGatewayService::catalog($out['custom']);
         foreach ($cat as $id => $def) {
             $p = is_array($in['providers'][$id] ?? null) ? $in['providers'][$id] : [];
             $key = trim((string)($p['api_key'] ?? ''));
@@ -41,37 +75,88 @@ final class AiGatewayConfig
             $model = trim((string)($p['model'] ?? ''));
             $out['providers'][$id] = [
                 'api_key' => preg_match('/^[\x21-\x7E]{8,400}$/', $key) ? $key : '',
-                'base_url' => ($def['base_editable'] && preg_match('~^https://[A-Za-z0-9.-]+(:\d+)?(/[^\s"\'<>]*)?$~', $base)) ? $base : '',
+                'base_url' => ($def['base_editable'] && !$def['custom'] && self::baseUrlOk($base)) ? $base : '',
                 'model' => preg_match('~^[\w.:/@+-]{1,120}$~u', $model) ? $model : '',
-                'enabled' => !array_key_exists('enabled', $p) || !empty($p['enabled']),
+                'enabled' => array_key_exists('enabled', $p) ? !empty($p['enabled']) : (bool)$def['needs_key'],   // Dienste ohne Schlüssel (Community) sind erst nach ausdrücklichem Einschalten aktiv
             ];
         }
         $dp = (string)($in['default_provider'] ?? '');
         $out['default_provider'] = isset($cat[$dp]) ? $dp : '';
+        foreach (self::PURPOSES as $k => $_) {
+            $v = (string)($in['purposes'][$k] ?? '');
+            $out['purposes'][$k] = isset($cat[$v]) ? $v : '';
+        }
         return $out;
     }
 
-    /** Schlüssel des Anbieters: Gateway-Einstellung, sonst gleichnamiger Anbieter des KI-Assistenten. */
+    /** https, oder http nur für den eigenen Rechner (Ollama, LM Studio). */
+    private static function baseUrlOk(string $u): bool
+    {
+        return (bool)(preg_match('~^https://[A-Za-z0-9.-]+(:\d+)?(/[^\s"\'<>]*)?$~', $u) || preg_match('~^http://(localhost|127\.0\.0\.1|\[::1\])(:\d{2,5})?(/[^\s"\'<>]*)?$~i', $u));
+    }
+
+    /** Schlüssel des Anbieters: zentrale Einstellung, sonst (Altbestand) gleicher Anbieter im KI-Assistenten. */
     public function apiKey(string $id): string
     {
         $k = (string)($this->data['providers'][$id]['api_key'] ?? '');
-        if ($k !== '') {
-            return $k;
+        return $k !== '' ? $k : (string)($this->assistantProviders[self::assistantId($id)] ?? '');
+    }
+
+    /** 'central' (hier eingetragen), 'assistant' (Altbestand im KI-Assistenten, noch nicht übernommen) oder ''. */
+    public function keySource(string $id): string
+    {
+        if ((string)($this->data['providers'][$id]['api_key'] ?? '') !== '') {
+            return 'central';
         }
-        $map = ['google' => 'gemini'];
-        $alt = $map[$id] ?? $id;
-        return in_array($alt, ['openai', 'openrouter', 'gemini', 'deepseek'], true) ? ($this->assistantProviders[$alt] ?? '') : '';
+        return ($this->assistantProviders[self::assistantId($id)] ?? '') !== '' ? 'assistant' : '';
+    }
+
+    /** Kennung des Anbieters im KI-Assistenten (Google heißt dort „gemini“). */
+    public static function assistantId(string $id): string
+    {
+        return $id === 'google' ? 'gemini' : $id;
+    }
+
+    /** Zentrale Kennung zu einer Assistenten-Kennung. */
+    public static function centralId(string $assistantId): string
+    {
+        return $assistantId === 'gemini' ? 'google' : $assistantId;
+    }
+
+    /** Schlüssel aus dem KI-Assistenten (Altbestand) in die zentrale Konfiguration übernehmen; vorhandene zentrale Schlüssel bleiben. @return list<string> übernommene Anbieter */
+    public function migrateAssistantKeys(): array
+    {
+        $moved = [];
+        $new = $this->data;
+        $cat = $this->catalog();
+        foreach ($this->assistantProviders as $aid => $key) {
+            $id = self::centralId($aid);
+            if ($key !== '' && isset($cat[$id]) && (string)($new['providers'][$id]['api_key'] ?? '') === '' && preg_match('/^[\x21-\x7E]{8,400}$/', $key)) {
+                $new['providers'][$id]['api_key'] = $key;
+                $moved[] = $id;
+            }
+        }
+        if ($moved) {
+            $this->write(self::clean($new));
+        }
+        return $moved;
+    }
+
+    /** Nur der zentral eingetragene Schlüssel (ohne Altbestand aus dem KI-Assistenten). */
+    public function ownKey(string $id): string
+    {
+        return (string)($this->data['providers'][$id]['api_key'] ?? '');
     }
 
     public function baseUrl(string $id): string
     {
-        $def = AiGatewayService::catalog()[$id];
+        $def = $this->catalog()[$id];
         return ($this->data['providers'][$id]['base_url'] ?? '') ?: $def['base_url'];
     }
 
     public function model(string $id): string
     {
-        return ($this->data['providers'][$id]['model'] ?? '') ?: AiGatewayService::catalog()[$id]['model'];
+        return ($this->data['providers'][$id]['model'] ?? '') ?: $this->catalog()[$id]['model'];
     }
 
     public function enabled(string $id): bool
@@ -89,6 +174,12 @@ final class AiGatewayConfig
         return (string)$this->data['default_provider'];
     }
 
+    /** Anbieter für einen Einsatzzweck (content | builder | developer); leer = Standard-Anbieter bzw. erster nutzbarer. */
+    public function purposeProvider(string $purpose): string
+    {
+        return (string)($this->data['purposes'][$purpose] ?? '') ?: $this->defaultProvider();
+    }
+
     /**
      * Speichern. Schlüssel: Text = setzen, '' oder fehlend = behalten, '__clear__' = entfernen.
      * @param array<string,mixed> $in
@@ -96,7 +187,11 @@ final class AiGatewayConfig
     public function save(array $in): void
     {
         $new = $this->data;
-        foreach (AiGatewayService::catalog() as $id => $def) {
+        if (array_key_exists('custom', $in) && is_array($in['custom'])) {
+            $new['custom'] = $in['custom'];   // Schlüssel eigener Anbieter stehen unter providers[<id>]
+            $new = array_replace($new, ['custom' => self::clean(['custom' => $in['custom']])['custom']]);
+        }
+        foreach (AiGatewayService::catalog($new['custom']) as $id => $def) {
             $p = is_array($in['providers'][$id] ?? null) ? $in['providers'][$id] : null;
             if ($p === null) {
                 continue;
@@ -116,7 +211,15 @@ final class AiGatewayConfig
                 $new[$k] = $in[$k];
             }
         }
-        $new = self::clean($new);
+        if (is_array($in['purposes'] ?? null)) {
+            $new['purposes'] = $in['purposes'];
+        }
+        $this->write(self::clean($new));
+    }
+
+    /** @param array<string,mixed> $new bereits bereinigt */
+    private function write(array $new): void
+    {
         $dir = dirname($this->file);
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new AiGatewayException('Der Einstellungsordner ist nicht beschreibbar.', 500);
@@ -136,15 +239,19 @@ final class AiGatewayConfig
     /** Admin-Sicht ohne Schlüssel. @return array<string,mixed> */
     public function adminView(): array
     {
-        $out = ['rate_limit' => $this->rateLimit(), 'default_provider' => $this->defaultProvider(), 'providers' => []];
-        foreach (AiGatewayService::catalog() as $id => $def) {
-            $own = (string)($this->data['providers'][$id]['api_key'] ?? '') !== '';
+        $out = ['rate_limit' => $this->rateLimit(), 'default_provider' => $this->defaultProvider(), 'purposes' => $this->data['purposes'], 'purpose_labels' => self::PURPOSES, 'providers' => [], 'legacy_keys' => []];
+        foreach ($this->catalog() as $id => $def) {
+            $src = $this->keySource($id);
             $out['providers'][] = [
-                'id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'note' => $def['note'], 'verified' => $def['verified'],
-                'free' => $def['free'], 'base_editable' => $def['base_editable'],
+                'id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'note' => $def['note'], 'verified' => $def['verified'], 'kind' => $def['kind'],
+                'free' => $def['free'], 'base_editable' => $def['base_editable'], 'custom' => $def['custom'], 'needs_key' => $def['needs_key'],
                 'base_url' => $this->baseUrl($id), 'model' => $this->model($id), 'models' => $def['models'],
-                'enabled' => $this->enabled($id), 'has_key' => $this->apiKey($id) !== '', 'key_from_assistant' => !$own && $this->apiKey($id) !== '',
+                'enabled' => $this->enabled($id), 'has_key' => $src !== '', 'key_source' => $src, 'key_from_assistant' => $src === 'assistant',
+                'usable' => $this->enabled($id) && ($src !== '' || !$def['needs_key']),
             ];
+            if ($src === 'assistant') {
+                $out['legacy_keys'][] = $id;
+            }
         }
         return $out;
     }

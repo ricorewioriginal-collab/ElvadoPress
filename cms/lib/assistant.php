@@ -19,21 +19,14 @@ function rrw_own_stations(array $site): array {
 /** Kennungen gegenüber Diensten: User-Agent, Referer, Titel. */
 function rrw_assistant_ua(): string { return rrw_assistant_neutral()?'Radio-Assistent/1.0 (+'.(rrw_default_canonical_base()?:'https://localhost').')':'RicoReWi-Radio-Assistent/1.0 (+https://www.ricorewi-radio.de)'; }
 
+/** Vorgaben der OpenAI-kompatiblen Anbieter: eine gemeinsame Liste (cms/lib/ai-providers.json) für Assistent und KI-Zentrale. */
 function rrw_assistant_provider_presets(): array {
-    return [
-        ['id'=>'pollinations','label'=>'Pollinations.ai – kostenlos, ohne API-Key','type'=>'openai','base_url'=>'https://text.pollinations.ai/openai','model'=>'openai','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>false,'models'=>['openai-fast','mistral','llama']],
-        ['id'=>'llm7','label'=>'LLM7.io – kostenlos, ohne API-Key (Turbo-Stufe, limitiert)','type'=>'openai','base_url'=>'https://api.llm7.io/v1','model'=>'mistral-Nemo-Instruct-2407','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>false,'models'=>['fast','default']],
-        ['id'=>'groq','label'=>'Groq – kostenloses Kontingent (API-Key nötig)','type'=>'openai','base_url'=>'https://api.groq.com/openai/v1','model'=>'llama-3.3-70b-versatile','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['llama-3.1-8b-instant','openai/gpt-oss-20b','meta-llama/llama-4-scout-17b-16e-instruct','qwen/qwen3-32b']],
-        ['id'=>'openrouter','label'=>'OpenRouter – kostenlose Modelle, automatisch gewählt (API-Key nötig)','type'=>'openai','base_url'=>'https://openrouter.ai/api/v1','model'=>'auto','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true],
-        ['id'=>'gemini','label'=>'Google Gemini – kostenloses Kontingent (API-Key nötig)','type'=>'openai','base_url'=>'https://generativelanguage.googleapis.com/v1beta/openai','model'=>'gemini-2.0-flash','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['gemini-2.0-flash-lite','gemini-2.5-flash-lite','gemini-2.5-flash']],
-        ['id'=>'github','label'=>'GitHub Models – kostenlos für GitHub-Konten (API-Key = GitHub-Token)','type'=>'openai','base_url'=>'https://models.github.ai/inference','model'=>'openai/gpt-4.1-mini','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['openai/gpt-4.1-nano','openai/gpt-4o-mini','meta/Llama-3.3-70B-Instruct']],
-        ['id'=>'cerebras','label'=>'Cerebras – kostenloses Kontingent (API-Key nötig)','type'=>'openai','base_url'=>'https://api.cerebras.ai/v1','model'=>'llama-3.3-70b','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['llama3.1-8b','gpt-oss-120b','qwen-3-32b']],
-        ['id'=>'mistral','label'=>'Mistral – kostenloser Free-Tier (API-Key nötig)','type'=>'openai','base_url'=>'https://api.mistral.ai/v1','model'=>'mistral-small-latest','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['open-mistral-nemo','ministral-8b-latest']],
-        ['id'=>'sambanova','label'=>'SambaNova – kostenloses Kontingent, sehr schnell (API-Key nötig)','type'=>'openai','base_url'=>'https://api.sambanova.ai/v1','model'=>'Meta-Llama-3.3-70B-Instruct','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['Meta-Llama-3.1-8B-Instruct','Qwen3-32B']],
-        ['id'=>'nvidia','label'=>'NVIDIA NIM – kostenlose Start-Credits (API-Key nötig)','type'=>'openai','base_url'=>'https://integrate.api.nvidia.com/v1','model'=>'meta/llama-3.3-70b-instruct','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['meta/llama-3.1-8b-instruct','mistralai/mistral-nemo-12b-instruct']],
-        ['id'=>'huggingface','label'=>'Hugging Face – monatliche Gratis-Credits (API-Key nötig)','type'=>'openai','base_url'=>'https://router.huggingface.co/v1','model'=>'meta-llama/Llama-3.3-70B-Instruct','api_key'=>'','enabled'=>true,'builtin'=>true,'free'=>true,'needs_key'=>true,'models'=>['Qwen/Qwen2.5-72B-Instruct']],
-        ['id'=>'openai','label'=>'OpenAI – kostenpflichtig (API-Key nötig)','type'=>'openai','base_url'=>'https://api.openai.com/v1','model'=>'gpt-4o-mini','api_key'=>'','enabled'=>false,'builtin'=>true,'free'=>false,'needs_key'=>true,'models'=>['gpt-4.1-mini','gpt-4.1-nano']],
-    ];
+    static $cache=null;
+    if($cache===null){
+        $raw=json_decode((string)@file_get_contents(__DIR__.'/ai-providers.json'),true);$cache=[];
+        foreach((array)$raw as $p){if(is_array($p)&&($p['id']??'')!=='')$cache[]=['api_key'=>'']+$p;}
+    }
+    return $cache;
 }
 function rrw_assistant_defaults(): array {
     return [
@@ -115,6 +108,30 @@ function rrw_assistant_clean($value): array {
     foreach($presets as $id=>$p){if(!isset($seen[$id])){$out['providers'][]=$p;$seen[$id]=true;}}
     return $out;
 }
+// ---------------------------------------------------------------- Zentrale KI-Konfiguration (KI-Zentrale)
+/** Zentrale KI-Konfiguration (cms/data/.ai/gateway.json); null, wenn die objektorientierte Schicht oder der Datenordner fehlt. */
+function rrw_ai_central(): ?\Elvado\Ai\AiGatewayConfig {
+    if(!function_exists('rrw_data_dir'))return null;
+    if(!class_exists('Elvado\\Ai\\AiGatewayConfig',false)){$auto=__DIR__.'/../src/autoload.php';if(!is_file($auto))return null;require_once $auto;}
+    try{return \Elvado\Ai\AiGatewayConfig::load(rrw_data_dir(),[]);}catch(Throwable $e){return null;}
+}
+/** Schlüssel und eigene Anbieter der KI-Zentrale in die Assistent-Konfiguration einblenden (nur zur Laufzeit, nie in site.json gespeichert). Der zentrale Schlüssel hat Vorrang vor einem Altbestand-Schlüssel im Assistenten. */
+function rrw_assistant_with_central(array $cfg): array {
+    $c=rrw_ai_central();if($c===null)return $cfg;
+    $have=[];
+    foreach($cfg['providers'] as &$p){
+        $have[$p['id']]=true;$own=$c->ownKey(\Elvado\Ai\AiGatewayConfig::centralId($p['id']));
+        if($own!==''){$p['api_key']=$own;$p['key_source']='central';}else $p['key_source']=$p['api_key']!==''?'assistant':'';
+    }unset($p);
+    foreach($c->customProviders() as $cp){
+        if(isset($have[$cp['id']]))continue;
+        $own=$c->ownKey($cp['id']);
+        $cfg['providers'][]=['id'=>$cp['id'],'label'=>$cp['label'],'type'=>'openai','base_url'=>$cp['base_url'],'model'=>$cp['model'],'api_key'=>$own,'enabled'=>true,'builtin'=>false,'free'=>!empty($cp['free']),'needs_key'=>!empty($cp['needs_key']),'models'=>(array)($cp['models']??[]),'central'=>true,'key_source'=>$own!==''?'central':''];
+    }
+    return $cfg;
+}
+/** Konfiguration des Assistenten für den Betrieb: bereinigt und mit den Schlüsseln der KI-Zentrale. */
+function rrw_assistant_cfg(array $site): array { return rrw_assistant_with_central(rrw_assistant_clean($site['assistant']??[])); }
 // CMS-Speichern: ein leerer Key im Formular bedeutet "gespeicherten Key behalten" (schützt vor Verlust durch
 // alte Tabs oder maskierte Formulare); nur das explizite Löschen (api_key = '__clear__') entfernt ihn.
 function rrw_assistant_merge_keys(array $existing,$value): array {
@@ -122,7 +139,7 @@ function rrw_assistant_merge_keys(array $existing,$value): array {
     $old=[];foreach((array)($existing['providers']??[]) as $p){if(is_array($p)&&($p['id']??'')!=='')$old[strtolower((string)$p['id'])]=(string)($p['api_key']??'');}
     $providers=[];
     foreach((array)($value['providers']??[]) as $p){
-        if(!is_array($p)){continue;}
+        if(!is_array($p)||!empty($p['central'])){continue;}   // Anbieter der KI-Zentrale werden dort gepflegt, nicht im Assistenten gespeichert
         $id=strtolower((string)($p['id']??''));$k=trim((string)($p['api_key']??''));
         if($k==='__clear__')$p['api_key']='';
         elseif($k===''&&isset($old[$id])&&$old[$id]!=='')$p['api_key']=$old[$id];
@@ -132,14 +149,14 @@ function rrw_assistant_merge_keys(array $existing,$value): array {
 }
 // Admin-Sicht fürs CMS: Keys nie im Klartext zurückgeben, nur ob einer hinterlegt ist
 function rrw_assistant_admin_view(array $a): array {
-    $a=rrw_assistant_clean($a);
+    $a=rrw_assistant_with_central(rrw_assistant_clean($a));
     foreach($a['providers'] as &$p){$p['has_key']=$p['api_key']!=='';$p['api_key']='';}unset($p);
     $a['neutral']=rrw_assistant_neutral();
     return $a;
 }
 // Öffentliche Sicht: niemals API-Keys ausliefern (steckt auch im index.html-Snapshot)
 function rrw_assistant_public(array $a): array {
-    $a=rrw_assistant_clean($a);
+    $a=rrw_assistant_with_central(rrw_assistant_clean($a));
     $providers=[];foreach($a['providers'] as $p){if(!$p['enabled'])continue;if($p['needs_key']&&$p['api_key']==='')continue;$providers[]=['id'=>$p['id'],'free'=>$p['free']];}
     return ['enabled'=>$a['enabled'],'name'=>$a['name'],'greeting'=>$a['greeting'],'features'=>$a['features'],'privacy_note'=>$a['privacy_note'],'providers'=>count($providers),'offline_fallback'=>true];
 }
@@ -691,7 +708,7 @@ function rrw_assistant_offline_reply(array $intents,array $cards,string $label,a
 
 // ---------------------------------------------------------------- Chat-Endpunkt
 function rrw_assistant_chat(array $site,array $brand,array $body,string $dataDir,string $newsFile): array {
-    $cfg=rrw_assistant_clean($site['assistant']??[]);
+    $cfg=rrw_assistant_cfg($site);
     if(!$cfg['enabled'])return ['status'=>'error','message'=>'Der Assistent ist derzeit deaktiviert.','code'=>403];
     if(!rrw_assistant_rate_ok($dataDir,'chat',$cfg['rate_limit']))return ['status'=>'error','message'=>'Zu viele Anfragen – bitte in ein paar Minuten noch einmal versuchen.','code'=>429];
     $msgs=[];foreach(array_slice((array)($body['messages']??[]),-8) as $m){if(!is_array($m))continue;$role=($m['role']??'')==='assistant'?'assistant':'user';$c=mb_substr(trim((string)($m['content']??'')),0,1500);if($c!=='')$msgs[]=['role'=>$role,'content'=>$c];}
@@ -726,7 +743,7 @@ function rrw_assistant_chat(array $site,array $brand,array $body,string $dataDir
 
 // Status fuer das CMS: welche Anbieter aktiv/bereit sind, letzte Fehler, Rate-Limit-Dateien
 function rrw_assistant_status(array $site,string $dataDir): array {
-    $cfg=rrw_assistant_clean($site['assistant']??[]);$br=rrw_assistant_breaker($dataDir);$rows=[];
+    $cfg=rrw_assistant_cfg($site);$br=rrw_assistant_breaker($dataDir);$rows=[];
     foreach($cfg['providers'] as $p){
         $ready=$p['enabled']&&(!$p['needs_key']||$p['api_key']!=='');$b=$br[$p['id']]??null;
         $rows[]=['id'=>$p['id'],'label'=>$p['label'],'enabled'=>$p['enabled'],'has_key'=>$p['api_key']!=='','ready'=>$ready,'paused_until'=>($b['until']??0)>time()?date('H:i:s',$b['until']):'','fails'=>(int)($b['fails']??0),'last_error'=>(string)($b['error']??''),'last_fail_at'=>(string)($b['at']??'')];
@@ -735,7 +752,7 @@ function rrw_assistant_status(array $site,string $dataDir): array {
 }
 // Verbindungstest aus dem CMS (Admin): einen Provider gezielt anpingen
 function rrw_assistant_test(array $site,string $providerId,string $dataDir,string $onlyModel=''): array {
-    $cfg=rrw_assistant_clean($site['assistant']??[]);
+    $cfg=rrw_assistant_cfg($site);
     foreach($cfg['providers'] as $p){
         if($p['id']!==$providerId)continue;
         if($p['needs_key']&&$p['api_key']==='')return ['ok'=>false,'error'=>'Kein API-Key hinterlegt'];
@@ -819,7 +836,7 @@ function rrw_assistant_parse_models($d): array {
 }
 /** Modelle abrufen. $req: provider (Kennung aus der Konfiguration, nutzt deren Basis-URL und Key), optional base_url und api_key für einen noch nicht gespeicherten Anbieter. */
 function rrw_assistant_models_list(array $site,array $req,string $dataDir): array {
-    $cfg=rrw_assistant_clean($site['assistant']??[]);$base='';$key='';$id=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($req['provider']??'')));
+    $cfg=rrw_assistant_cfg($site);$base='';$key='';$id=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($req['provider']??'')));
     foreach($cfg['providers'] as $p)if($p['id']===$id){$base=$p['base_url'];$key=$p['api_key'];}
     $b=rtrim(trim((string)($req['base_url']??'')),'/');if($b!=='')$base=$b;
     $k=trim((string)($req['api_key']??''));if($k!==''&&$k!=='__clear__')$key=$k;

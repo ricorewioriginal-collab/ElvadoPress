@@ -21,6 +21,7 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/assets/` | JavaScript, CSS, Branding und statische Verwaltungsassets. |
 | `cms/assets/blocks/`, `cms/assets/block-editor.css`, `cms/lib/htmlsafe.php` | Block-Editor (Beiträge, HTML-Blöcke von Seiten) und HTML-Bereinigung; siehe HANDOVER.md. |
 | `cms/assets/admin-themes.css`, `cms/assets/admin-theme.js` | Admin-Designs Neon/Hell/Dunkel/System. |
+| `cms/assets/ai-center.js`, `cms/views/panel-aicenter.php`, `cms/lib/ai-providers.json`, `cms/wp/core/ext/ai-central.php` | KI-Zentrale (zentrale KI-Konfiguration). |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |
 | `cms/data/` | Laufzeitdaten einer Installation; überwiegend nicht versioniert. |
 | `cms/docs/` | bestehende Fach- und Funktionsdokumentation; vor neuer Doku zuerst hier suchen. |

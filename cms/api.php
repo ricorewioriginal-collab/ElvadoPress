@@ -1046,11 +1046,32 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
             if($action==='ai_status')rrw_json(['status'=>'ok','providers'=>(new \Elvado\Ai\AiGatewayService($aiCfg))->usableProviders(),'tasks'=>\Elvado\Ai\AiGatewayService::TASKS,'default'=>$aiCfg->defaultProvider()]);
             if($action==='ai_config_get')rrw_json(['status'=>'ok','config'=>$aiCfg->adminView(),'tasks'=>\Elvado\Ai\AiGatewayService::TASKS]);
             if($action==='ai_config_save'){ $aiCfg->save(is_array($kB['config']??null)?$kB['config']:[]);rrw_log_activity($activityLogFile,$kUser,'ai_config','KI-Gateway: Einstellungen gespeichert');rrw_json(['status'=>'ok','config'=>$aiCfg->adminView()]); }
+            if($action==='ai_migrate_legacy'){   // Schlüssel, die früher im KI-Assistenten eingetragen wurden, in die KI-Zentrale übernehmen und dort entfernen
+                $moved=$aiCfg->migrateAssistantKeys();$cleared=0;$sa=(array)($site['assistant']??[]);
+                foreach((array)($sa['providers']??[]) as $i=>$p){if(is_array($p)&&trim((string)($p['api_key']??''))!==''&&$aiCfg->ownKey(\Elvado\Ai\AiGatewayConfig::centralId(strtolower((string)($p['id']??''))))!==''){$sa['providers'][$i]['api_key']='';$cleared++;}}
+                if($cleared){$site['assistant']=function_exists('rrw_assistant_clean')?rrw_assistant_clean($sa):$sa;try{rrw_publish($site,$siteFile,$genDir,$root);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>'Dateispeicherung fehlgeschlagen: '.$e->getMessage()],500);}}
+                rrw_log_activity($activityLogFile,$kUser,'ai_config','KI-Zentrale: '.count($moved).' Schlüssel aus dem KI-Assistenten übernommen');
+                rrw_json(['status'=>'ok','moved'=>$moved,'cleared'=>$cleared,'config'=>\Elvado\Ai\AiGatewayConfig::load($dataDir,(array)$site)->adminView()]);
+            }
+            if($action==='ai_test'){   // Verbindungstest: eine winzige Anfrage an den gewählten Anbieter
+                $pid=(string)($kB['provider']??'');$t0=microtime(true);
+                try{ $r=(new \Elvado\Ai\AiGatewayService($aiCfg))->generate(['provider'=>$pid,'task'=>'text','prompt'=>'Antworte nur mit dem Wort: OK','max_tokens'=>64,'user'=>'']);rrw_json(['status'=>'ok','ok'=>true,'ms'=>(int)round((microtime(true)-$t0)*1000),'model'=>$r->model,'text'=>mb_substr($r->text,0,80)]); }
+                catch(\Elvado\Ai\AiGatewayException $e){ rrw_json(['status'=>'ok','ok'=>false,'ms'=>(int)round((microtime(true)-$t0)*1000),'error'=>$e->getMessage()]); }
+            }
+            if($action==='ai_models'){   // Modellliste des Anbieters (OpenAI-kompatibel: GET /models, sonst die Vorschläge des Katalogs)
+                $pid=(string)($kB['provider']??'');$cat=$aiCfg->catalog();if(!isset($cat[$pid]))rrw_json(['status'=>'error','message'=>'Unbekannter Anbieter'],400);
+                $def=$cat[$pid];$fallback=array_map(fn($m)=>['id'=>$m,'free'=>null,'ctx'=>0],(array)$def['models']);
+                if($def['kind']!=='openai'||!function_exists('rrw_assistant_parse_models'))rrw_json(['status'=>'ok','ok'=>true,'models'=>$fallback,'source'=>'catalog']);
+                $k=$aiCfg->apiKey($pid);if($k===''&&$def['needs_key'])rrw_json(['status'=>'ok','ok'=>true,'models'=>$fallback,'source'=>'catalog']);
+                $resp=\Elvado\Support\Http::request('GET',rtrim($aiCfg->baseUrl($pid),'/').'/models',$k!==''?['Authorization: Bearer '.$k]:[],null,['timeout'=>12,'max_bytes'=>1000000,'allow_local'=>!empty($def['custom'])]);
+                $list=$resp->ok()?rrw_assistant_parse_models($resp->json()):[];
+                rrw_json(['status'=>'ok','ok'=>true,'models'=>$list?:$fallback,'source'=>$list?'provider':'catalog']);
+            }
             if($action==='ai_logs'){ $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){} rrw_json(['status'=>'ok','available'=>$lg!==null,'summary'=>$lg?$lg->summary(30):[],'recent'=>$lg?$lg->recent(30):[]]); }
             if($action==='ai_generate'){
                 $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}   // Protokoll ist optional (ohne Datenbank/SQLite-Erweiterung entfällt es)
                 $svc=new \Elvado\Ai\AiGatewayService($aiCfg,$lg,new \Elvado\Support\RateLimiter($dataDir.'/.ai/ratelimit'));
-                $res=$svc->generate(['provider'=>(string)($kB['provider']??''),'task'=>(string)($kB['task']??'text'),'prompt'=>(string)($kB['prompt']??''),'text'=>(string)($kB['text']??''),'language'=>(string)($kB['language']??''),'model'=>(string)($kB['model']??''),
+                $res=$svc->generate(['provider'=>(string)($kB['provider']??''),'purpose'=>(string)($kB['purpose']??''),'task'=>(string)($kB['task']??'text'),'prompt'=>(string)($kB['prompt']??''),'text'=>(string)($kB['text']??''),'language'=>(string)($kB['language']??''),'model'=>(string)($kB['model']??''),
                     'temperature'=>isset($kB['temperature'])?(float)$kB['temperature']:null,'max_tokens'=>isset($kB['max_tokens'])?(int)$kB['max_tokens']:1200,'user'=>(string)($kUser['user']??'')]+[]);
                 rrw_json(['status'=>'ok']+$res->toArray());
             }

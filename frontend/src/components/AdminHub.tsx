@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import type { ReactElement } from 'react';
 import AiContentAssistant from './AiContentAssistant';
-import AiSettings from './AiSettings';
 import LovableSettings from './LovableSettings';
 
 type Tab = 'assistant' | 'providers' | 'lovable';
@@ -31,7 +30,12 @@ export default function AdminHub(): ReactElement {
           <AiContentAssistant />
         </div>
       )}
-      {tab === 'providers' && <AiSettings />}
+      {tab === 'providers' && (
+        <div className="space-y-3 text-sm">
+          <p className="text-muted">Anbieter, API-Schlüssel, Modelle und Einsatzzwecke werden jetzt zentral in der <b>KI-Zentrale</b> verwaltet – dort gelten sie für den KI-Assistenten der Website, die Texthilfen, den Website-Generator und den KI-Entwickler.</p>
+          <button type="button" className="rounded-lg bg-accent px-4 py-2 font-semibold" onClick={() => { const w = window as unknown as { cmsTab?: (id: string, el: Element | null) => void; AiCenter?: { open: () => void } }; w.cmsTab?.('aicenter', document.querySelector('[data-tab="aicenter"]')); w.AiCenter?.open(); }}>Zur KI-Zentrale</button>
+        </div>
+      )}
       {tab === 'lovable' && <LovableSettings />}
     </div>
   );
