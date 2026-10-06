@@ -1,0 +1,116 @@
+/* Admin-Designs: „Hell“ (klassisch, grau-weiß wie WordPress) und „Dunkel“ (neutral).
+   Das Standard-Design („Neon“, cms.css + cms-broadcast.css) bleibt unverändert, solange <html> kein data-admin-theme trägt.
+   Wird nach allen anderen Admin-Styles geladen und überschreibt nur Farben, Verläufe und Schatten (siehe admin-theme.js). */
+
+/* ---------- Gemeinsam für Hell und Dunkel: flache Optik statt Neon ---------- */
+html[data-admin-theme="light"],html[data-admin-theme="dark"]{--r:8px}
+html[data-admin-theme] body{background-image:none;background-color:var(--bg)}
+html[data-admin-theme] .hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:none}
+html[data-admin-theme] .hero .k{color:var(--accent);letter-spacing:.12em}
+html[data-admin-theme] .card{background:var(--surface);box-shadow:none;border-radius:var(--r)}
+html[data-admin-theme] .fc{border-radius:6px!important;background:var(--field)!important;color:var(--text)!important;border-color:var(--border-strong)!important}
+html[data-admin-theme] .fc:focus{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent)}
+html[data-admin-theme] .btn-a{background:var(--accent);color:#fff;border-radius:6px;box-shadow:none}
+html[data-admin-theme] .btn-a:hover{background:var(--accent-dim);filter:none;color:#fff}
+html[data-admin-theme] .btn-g{background:var(--surface3);border:1px solid var(--border-strong);color:var(--text);border-radius:6px}
+html[data-admin-theme] .btn-g:hover{background:var(--surface3);border-color:var(--accent);color:var(--accent)}
+html[data-admin-theme] .btn-d{border-radius:6px}
+html[data-admin-theme] .palette-btn,html[data-admin-theme] .sp-tool-btn{background:var(--surface3);border-color:var(--border-strong);color:var(--text)}
+html[data-admin-theme] .palette-btn:hover{border-color:var(--accent);color:var(--accent)}
+html[data-admin-theme] ::selection{background:var(--accent);color:#fff}
+html[data-admin-theme] select option{background:var(--field);color:var(--text)}
+
+/* ---------- Hell ---------- */
+html[data-admin-theme="light"]{color-scheme:light;
+  --accent:#2271b1;--accent-2:#72aee6;--accent-dim:#135e96;--accent-glow:rgba(34,113,177,.1);--cyan:#2271b1;--violet:#7e57c2;--orange:#d97706;
+  --bg:#f0f0f1;--surface:#fff;--surface2:#fff;--surface3:#f6f7f7;--field:#fff;
+  --border:#dcdcde;--border-a:#2271b1;--border-strong:#8c8f94;
+  --text:#1d2327;--dim:#50575e;--muted:#787c82;--good:#00a32a;--bad:#d63638}
+html[data-admin-theme="light"] body{color:var(--text)}
+/* Kopfleiste und Menü bleiben dunkel (wie im WordPress-Admin) */
+html[data-admin-theme="light"] .navbar-custom{background:#1d2327!important;border-bottom:0!important;box-shadow:none;backdrop-filter:none}
+html[data-admin-theme="light"] .navbar-custom *{--text:#f0f0f1;--dim:#c3c4c7}
+html[data-admin-theme="light"] .navbar-custom .btn-outline-light{border-color:#50575e;color:#f0f0f1}
+html[data-admin-theme="light"] .navbar-custom .btn-outline-light:hover{background:#2c3338;border-color:#72aee6;color:#fff}
+html[data-admin-theme="light"] .tabs{background:#1d2327;border:0;box-shadow:none;border-radius:var(--r)}
+html[data-admin-theme="light"] .tab-group{border-color:#2c3338;background:transparent}
+html[data-admin-theme="light"] .tab-group-title{color:#8c8f94}
+html[data-admin-theme="light"] .tab{color:#c3c4c7;border-color:transparent}
+html[data-admin-theme="light"] .tab i{color:#a7aaad;opacity:1}
+html[data-admin-theme="light"] .tab:hover{background:#2c3338;color:#72aee6}
+html[data-admin-theme="light"] .tab.on{background:#2271b1;color:#fff;border-color:transparent;box-shadow:none}
+html[data-admin-theme="light"] .tab.on i{color:#fff}
+html[data-admin-theme="light"] .cms-nav-search-wrap input{background:#2c3338;border-color:#50575e;color:#f0f0f1}
+/* Texte, die im dunklen Standard weiß sind */
+html[data-admin-theme="light"] .core-name,html[data-admin-theme="light"] .arch-card b,html[data-admin-theme="light"] .health-row b,
+html[data-admin-theme="light"] .wm-area-head b,html[data-admin-theme="light"] .wm-inst-head b,html[data-admin-theme="light"] .brand-card b{color:var(--text)}
+html[data-admin-theme="light"] .arch-card code{color:#0a4b78}
+html[data-admin-theme="light"] .btn-g,html[data-admin-theme="light"] .customizer-control label,html[data-admin-theme="light"] .theme-variant{color:var(--text)}
+html[data-admin-theme="light"] .btn-d{background:#fcf0f1;border-color:#d63638;color:#b32d2e}
+html[data-admin-theme="light"] .danger-note{background:#fcf0f1;border-color:#d63638;color:#8a2424}
+html[data-admin-theme="light"] .publish-state{background:#edfaef;color:#00692a;border-color:#b8e6bf}
+html[data-admin-theme="light"] .publish-state.bad{background:#fcf0f1;color:#8a2424;border-color:#f1b6b8}
+html[data-admin-theme="light"] .publish-state.warn{background:#fcf9e8;color:#614200;border-color:#e6d58a}
+html[data-admin-theme="light"] .plugin-state{background:#f0f0f1;color:var(--muted)}
+html[data-admin-theme="light"] .plugin-state.on{background:#edfaef;color:#00692a}
+html[data-admin-theme="light"] .theme-active{color:#fff;background:var(--good)}
+html[data-admin-theme="light"] .media-thumb,html[data-admin-theme="light"] .theme-shot,html[data-admin-theme="light"] .asset-preview,
+html[data-admin-theme="light"] .brand-logo{background:#f0f0f1}
+html[data-admin-theme="light"] .media-tile,html[data-admin-theme="light"] .theme-card{background:var(--surface);box-shadow:none}
+html[data-admin-theme="light"] .media-tile:hover{background:var(--surface3);border-color:var(--accent)}
+html[data-admin-theme="light"] .native-live,html[data-admin-theme="light"] .widget-preview{background:#fff}
+html[data-admin-theme="light"] .native-live-head{background:var(--surface3)}
+html[data-admin-theme="light"] .widget-pick{background:var(--surface3)}
+html[data-admin-theme="light"] .theme-customizer,html[data-admin-theme="light"] .theme-customizer-side,html[data-admin-theme="light"] .theme-customizer-top,
+html[data-admin-theme="light"] .theme-customizer-devices{background:#fff}
+html[data-admin-theme="light"] .theme-customizer-preview{background:#dcdcde}
+html[data-admin-theme="light"] .theme-customizer-close,html[data-admin-theme="light"] .customizer-section>button{color:var(--text)}
+html[data-admin-theme="light"] .theme-customizer-close:hover,html[data-admin-theme="light"] .customizer-section>button:hover{background:var(--surface3)}
+html[data-admin-theme="light"] .tab-group-title,html[data-admin-theme="light"] .hint{color:var(--muted)}
+html[data-admin-theme="light"] #cmsLogin,html[data-admin-theme="light"] #cmsDenied{background:#fff;border-color:var(--border);box-shadow:0 8px 30px rgba(0,0,0,.12)}
+html[data-admin-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.25)}
+
+/* Hell: Pop-ups, Dialoge und Inline-Weiß */
+html[data-admin-theme="light"] .dg-upload-menu,html[data-admin-theme="light"] .cz-picker-box,html[data-admin-theme="light"] #cmsSearch .cs-dlg{background:#fff;border-color:var(--border);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+html[data-admin-theme="light"] .cz-actions,html[data-admin-theme="light"] .cz-back{background:var(--surface3)}
+html[data-admin-theme="light"] .cms-toast{background:#1d2327;color:#f0f0f1}
+html[data-admin-theme="light"] .native-live iframe,html[data-admin-theme="light"] .widget-preview iframe{background:#fff}
+html[data-admin-theme="light"] .rrw-se-item.on{background:#dcdcde}
+html[data-admin-theme="light"] .panel [style*="color:#fff"]:not([style*="background:#"]):not([style*="background:linear"]):not([style*="background:rgb"]):not([style*="background:var(--accent"]):not([style*="background:var(--good"]):not([style*="background:var(--bad"]):not([style*="background: #"]),html[data-admin-theme="light"] .panel [style*="color: #fff"]:not([style*="background:#"]):not([style*="background:linear"]):not([style*="background:rgb"]):not([style*="background:var(--accent"]):not([style*="background:var(--good"]):not([style*="background:var(--bad"]):not([style*="background: #"]),
+html[data-admin-theme="light"] .panel [style*="color:white"]:not([style*="background:#"]):not([style*="background:linear"]):not([style*="background:rgb"]):not([style*="background:var(--accent"]):not([style*="background:var(--good"]):not([style*="background:var(--bad"]):not([style*="background: #"]),html[data-admin-theme="light"] .panel [style*="color:#eee"]:not([style*="background:#"]):not([style*="background:linear"]):not([style*="background:rgb"]):not([style*="background:var(--accent"]):not([style*="background:var(--good"]):not([style*="background:var(--bad"]):not([style*="background: #"]),
+html[data-admin-theme="light"] .panel [style*="color:#eaf1fb"]:not([style*="background:#"]):not([style*="background:linear"]):not([style*="background:rgb"]):not([style*="background:var(--accent"]):not([style*="background:var(--good"]):not([style*="background:var(--bad"]):not([style*="background: #"]){color:var(--text)!important}
+html[data-admin-theme="light"] .panel [style*="rgba(255,255,255,.0"]:not([style*="color"]){background-color:var(--surface3)!important}
+
+/* ---------- Dunkel (neutral, ohne Neon) ---------- */
+html[data-admin-theme="dark"]{color-scheme:dark;
+  --accent:#3b9eff;--accent-2:#8cc4ff;--accent-dim:#2b7fd6;--accent-glow:rgba(59,158,255,.12);--cyan:#3b9eff;--violet:#a78bfa;--orange:#f59e0b;
+  --bg:#121315;--surface:#1b1c1f;--surface2:#212226;--surface3:#2a2b30;--field:#141517;
+  --border:rgba(255,255,255,.1);--border-a:#3b9eff;--border-strong:rgba(255,255,255,.22);
+  --text:#e8e9ec;--dim:#b4b7bf;--muted:#8a8e98;--good:#3ecf8e;--bad:#ff6b6b}
+html[data-admin-theme="dark"] .navbar-custom{background:#0d0e10!important;border-bottom:1px solid var(--border)!important;box-shadow:none;backdrop-filter:none}
+html[data-admin-theme="dark"] .tabs{background:#17181b;border:1px solid var(--border);box-shadow:none}
+html[data-admin-theme="dark"] .tab-group{background:transparent}
+html[data-admin-theme="dark"] .tab-group-title{color:#7b7f89}
+html[data-admin-theme="dark"] .tab:hover{background:rgba(255,255,255,.06);color:#fff}
+html[data-admin-theme="dark"] .tab.on{background:var(--accent);color:#fff;border-color:transparent;box-shadow:none}
+html[data-admin-theme="dark"] .tab.on i,html[data-admin-theme="dark"] .tab i{color:inherit}
+html[data-admin-theme="dark"] .card{background:var(--surface)}
+html[data-admin-theme="dark"] #cmsLogin,html[data-admin-theme="dark"] #cmsDenied{background:var(--surface);border-color:var(--border);box-shadow:0 20px 50px rgba(0,0,0,.5)}
+html[data-admin-theme="dark"] ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2)}
+
+/* ---------- Umschalter in der Kopfleiste und Auswahl im Profil ---------- */
+.cms-theme-menu{position:relative;display:inline-block}
+.cms-theme-pop{position:absolute;right:0;top:calc(100% + 6px);min-width:190px;background:#fff;color:#1d2327;border:1px solid #c3c4c7;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:6px;z-index:10050}
+.cms-theme-pop[hidden]{display:none}
+.cms-theme-pop button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;color:#1d2327;text-align:left;padding:8px 10px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer}
+.cms-theme-pop button:hover{background:#f0f0f1}
+.cms-theme-pop button.on{background:#2271b1;color:#fff}
+.cms-theme-pop .sw{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.3);flex:0 0 16px}
+.sw-neon{background:linear-gradient(135deg,#06060a 50%,#2fb8ff 50%)}
+.sw-light{background:linear-gradient(135deg,#f0f0f1 50%,#2271b1 50%)}
+.sw-dark{background:linear-gradient(135deg,#121315 50%,#3b9eff 50%)}
+.sw-auto{background:linear-gradient(135deg,#f0f0f1 50%,#121315 50%)}
+.theme-choice{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;max-width:640px}
+.theme-choice button{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:10px;border:2px solid var(--border);background:var(--surface2);color:var(--text);border-radius:10px;cursor:pointer;font-weight:700;font-size:.8rem;text-align:left}
+.theme-choice button.on{border-color:var(--accent)}
+.theme-choice .prev{width:100%;height:54px;border-radius:6px;border:1px solid rgba(128,128,128,.4)}
