@@ -1,0 +1,27 @@
+{
+  "id": "elvado-ai",
+  "name": "Elvado AI",
+  "description": "KI-Werkzeuge für Inhalte und Apps auf Basis der zentralen KI-Zentrale: Texte verbessern, kürzen, zusammenfassen, übersetzen, Titel- und SEO-Vorschläge im Beitragseditor sowie Vorschläge für Tab-Leiste, Hinweise und Store-Texte im App-Bereich. Die Anbieter und Schlüssel verwaltest du weiterhin zentral in der KI-Zentrale – dieses Plugin bringt keine eigenen Schlüssel mit.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "KI",
+  "icon": "fa-wand-magic-sparkles",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "optional": { "plugins": { "elvado-seo": "*" } },
+  "tested_up_to": "1.x",
+  "capabilities": ["ai.use_content_tools", "ai.use_app_tools"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "admin_js": "admin.js",
+  "admin_global": true,
+  "settings": [
+    { "key": "editor_tools", "type": "toggle", "default": true, "group": "Werkzeuge", "label": "KI-Werkzeuge im Beitragseditor", "help": "Zeigt Buttons „KI“ bei Teaser, SEO-Titel und SEO-Beschreibung sowie ein Panel mit Textwerkzeugen. Es wird nur gesendet, was du auslöst." },
+    { "key": "app_tools", "type": "toggle", "default": true, "group": "Werkzeuge", "label": "KI-Vorschläge im App-Bereich", "help": "Vorschläge für Tabs der Baukasten-App, Hinweise an Nutzer und Store-Texte." },
+    { "key": "language", "type": "select", "default": "de", "group": "Werkzeuge", "label": "Sprache der Ergebnisse", "options": [{ "value": "de", "label": "Deutsch" }, { "value": "en", "label": "Englisch" }] },
+    { "key": "tone", "type": "select", "default": "neutral", "group": "Werkzeuge", "label": "Standard-Tonfall", "options": [{ "value": "neutral", "label": "Sachlich-freundlich" }, { "value": "locker", "label": "Locker und persönlich" }, { "value": "formell", "label": "Formell" }] }
+  ]
+}

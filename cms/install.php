@@ -87,13 +87,15 @@ label{display:block;font-size:.82rem;font-weight:700;margin:12px 0 4px;color:#cf
 .msg{border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:.9rem}.msg.e{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.4)}.msg.o{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.4)}
 button,a.btn{display:inline-block;background:#2fb8ff;color:#021018;border:0;border-radius:10px;padding:11px 18px;font:inherit;font-weight:800;cursor:pointer;text-decoration:none}
 button.g{background:transparent;color:#cfd3e0;border:1px solid rgba(255,255,255,.2)}.chk{display:flex;align-items:center;gap:8px;font-weight:600;margin-top:12px}.chk input{width:auto}
-ul{padding-left:18px;margin:6px 0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+ul{padding-left:18px;margin:6px 0}.mode,.plug{display:flex;gap:10px;align-items:flex-start;font-weight:600;margin:8px 0;cursor:pointer}.mode input,.plug input{width:auto;margin-top:4px}.mode small,.plug small{display:block;font-weight:400;color:#a8aec0}.sumry{margin-top:12px;padding:12px;border-radius:10px;background:rgba(255,255,255,.04)}.sumry li{margin:4px 0;font-size:.85rem}.sumry small{color:#8f96aa;display:block;margin-top:8px}.plug em{font-style:normal;font-size:.7rem;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:1px 7px;margin-left:6px;color:#8fd3ff}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 </style></head><body><main>
 <?php if($__lg!==''): ?><img src="<?=$h($__lg)?>" alt="" style="width:72px;height:72px;display:block;margin:0 0 10px"><?php endif; ?>
 <h1><?=$h($product)?> – Einrichtung</h1>
 <p class="sub">Willkommen! In wenigen Schritten ist das CMS startklar. Diese Seite ist nur bis zum Abschluss erreichbar.</p>
 <?php if($done): ?>
 <div class="card"><div class="msg o">Die Einrichtung ist abgeschlossen. Der Betrieb ist eigenständig: Die Anmeldung läuft nur über dein neues lokales Konto.</div>
+<?php if(!empty($r['plugins'])): $pr=$r['plugins']; ?><p><b>Plugins:</b> <?=$pr['mode']==='minimal'?'Minimal – nur ElvadoPress Core.':($h((string)count($pr['activated'])).' Plugin(s) installiert und aktiviert.')?></p>
+<?php if(!empty($pr['failed'])): ?><div class="msg e">Einige Plugins konnten nicht eingerichtet werden – du kannst sie später unter Plugins installieren:<ul><?php foreach($pr['failed'] as $k=>$v): ?><li><?=$h(($k==='_'?'':$k.': ').$v)?></li><?php endforeach; ?></ul></div><?php endif; endif; ?>
 <p>Aus Sicherheitsgründen ist diese Seite jetzt gesperrt. Melde dich in der Verwaltung mit deinem Administratorkonto an.</p>
 <p><a class="btn" href="index.php">Zur Anmeldung</a></p></div>
 <?php else: ?>
@@ -130,7 +132,16 @@ ul{padding-left:18px;margin:6px 0}.actions{display:flex;gap:10px;flex-wrap:wrap;
 <?=$err('db')?>
 <div class="actions"><button class="g" type="submit" name="do" value="test_db" formnovalidate>Verbindung testen</button></div></div>
 
-<div class="card"><h2>4. Inhalte</h2>
+<?php $mode=(string)($val['install_mode']??'recommended');if(!isset(RRW_INSTALL_MODES[$mode]))$mode='recommended';$choices=rrw_install_plugin_choices();$picked=(array)($val['plugins']??[]); ?>
+<div class="card"><h2>4. Installationsart</h2>
+<?php foreach(RRW_INSTALL_MODES as $k=>$m): ?><label class="mode"><input type="radio" name="install_mode" value="<?=$h($k)?>"<?=$mode===$k?' checked':''?> onchange="modeToggle()"><span><b><?=$h($m['label'])?></b><small><?=$h($m['text'])?></small></span></label><?php endforeach; ?>
+<div id="m_recommended" class="sumry"><b>Das wird eingerichtet:</b><ul><?php foreach($choices as $c): if(!$c['recommended']||$c['status']!=='available')continue; ?><li><b><?=$h($c['name'])?></b> – <?=$h($c['description'])?></li><?php endforeach; ?></ul>
+<small>Externe Statistik-Dienste (Matomo, Google Analytics) bleiben ausgeschaltet. KI-Anbieter, die einen Schlüssel brauchen, sind erst nach deiner Eingabe in der KI-Zentrale nutzbar. Du kannst alles später unter Plugins ändern.</small></div>
+<div id="m_custom" class="sumry" style="display:none"><b>Plugins auswählen:</b>
+<?php foreach($choices as $c): $avail=$c['status']==='available'; ?><label class="plug"><input type="checkbox" name="plugins[]" value="<?=$h($c['id'])?>"<?=$avail?'':' disabled'?><?=in_array($c['id'],$picked,true)?' checked':''?> data-needs="<?=$h(implode(', ',$c['needs']))?>"><span><b><?=$h($c['name'])?></b><?=$c['recommended']?' <em>empfohlen</em>':''?><?=$avail?'':' <em>noch nicht verfügbar</em>'?><small><?=$h($c['description'])?><?=$c['needs']?' Benötigt: '.$h(implode(', ',$c['needs'])).'.':''?></small></span></label><?php endforeach; ?>
+<small>Ausgewählte Plugins werden installiert und aktiviert; benötigte Plugins kommen automatisch dazu. Nicht ausgewählte lassen sich später installieren.</small></div></div>
+
+<div class="card"><h2>5. Inhalte</h2>
 <label class="chk"><input type="checkbox" name="sample" value="1"<?=(!isset($val['do'])||!empty($val['sample']))?' checked':''?>> Einen Beispielbeitrag anlegen</label></div>
 
 <div class="actions"><button type="submit" name="do" value="install">Einrichtung abschließen</button></div>
@@ -138,6 +149,10 @@ ul{padding-left:18px;margin:6px 0}.actions{display:flex;gap:10px;flex-wrap:wrap;
 <script>
 function dbToggle(){var d=document.getElementById('db_driver').value;document.getElementById('f_sqlite').style.display=d==='sqlite'?'':'none';document.getElementById('f_server').style.display=(d==='mysql'||d==='mariadb'||d==='pgsql')?'':'none';}
 dbToggle();
+function modeToggle(){var m=document.querySelector('input[name=install_mode]:checked').value;document.getElementById('m_recommended').style.display=m==='recommended'?'':'none';document.getElementById('m_custom').style.display=m==='custom'?'':'none';}
+modeToggle();
+// Abhängigkeiten im Installer: Wer ein Plugin wählt, das andere braucht, bekommt diese automatisch mit angehakt
+document.querySelectorAll('#m_custom input[data-needs]').forEach(function(i){i.addEventListener('change',function(){if(!i.checked||!i.dataset.needs)return;i.dataset.needs.split(', ').forEach(function(n){document.querySelectorAll('#m_custom .plug').forEach(function(l){if(l.querySelector('b').textContent===n)l.querySelector('input').checked=true;});});});});
 </script>
 <?php endif; ?>
 </main></body></html>

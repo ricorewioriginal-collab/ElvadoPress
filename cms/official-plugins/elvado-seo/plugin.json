@@ -1,0 +1,41 @@
+{
+  "id": "elvado-seo",
+  "name": "Elvado SEO",
+  "description": "Meta-Beschreibung, OpenGraph und Twitter-Cards, strukturierte Daten (Schema.org), SEO-Titel, robots-Regeln und eine echte XML-Sitemap – mit Vorschau für Suchergebnis und Social Media im Beitragseditor. Nutzt die SEO-Felder, die Beiträge und Seiten bereits haben.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "SEO & Inhalte",
+  "icon": "fa-magnifying-glass-chart",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "optional": { "plugins": { "elvado-ai": "*" } },
+  "tested_up_to": "1.x",
+  "capabilities": ["seo.manage"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "admin_js": "admin.js",
+  "admin_global": true,
+  "settings": [
+    { "key": "meta", "type": "toggle", "default": true, "group": "Meta-Angaben", "label": "Meta-Beschreibung ergänzen", "help": "Pro Seite/Beitrag aus dem SEO-Feld, sonst aus dem Teaser bzw. Text, sonst die Beschreibung der Website. Vorhandene Angaben des Themes werden nicht doppelt ausgegeben." },
+    { "key": "title_template", "type": "text", "default": "", "group": "Meta-Angaben", "label": "Titel-Vorlage", "help": "Leer = Titel des Themes unverändert. Mit %title% (Seitentitel) und %site% (Website-Name), z. B. „%title% | %site%“. Ein eigener SEO-Titel wird immer unverändert verwendet." },
+    { "key": "home_title", "type": "text", "default": "", "group": "Meta-Angaben", "label": "Titel der Startseite", "help": "Leer = Website-Titel aus den SEO-Einstellungen." },
+    { "key": "home_description", "type": "textarea", "default": "", "group": "Meta-Angaben", "label": "Beschreibung der Startseite", "help": "Leer = Beschreibung aus den SEO-Einstellungen." },
+    { "key": "og", "type": "toggle", "default": true, "group": "Social Media", "label": "OpenGraph und Twitter-Cards", "help": "Vorschau beim Teilen auf Facebook, WhatsApp, LinkedIn, X, Telegram …" },
+    { "key": "og_image", "type": "text", "default": "", "group": "Social Media", "label": "Standard-Bild zum Teilen", "show_if": "og", "help": "Adresse oder Pfad (z. B. /cms/media/…). Wird genutzt, wenn eine Seite kein eigenes Bild hat. Leer = Bild aus den SEO-Einstellungen." },
+    { "key": "twitter", "type": "text", "default": "", "group": "Social Media", "label": "X/Twitter-Name (ohne @)", "show_if": "og" },
+    { "key": "schema", "type": "toggle", "default": true, "group": "Strukturierte Daten", "label": "Schema.org (JSON-LD)", "help": "WebSite, Organisation, Artikel und Brotkrumen-Navigation für Suchmaschinen." },
+    { "key": "org_name", "type": "text", "default": "", "group": "Strukturierte Daten", "label": "Name der Organisation", "show_if": "schema", "help": "Leer = Website-Name." },
+    { "key": "org_logo", "type": "text", "default": "", "group": "Strukturierte Daten", "label": "Logo der Organisation", "show_if": "schema" },
+    { "key": "noindex_archives", "type": "toggle", "default": true, "group": "Robots", "label": "Archive (Datum, Autor, Schlagwort) nicht indexieren", "help": "Verhindert doppelte Inhalte. Kategorien bleiben indexierbar." },
+    { "key": "noindex_search", "type": "toggle", "default": true, "group": "Robots", "label": "Suchergebnisseiten nicht indexieren" },
+    { "key": "robots_extras", "type": "toggle", "default": true, "group": "Robots", "label": "Große Vorschaubilder und Textauszüge erlauben", "help": "Fügt max-image-preview:large, max-snippet:-1 hinzu." },
+    { "key": "sitemap", "type": "toggle", "default": true, "group": "Sitemap", "label": "XML-Sitemap erzeugen (sitemap.xml)", "help": "Enthält veröffentlichte Seiten, Beiträge und Kategorien ohne noindex, mit den echten Adressen und dem Änderungsdatum. Ersetzt die bisherige Sitemap-Datei, solange das Plugin aktiv ist." }
+  ],
+  "actions": [
+    { "id": "sitemap_now", "label": "Sitemap jetzt erzeugen", "icon": "fa-sitemap" },
+    { "id": "fill_descriptions", "label": "Fehlende Beschreibungen aus dem Text ergänzen", "icon": "fa-wand-magic-sparkles", "confirm": "Für Beiträge und Seiten ohne SEO-Beschreibung eine aus dem Teaser bzw. dem Anfang des Textes eintragen? Bereits vorhandene Beschreibungen bleiben unverändert." }
+  ]
+}

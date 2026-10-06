@@ -60,6 +60,7 @@ function rrw_media_library_store(array $f,array $sizes,int $quality=86,string $m
     $meta=['id'=>$id,'name'=>mb_substr((string)($f['name']??('Bild '.$id)),0,200),'mime'=>$mime,'original'=>['url'=>'/cms/media/library/'.$id.'/original.'.$ext,'path'=>'library/'.$id.'/original.'.$ext,'size'=>(int)($f['size']??0)],'width'=>$sw??0,'height'=>$sh??0,'variants'=>$variants,'created_at'=>date(DATE_ATOM)];
     if($credit)$meta['credit']=$credit;   // Bildnachweis bei übernommenen freien Bildern (Urheber, Quelle, Lizenz)
     rrw_write_atomic($dir.'/meta.json',json_encode($meta,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+    if(function_exists('rrw_np_do'))rrw_np_do('media_uploaded',$meta,$dir);   // z. B. zusätzliche Bildformate durch Plugins
     return ['item'=>$meta,'warnings'=>$warnings];
 }
 /** Alternativtext eines Bibliothek-Bildes (meta.json „alt“). */

@@ -17,6 +17,7 @@ function rrw_backup_add_dir(ZipArchive $zip,string $dir,string $prefix): void {
     foreach($it as $f){$path=$f->getPathname();$rel=$prefix.'/'.str_replace('\\','/',substr($path,strlen($dir)+1));if(str_contains($rel,'/backups/'))continue;if($f->isDir())$zip->addEmptyDir($rel);else $zip->addFile($path,$rel);}
 }
 function rrw_backup_create(string $root,bool $includeMedia=true): array {
+    if(function_exists('rrw_np_filter')){ $o=rrw_np_filter('backup_create',null,$root,$includeMedia);if(is_array($o))return $o;if(is_string($o)&&$o!=='')throw new RuntimeException($o); }   // Plugin „Elvado Backup“ ersetzt die Erstellung (vollständig, ohne Geheimnisse, mit Prüfsummen)
     if(!class_exists('ZipArchive'))throw new RuntimeException('ZIP-Unterstützung ist nicht verfügbar');
     $name='rrw-cms-backup_'.date('Y-m-d_H-i-s').'.zip';$file=rrw_backup_dir().'/'.$name;
     $zip=new ZipArchive();if($zip->open($file,ZipArchive::CREATE|ZipArchive::OVERWRITE)!==true)throw new RuntimeException('Backup-ZIP konnte nicht erstellt werden');
@@ -40,6 +41,7 @@ function rrw_backup_safe_entry(string $name): bool {
     $name=str_replace('\\','/',$name);return $name!==''&&!str_contains($name,'../')&&!str_starts_with($name,'/')&&!preg_match('/^[A-Za-z]:/',$name);
 }
 function rrw_backup_restore(string $name,string $root): void {
+    if(function_exists('rrw_np_filter')){ $o=rrw_np_filter('backup_restore',false,$name,$root);if($o===true)return;if(is_string($o)&&$o!=='')throw new RuntimeException($o); }   // Plugin „Elvado Backup“: prüft, sichert vorher, stellt wieder her
     $name=basename($name);$file=rrw_backup_dir().'/'.$name;if(!is_file($file))throw new RuntimeException('Backup nicht gefunden');
     if(!class_exists('ZipArchive'))throw new RuntimeException('ZIP-Unterstützung ist nicht verfügbar');
     $zip=new ZipArchive();if($zip->open($file)!==true)throw new RuntimeException('Backup kann nicht gelesen werden');

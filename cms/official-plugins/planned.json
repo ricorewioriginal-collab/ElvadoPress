@@ -1,0 +1,11 @@
+[
+  {"id":"elvado-newsletter","name":"Elvado Newsletter","description":"Newsletter-Verwaltung mit Double-Opt-in, Listen und Versand.","category":"Marketing","icon":"fa-envelope-open-text"},
+  {"id":"elvado-podcast","name":"Elvado Podcast","description":"Podcast-Feeds und Player für eigene Folgen.","category":"Medien","icon":"fa-podcast"},
+  {"id":"elvado-radio","name":"Elvado Radio / Audio","description":"Radio- und Audio-Funktionen als Plugin (heute Teil des Radio-Themes).","category":"Medien","icon":"fa-radio"},
+  {"id":"elvado-events","name":"Elvado Events","description":"Veranstaltungen und Kalender.","category":"Inhalte","icon":"fa-calendar-days"},
+  {"id":"elvado-shop","name":"Elvado Shop","description":"Produkte und Bestellungen.","category":"Shop","icon":"fa-cart-shopping"},
+  {"id":"elvado-social","name":"Elvado Social","description":"Social-Media-Feeds und Teilen-Buttons.","category":"Marketing","icon":"fa-share-nodes"},
+  {"id":"elvado-consent","name":"Elvado Consent","description":"Cookie- und Einwilligungsbanner.","category":"Datenschutz","icon":"fa-shield-heart"},
+  {"id":"elvado-maintenance","name":"Elvado Maintenance","description":"Erweiterter Wartungsmodus (der einfache Wartungsmodus ist bereits Teil des Core unter Werkzeuge).","category":"Betrieb","icon":"fa-person-digging"},
+  {"id":"elvado-wp-tools","name":"WordPress Compatibility Tools","description":"Zusatzwerkzeuge für die WordPress-Kompatibilitätsschicht (die Schicht selbst ist Teil des Core).","category":"Kompatibilität","icon":"fa-wordpress"}
+]

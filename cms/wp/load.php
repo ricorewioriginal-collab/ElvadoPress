@@ -60,6 +60,7 @@ function rrw_wp_boot(array $opts=[]): array {
     rrw_wp_register_core_widgets();
     do_action('widgets_init');
     do_action('wp_loaded');
+    if(function_exists('rrw_np_do'))rrw_np_do('wp_ready');   // native Plugins dürfen jetzt WordPress-Hooks (add_action/add_filter) registrieren
     return $errors;
 }
 /** Shortcodes (eingebaut + Plugins) in HTML-Inhalt auflösen. Ohne „[“ im Text passiert nichts (und es werden keine Plugins geladen). */

@@ -34,12 +34,19 @@ Dieses Repository ist die **Hauptquelle des CMS**. Das Entwicklungsprojekt *rico
 | **Radio-Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
 | **RicoReWi** | Portal, Portal-Themes, paketgebundene Radio-/Netzwerkfunktionen, Marken-Inhalte | **nur ricorewi-radio** |
 
+## Core oder Plugin (verbindlich)
+- **Core bleibt:** Plugin-System, Themes/Customizer, Block-Editor, Medien, Benutzer/Rollen/Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit, Installer, KI-Infrastruktur (KI-Zentrale, Gateway, Bild/Video, Website-Generator), WordPress-Schicht, vorhandene Weiterleitungs-Engine.
+- **Plugin (Essentials) erweitert den Core** über Hooks (`cms/lib/nplugins.php`) und dupliziert keine Core-Funktion. Offizielle Plugins liegen in `cms/official-plugins/<id>/`; nach jeder Änderung `php scripts/build-official-plugins.php` ausführen (Prüfsummen-Katalog, Vertrauensanker – ohne passende Prüfsumme läuft das Plugin nicht).
+- Server-PHP führen nur offizielle, unveränderte Plugins aus; hochgeladene ZIP-Plugins bleiben JavaScript-only. Native Plugins, WordPress-Kompatibilität und JS-Plugins strikt getrennt halten.
+- Neue Plugin-Funktionen: keine Telemetrie, keine automatisch aktivierten externen Dienste, keine Schlüssel in Repository oder Logs, Eingaben serverseitig validieren, Tests in `scripts/test-essentials.php`/`test-nplugins.php`. Entwicklerdoku: `cms/docs/PLUGIN-ENTWICKLUNG.md`.
+
 ## Wichtige Einstiegspunkte und Doku
 - `README.md`: menschlicher Projektüberblick.
 - `INSTALL.md`: vorhandene ausführliche Betriebs-/Installationsdokumentation; siehe Hinweis in `KNOWN_ISSUES.md`.
 - `cms/docs/ELVADOPRESS.md`: Entwicklung, Sync und Demo.
 - `cms/docs/API.md`: API und Authentifizierung.
 - `cms/docs/DATABASE.md`: Storage/Datenbank.
+- `cms/docs/PLUGIN-ENTWICKLUNG.md`: natives Plugin-System, Essentials, Hooks.
 - `cms/docs/PLUGINS.md`, `THEMES.md`, `APP-BUILDER.md`, `COMMUNITY.md`: Fachbereiche.
 - `.github/workflows/ci.yml`, `release.yml`: CI und Release.
 

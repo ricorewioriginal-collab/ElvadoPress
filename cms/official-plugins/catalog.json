@@ -1,0 +1,193 @@
+{
+    "schema": 1,
+    "note": "Erzeugt von scripts/build-official-plugins.php – nicht von Hand ändern.",
+    "plugins": [
+        {
+            "id": "elvado-ai",
+            "name": "Elvado AI",
+            "description": "KI-Werkzeuge für Inhalte und Apps auf Basis der zentralen KI-Zentrale: Texte verbessern, kürzen, zusammenfassen, übersetzen, Titel- und SEO-Vorschläge im Beitragseditor sowie Vorschläge für Tab-Leiste, Hinweise und Store-Texte im App-Bereich. Die Anbieter und Schlüssel verwaltest du weiterhin zentra",
+            "category": "KI",
+            "icon": "fa-wand-magic-sparkles",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "5390f7e558a60debce55f624aa1cba6f3c4e79ae7c19a48160080d0804d80ec2"
+        },
+        {
+            "id": "elvado-analytics",
+            "name": "Elvado Analytics",
+            "description": "Datenschutzfreundliche interne Statistik ohne Cookies und ohne gespeicherte IP-Adressen: Aufrufe, Besucher, Top-Seiten, Herkunft und Geräte. Optional Matomo oder Google Analytics – beides ist standardmäßig aus und wird erst nach bewusster Einrichtung und Bestätigung ausgeliefert.",
+            "category": "Statistik",
+            "icon": "fa-chart-line",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "e01f63e3cdd4cb1d3142fab00ff23f93497fe745f79b392958c4bcb528a77d0c"
+        },
+        {
+            "id": "elvado-backup",
+            "name": "Elvado Backup",
+            "description": "Vollständige Backups (Inhalte, Einstellungen, Medien, Themes, Plugins) mit Prüfsummen, automatische Zeitpläne mit Rotation, Wiederherstellung mit Sicherheitskopie und Download. Passwörter, Schlüssel und serverlokale Dateien werden nicht exportiert. Ersetzt die Engine hinter dem bestehenden Bereich „",
+            "category": "Betrieb",
+            "icon": "fa-box-archive",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "5542dfe8cf5b726bb7d38085409a9c033831c87d81c18f4a80963b5d01dd0a00"
+        },
+        {
+            "id": "elvado-forms",
+            "name": "Elvado Forms",
+            "description": "Formular-Builder: Text, E-Mail, Textarea, Auswahl, Checkbox, Radio und Datei-Upload mit Pflichtfeldern und Validierung, E-Mail-Versand per SMTP (oder PHP mail), optionale Speicherung, Spam-Schutz (Honeypot, Zeitfalle, Begrenzung, Rechenfrage), Webhook und DSGVO-Optionen. Einbindung per Shortcode in ",
+            "category": "Inhalte",
+            "icon": "fa-envelope-open-text",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "6c886b2dac94450124aac10bd553cd663cae2a39d04c2fdc1de86048b154a796"
+        },
+        {
+            "id": "elvado-performance",
+            "name": "Elvado Performance",
+            "description": "Seiten-Cache für Besucher, Lazy Loading für Bilder und Einbettungen, AVIF-Bilder (wenn der Server sie kann), optionales Browser-Caching per .htaccess und eine Leistungsübersicht. Sichere Voreinstellungen, keine aggressive Minifizierung.",
+            "category": "Leistung",
+            "icon": "fa-gauge-high",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "7a9e005afbd7fb0a0225ddaa52c4a1beac599dfce00c7d698129f53b16fe4de2"
+        },
+        {
+            "id": "elvado-redirects",
+            "name": "Elvado Redirects",
+            "description": "Legt bei geänderter Beitrags-Adresse automatisch eine Weiterleitung an, erkennt Weiterleitungs-Schleifen und -Ketten und macht aus dem 404-Monitor mit einem Klick eine Weiterleitung. Nutzt die vorhandene Weiterleitungs-Verwaltung unter Werkzeuge (301/302/307/410).",
+            "category": "SEO & Inhalte",
+            "icon": "fa-right-left",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "a87cad9fb8a3b865708a796a0101a5ae9605d2d7f0ce89dba8db8e4e9d9a5b22"
+        },
+        {
+            "id": "elvado-seo",
+            "name": "Elvado SEO",
+            "description": "Meta-Beschreibung, OpenGraph und Twitter-Cards, strukturierte Daten (Schema.org), SEO-Titel, robots-Regeln und eine echte XML-Sitemap – mit Vorschau für Suchergebnis und Social Media im Beitragseditor. Nutzt die SEO-Felder, die Beiträge und Seiten bereits haben.",
+            "category": "SEO & Inhalte",
+            "icon": "fa-magnifying-glass-chart",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "56924af6c2880a66eeda0f3a173cc1dabdd4830e33b175f05eb097e30d2e99b4"
+        },
+        {
+            "id": "elvado-security",
+            "name": "Elvado Security",
+            "description": "Schutz vor Brute-Force-Angriffen beim Login, Login-Protokoll, Sicherheits-Header, Sicherheitsübersicht und Dateiänderungs-Prüfung. Ergänzt den bestehenden Login, ersetzt ihn nicht.",
+            "category": "Sicherheit",
+            "icon": "fa-shield-halved",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "257f993fedf225c128dcaf8d58a6f7f7fbe73e8ac40086f8c7f297031222cf34"
+        },
+        {
+            "id": "elvado-consent",
+            "name": "Elvado Consent",
+            "description": "Cookie- und Einwilligungsbanner.",
+            "category": "Datenschutz",
+            "icon": "fa-shield-heart",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-events",
+            "name": "Elvado Events",
+            "description": "Veranstaltungen und Kalender.",
+            "category": "Inhalte",
+            "icon": "fa-calendar-days",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-maintenance",
+            "name": "Elvado Maintenance",
+            "description": "Erweiterter Wartungsmodus (der einfache Wartungsmodus ist bereits Teil des Core unter Werkzeuge).",
+            "category": "Betrieb",
+            "icon": "fa-person-digging",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-newsletter",
+            "name": "Elvado Newsletter",
+            "description": "Newsletter-Verwaltung mit Double-Opt-in, Listen und Versand.",
+            "category": "Marketing",
+            "icon": "fa-envelope-open-text",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-podcast",
+            "name": "Elvado Podcast",
+            "description": "Podcast-Feeds und Player für eigene Folgen.",
+            "category": "Medien",
+            "icon": "fa-podcast",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-radio",
+            "name": "Elvado Radio / Audio",
+            "description": "Radio- und Audio-Funktionen als Plugin (heute Teil des Radio-Themes).",
+            "category": "Medien",
+            "icon": "fa-radio",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-shop",
+            "name": "Elvado Shop",
+            "description": "Produkte und Bestellungen.",
+            "category": "Shop",
+            "icon": "fa-cart-shopping",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-social",
+            "name": "Elvado Social",
+            "description": "Social-Media-Feeds und Teilen-Buttons.",
+            "category": "Marketing",
+            "icon": "fa-share-nodes",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        },
+        {
+            "id": "elvado-wp-tools",
+            "name": "WordPress Compatibility Tools",
+            "description": "Zusatzwerkzeuge für die WordPress-Kompatibilitätsschicht (die Schicht selbst ist Teil des Core).",
+            "category": "Kompatibilität",
+            "icon": "fa-wordpress",
+            "status": "planned",
+            "recommended": false,
+            "version": "",
+            "hash": ""
+        }
+    ]
+}

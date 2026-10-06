@@ -60,6 +60,7 @@ window.AppsManager=(()=>{
      <div><label class="news-lbl">Art</label><select class="fc w-100" onchange="AppsManager.set('${esc(k)}','notice.level',this.value)"><option value="info" ${n.level!=='warn'?'selected':''}>Information</option><option value="warn" ${n.level==='warn'?'selected':''}>Wichtig / Wartung</option></select></div>
      <div><label class="news-lbl">Überschrift</label><input class="fc w-100" maxlength="80" value="${esc(n.title||'')}" oninput="AppsManager.set('${esc(k)}','notice.title',this.value)"></div>
      <div class="ap-wide"><label class="news-lbl">Text</label><textarea class="fc w-100" rows="3" maxlength="600" oninput="AppsManager.set('${esc(k)}','notice.text',this.value)">${esc(n.text||'')}</textarea></div>
+     ${window.ElvadoAi?`<div class="ap-wide"><div class="ap-add"><input class="fc" style="flex:1;min-width:220px" id="ainb-${esc(k)}" placeholder="Worum geht es? z. B. Neue Version mit Terminkalender"><button class="btn-g" type="button" onclick="AppsManager.aiNotice('${esc(k)}',this)"><i class="fas fa-wand-magic-sparkles"></i> Text mit KI vorschlagen</button></div><div class="hint">Die KI ist ein externer Dienst; gesendet wird nur diese Beschreibung. Anbieter und Schlüssel: KI-Zentrale.</div></div>`:''}
      <div><label class="news-lbl">Link (https, optional)</label><input class="fc w-100" value="${esc(n.url||'')}" placeholder="https://…" oninput="AppsManager.set('${esc(k)}','notice.url',this.value)"></div>
      <div><label class="news-lbl">Beschriftung des Links</label><input class="fc w-100" maxlength="40" value="${esc(n.url_label||'')}" placeholder="Mehr erfahren" oninput="AppsManager.set('${esc(k)}','notice.url_label',this.value)"></div>
     </div>
@@ -86,6 +87,7 @@ window.AppsManager=(()=>{
     </div>
     `}
     <div class="ap-sub">App-Builder – Aussehen &amp; Startseite</div>
+    ${(own&&window.ElvadoAi)?storeAi(k):''}
     ${(own&&r.type==='content')?ownBlock(k):((own&&r.type==='web')?ownBlock(k):'')}
     ${(window.AppBuilder&&(!own||radio))?window.AppBuilder.html(k):''}
    </div></details>`;
@@ -169,6 +171,7 @@ window.AppsManager=(()=>{
    <div id="aptabs-${ek}">${rows||'<p class="hint">Noch keine Tabs. Wähle eine Vorlage oder füge Tabs hinzu.</p>'}</div>
    <div class="ap-add"><button class="btn-g" type="button" ${t.length>=5?'disabled':''} onclick="AppsManager.tabAdd('${ek}')"><i class="fas fa-plus"></i> Tab hinzufügen</button></div>
    <div class="ap-sub">Vorlage laden (ersetzt die Tabs)</div><div class="ap-add">${pre}</div>
+   ${window.ElvadoAi?`<div class="ap-sub">Vorschlag mit KI (externer Dienst)</div><div class="ap-add"><input class="fc" style="flex:1;min-width:220px" id="aitb-${ek}" placeholder="Worum geht es in der App? z. B. Sportverein mit Terminen und News"><button class="btn-g" type="button" onclick="AppsManager.aiTabs('${ek}',this)"><i class="fas fa-wand-magic-sparkles"></i> Tabs vorschlagen</button></div><p class="hint">Die KI wählt nur aus den vorhandenen Seiten deiner Website. Gesendet werden Seitentitel, Adressen und deine Beschreibung – keine Schlüssel oder Nutzerdaten.</p>`:''}
    <div class="ap-sub">Aussehen in der App</div>
    <label class="news-lbl">Kopf und Fuß der Website <select class="fc" onchange="AppsManager.set('${ek}','builder.chrome',this.value)"><option value="auto" ${chrome==='auto'?'selected':''}>Automatisch (Baukasten-App: ausblenden)</option><option value="hide" ${chrome==='hide'?'selected':''}>In der App ausblenden</option><option value="keep" ${chrome==='keep'?'selected':''}>In der App anzeigen</option></select></label>
    <p class="hint">Eigene Elemente: Klasse <code>elvado-hide-in-app</code> blendet in der App aus, <code>elvado-only-app</code> zeigt nur in der App.</p></div>${phoneHtml(k)}</div></div>`;
@@ -195,6 +198,16 @@ window.AppsManager=(()=>{
  function tabDel(k,i){tabs(k).splice(i,1);tabsRedraw(k);}
  function tabMove(k,i,d){const t=tabs(k),j=i+d;if(j<0||j>=t.length)return;[t[i],t[j]]=[t[j],t[i]];tabsRedraw(k);}
  function tabPreset(k,p){const pr=TAB_PRESETS[p];if(!pr)return;S.managed[k].builder=S.managed[k].builder||{};S.managed[k].builder.tabs=pr.tabs.map(x=>({title:x[0],icon:x[1],url:x[2]}));tabsRedraw(k);toast('Vorlage geladen – Pfade prüfen und „Speichern“');}
+ function storeAi(k){const ek=esc(k);return `<div class="ap-sub">Store-Texte mit KI (Google Play / Microsoft Store)</div><div class="ap-add"><input class="fc" style="flex:1;min-width:220px" id="aist-${ek}" placeholder="Was kann die App? z. B. Termine, News und Kontakt für unseren Sportverein"><button class="btn-g" type="button" onclick="AppsManager.aiStore('${ek}',this)"><i class="fas fa-wand-magic-sparkles"></i> Texte vorschlagen</button></div><div id="aistr-${ek}"></div>`;}
+ function aiStore(k,btn){const r=row(k);aiRun(btn,async()=>{const brief=(document.getElementById('aist-'+k)||{}).value||'';if(brief.trim().length<5){toast('Bitte kurz beschreiben, was die App kann.',true);return;}
+  const d=await ElvadoAi.call('app_store',{app:r?r.brand_name:'',brief});if(!d.ok){toast(d.message||'Kein Vorschlag',true);return;}
+  const el=document.getElementById('aistr-'+k);if(el)el.innerHTML=`<label class="news-lbl">Kurzbeschreibung (${d.short.length}/80)</label><textarea class="fc w-100" rows="2" readonly>${esc(d.short)}</textarea><label class="news-lbl">Langbeschreibung</label><textarea class="fc w-100" rows="8" readonly>${esc(d.long)}</textarea><div class="hint">Zum Einfügen in die Store-Seite kopieren (Anbieter: ${esc(d.provider)}). Bitte vor der Veröffentlichung prüfen.</div>`;});}
+ async function aiRun(btn,fn){if(!window.ElvadoAi)return;const t=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> KI arbeitet …';try{const st=await ElvadoAi.status();if(!st.usable){toast('Noch kein KI-Anbieter eingerichtet (KI-Zentrale).',true);return;}await fn();}catch(e){toast(e.message||'Fehler',true);}finally{btn.disabled=false;btn.innerHTML=t;}}
+ function aiTabs(k,btn){const r=row(k);aiRun(btn,async()=>{const brief=(document.getElementById('aitb-'+k)||{}).value||'';if(brief.trim().length<5){toast('Bitte kurz beschreiben, worum es in der App geht.',true);return;}
+  const pages=(S.targets||[]).map(x=>({title:x.title,path:x.path}));const d=await ElvadoAi.call('app_tabs',{app:r?r.brand_name:'',brief,pages});
+  if(!d.ok){toast(d.message||'Kein Vorschlag',true);return;}S.managed[k].builder=S.managed[k].builder||{};S.managed[k].builder.tabs=d.tabs;tabsRedraw(k);toast('Vorschlag übernommen – bitte prüfen und „Speichern“ (Anbieter: '+d.provider+')');});}
+ function aiNotice(k,btn){const r=row(k);aiRun(btn,async()=>{const brief=(document.getElementById('ainb-'+k)||{}).value||'';if(brief.trim().length<5){toast('Bitte kurz beschreiben, worum es im Hinweis geht.',true);return;}
+  const d=await ElvadoAi.call('app_notice',{app:r?r.brand_name:'',brief});if(!d.ok){toast(d.message||'Kein Vorschlag',true);return;}set(k,'notice.title',d.title);set(k,'notice.text',d.text);draw();toast('Vorschlag übernommen – bitte prüfen und „Speichern“ (Anbieter: '+d.provider+')');});}
  function setList(k,path,val){set(k,path,String(val||'').split(/[\s,;]+/).filter(Boolean));}
  function pinCert(k){
   const r=(S.ov?S.ov.items:[]).find(x=>key(x)===k),c=r&&r.meta&&r.meta.cert_sha256;if(!c)return;
@@ -206,5 +219,5 @@ window.AppsManager=(()=>{
  async function refresh(){await render();toast('Aktualisiert');}
  function collect(){return {android_enabled:!!document.getElementById('cmsAndroid')?.checked,windows_enabled:!!document.getElementById('cmsWindows')?.checked,telemetry:S.tel,managed:S.managed};}
  function copy(t){try{navigator.clipboard.writeText(t);toast('Prüfsumme kopiert');}catch(e){toast('Kopieren nicht möglich',true);}}
- return {ready:()=>!!S.ov,render,refresh,set,setList,tabSet,tabPick,pvGo,pvReload,tabAdd,tabDel,tabMove,tabPreset,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
+ return {ready:()=>!!S.ov,render,refresh,set,setList,aiTabs,aiNotice,aiStore,tabSet,tabPick,pvGo,pvReload,tabAdd,tabDel,tabMove,tabPreset,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
 })();

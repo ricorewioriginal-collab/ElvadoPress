@@ -71,7 +71,8 @@
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-plug"></i><span>Plugins</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
-          <button class="tab" data-tab="plugins" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('inst')"><i class="fas fa-plug"></i>Installierte Plugins</button>
+          <button class="tab" data-tab="eplugins" onclick="cmsTab('eplugins',this);window.ElvadoPlugins?.load()"><i class="fas fa-puzzle-piece"></i>ElvadoPress-Plugins</button>
+          <button class="tab" data-tab="plugins" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('inst')"><i class="fas fa-plug"></i>WordPress-Plugins</button>
           <button class="tab" data-tab="plugins" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('new')"><i class="fas fa-plus"></i>Plugin hinzufügen</button>
         </div>
       </div>

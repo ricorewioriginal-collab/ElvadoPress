@@ -1,0 +1,33 @@
+{
+  "id": "elvado-performance",
+  "name": "Elvado Performance",
+  "description": "Seiten-Cache für Besucher, Lazy Loading für Bilder und Einbettungen, AVIF-Bilder (wenn der Server sie kann), optionales Browser-Caching per .htaccess und eine Leistungsübersicht. Sichere Voreinstellungen, keine aggressive Minifizierung.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "Leistung",
+  "icon": "fa-gauge-high",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "tested_up_to": "1.x",
+  "capabilities": ["performance.manage"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "settings": [
+    { "key": "cache", "type": "toggle", "default": true, "group": "Seiten-Cache", "label": "Seiten-Cache für Besucher", "help": "Fertige Seiten werden kurz zwischengespeichert. Nicht gecacht werden: angemeldete Personen, Vorschauen, Seiten mit Cookies oder Formularen, Anfragen mit Parametern und Verwaltungs-/API-Adressen. Änderungen am Inhalt leeren den Cache automatisch." },
+    { "key": "ttl_minutes", "type": "number", "default": 10, "min": 1, "max": 1440, "group": "Seiten-Cache", "label": "Gültigkeit (Minuten)", "show_if": "cache" },
+    { "key": "exclude_paths", "type": "textarea", "default": "", "group": "Seiten-Cache", "label": "Adressen vom Cache ausnehmen", "help": "Eine Adresse pro Zeile, z. B. /warenkorb/ – gilt auch für alles darunter.", "show_if": "cache" },
+    { "key": "lazy", "type": "toggle", "default": true, "group": "Bilder", "label": "Lazy Loading für Bilder und Einbettungen", "help": "Bilder und iframes unterhalb des sichtbaren Bereichs werden erst beim Scrollen geladen. Bereits gesetzte loading-Angaben bleiben unverändert." },
+    { "key": "skip_first", "type": "number", "default": 1, "min": 0, "max": 10, "group": "Bilder", "label": "Erste Bilder sofort laden", "help": "So viele Bilder am Seitenanfang bleiben ohne Lazy Loading (wichtig für den sichtbaren Bereich).", "show_if": "lazy" },
+    { "key": "avif", "type": "toggle", "default": true, "group": "Bilder", "label": "AVIF-Varianten erzeugen und ausliefern", "help": "Nur wenn PHP AVIF kann (GD mit AVIF). Neue Bilder bekommen eine AVIF-Variante; Browser, die AVIF unterstützen, erhalten sie automatisch." },
+    { "key": "minify", "type": "toggle", "default": false, "group": "Experimentell", "label": "HTML leicht verkleinern", "help": "Entfernt Kommentare und überflüssige Leerräume zwischen Tags (nicht in pre, textarea, script, style). Standardmäßig aus – bei Darstellungsproblemen ausgeschaltet lassen." }
+  ],
+  "actions": [
+    { "id": "clear_cache", "label": "Cache leeren", "icon": "fa-broom" },
+    { "id": "optimize_images", "label": "Vorhandene Bilder optimieren (AVIF)", "icon": "fa-image", "confirm": "Für vorhandene Bilder der Mediathek AVIF-Varianten erzeugen? Pro Klick werden bis zu 15 Bilder bearbeitet." },
+    { "id": "htaccess_enable", "label": "Browser-Caching in .htaccess eintragen", "icon": "fa-file-circle-plus", "confirm": "Einen markierten Block (Expires/Cache-Control/Kompression) in die .htaccess der Website schreiben? Die bisherige Datei wird gesichert; der Block ist nur aktiv, wenn die Apache-Module vorhanden sind." },
+    { "id": "htaccess_disable", "label": "Block aus .htaccess entfernen", "icon": "fa-file-circle-minus" }
+  ]
+}

@@ -527,6 +527,7 @@ function rrw_publish(array $site,string $siteFile,string $genDir,string $root): 
     if(!empty($site['storage']['database_mirror'])&&function_exists('rrw_db_push')){
         try{rrw_db_push($site,$news);}catch(Throwable $e){}
     }
+    if(function_exists('rrw_np_do'))rrw_np_do('content_saved','site');   // Plugins: z. B. Seiten-Cache leeren
 }
 
 // Standard-Inhalt der Partnerseite (#partner). Wird einmalig angelegt und ist danach im CMS (Seiten) vollständig frei bearbeitbar.

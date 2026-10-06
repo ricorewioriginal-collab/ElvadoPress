@@ -361,6 +361,7 @@ function rrw_plugin_catalog(array $site): array {
     if(!is_dir($base))return [];
     foreach(glob($base.'/*',GLOB_ONLYDIR)?:[] as $dir){
         $file=$dir.'/plugin.json';if(!is_file($file))continue;$m=json_decode((string)file_get_contents($file),true);if(!is_array($m))continue;
+        if(($m['type']??'')==='native'||isset($m['entry'])||rrw_np()->reservedId(rrw_plugin_id((string)($m['id']??basename($dir)))))continue;   // native Plugins verwaltet das Plugin-System (np_*), nicht diese Liste
         $id=rrw_plugin_id((string)($m['id']??basename($dir)));if($id==='')continue;
         $out[]=[
             'id'=>$id,'name'=>(string)($m['name']??$id),'version'=>(string)($m['version']??'1.0.0'),
@@ -386,6 +387,7 @@ function rrw_import_plugin_zip(string $zipPath): array {
     if($manifest===null)throw new RuntimeException('plugin.json fehlt');
     $m=json_decode((string)$manifest,true);if(!is_array($m))throw new RuntimeException('plugin.json ist ungültig');
     $id=rrw_plugin_id((string)($m['id']??$m['name']??'plugin'));if($id==='')throw new RuntimeException('Plugin-ID ungültig');
+    if(($m['type']??'')==='native'||rrw_np()->reservedId($id))throw new RuntimeException('Diese Plugin-ID ist für offizielle ElvadoPress-Plugins reserviert. Hochgeladene Plugins dürfen sie nicht verwenden und keinen Server-PHP-Code mitbringen.');
     $dir=__DIR__.'/plugins/'.$id;if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $x)if(is_file($x))@unlink($x);}else if(!@mkdir($dir,0755,true))throw new RuntimeException('Plugin-Ordner konnte nicht angelegt werden');
     $safe=['plugin.json','frontend.js','frontend.css','admin.js','README.md'];
     foreach($safe as $file){
@@ -513,6 +515,7 @@ require_once __DIR__.'/lib/system.php';
 require_once __DIR__.'/lib/product.php';
 require_once __DIR__.'/lib/install.php';
 require_once __DIR__.'/lib/pack.php';
+require_once __DIR__.'/lib/nplugins.php';
 rrw_system_apply_timezone();
 
 // Gleichzeitiges Bearbeiten (CMS, Control Center, mehrere Personen): Beim Speichern wird die Datei gesperrt und neu gelesen,
@@ -527,6 +530,8 @@ function rrw_site_lock(string $dataDir): void {
 }
 rrw_ensure_dirs();
 $action=(string)($_GET['action']??'public');
+// Native Plugins: bei Verwaltungsaktionen für Plugins werden sie nicht vorab geladen (Installieren/Aktualisieren prüft sie selbst); sonst laden die aktiven Plugins hier ihre Erweiterungspunkte
+if(!in_array($action,['np_list','np_plan','np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_settings_get','np_enable_recommended'],true)){ rrw_np_boot(); }
 // Update-Überwachung: öffentlicher Lebenszeichen-Ping (prüft, dass das CMS startet) und – nur solange ein frisches Update überwacht wird – die Gesundheitsprüfung nach der Antwort
 if($action==='update_ping')rrw_json(['status'=>'ok','version'=>rrw_cms_version()]);
 if(is_file($dataDir.'/.update/state.json')&&str_contains((string)@file_get_contents($dataDir.'/.update/state.json'),'"pending"')){
@@ -780,7 +785,10 @@ if($action==='local_auth_setup'){
 if($action==='login'){
     if(!rrw_local_auth_configured())rrw_json(['status'=>'error','message'=>'Lokaler Zugang ist nicht eingerichtet'],400);
     $b=rrw_body();$username=trim((string)($b['username']??''));$password=(string)($b['password']??'');
+    $loginBlock=rrw_np_filter('login_check',null,$username,(string)($_SERVER['REMOTE_ADDR']??''));   // Plugins (z. B. Security) dürfen den Versuch vor der Passwortprüfung abweisen
+    if(is_string($loginBlock)&&$loginBlock!=='')rrw_json(['status'=>'error','message'=>$loginBlock],429);
     $user=rrw_local_auth_verify($username,$password);
+    rrw_np_do('login_result',$username,$user!==null,(string)($_SERVER['REMOTE_ADDR']??''));
     if($user===null)rrw_json(['status'=>'error','message'=>'Benutzername oder Passwort falsch'],401);
     rrw_json(['status'=>'ok','token'=>rrw_local_session_create((string)$user['username']),'superadmin'=>($user['role']??'admin')==='admin']);
 }
@@ -1606,6 +1614,41 @@ if(str_starts_with($action,'wp_')){
     }
     rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],404);
 }
+// ---- Native ElvadoPress-Plugins (offizielle Essentials und weitere): Verwaltung, Einstellungen, Plugin-API (cms/lib/nplugins.php, cms/src/Plugin/)
+if(str_starts_with($action,'np_')){
+    $npMgr=rrw_np();
+    $npRole=function(array $u):string{ return !empty($u['superadmin'])?'admin':'editor'; };
+    if($action==='np_public'){   // ohne Anmeldung: nur Plugin-Aktionen, die ausdrücklich öffentlich sind (z. B. Formular absenden)
+        $b=rrw_body();if(!$b&&isset($_POST['call'])){$b=['id'=>$_POST['id']??'','call'=>$_POST['call'],'args'=>json_decode((string)($_POST['args']??'{}'),true)?:[]];}   // multipart (Datei-Uploads)
+        $r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),'public');
+        $code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code);
+    }
+    if($action==='np_call'){
+        $u=rrw_auth(false);$GLOBALS['rrw_np_user']=(string)($u['user']??'');$b=rrw_body();$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),$npRole($u));
+        $code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code);
+    }
+    if($action==='np_download'){   // Datei aus einem Plugin-Datenordner (Admin): das Plugin liefert über die API-Aktion ['file'=>…,'name'=>…,'mime'=>…]; erlaubt sind nur Pfade in Plugin-Daten und cms/backups
+        rrw_auth(true);$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($_GET['id']??'')),(string)($_GET['call']??''),(array)($_GET['args']??[]),'admin');
+        $f=(string)($r['file']??'');$real=$f!==''?realpath($f):false;$okBase=false;
+        foreach([realpath($npMgr->stateDir().'/data'),realpath(__DIR__.'/backups')] as $base)if($base&&$real&&str_starts_with($real,$base.DIRECTORY_SEPARATOR))$okBase=true;
+        if(!$okBase||!is_file($real)){http_response_code(404);exit('Datei nicht gefunden');}
+        $name=preg_replace('/[^A-Za-z0-9._-]/','_',(string)($r['name']??basename($real)));header_remove('Content-Type');header('Content-Type: '.(preg_match('~^[a-z]+/[a-z0-9.+-]+$~i',(string)($r['mime']??''))?$r['mime']:'application/octet-stream'));header('X-Content-Type-Options: nosniff');header('Content-Disposition: attachment; filename="'.$name.'"');header('Content-Length: '.filesize($real));readfile($real);exit;
+    }
+    $u=rrw_auth(true);$b=in_array($action,['np_list'],true)?[]:rrw_body();$pid=(string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??''));
+    $res=function(array $r,string $what)use($activityLogFile,$u,$pid,$npMgr){ if(!empty($r['ok']))rrw_log_activity($activityLogFile,$u,'plugin',$what.($pid!==''?': '.$pid:'')); rrw_json($r+['plugins'=>$npMgr->rows()],!empty($r['ok'])?200:422); };
+    rrw_np_migrate();
+    if($action==='np_enable_recommended'){$r=$npMgr->installSelection($npMgr->recommendedIds(),true);if($r['activated']||!$r['failed'])$npMgr->setMode('recommended');rrw_log_activity($activityLogFile,$u,'plugin','Empfohlene Plugins aktiviert: '.implode(', ',$r['activated']));rrw_json(['status'=>$r['failed']?'error':'ok','ok'=>!$r['failed'],'message'=>($r['activated']?'Aktiviert: '.implode(', ',array_map(fn($x)=>$npMgr->catalog()[$x]['name']??$x,$r['activated'])).'. ':'').($r['failed']?'Nicht möglich: '.implode(' ',array_map(fn($k,$v)=>(($npMgr->catalog()[$k]['name']??$k).': '.$v),array_keys($r['failed']),$r['failed'])):''),'plugins'=>$npMgr->rows()],$r['failed']?422:200);}
+    if($action==='np_list')rrw_json(['status'=>'ok','plugins'=>$npMgr->rows(),'cms_version'=>rrw_cms_version(),'php'=>PHP_VERSION,'mode'=>$npMgr->state()['mode']]);
+    if($action==='np_plan')rrw_json(['status'=>'ok']+$npMgr->plan(array_map('strval',(array)($b['ids']??[]))));
+    if($action==='np_install'){$r=$npMgr->install($pid,!empty($b['with_deps']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin installiert');}
+    if($action==='np_activate'){$r=$npMgr->activate($pid,!empty($b['with_deps']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin aktiviert');}
+    if($action==='np_deactivate'){$r=$npMgr->deactivate($pid,!empty($b['cascade']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin deaktiviert');}
+    if($action==='np_update'){$r=$npMgr->update($pid);$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin aktualisiert');}
+    if($action==='np_uninstall'){$r=$npMgr->uninstall($pid,!empty($b['purge']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin deinstalliert');}
+    if($action==='np_settings_get'){if(!$npMgr->isInstalled($pid))rrw_json(['status'=>'error','message'=>'Plugin nicht installiert'],404);rrw_json(['status'=>'ok','schema'=>$npMgr->settingsSchema($pid),'settings'=>$npMgr->settings($pid)]);}
+    if($action==='np_settings_save'){$r=$npMgr->saveSettings($pid,(array)($b['values']??[]));if($r['ok'])rrw_log_activity($activityLogFile,$u,'plugin','Plugin-Einstellungen gespeichert: '.$pid);rrw_json(['status'=>$r['ok']?'ok':'error']+$r,$r['ok']?200:422);}
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],404);
+}
 if($action==='plugins_list'){rrw_auth(false);rrw_json(['status'=>'ok','plugins'=>rrw_plugin_catalog($site),'active'=>$site['plugins']??[]]);}
 if($action==='plugin_upload'){
     rrw_auth(true);if(empty($_FILES['file'])||!is_uploaded_file($_FILES['file']['tmp_name']))rrw_json(['status'=>'error','message'=>'Keine Plugin-ZIP'],400);
@@ -2146,7 +2189,7 @@ if($action==='news_track_view'){
     rrw_json(['status'=>'ok']);
 }
 if($action==='news_thumbnail_upload')rrw_json(['status'=>'ok','url'=>rrw_upload('news',8388608)]);
-if($action==='news_delete'){ $b=rrw_body();$id=(int)($b['id']??0);$now=date('Y-m-d H:i:s');$found=false;$title='';foreach($news as &$a)if((int)($a['id']??0)===$id){if(!rrw_news_can_edit($a,$newsAuth))rrw_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);$a['deleted_at']=$now;$found=true;$title=(string)($a['title']??'');break;}unset($a);if(!$found)rrw_json(['status'=>'error','message'=>'Beitrag nicht gefunden'],404);rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));rrw_log_activity($activityLogFile,$newsAuth,'news_trash','„'.$title.'“ in den Papierkorb verschoben');rrw_json(['status'=>'ok']);}
+if($action==='news_delete'){ rrw_np_do('content_saved','news');$b=rrw_body();$id=(int)($b['id']??0);$now=date('Y-m-d H:i:s');$found=false;$title='';foreach($news as &$a)if((int)($a['id']??0)===$id){if(!rrw_news_can_edit($a,$newsAuth))rrw_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);$a['deleted_at']=$now;$found=true;$title=(string)($a['title']??'');break;}unset($a);if(!$found)rrw_json(['status'=>'error','message'=>'Beitrag nicht gefunden'],404);rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));rrw_log_activity($activityLogFile,$newsAuth,'news_trash','„'.$title.'“ in den Papierkorb verschoben');rrw_json(['status'=>'ok']);}
 if($action==='news_restore'){ $b=rrw_body();$id=(int)($b['id']??0);$found=false;$title='';foreach($news as &$a)if((int)($a['id']??0)===$id){if(!rrw_news_can_edit($a,$newsAuth))rrw_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);unset($a['deleted_at']);$found=true;$title=(string)($a['title']??'');break;}unset($a);if(!$found)rrw_json(['status'=>'error','message'=>'Beitrag nicht gefunden'],404);rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));rrw_log_activity($activityLogFile,$newsAuth,'news_restore','„'.$title.'“ aus dem Papierkorb wiederhergestellt');rrw_json(['status'=>'ok']);}
 if($action==='news_delete_permanent'){ $delAuth=rrw_auth(true);$b=rrw_body();$id=(int)($b['id']??0);$before=count($news);$title='';foreach($news as $a)if((int)($a['id']??0)===$id){$title=(string)($a['title']??'');break;}$news=array_values(array_filter($news,fn($a)=>(int)($a['id']??0)!==$id||empty($a['deleted_at'])));if(count($news)===$before)rrw_json(['status'=>'error','message'=>'Beitrag nicht im Papierkorb'],404);rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");rrw_log_activity($activityLogFile,$delAuth,'news_delete_permanent','„'.$title.'“ endgültig gelöscht');rrw_json(['status'=>'ok']);}
 if($action==='news_bulk_action'){
@@ -2224,6 +2267,8 @@ if($action==='news_save'){
     $slug=rrw_news_unique_slug($news,$id,$slug);   // Adresse eindeutig halten
     $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?$b['image_mode']:'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>rrw_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>rrw_news_date($b['published_at']??'',$now),'body_html'=>rrw_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??rrw_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'updated_at'=>$now,'created_at'=>$now]+rrw_news_seo_fields($b);
     if($existing!==null)rrw_news_save_revision($revisionsFile,$id,$existing);
+    if($existing!==null&&(string)($existing['slug']??'')!==''&&(string)$existing['slug']!==$slug)rrw_np_do('slug_changed','news',(string)$existing['slug'],$slug);   // Plugins (Weiterleitungen) reagieren auf geänderte Adressen
+    rrw_np_do('content_saved','news');
     $found=false;foreach($news as &$a)if((int)($a['id']??0)===$id){$article['created_at']=$a['created_at']??$now;$a=$article;$found=true;break;}unset($a);if(!$found)$news[]=$article;
     rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));rrw_log_activity($activityLogFile,$newsAuth,$existing!==null?'news_update':'news_create',($existing!==null?'Beitrag „':'Neuer Beitrag „').$article['title'].'“ '.($existing!==null?'bearbeitet':'angelegt'));rrw_json(['status'=>'ok','id'=>$id]);
 }

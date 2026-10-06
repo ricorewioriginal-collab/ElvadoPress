@@ -1,4 +1,6 @@
-# ElvadoPress – native Plugin API
+# ElvadoPress – Plugin API (JavaScript-Plugins)
+
+> Dieses Dokument beschreibt die **reinen Frontend-/Admin-Plugins (JavaScript, ZIP-Upload)**. Die **Server-Plugins des Plugin-Systems** (offizielle Essentials mit PHP, Verwaltung unter *Plugins › ElvadoPress-Plugins*) stehen in [PLUGIN-ENTWICKLUNG.md](PLUGIN-ENTWICKLUNG.md). WordPress-Plugins: [WORDPRESS.md](WORDPRESS.md).
 
 Native ElvadoPress-Plugins dieser API erweitern die Website und Verwaltung in einer bewusst eingeschränkten Laufzeit, ohne beliebigen serverseitigen PHP-Code auszuführen.
 

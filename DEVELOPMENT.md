@@ -39,6 +39,8 @@ done
 exit $fail
 ```
 
+Plugin-System: Nach jeder Änderung in `cms/official-plugins/<id>/` zuerst `php scripts/build-official-plugins.php` (schreibt `catalog.json` mit den Prüfsummen neu; `--check` prüft nur). Tests: `scripts/test-nplugins.php` (Framework), `scripts/test-essentials.php` (die acht Essentials inkl. SMTP-Testserver), `scripts/test-install-modes.php` (Installer-Modi und Upgrade über einen echten PHP-Server, braucht freie lokale Ports).
+
 Für eine konkrete Änderung bevorzugt nur die betroffenen `scripts/test-*.php` plus ggf. Smoke-Test ausführen. CI führt Syntaxprüfung, Smoke-Test und alle Tests aus.
 
 ## React-Bündel

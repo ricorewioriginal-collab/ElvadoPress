@@ -56,6 +56,9 @@ require_once $cmsDir.'/wp/session.php';
 
 $uri=(string)($_SERVER['REQUEST_URI']??'/');
 $reqPath=(string)parse_url($uri,PHP_URL_PATH);
+// Native Plugins (Essentials): laden, geplante Aufgaben, frühe Anfragen (z. B. Seiten-Cache, Weiterleitungen) – siehe cms/lib/nplugins.php
+require_once $cmsDir.'/lib/nplugins.php';
+if($preview===''&&!$sbx){ rrw_np_boot();rrw_np_do('front_request',$uri,$reqPath,(string)($_SERVER['REQUEST_METHOD']??'GET')); }
 // Wechsel vom CMS: Einmal-Token gegen Sitzungs-Cookie tauschen und auf die saubere Adresse weiterleiten
 if(isset($_GET['rrw_wp_login'])){
     $ok=rrw_wp_sess_token_consume((string)$_GET['rrw_wp_login']);
@@ -69,6 +72,7 @@ if($preview===''&&is_file(RRW_WP_DATA.'/customize-changesets/future.idx')){ try{
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){ $GLOBALS['rrw_wp_raw_body']=(string)file_get_contents('php://input',false,null,0,1048576);}
 $GLOBALS['rrw_wp_req_headers']=['Content-Type'=>(string)($_SERVER['CONTENT_TYPE']??''),'Accept'=>(string)($_SERVER['HTTP_ACCEPT']??''),'X-WP-Nonce'=>(string)($_SERVER['HTTP_X_WP_NONCE']??''),'X-HTTP-Method-Override'=>(string)($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']??'')];
 $r=rrw_wp_dispatch($uri,(string)($_SERVER['REQUEST_METHOD']??'GET'),$_GET,$_POST);
+if($preview===''&&!$sbx)rrw_np_tick();   // geplante Plugin-Aufgaben erst nach dem Laden von WordPress und Theme (sonst würde ein früher Start der WordPress-Schicht das Theme aussperren)
 if($r['status']===404&&$preview===''){
     // Weiterleitungen aus dem CMS (Werkzeuge) haben Vorrang vor der 404-Seite des Themes; unbekannte Pfade werden protokolliert
     try{
@@ -96,4 +100,6 @@ if($preview===''&&$r['status']===200&&is_string($body)&&stripos((string)($r['hea
 }
 if($liveCz&&$r['status']===200&&is_string($body)&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).rrw_wpc_live_script().substr($body,$p);
 if($sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).'<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:7px 12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">Sandbox – nicht öffentlich <a href="/?rrw_sbx=off" style="color:#fff;text-decoration:underline">Sandbox verlassen</a></div>'.substr($body,$p);
+if($preview===''&&!$sbx&&is_string($body)&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false)$body=rrw_np_filter('front_output',$body,(int)$r['status']);   // Plugins: SEO, Leistung, Statistik, Sicherheits-Header
+rrw_np_do('front_response',(int)$r['status'],$reqPath,(string)($r['headers']['Content-Type']??'text/html'));
 echo $body;

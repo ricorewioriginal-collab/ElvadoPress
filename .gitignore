@@ -8,3 +8,5 @@
 /cms/lib/demo.json
 /demo/
 /cms/wp-content/uploads/*
+/cms/backups/
+/cms/plugins/

@@ -1,0 +1,26 @@
+{
+  "id": "elvado-redirects",
+  "name": "Elvado Redirects",
+  "description": "Legt bei geänderter Beitrags-Adresse automatisch eine Weiterleitung an, erkennt Weiterleitungs-Schleifen und -Ketten und macht aus dem 404-Monitor mit einem Klick eine Weiterleitung. Nutzt die vorhandene Weiterleitungs-Verwaltung unter Werkzeuge (301/302/307/410).",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "SEO & Inhalte",
+  "icon": "fa-right-left",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "tested_up_to": "1.x",
+  "capabilities": ["redirects.manage"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "settings": [
+    { "key": "auto_slug", "type": "toggle", "default": true, "label": "Bei geänderter Adresse automatisch weiterleiten", "help": "Ändert sich die Adresse eines Beitrags, führt die alte Adresse automatisch auf die neue." },
+    { "key": "auto_code", "type": "select", "default": "301", "label": "Art der automatischen Weiterleitung", "show_if": "auto_slug", "options": [{ "value": "301", "label": "301 – dauerhaft (empfohlen)" }, { "value": "302", "label": "302 – vorübergehend" }] },
+    { "key": "loop_guard", "type": "toggle", "default": true, "label": "Schleifen und Ketten beim Speichern verhindern", "help": "Regeln, die im Kreis führen, werden nicht gespeichert; Ketten (A → B → C) werden zu A → C verkürzt." }
+  ],
+  "actions": [
+    { "id": "flatten", "label": "Ketten jetzt verkürzen", "icon": "fa-compress", "confirm": "Ketten von Weiterleitungen auf das endgültige Ziel verkürzen und Schleifen entfernen?" }
+  ]
+}

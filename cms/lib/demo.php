@@ -165,6 +165,8 @@ const RRW_DEMO_BLOCKED=[
     'plugin_upload','plugin_delete','theme_upload','theme_install','theme_delete','wp_theme_upload','wp_theme_install','wp_theme_delete','wp_plugin_upload','wp_plugin_install','wp_plugin_delete','wp_translations',
     'content_import','import_legacy','news_import','wp_core_install','wp_update_apply','wp_autoupdate_set','wp_autoupdate_run','wp_autoupdate_rollback','wp_autoupdate_tick','wp_version_update','wp_version_rollback',
     'wp_sandbox_create','wp_sandbox_delete','wp_sandbox_publish','wp_sandbox_reset','wp_sandbox_rollback','wp_sandbox_rotate',
+    // Plugin-System: Installieren, Aktivieren, Einstellungen (Zugangsdaten, Webhooks) und Plugin-Aktionen ändern Code, Betrieb oder sprechen mit Dritten
+    'np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_enable_recommended','np_download',
     // CMS-Update: würde den Code der Demo verändern
     'update_apply','update_rollback','update_confirm','update_config_save','update_secret_rotate',
     // Externe Datenbank-Verbindungen (Verbindungsversuche zu beliebigen Servern)
@@ -193,6 +195,7 @@ function rrw_demo_guard(string $action,array $body): void {
     if(!rrw_demo_enabled())return;
     if($action==='demo_status'){ header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode(['status'=>'ok']+rrw_demo_public());exit; }
     if(in_array($action,RRW_DEMO_BLOCKED,true))rrw_demo_deny($action);
+    if($action==='np_call'&&!in_array((string)($body['call']??''),['overview','status','list_forms','submissions'],true))rrw_demo_deny($action);   // Plugin-Aktionen: in der Demo nur lesen
     // Betriebsmodus darf nicht umgeschaltet werden (sonst wäre die Anmeldung der Demo weg); alles andere (Name, Sprache, Zeitzone) ist frei
     if($action==='system_save'&&array_key_exists('control_center',$body)&&function_exists('rrw_standalone')&&(bool)$body['control_center']===rrw_standalone())rrw_demo_deny($action);
     if($action==='wp_admin_page'){
