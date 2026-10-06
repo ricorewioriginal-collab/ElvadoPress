@@ -313,7 +313,7 @@ function rrw_clean_section(string $section,$value){
     }
     if($section==='social'){foreach(['ricorewi_tiktok','ricorewi_instagram','anmacha_tiktok','anmacha_instagram'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,120);return $o??[];}
     if($section==='branding'){foreach(['portal_logo','portal_icon','favicon','android_inapp_logo','android_startscreen','android_app_icon','windows_logo'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
-    if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
+    if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(rrw_pack_available()&&!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
     if($section==='services'&&!rrw_pack_available()){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';return rrw_services_clean($value); }
     if($section==='services'){foreach(['radio_portal','control_center','public_api','news_api','tracker','apps_page','nextcloud','owncast','castopod','airdeck'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='pages'){
