@@ -13,13 +13,14 @@
     ['Fotografin','Lena Kraft Fotografie: Hochzeiten, Porträts und Familienshootings in natürlichem Licht. Persönlich, ehrlich und mit Blick für den echten Moment.'],
     ['Verein','Der Sportverein TSV Neustadt: Fußball, Turnen und Laufgruppe für alle Altersstufen. Wir suchen neue Mitglieder, Trainer und Helfer.']
   ];
-  var s={step:'input',busy:false,status:null,plan:null,err:'',input:{description:'',name:'',tone:'modern',parts:{home:true,pages:true,posts:true}},opts:{activate:true,postsDraft:true,menu:true,images:true},applied:null,log:[]};
+  var s={step:'input',busy:false,status:null,plan:null,err:'',input:{description:'',name:'',tone:'modern',parts:{home:true,pages:true,posts:true}},opts:{activate:true,postsDraft:true,menu:true,images:true,imgSource:'stock',aiChoice:0},aiChoices:[],applied:null,log:[]};
   function host(){return document.getElementById('aiBuilder')}
 
   function loadStatus(){
     return api('ai_status').then(function(d){s.status=d}).catch(function(){s.status={providers:[]}});
   }
-  function open(){
+  function loadChoices(){if(window.AiMedia)AiMedia.imageChoices().then(function(c){s.aiChoices=c;if(s.step==='plan')draw()}).catch(function(){})}
+  function open(){loadChoices();
     if(!s.status)loadStatus().then(draw);else draw();
     try{var u=JSON.parse(localStorage.getItem(UNDO_KEY)||'null');if(u&&!s.applied)s.applied=u}catch(e){}
     draw();
@@ -74,7 +75,8 @@
       +'<div class="aib-opts2"><label class="wm-check"><input type="checkbox" '+(s.opts.activate?'checked':'')+' onchange="AiBuilder.opt(\'activate\',this.checked)"> Theme „ElvadoPress Baukasten“ aktivieren (nötig für Startseite und Farben)</label>'
       +'<label class="wm-check"><input type="checkbox" '+(s.opts.menu?'checked':'')+' onchange="AiBuilder.opt(\'menu\',this.checked)"> Neue Seiten ins Hauptmenü aufnehmen</label>'
       +'<label class="wm-check"><input type="checkbox" '+(s.opts.postsDraft?'checked':'')+' onchange="AiBuilder.opt(\'postsDraft\',this.checked)"> Beiträge als Entwurf anlegen (nicht sofort veröffentlichen)</label>'
-      +(imageQueries(pl,pl.posts.filter(function(x){return !x.off})).length?'<label class="wm-check"><input type="checkbox" '+(s.opts.images?'checked':'')+' onchange="AiBuilder.opt(\'images\',this.checked)"> Passende freie Bilder laden und mit Alt-Text versehen ('+imageQueries(pl,pl.posts.filter(function(x){return !x.off})).length+' Bilder; Quellen laut Menü „Medien“, Bildnachweise werden bei Bedarf als Seite angelegt)</label>':'')+'</div></div>'
+      +(imageQueries(pl,pl.posts.filter(function(x){return !x.off})).length?'<label class="wm-check"><input type="checkbox" '+(s.opts.images?'checked':'')+' onchange="AiBuilder.opt(\'images\',this.checked)"> Passende freie Bilder laden und mit Alt-Text versehen ('+imageQueries(pl,pl.posts.filter(function(x){return !x.off})).length+' Bilder; Quellen laut Menü „Medien“, Bildnachweise werden bei Bedarf als Seite angelegt)</label>':'')+(s.aiChoices.length?'<div class="wm-check" style="gap:8px;flex-wrap:wrap;margin-left:24px"><span>Bildquelle:</span><select class="fc" onchange="AiBuilder.imgSrc(this.value)"><option value="stock"'+(s.opts.imgSource==='stock'?' selected':'')+'>Freie Bilder (Pixabay, Pexels …)</option>'+s.aiChoices.map(function(c,i){return '<option value="'+i+'"'+(s.opts.imgSource==='ai'&&s.opts.aiChoice===i?' selected':'')+'>KI-Bild: '+esc(c.label)+'</option>'}).join('')+'</select></div><div class="hint" style="margin-left:24px">KI-Bilder kosten pro Bild nach der Preisliste des Anbieters und brauchen je einige Sekunden.</div>':'')
+      +'</div></div>'
       +(pl.home.length?'<div class="card"><div class="th"><div class="tt"><i class="fas fa-house"></i>Startseite ('+pl.home.length+' Abschnitte)</div></div><div class="aib-prev" style="background:'+esc(p.bg)+'">'+pl.home.map(function(x){return sec(x,p)}).join('')+'</div><div class="hint">Bilder wählst du nach dem Übernehmen im Homepage-Baukasten (Mediathek oder freie Bildquellen).</div></div>':'')
       +(pl.pages.length?'<div class="card"><div class="th"><div class="tt"><i class="fas fa-file-lines"></i>Seiten ('+pl.pages.length+')</div></div>'+pageHtml+'</div>':'')
       +(pl.posts.length?'<div class="card"><div class="th"><div class="tt"><i class="fas fa-newspaper"></i>Beiträge ('+pl.posts.length+')</div></div>'+postHtml+'</div>':'');
@@ -92,6 +94,7 @@
   function part(k,v){s.input.parts[k]=v}
   function example(n){s.input.description=EXAMPLES[n][1];draw()}
   function opt(k,v){s.opts[k]=v}
+  function imgSrc(v){if(v==='stock'){s.opts.imgSource='stock'}else{s.opts.imgSource='ai';s.opts.aiChoice=+v}}
   function site(k,v){s.plan.site[k]=v}
   function toggle(kind,i,on){s.plan[kind][i].off=!on}
   function back(){s.step='input';s.err='';draw()}
@@ -124,6 +127,17 @@
   /* Freie Bilder laden und in den Entwurf eintragen; Fehler brechen das Übernehmen nicht ab */
   function loadImages(pl,postsNew,credits){
     var q=imageQueries(pl,postsNew);if(!q.length)return Promise.resolve('');
+    if(s.opts.imgSource==='ai'&&s.aiChoices[s.opts.aiChoice]){
+      var ch=s.aiChoices[s.opts.aiChoice],okAi=0,chain=Promise.resolve();
+      q.forEach(function(it){chain=chain.then(function(){
+        s.log.push({ok:true,text:'KI-Bild '+(okAi+1)+' von '+q.length+' wird erzeugt …'});draw();
+        return window.AiMedia.generate({prompt:it.q,ratio:'16:9',provider:ch.provider,model:ch.model}).then(function(im){
+          var m=/^(home|post):(\d+)$/.exec(it.key);if(!m)return;okAi++;
+          if(m[1]==='home'){var pr=pl.home[+m[2]].props;pr.image=im.url;pr.image_alt=im.alt}else if(postsNew[+m[2]])postsNew[+m[2]].image_url=im.url;
+        }).catch(function(e){s.log.push({ok:false,text:'KI-Bild: '+(e.message||'Fehler')})});
+      })});
+      return chain.then(function(){return okAi+' von '+q.length+' KI-Bildern erzeugt (in der Mediathek, mit Alt-Text)'});
+    }
     return api('ai_site_images',{queries:q}).then(function(d){
       if(!d.usable)return 'Keine Bildquelle eingerichtet – ohne Bilder (Menü „Medien“ → Freie Bilder)';
       var ok=0;(d.images||[]).forEach(function(im){
@@ -202,5 +216,5 @@
      .catch(function(e){s.busy=false;s.step='done';draw();toast(e.message||'Fehler',true)});
   }
 
-  window.AiBuilder={open:open,set:set,part:part,example:example,opt:opt,site:site,toggle:toggle,back:back,reset:reset,plan:plan,apply:apply,undo:undo};
+  window.AiBuilder={open:open,set:set,part:part,example:example,opt:opt,imgSrc:imgSrc,site:site,toggle:toggle,back:back,reset:reset,plan:plan,apply:apply,undo:undo};
 })();

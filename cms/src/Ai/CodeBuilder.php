@@ -34,7 +34,7 @@ final class CodeBuilder
 
     /**
      * Entwurf erzeugen oder überarbeiten.
-     * @param array{kind:string,prompt:string,base?:string,previous?:list<array{path:string,content:string}>,instruction?:string,existing?:list<string>,user?:string,provider?:string} $in
+     * @param array{kind:string,prompt:string,base?:string,previous?:list<array{path:string,content:string}>,instruction?:string,existing?:list<string>,user?:string,provider?:string,model?:string} $in
      * @return array<string,mixed>
      * @throws AiGatewayException
      */
@@ -66,7 +66,7 @@ final class CodeBuilder
             $prev = "\n\nBisheriger Stand:\n" . implode("\n", $parts) . "\n\nÄnderungswunsch: " . mb_substr($instruction, 0, 2000) . "\nGib den vollständigen neuen Stand aller Dateien aus.";
         }
         $r = $this->ai->generate([
-            'provider' => (string)($in['provider'] ?? ''), 'purpose' => 'developer', 'task' => 'code', 'internal' => true,
+            'provider' => (string)($in['provider'] ?? ''), 'model' => (string)($in['model'] ?? ''), 'purpose' => 'developer', 'task' => 'code', 'internal' => true,
             'system' => $this->system($kind, $child), 'prompt' => 'Aufgabe: ' . mb_substr($prompt, 0, 3000) . $prev,
             'temperature' => 0.3, 'max_tokens' => 12000, 'user' => (string)($in['user'] ?? ''),
         ]);

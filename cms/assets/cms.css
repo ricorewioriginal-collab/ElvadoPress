@@ -386,3 +386,8 @@ body.no-pack-ricorewi-radio:not(.rrw-standalone) [data-pack-app="ricorewi-radio"
  .theme-customizer.hide-panel .theme-customizer-side>.theme-customizer-heading,.theme-customizer.hide-panel .theme-customizer-side>.theme-customizer-controls,.theme-customizer.hide-panel .theme-customizer-side>.cz-theme-row,.theme-customizer.hide-panel .theme-customizer-side>.cz-actions{display:none!important}
  .theme-customizer-publish .btn-a{padding:6px 10px;font-size:.8rem}
 }
+
+/* Customizer: Schnellzugriff */
+.cz-quick{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.cz-quick .btn-g{padding:6px 10px;font-size:.76rem}
+.cz-quick .btn-g.on{color:#fff;border-color:var(--accent);background:rgba(47,184,255,.16)}

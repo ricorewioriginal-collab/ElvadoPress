@@ -26,7 +26,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <?php if(!$sa): ?><link rel="stylesheet" href="/control/shared.css"><?php endif; ?>
-<link rel="stylesheet" href="assets/cms.css?v=40">
+<link rel="stylesheet" href="assets/cms.css?v=41">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
 <script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
@@ -152,11 +152,11 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<link rel="stylesheet" href="assets/block-editor.css?v=1"><link rel="stylesheet" href="assets/admin-themes.css?v=1"><script src="assets/admin-theme.js?v=1"></script><script src="assets/ai-center.js?v=3"></script><script src="assets/ai-media.js?v=2"></script><script src="assets/ai-builder.js?v=2"></script><script src="assets/ai-dev.js?v=1"></script><script src="assets/ai-nav.js?v=1"></script><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=1"></script><script src="assets/blocks/editor.js?v=1"></script>
-<script src="assets/news-editor.js?v=18"></script>
+<link rel="stylesheet" href="assets/block-editor.css?v=1"><link rel="stylesheet" href="assets/admin-themes.css?v=1"><script src="assets/admin-theme.js?v=1"></script><script src="assets/ai-center.js?v=3"></script><script src="assets/ai-media.js?v=3"></script><script src="assets/ai-builder.js?v=3"></script><script src="assets/ai-dev.js?v=2"></script><script src="assets/ai-nav.js?v=1"></script><script src="assets/customizer-extras.js?v=1"></script><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=2"></script><script src="assets/blocks/editor.js?v=2"></script>
+<script src="assets/news-editor.js?v=19"></script>
 <script src="assets/stock-media.js?v=1"></script>
 <script src="assets/media-manager.js?v=7"></script>
-<script src="assets/theme-manager.js?v=8"></script>
+<script src="assets/theme-manager.js?v=9"></script>
 <script src="assets/brands-manager.js?v=4"></script>
 <script src="assets/directory-manager.js?v=2"></script><script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=7"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=4"></script>
@@ -178,7 +178,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/polls-manager.js?v=1"></script>
 <script src="assets/community-manager.js?v=1"></script>
 <script src="assets/wpplugins-manager.js?v=3"></script>
-<script src="assets/wpthemes-manager.js?v=9"></script>
+<script src="assets/wpthemes-manager.js?v=10"></script>
 <script src="assets/wp-links.js?v=2"></script>
 <script src="assets/wp-settings.js?v=1"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
 <script src="assets/sandbox.js?v=1"></script>

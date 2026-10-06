@@ -11,11 +11,21 @@
     widget:['Ein Widget „Öffnungszeiten“ mit Wochentagen und Zeiten, die man im Widget-Formular einträgt; heutiger Tag wird hervorgehoben.','Ein Widget „Spruch des Tages“, das aus einer im Formular gepflegten Liste täglich einen anderen Spruch zeigt.'],
     theme:['Ein warmes Holz-Design in Braun- und Beigetönen, mit großen Überschriften in Serifenschrift, runden Schaltflächen und luftigen Abständen.','Ein dunkles, minimalistisches Design mit Neon-Grün als Akzent, scharfen Kanten und monospaced Überschriften.']
   };
-  var s={kind:'plugin',base:'child',prompt:'',busy:false,err:'',plan:null,tab:0,instruction:'',confirm:false,result:null,checking:false,checkT:0};
+  var s={pick:'',kind:'plugin',base:'child',prompt:'',busy:false,err:'',plan:null,tab:0,instruction:'',confirm:false,result:null,checking:false,checkT:0};
   function host(){return document.getElementById('aiDev')}
   function open(){s.err='';load().then(draw)}
   function load(){return api('ai_status').then(function(d){s.status=d}).catch(function(){s.status={providers:[]}})}
 
+  var CODEY=/claude|gpt-5|gpt-4\.1|o[134]\b|gemini.*(pro|2\.5|3)|deepseek|kimi|qwen|glm|grok|coder|codestral|opus|sonnet/i;
+  function modelPick(){   // Modell für diese Aufgabe: „Standard“ (laut KI-Zentrale) oder ein bestimmtes Modell eines nutzbaren Anbieters
+    var ps=(s.status&&s.status.providers)||[];if(!ps.length)return '';
+    var o='<option value="">Standard (Einstellung „Entwickler“ in der Zentrale)</option>';
+    ps.forEach(function(p){var ms=(p.models||[]).slice();if(p.model&&ms.indexOf(p.model)<0)ms.unshift(p.model);if(!ms.length)return;
+      o+='<optgroup label="'+esc(p.label)+'">'+ms.map(function(m){var v=p.id+'|'+m;return '<option value="'+esc(v)+'"'+(s.pick===v?' selected':'')+'>'+(CODEY.test(m)?'★ ':'')+esc(m)+'</option>'}).join('')+'</optgroup>'});
+    return '<div style="margin-top:10px"><label class="news-lbl">Modell für diese Aufgabe</label><select class="fc w-100" onchange="AiDev.model(this.value)">'+o+'</select><div class="hint">★ = für Programmieren gut geeignet. Große Modelle schreiben besseren Code, kosten aber mehr und brauchen länger (ein Entwurf nutzt bis zu 12 000 Ausgabe-Token). Die Kosten stellt dein Anbieter nach seiner Preisliste in Rechnung.</div></div>';
+  }
+  function model(v){s.pick=v}
+  function reqBase(){var a=(s.pick||'').split('|');return a.length===2?{provider:a[0],model:a[1]}:{}}
   function draw(){var h=host();if(!h)return;h.innerHTML=s.plan?drawPlan():drawInput()}
   function drawInput(){
     var ok=s.status&&(s.status.providers||[]).length>0;
@@ -23,6 +33,7 @@
       +(s.status&&!ok?'<div class="card aib-warn"><b>Noch kein KI-Anbieter eingerichtet.</b> Lege in der <a href="#" onclick="cmsTab(\'aicenter\',document.querySelector(\'[data-tab=aicenter]\'));AiCenter.open();return false">KI-Zentrale</a> einen Anbieter an. Für Code empfehlen sich leistungsfähige Modelle (z. B. Claude, GPT-4.1, Gemini Pro).</div>':'')
       +'<div class="aib-box"><div class="aid-kinds">'+Object.keys(KINDS).map(function(k){return '<button type="button" class="aid-kind'+(s.kind===k?' on':'')+'" onclick="AiDev.kind(\''+k+'\')"><i class="fas '+KINDS[k][1]+'"></i><b>'+KINDS[k][0]+'</b><span>'+esc(KINDS[k][2])+'</span></button>'}).join('')+'</div>'
       +(s.kind==='theme'?'<div style="margin-top:10px"><label class="news-lbl">Aufbau</label><select class="fc" onchange="AiDev.base(this.value)"><option value="child" '+(s.base==='child'?'selected':'')+'>Design-Variante des Baukasten-Themes (nur CSS – am sichersten)</option><option value="standalone" '+(s.base==='standalone'?'selected':'')+'>Eigenständiges Theme mit PHP-Vorlagen</option></select></div>':'')
+      +modelPick()
       +'<textarea id="aidPrompt" class="aib-text" rows="6" style="margin-top:12px" placeholder="Beschreibe, was entstehen soll …" oninput="AiDev.prompt(this.value)">'+esc(s.prompt)+'</textarea>'
       +'<div class="aib-chips">'+EX[s.kind].map(function(e,i){return '<button type="button" class="aib-chip" onclick="AiDev.example('+i+')">Beispiel '+(i+1)+'</button>'}).join('')+'</div>'
       +(s.err?'<div class="aib-err"><i class="fas fa-circle-exclamation"></i> '+esc(s.err)+'</div>':'')
@@ -82,11 +93,11 @@
   }
   function plan(){
     if((s.prompt||'').trim().length<15){s.err='Bitte beschreibe genauer, was entstehen soll (ein bis zwei Sätze).';return draw()}
-    run({kind:s.kind,prompt:s.prompt,base:s.base},false);
+    run(Object.assign({kind:s.kind,prompt:s.prompt,base:s.base},reqBase()),false);
   }
   function refine(){
     if((s.instruction||'').trim().length<5){s.err='Bitte beschreibe die gewünschte Änderung.';return draw()}
-    run({kind:s.plan.kind,prompt:s.prompt||s.plan.description||s.plan.title,base:s.plan.child?'child':'standalone',previous:s.plan.files,instruction:s.instruction,slug:s.plan.slug},true);
+    run(Object.assign({kind:s.plan.kind,prompt:s.prompt||s.plan.description||s.plan.title,base:s.plan.child?'child':'standalone',previous:s.plan.files,instruction:s.instruction,slug:s.plan.slug},reqBase()),true);
   }
   function install(){
     if(!confirm('„'+s.plan.title+'“ installieren? Der Code wird in den Ordner '+(s.plan.kind==='theme'?'wp-content/themes':'wp-content/plugins')+'/'+s.plan.slug+' geschrieben und bleibt inaktiv.'))return;
@@ -100,5 +111,5 @@
     var p=r.kind==='theme'?api('wp_theme_activate',{slug:r.slug}):api('wp_plugin_activate',{file:r.plugin_file});
     p.then(function(){r.activated=true;s.busy=false;draw();toast('Aktiviert ✓')}).catch(function(e){r.error='Aktivierung fehlgeschlagen: '+(e.message||'Fehler')+' – bitte Code prüfen.';s.busy=false;draw()});
   }
-  window.AiDev={open:open,kind:kind,base:base,prompt:prompt,example:example,instr:instr,tab:tab,confirmW:confirmW,back:back,edit:edit,plan:plan,refine:refine,install:install,activate:activate};
+  window.AiDev={model:model,open:open,kind:kind,base:base,prompt:prompt,example:example,instr:instr,tab:tab,confirmW:confirmW,back:back,edit:edit,plan:plan,refine:refine,install:install,activate:activate};
 })();

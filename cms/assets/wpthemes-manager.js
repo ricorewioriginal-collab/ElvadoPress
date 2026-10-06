@@ -166,6 +166,7 @@
   }
   /* Abschnitte zum Durchklicken (wie im WordPress-Customizer): erst die Liste, dann ein Abschnitt mit „Zurück“ */
   function czEditorSec(){return {id:'_editor',title:'Website-Editor',description:'',html:'<div class="hint">Dieses Theme gestaltet Kopfzeile, Fußzeile und Vorlagen mit dem Website-Editor.</div>'+(cz.active?'<button class="btn-g" type="button" data-czedit="1"><i class="fas fa-pen-ruler"></i> Website-Editor öffnen</button>':'<div class="hint">Der Website-Editor steht zur Verfügung, sobald das Theme aktiv ist.</div>'),controls:[]}}
+  function czOpenMatch(re){var l=czAllSections(),m=l.filter(function(x){return re.test(x.title)})[0]||l[0];if(m){cz.sec=m.id;czDraw()}}
   function czAllSections(){var l=cz.sections.slice();if(cz.block)l.splice(Math.min(1,l.length),0,czEditorSec());return l}
   function czDraw(){
     var box=$('themeCustomizerControls'),list=czAllSections(),sec=cz.sec?list.filter(function(x){return x.id===cz.sec})[0]:null,h='';
@@ -345,5 +346,5 @@
     Object.keys(cz.base).forEach(function(k){cz.values[k]=cz.base[k]});cz.cs=null;cz.savedSig='';cz.action='publish';cz.date='';cz.pending=true;
     czRefreshPub();czDraw();czState(cz.active?'Aktiv':'Vorschau');if(!$('czActions').hidden)czRenderActions();czSchedule();toast('Änderungen verworfen');
   }
-  window.WpThemes={setSandbox:function(on){sbx=!!on;themes=[];front=false;if($('wtInst'))$('wtInst').innerHTML='<div class="hint">Lädt …</div>';return load()},isSandbox:function(){return sbx},czToggleActions:czToggleActions,customize:customize,customizeSlug:function(slug){for(var i=0;i<themes.length;i++)if(themes[i].slug===slug)return customize(i)},czActive:function(){return !!cz},czClose:czClose,czPublish:czPublish,czReset:czReset,czLeave:czLeave,state:function(){var a=themes.filter(function(t){return t.active})[0];return {front:front,name:a?a.name:''}},redraw:function(){if(themes.length)draw()},demo:demo,load:load,tab:tab,search:search,install:install,preview:preview,activate:activate,del:del,off:off,closePreview:closePreview};
+  window.WpThemes={czOpenMatch:czOpenMatch,setSandbox:function(on){sbx=!!on;themes=[];front=false;if($('wtInst'))$('wtInst').innerHTML='<div class="hint">Lädt …</div>';return load()},isSandbox:function(){return sbx},czToggleActions:czToggleActions,customize:customize,customizeSlug:function(slug){for(var i=0;i<themes.length;i++)if(themes[i].slug===slug)return customize(i)},czActive:function(){return !!cz},czClose:czClose,czPublish:czPublish,czReset:czReset,czLeave:czLeave,state:function(){var a=themes.filter(function(t){return t.active})[0];return {front:front,name:a?a.name:''}},redraw:function(){if(themes.length)draw()},demo:demo,load:load,tab:tab,search:search,install:install,preview:preview,activate:activate,del:del,off:off,closePreview:closePreview};
 })();

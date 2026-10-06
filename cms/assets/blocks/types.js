@@ -89,7 +89,8 @@
         w.append(h('div',{class:'epb-ph-media'},icon('fa-image'),h('div',null,'Bild auswählen'),h('div',{class:'epb-ph-btns'},
           h('button',{type:'button',class:'btn-a',onclick:()=>ctx.pickImage(r=>ctx.set(b,{url:r.url,alt:r.alt||b.alt,html:r.caption||b.html}))},icon('fa-photo-film'),' Mediathek / Freie Bilder'),
           h('button',{type:'button',class:'btn-g',onclick:()=>{const u=prompt('Bild-Adresse (https://…)');if(u)ctx.set(b,{url:u.trim()})}},icon('fa-link'),' Adresse'),
-          ctx.upload?h('button',{type:'button',class:'btn-g',onclick:()=>ctx.upload(r=>ctx.set(b,{url:r.url,alt:r.alt||b.alt}))},icon('fa-upload'),' Hochladen'):null)));
+          ctx.upload?h('button',{type:'button',class:'btn-g',onclick:()=>ctx.upload(r=>ctx.set(b,{url:r.url,alt:r.alt||b.alt}))},icon('fa-upload'),' Hochladen'):null,
+          ctx.aiImage?h('button',{type:'button',class:'btn-g',onclick:()=>ctx.aiImage(r=>ctx.set(b,{url:r.url,alt:r.alt||b.alt}))},icon('fa-wand-magic-sparkles'),' Mit KI erzeugen'):null)));
         return w;
       }
       const img=h('img',{src:b.url,alt:b.alt||'',style:'max-width:100%;height:auto;width:'+(b.widthPx?num(b.widthPx,20,2000,0)+'px':(sizeW[b.size]||'100%'))+(b.radius?';border-radius:'+num(b.radius,0,60,0)+'px':'')+(b.shadow?';box-shadow:0 8px 24px rgba(0,0,0,.25)':'')});

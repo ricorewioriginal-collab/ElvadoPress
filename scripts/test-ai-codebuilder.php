@@ -74,6 +74,8 @@ $last=$calls[count($calls)-1]['b']['messages'][1]['content'];
 t('Überarbeitung schickt den bisherigen Stand und den Wunsch mit',str_contains($last,'Bisheriger Stand')&&str_contains($last,'hallo_plugin_sc')&&str_contains($last,'Mach den Gruß fett'));
 t('Zu kurze Beschreibung und unbekannte Art werden ohne Anfrage abgelehnt',thr(fn()=>$cb->plan(['kind'=>'plugin','prompt'=>'Hallo']),'genauer')!==null&&thr(fn()=>$cb->plan(['kind'=>'virus','prompt'=>'Eine ausreichend lange Beschreibung hier']),'Plugin, Widget oder Theme')!==null);
 t('Nur interne Aufrufer dürfen die Aufgabe „code“ nutzen',thr(fn()=>(new AiGatewayService($cfg))->generate(['provider'=>'groq','task'=>'code','prompt'=>'x']),'Unbekannte Aufgabe')!==null);
+$cb->plan(['kind'=>'plugin','prompt'=>'Ein Plugin, das über den Shortcode [hallo] einen Gruß ausgibt.','existing'=>[],'provider'=>'groq','model'=>'wunsch-modell-1']);
+t('Gewähltes Modell wird an den Anbieter gesendet',end($calls)['b']['model']==='wunsch-modell-1');
 Http::useTransport(null);
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

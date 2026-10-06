@@ -108,6 +108,7 @@ window.ThemeManager=(()=>{
   }
  }
  function openSection(i){czSec=i;renderCustomizer();const h=document.getElementById('themeCustomizerControls');if(h)h.scrollTop=0}
+ function openMatch(re){const i=czGroups.findIndex(g=>re.test(g.title));openSection(i>=0?i:0)}
  function togglePanel(){const c=document.getElementById('themeCustomizer');const hid=c.classList.toggle('hide-panel');const b=document.getElementById('czHide');if(b)b.innerHTML=hid?'<i class="fas fa-eye"></i> Einblenden':'<i class="fas fa-eye-slash"></i> Ausblenden'}
  function previewPayload(){
   try{sessionStorage.setItem('rrw_theme_customizer',JSON.stringify(draft))}catch(e){}
@@ -192,5 +193,5 @@ window.ThemeManager=(()=>{
   try{const d=await api('themes_list');themes=d.themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'ricorewi-neon',variant:'default',settings:{}};render()}
   catch(e){const h=document.getElementById('themeGrid');if(h)h.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
- return {openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
+ return {openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
 })();

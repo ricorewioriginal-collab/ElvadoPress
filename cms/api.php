@@ -1132,7 +1132,7 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
                 $lg=null;try{ $lg=new \Elvado\Repository\AiLogRepository($kDb()); }catch(Throwable $e){}
                 $svc=new \Elvado\Ai\AiGatewayService($aiCfg,$lg,new \Elvado\Support\RateLimiter($dataDir.'/.ai/ratelimit'));
                 $plan=(new \Elvado\Ai\CodeBuilder($svc))->plan(['kind'=>(string)($kB['kind']??''),'prompt'=>(string)($kB['prompt']??''),'base'=>(string)($kB['base']??'child'),'previous'=>is_array($kB['previous']??null)?$kB['previous']:[],
-                    'instruction'=>(string)($kB['instruction']??''),'slug'=>(string)($kB['slug']??''),'existing'=>$ex,'user'=>(string)($kUser['user']??''),'provider'=>(string)($kB['provider']??'')]);
+                    'instruction'=>(string)($kB['instruction']??''),'slug'=>(string)($kB['slug']??''),'existing'=>$ex,'user'=>(string)($kUser['user']??''),'provider'=>(string)($kB['provider']??''),'model'=>(string)($kB['model']??'')]);
                 rrw_log_activity($activityLogFile,$kUser,'ai_dev_plan','KI-Entwickler: Entwurf für '.\Elvado\Ai\CodeBuilder::KINDS[$plan['kind']].' „'.$plan['slug'].'“ erstellt');
                 rrw_json(['status'=>'ok','plan'=>$plan]);
             }

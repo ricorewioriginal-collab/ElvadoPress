@@ -48,6 +48,11 @@ Menü **KI & Lovable → KI-Entwickler** (`cms/assets/ai-dev.js`, `cms/src/Ai/Co
 - **Bilder & Videos** (`cms/src/Ai/MediaGenerator.php`, `ai_media_providers/start/status/save`): EvoLink (`/v1/images|videos/generations`, Abfrage `/v1/tasks/{id}`), fal.ai-Queue, OpenAI-Bilder. Bilder landen mit Vermerk „KI-generiert“ in der Mediathek, Videos unter `cms/media/videos/`. Limit 30 Aufträge/Stunde/Benutzer; in der Demo gesperrt.
 - Modellnamen der Anbieter ändern sich laufend; sie sind im Feld frei eingebbar. Test: `scripts/test-ai-media.php`.
 
+## KI-Bilder im Alltag, Modellwahl im Entwickler, Customizer-Schnellzugriff
+- **KI-Bilder**: `AiMedia.dialog()` (Beitragseditor: Beitragsbild „Zauberstab“, Bildblock „Mit KI erzeugen“) und `AiMedia.generate()`; im Website-Generator wählt die Option „Bildquelle“ zwischen freien Bildern und KI-Bildern (Kosten pro Bild beim Anbieter). Bilder landen mit Alt-Text (aus der Beschreibung) in der Mediathek.
+- **KI-Entwickler**: Modell pro Aufgabe wählbar (★ = fürs Programmieren geeignet); `ai_dev_plan` akzeptiert `provider` und `model`.
+- **Customizer**: Schnellzugriff (Startseite, Menüs, Widgets) und „In Vorschau wählen“ (`assets/customizer-extras.js`): Kopfzeile, Fußzeile, Button, Text oder Bild antippen öffnet den passenden Bereich (Portal- und WordPress-Customizer).
+
 ## Lovable-Bridge
 Widget (Web-Component) wird per Shortcode `[lovable widget="…" project="…"]` oder React-Bridge eingebunden. Daten: `cms/api-lovable-provider.php` (CORS-Allowlist, ETag, Rate-Limit, nur öffentliche Beiträge). Skript-URL-Vorlage und erlaubte Hosts stellt der Betreiber unter „KI & Lovable“ ein.
 

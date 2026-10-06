@@ -4,6 +4,7 @@
 ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSION`: **1.0.0**. Das CMS ist PHP-basiert, dateibasiert mit optionalem Datenbankspiegel, besitzt eine WordPress-Kompatibilitätsschicht und optionale App-/Alexa-/KI-Erweiterungen. CI prüft Syntax, Smoke-Test und die vorhandenen Funktionstests.
 
 ## Zuletzt abgeschlossen
+- KI-Bilder im Website-Generator und Beitragseditor (`AiMedia.dialog/generate`), Modellwahl im KI-Entwickler, Customizer-Schnellzugriff und „In Vorschau wählen“ (`customizer-extras.js`); Browserprüfung mit simulierten Anbieterantworten.
 - KI-Menü zusammengefasst (ein Eintrag „KI“ mit Unterreitern), Live-Modelllisten (Gemini/Claude/EvoLink), Gemini-Standard `gemini-flash-latest` (Behebung des 404), größerer EvoLink-Katalog, fal.ai (Text + Medien), KI-Bilder/-Videos (`MediaGenerator`, `scripts/test-ai-media.php`). Exakte Modellnamen der Anbieter nicht live geprüft (kein Schlüssel im Sandkasten).
 - Öffentliches ElvadoPress-Branding/README wurde aufgewertet.
 - Dauerhafte Claude-Code-Arbeitsstruktur wurde eingerichtet: zentrale Regeln, Handover, Projektkarte, Architektur- und Development-Übersicht sowie bekannte Doku-Probleme.

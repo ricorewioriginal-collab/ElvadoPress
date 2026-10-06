@@ -63,5 +63,51 @@
     var r=st.res;if(!r)return;
     api('ai_media_save',{kind:r.kind,url:r.url||'',b64:r.b64||'',prompt:st.prompt}).then(function(d){st.saved=d;draw();toast(r.kind==='video'?'Video gespeichert ✓':'In der Mediathek ✓')}).catch(function(e){toast(e.message,true)});
   }
-  window.AiMedia={open:load,pick:pick,set:set,start:start,save:save,prompt:function(v){st.prompt=v},ref:function(v){st.ref=v},set model(v){st.model=v},get model(){return st.model}};
+
+  /* ───── Wiederverwendbar: Bild erzeugen und in die Mediathek übernehmen (Website-Generator, Beitragseditor) ───── */
+  var provCache=null;
+  function providers(){return provCache||(provCache=api('ai_media_providers').then(function(d){return d.providers||[]}).catch(function(){provCache=null;return []}))}
+  /** Auswahl-Liste „Anbieter · Modell“ für Bilder. @returns Promise<[{provider,model,label}]> */
+  function imageChoices(){return providers().then(function(ps){var o=[];ps.forEach(function(p){(p.image||[]).forEach(function(m){o.push({provider:p.id,model:m,label:p.label+' · '+m})})});return o})}
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+  /** Ein Bild erzeugen und in die Mediathek legen. o:{prompt,ratio,provider,model,onProgress}. @returns Promise<{id,url,alt,item}> */
+  function generate(o){
+    var prompt=String(o.prompt||'').trim();
+    return api('ai_media_start',{provider:o.provider,kind:'image',model:o.model||'',prompt:prompt,ratio:o.ratio||'16:9'}).then(function(d){
+      if(d.status==='completed')return d;
+      var n=0;
+      var loop=function(job){return sleep(3500).then(function(){return api('ai_media_status',{job:job})}).then(function(r){
+        if(r.status==='completed')return r;if(r.status==='failed')throw new Error(r.error||'Der Auftrag ist fehlgeschlagen.');
+        if(++n>100)throw new Error('Das Bild wurde nicht rechtzeitig fertig.');if(o.onProgress)o.onProgress(r.progress||0);return loop(job)})};
+      return loop(d.job);
+    }).then(function(r){return api('ai_media_save',{kind:'image',url:r.url||'',b64:r.b64||'',prompt:prompt})}).then(function(d){
+      var it=d.item||{},v=(it.variants||[]).filter(function(x){return x.width===1024})[0];
+      var alt=prompt.replace(/\s+/g,' ').slice(0,125);
+      return api('media_alt_save',{id:it.id,alt:alt}).catch(function(){}).then(function(){return {id:it.id,url:v?v.url:(it.original||{}).url,alt:alt,item:it}});
+    });
+  }
+  /** Dialog „Bild mit KI erzeugen“. opts.onPick({url,alt,item}) */
+  function dialog(opts){
+    imageChoices().then(function(ch){
+      if(!ch.length){toast('Dafür ist ein Schlüssel für EvoLink, fal.ai oder OpenAI nötig (Menü „KI“ → Zentrale).',true);return}
+      var m=document.createElement('div');m.style.cssText='position:fixed;inset:0;background:rgba(6,6,10,.72);z-index:100001;display:flex;align-items:center;justify-content:center;padding:16px';
+      m.innerHTML='<div class="card" style="max-width:560px;width:100%;max-height:92vh;overflow:auto;margin:0"><div class="th"><div class="tt"><i class="fas fa-wand-magic-sparkles"></i>Bild mit KI erzeugen</div><button type="button" class="btn-g" data-x><i class="fas fa-xmark"></i></button></div>'
+        +'<label class="news-lbl">Beschreibung</label><textarea class="aib-text" rows="3" data-p placeholder="Was soll zu sehen sein?">'+esc(opts&&opts.prompt||'')+'</textarea>'
+        +'<div class="aim-grid" style="margin-top:10px"><label>Modell<select class="fc" data-m>'+ch.map(function(c,i){return '<option value="'+i+'">'+esc(c.label)+'</option>'}).join('')+'</select></label>'
+        +'<label>Format<select class="fc" data-r><option>16:9</option><option>1:1</option><option>9:16</option><option>4:3</option><option>3:4</option></select></label></div>'
+        +'<div class="aim-bar" data-b hidden><i style="width:10%"></i></div><p class="hint" data-s>Die Anbieter berechnen jedes Bild nach ihrer Preisliste. Das Bild landet mit Alt-Text in der Mediathek.</p>'
+        +'<div data-o></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn-a" data-go><i class="fas fa-wand-magic-sparkles"></i> Erzeugen</button><button type="button" class="btn-a" data-use hidden><i class="fas fa-check"></i> Verwenden</button></div></div>';
+      document.body.appendChild(m);var q=function(a){return m.querySelector('['+a+']')},res=null,close=function(){m.remove()};
+      q('data-x').onclick=close;m.addEventListener('click',function(e){if(e.target===m)close()});
+      q('data-go').onclick=function(){
+        var pr=q('data-p').value.trim();if(!pr){toast('Bitte eine Beschreibung eingeben.',true);return}
+        var c=ch[+q('data-m').value],go=q('data-go');go.disabled=true;q('data-b').hidden=false;q('data-s').textContent='Wird erzeugt …';q('data-use').hidden=true;
+        generate({prompt:pr,ratio:q('data-r').value,provider:c.provider,model:c.model,onProgress:function(p){q('data-b').firstChild.style.width=Math.max(10,p)+'%'}}).then(function(r){
+          res=r;q('data-o').innerHTML='<div class="aim-out"><img alt="" src="'+esc(r.url)+'"></div>';q('data-s').textContent='Fertig – in der Mediathek gespeichert.';q('data-use').hidden=false;
+        }).catch(function(e){q('data-s').textContent=e.message}).then(function(){go.disabled=false;q('data-b').hidden=true});
+      };
+      q('data-use').onclick=function(){if(res&&opts&&opts.onPick)opts.onPick(res);close()};
+    });
+  }
+  window.AiMedia={dialog:dialog,generate:generate,imageChoices:imageChoices,open:load,pick:pick,set:set,start:start,save:save,prompt:function(v){st.prompt=v},ref:function(v){st.ref=v},set model(v){st.model=v},get model(){return st.model}};
 })();
