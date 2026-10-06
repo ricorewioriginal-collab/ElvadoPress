@@ -87,6 +87,44 @@ t('App-Builder: ohne eigene Sender bleibt die Ausgabe unverändert (kein custom-
     $st=rrw_apps_clean(['managed'=>['meinradio:android'=>['builder'=>['enabled'=>true,'stations'=>['order'=>['aa'],'hidden'=>['bb']]]]]])['managed']['meinradio:android']['builder']['stations'];
     eq($st,['order'=>['aa'],'hidden'=>['bb']]);
 });
+// ---- Eigene Apps des Build-Assistenten im laufenden Betrieb verwalten (Hinweis, Wartung, Funktionen, Layout) – auch im eigenständigen CMS
+$dd=$root.'/data';@mkdir($dd.'/.apps',0777,true);
+file_put_contents($dd.'/.apps/build.json',json_encode(['repo'=>'me/x','brands'=>[
+    ['id'=>'meinshop','appName'=>'Mein Shop','type'=>'web','platforms'=>['android','windows'],'site'=>'https://shop.example'],
+    ['id'=>'meinradio','appName'=>'Mein Radio','type'=>'radio','platforms'=>['android'],'site'=>'https://radio.example'],
+    ['id'=>'xx','appName'=>'zu kurz','type'=>'web','platforms'=>['android'],'site'=>'https://x.example']]]));
+t('Eigene Apps werden aus dem Build-Assistenten gelesen (ungültige Kennungen entfallen)',function() use($dd){
+    $own=rrw_apps_own($dd);eq(array_keys($own),['meinshop','meinradio']);eq($own['meinshop']['platforms'],['android','windows']);eq($own['meinradio']['type'],'radio');
+});
+t('Übersicht im eigenständigen Betrieb: nur eigene Apps, je Plattform eine Zeile, mit Typ',function() use($dd,$root){
+    $ov=rrw_apps_overview(['apps'=>[]],$root,rrw_apps_own($dd),true);
+    eq(array_map(fn($r)=>$r['brand'].':'.$r['platform'],$ov['items']),['meinshop:android','meinshop:windows','meinradio:android']);
+    eq($ov['items'][0]['own'],true);eq($ov['items'][0]['type'],'web');eq($ov['items'][2]['type'],'radio');eq($ov['items'][0]['origin'],'https://shop.example');
+});
+t('Übersicht mit Hersteller-Marken: eigene Apps kommen zusätzlich dazu',function() use($dd,$root){
+    $ov=rrw_apps_overview(['apps'=>[]],$root,rrw_apps_own($dd),false);$own=array_filter($ov['items'],fn($r)=>$r['own']);
+    eq(count($own),3);eq(count($ov['items'])>3,true);
+});
+t('app_config?brand=<eigene App>: Hinweis und Wartung dieser App, nicht der Hauptmarke',function() use($dd,$root){
+    $own=rrw_apps_own($dd);$b=rrw_apps_own_brand($own,'MeinShop');eq($b['brand'],'meinshop');
+    eq(rrw_apps_own_brand($own,'unbekannt'),null);eq(rrw_apps_own_brand($own,'../x'),null);
+    $site=['apps'=>rrw_apps_clean(['managed'=>[
+        'meinshop:android'=>['notice'=>['enabled'=>true,'level'=>'warn','title'=>'Hallo','text'=>'Neuer Katalog'],'maintenance'=>['enabled'=>true,'title'=>'','text'=>'']],
+        'meinradio:android'=>['notice'=>['enabled'=>false]]]])];
+    $o=rrw_apps_public($site,$root,$b,'android','1.0.0','',str_repeat('s',32));
+    eq($o['brand'],'meinshop');eq($o['notice']['title'],'Hallo');eq($o['maintenance']['title'],'Wartungsarbeiten');eq($o['update']['available'],false);eq($o['update']['required'],false);
+    $o2=rrw_apps_public($site,$root,rrw_apps_own_brand($own,'meinradio'),'android','1.0.0','',str_repeat('s',32));eq($o2['notice'],null);eq($o2['maintenance'],null);eq($o2['features']['directory'],false);
+});
+t('Baukasten-App: Tab-Leiste wird bereinigt und über app_config geliefert',function() use($root){
+    $tabs=rrw_apps_tabs_clean([['title'=>'Start','icon'=>'home','url'=>'/'],['title'=>'Shop','icon'=>'unbekannt','url'=>'https://shop.example.org/x'],
+        ['title'=>'Böse','icon'=>'star','url'=>'javascript:alert(1)'],['title'=>'Protokoll','icon'=>'star','url'=>'//evil.example/'],['title'=>'','icon'=>'star','url'=>'/leer/'],
+        ['title'=>str_repeat('x',40),'icon'=>'info','url'=>'/lang/'],['title'=>'6','icon'=>'info','url'=>'/6/'],['title'=>'7','icon'=>'info','url'=>'/7/']]);
+    eq(count($tabs),5);eq($tabs[0]['url'],'/');eq($tabs[1]['icon'],'star');eq(mb_strlen($tabs[2]['title']),16);
+    $site=['apps'=>rrw_apps_clean(['managed'=>['meinshop:android'=>['builder'=>['tabs'=>[['title'=>'A','icon'=>'home','url'=>'/'],['title'=>'B','icon'=>'shop','url'=>'/shop/']]]]]])];
+    $o=rrw_apps_public($site,$root,['brand'=>'meinshop'],'android','1.0.0','',str_repeat('s',32));
+    eq(count($o['tabs']),2);eq($o['tabs'][1]['url'],'/shop/');
+    eq(rrw_apps_public(['apps'=>rrw_apps_clean([])],$root,['brand'=>'meinshop'],'android','1.0.0','',str_repeat('s',32))['tabs'],[]);
+});
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exec('rm -rf '.escapeshellarg($root));
 exit($fail?1:0);

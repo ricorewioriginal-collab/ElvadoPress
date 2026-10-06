@@ -610,7 +610,9 @@ if($action==='directory_report'){
 // Apps: öffentliche Startabfrage der nativen Apps (Funktionen, Hinweis, Update) und Übersicht für das CMS (Admin)
 if($action==='app_config'){
     $did=rrw_apps_did_clean($_GET['did']??'');$pl=(string)($_GET['platform']??'android');$ver=(string)($_GET['version']??'');
-    $out=rrw_apps_public($site,$root,$rrwBrand,$pl,$ver,$did,rrw_apps_salt($dataDir),max(0,min(99999999,(int)($_GET['code']??0))));
+    // Eigene Apps des Build-Assistenten melden ihre Kennung (brand=<id>); alle anderen Apps wie bisher über den Hostnamen
+    $acBrand=rrw_apps_own_brand(rrw_apps_own($dataDir),(string)($_GET['brand']??''))??$rrwBrand;
+    $out=rrw_apps_public($site,$root,$acBrand,$pl,$ver,$did,rrw_apps_salt($dataDir),max(0,min(99999999,(int)($_GET['code']??0))));
     if(!empty($out['telemetry']['usage'])&&$did!==''&&rrw_apps_rate_ok($dataDir,'ping',120)){
         $geo='';if(($site['apps']['telemetry']['geo']??true)){$ip=trim(explode(',',(string)($_SERVER['HTTP_X_FORWARDED_FOR']??$_SERVER['REMOTE_ADDR']??''))[0]);$geo=rrw_geo_lookup($dataDir,$ip);}
         rrw_apps_record_ping($dataDir,$out['brand'],$out['platform'],$ver,$did,$geo);
@@ -630,7 +632,7 @@ if($action==='app_error'){
     $on=!empty($site['apps']['telemetry']['errors']);
     if(!$on||$pl==='')rrw_json(['status'=>'ok','stored'=>false]);
     if(!rrw_apps_rate_ok($dataDir,'err',30))rrw_json(['status'=>'error','message'=>'Zu viele Berichte.'],429);
-    $reg=rrw_brands_registry($site);$bid=(string)($rrwBrand['brand']??$rrwBrand['id']??$reg['default']);
+    $reg=rrw_brands_registry($site);$ob=rrw_apps_own_brand(rrw_apps_own($dataDir),(string)($b['brand']??''));$bid=(string)($ob['brand']??$rrwBrand['brand']??$rrwBrand['id']??$reg['default']);   // eigene App des Build-Assistenten: ihre Kennung
     rrw_json(['status'=>'ok','stored'=>rrw_apps_error_add($dataDir,$bid,$pl,$b)]);
 }
 if($action==='app_listen'){
@@ -638,7 +640,7 @@ if($action==='app_listen'){
     $on=!empty($site['apps']['telemetry']['usage'])&&!empty($site['apps']['telemetry']['listen']);
     if(!$on||$pl==='')rrw_json(['status'=>'ok','stored'=>false]);
     if(!rrw_apps_rate_ok($dataDir,'listen',120))rrw_json(['status'=>'error','message'=>'Zu viele Berichte.'],429);
-    $reg=rrw_brands_registry($site);$bid=(string)($rrwBrand['brand']??$rrwBrand['id']??$reg['default']);
+    $reg=rrw_brands_registry($site);$ob=rrw_apps_own_brand(rrw_apps_own($dataDir),(string)($b['brand']??''));$bid=(string)($ob['brand']??$rrwBrand['brand']??$rrwBrand['id']??$reg['default']);
     rrw_json(['status'=>'ok','stored'=>rrw_apps_record_listen($dataDir,$bid,$pl,(string)($b['did']??''),(string)($b['station']??''),(int)($b['seconds']??0))]);
 }
 if($action==='alexa_config'){
@@ -673,7 +675,7 @@ if($action==='alexa_download'){
     if(!isset($map[$what])){http_response_code(404);exit('Unbekannte Datei');}
     header('Content-Type: '.(str_ends_with($map[$what][1],'.js')?'application/javascript':'application/json').'; charset=utf-8');header('Content-Disposition: attachment; filename="'.$map[$what][1].'"');echo $files[$map[$what][0]];exit;
 }
-if($action==='apps_overview'){ rrw_auth(true);rrw_json(rrw_apps_overview($site,$root)); }
+if($action==='apps_overview'){ rrw_auth(true);rrw_json(rrw_apps_overview($site,$root,rrw_apps_own($dataDir),rrw_standalone())); }
 // Build-Assistent für eigene Android-Apps (GitHub-Repository mit den App-Quellen, Workflow android-custom-brand.yml) – nur Superadmins
 if(str_starts_with($action,'app_build')){
     $abUser=rrw_auth(true);require_once __DIR__.'/lib/appbuild.php';$ab=rrw_body();

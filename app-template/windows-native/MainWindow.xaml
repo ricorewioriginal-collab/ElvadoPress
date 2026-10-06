@@ -1,0 +1,106 @@
+<Window x:Class="ElvadoPress.App.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="App" Width="1380" Height="900" MinWidth="1050" MinHeight="700"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="84"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="230"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#080C26" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+                <DockPanel Margin="14">
+                    <StackPanel DockPanel.Dock="Top">
+                        <Image x:Name="LogoImage" Height="56" Stretch="Uniform" Margin="8,4,8,22"/>
+                        <Button Style="{StaticResource NavButton}" Content="⌂  Start" Click="Home_Click"/>
+                        <Button Style="{StaticResource NavButton}" Content="◉  Sender" Click="Stations_Click"/>
+                        <Button Style="{StaticResource NavButton}" Content="▣  Sendeplan" Click="Schedule_Click"/>
+                        <Button Style="{StaticResource NavButton}" Content="★  Favoriten" Click="Favorites_Click"/>
+                        <Button Style="{StaticResource NavButton}" Content="⌕  Sendersuche" Click="Search_Click"/>
+                        <Button Style="{StaticResource NavButton}" x:Name="PodcastNav" Content="◍  Podcast" Click="Podcast_Click"/>
+                        <Button x:Name="AssistantNav" Style="{StaticResource NavButton}" Content="✦  KI-Assistent" Click="Assistant_Click"/>
+                        <Button Style="{StaticResource NavButton}" Content="▤  News &amp; Social" Click="NewsSocial_Click"/>
+                        <Button Style="{StaticResource NavButton}" x:Name="CommunityNav" Content="♥  Voting &amp; Mitmachen" Click="Community_Click"/>
+                        <Button Style="{StaticResource NavButton}" x:Name="ShopsNav" Content="▰  Fanshops" Click="Fanshops_Click"/>
+                        <Button Style="{StaticResource NavButton}" Content="?  Hilfe &amp; Info" Click="Help_Click"/>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+                        <TextBlock x:Name="BrandFooter" Text="" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="8,8"/>
+                        <TextBlock Text="Windows Native 2.0.1" Foreground="{StaticResource PrimaryBrush}" FontSize="11" Margin="8,0,8,8"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="78"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="#080C26" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+                    <Grid Margin="24,12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="360"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="PageEyebrow" Text="" Foreground="{StaticResource CyanBrush}" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock x:Name="PageTitle" Text="Start" FontSize="26" FontWeight="Bold"/>
+                        </StackPanel>
+                        <TextBox x:Name="QuickSearch" Grid.Column="1" Height="44" VerticalContentAlignment="Center"
+                                 Background="#151833" Foreground="{StaticResource TextBrush}" BorderBrush="{StaticResource LineBrush}"
+                                 Padding="14,0" FontSize="14" Text="Sender suchen …" GotFocus="QuickSearch_GotFocus" KeyDown="QuickSearch_KeyDown"/>
+                        <!-- KI-Assistent: Kachel ganz rechts in der Kopfleiste, verdeckt nichts -->
+                        <Button x:Name="AssistantTile" Grid.Column="2" Width="46" Height="44" Margin="12,0,0,0" Content="KI" FontSize="15"
+                                FontWeight="Bold" Foreground="#12082A" BorderThickness="0" ToolTip="KI-Assistent" Click="Assistant_Click">
+                            <Button.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#B57CFF" Offset="0"/>
+                                    <GradientStop Color="#00F2EA" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Button.Background>
+                        </Button>
+                    </Grid>
+                </Border>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="ContentHost" Margin="28"/>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1" Background="#040921" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0">
+            <Grid Margin="16,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="64"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="58" Height="58" CornerRadius="10" ClipToBounds="True" Background="{StaticResource Card2Brush}">
+                    <Image x:Name="NowCover" Stretch="UniformToFill"/>
+                </Border>
+                <StackPanel Grid.Column="1" Margin="13,5,10,0">
+                    <TextBlock x:Name="NowStation" Text="" Foreground="{StaticResource CyanBrush}" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="NowTitle" Text="Sender auswählen" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="NowSource" Foreground="{StaticResource MutedBrush}" FontSize="11" Visibility="Collapsed"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="◀" Width="48" Height="48" Click="Prev_Click"/>
+                    <Button x:Name="PlayButton" Content="▶" Width="58" Height="52" Background="#102341" BorderBrush="{StaticResource CyanBrush}" Click="Play_Click"/>
+                    <Button Content="▶▶" Width="52" Height="48" Click="Next_Click"/>
+                    <Button Content="Überrasch mich" Height="48" Click="Surprise_Click"/>
+                    <Button Content="Player" Height="48" Click="FullPlayer_Click"/>
+                </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <Button x:Name="HomeButton" Content="Homepage" Height="48" Visibility="Collapsed" Click="StationHome_Click"/>
+                    <Button Content="☆ Favorit" Height="48" Click="Favorite_Click"/>
+                    <Button Content="Sleep 30" Height="48" Click="Sleep_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

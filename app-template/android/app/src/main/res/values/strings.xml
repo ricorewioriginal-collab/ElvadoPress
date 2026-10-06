@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name, launch_url und asset_statements kommen je Marke aus android/brands.json (Product Flavors, siehe build.gradle) -->
+</resources>

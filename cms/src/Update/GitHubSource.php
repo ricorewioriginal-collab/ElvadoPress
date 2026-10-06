@@ -67,6 +67,9 @@ final class GitHubSource
                 if (!str_starts_with($u, self::API . '/')) {
                     continue;
                 }
+                if (str_starts_with($n, 'app-template')) {
+                    continue;   // App-Vorlage (Release-Anhang für den Build-Assistenten) ist kein CMS-Paket
+                }
                 if (str_ends_with($n, '.zip') && $accept !== 'application/octet-stream') {
                     $zip = $u;
                     $accept = 'application/octet-stream';

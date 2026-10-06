@@ -1,0 +1,13 @@
+# Build-Ausgaben und lokale Dateien (die Pakete entstehen im Build-Workflow, nicht im Repository)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/developer.jks
+*.jks
+*.keystore
+windows-native/bin/
+windows-native/obj/
+windows-native/publish/
+windows-native/assets/config/brand.json
+dist/

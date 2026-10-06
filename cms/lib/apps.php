@@ -25,7 +25,22 @@ function rrw_apps_entry_defaults(): array {
             'builder'=>rrw_apps_builder_defaults()];
 }
 function rrw_apps_builder_defaults(): array {
-    return ['enabled'=>false,'theme'=>['accent'=>'','hero_from'=>'','hero_to'=>''],'home'=>[],'stations'=>['order'=>[],'hidden'=>[]],'more_menu'=>['hide'=>[],'custom'=>[]]];
+    return ['enabled'=>false,'theme'=>['accent'=>'','hero_from'=>'','hero_to'=>''],'home'=>[],'stations'=>['order'=>[],'hidden'=>[]],'more_menu'=>['hide'=>[],'custom'=>[]],'tabs'=>[]];
+}
+/** Symbole der Tab-Leiste in Baukasten-Apps (die Apps zeichnen sie selbst, keine Bilddateien nötig). */
+const RRW_APPS_TAB_ICONS=['home'=>'Start','news'=>'Neuigkeiten','info'=>'Info','shop'=>'Shop','calendar'=>'Termine','phone'=>'Kontakt','map'=>'Karte','mail'=>'Nachricht','user'=>'Profil','star'=>'Favoriten','play'=>'Medien','menu'=>'Menü'];
+/** Tab-Leiste einer Baukasten-App: bis zu 5 Einträge mit Titel, Symbol und Adresse (https oder Pfad auf der eigenen Website, z. B. /kontakt/). */
+function rrw_apps_tabs_clean($list,int $max=5): array {
+    $out=[];
+    foreach(array_slice(is_array($list)?$list:[],0,20) as $t){
+        if(count($out)>=$max)break;
+        if(!is_array($t))continue;$title=rrw_apps_text($t['title']??'',16);$u=trim((string)($t['url']??''));
+        $url=preg_match('~^/(?!/)[^\s"\'<>\\\\]{0,200}$~',$u)?$u:rrw_apps_url_clean($u);
+        if($title===''||$url==='')continue;
+        $icon=(string)($t['icon']??'');if(!isset(RRW_APPS_TAB_ICONS[$icon]))$icon='star';
+        $out[]=['title'=>$title,'icon'=>$icon,'url'=>$url];
+    }
+    return $out;
 }
 function rrw_apps_color_clean($c): string { $c=strtolower(trim((string)$c));return preg_match('/^#[0-9a-f]{6}$/',$c)?$c:''; }
 function rrw_apps_text($v,int $max): string { return mb_substr(trim(strip_tags((string)$v)),0,$max); }
@@ -55,7 +70,7 @@ function rrw_apps_station_ids($list,int $max=60): array {
 // App-Builder bereinigen: feste Bausteine, begrenzte Längen, Links nur https
 function rrw_apps_builder_clean($b): array {
     $b=is_array($b)?$b:[];$d=rrw_apps_builder_defaults();$th=(array)($b['theme']??[]);
-    $out=['enabled'=>!empty($b['enabled']),'theme'=>['accent'=>rrw_apps_color_clean($th['accent']??''),'hero_from'=>rrw_apps_color_clean($th['hero_from']??''),'hero_to'=>rrw_apps_color_clean($th['hero_to']??'')],'home'=>[],'stations'=>$d['stations'],'more_menu'=>$d['more_menu']];
+    $out=['enabled'=>!empty($b['enabled']),'theme'=>['accent'=>rrw_apps_color_clean($th['accent']??''),'hero_from'=>rrw_apps_color_clean($th['hero_from']??''),'hero_to'=>rrw_apps_color_clean($th['hero_to']??'')],'home'=>[],'stations'=>$d['stations'],'more_menu'=>$d['more_menu'],'tabs'=>rrw_apps_tabs_clean($b['tabs']??[])];
     foreach(array_slice((array)($b['home']??[]),0,14) as $blk){
         if(!is_array($blk))continue;$t=(string)($blk['type']??'');if(!isset(RRW_APPS_BLOCKS[$t]))continue;
         if($t==='hero')$out['home'][]=['type'=>'hero','eyebrow'=>rrw_apps_text($blk['eyebrow']??'',80),'title'=>rrw_apps_text($blk['title']??'',160),'text'=>rrw_apps_text($blk['text']??'',600)];
@@ -241,9 +256,28 @@ function rrw_apps_change_summary(string $section,$old,$new): string {
 }
 
 // Übersicht für das CMS: jede aktive Marke x Plattform
-function rrw_apps_overview(array $site,string $root): array {
+/** Eigene Apps aus dem Build-Assistenten (cms/data/.apps/build.json): Kennung → ['id','appName','type','platforms','site','icon']. */
+function rrw_apps_own(string $dataDir): array {
+    $f=rrw_apps_dir($dataDir).'/build.json';$d=is_file($f)?json_decode((string)@file_get_contents($f),true):null;$out=[];
+    foreach(is_array($d)?(array)($d['brands']??[]):[] as $b){
+        if(!is_array($b)||!preg_match('/^[a-z][a-z0-9]{2,19}$/',(string)($b['id']??'')))continue;
+        $pl=array_values(array_filter((array)($b['platforms']??['android']),fn($x)=>isset(RRW_APPS_PLATFORMS[$x])))?:['android'];
+        $out[$b['id']]=['id'=>$b['id'],'appName'=>(string)($b['appName']??$b['id']),'type'=>in_array(($b['type']??'radio'),['web','content'],true)?(string)$b['type']:'radio','platforms'=>$pl,'site'=>(string)($b['site']??''),'icon'=>(string)($b['icon']??'')];
+    }
+    return $out;
+}
+/** Marken-Angabe für app_config, wenn die App eine eigene App des Build-Assistenten ist (Parameter brand=<Kennung>); sonst null (Marke wie bisher aus dem Hostnamen). */
+function rrw_apps_own_brand(array $own,string $id): ?array {
+    $id=strtolower(trim($id));if(!isset($own[$id]))return null;
+    return ['brand'=>$id,'id'=>$id,'origin'=>$own[$id]['site'],'directory'=>false];
+}
+/**
+ * Übersicht je Marke und Plattform. $own: eigene Apps des Build-Assistenten (zusätzliche Zeilen, ohne Downloads auf dieser Website);
+ * $onlyOwn: nur diese Zeilen (eigenständiger Betrieb – die Marken des Herstellers gehören nicht dazu).
+ */
+function rrw_apps_overview(array $site,string $root,array $own=[],bool $onlyOwn=false): array {
     $reg=rrw_brands_registry($site);$rows=[];
-    foreach($reg['items'] as $b){
+    foreach($onlyOwn?[]:$reg['items'] as $b){
         if(empty($b['enabled']))continue;
         $dom=trim((string)($b['primary_domain']??''));
         foreach(RRW_APPS_PLATFORMS as $pk=>$pl){
@@ -251,7 +285,14 @@ function rrw_apps_overview(array $site,string $root): array {
             $e=rrw_apps_entry($site,$b['id'],$pk);
             $rows[]=['brand'=>$b['id'],'brand_name'=>(string)($b['name']??$b['id']),'directory'=>!empty($b['directory']),'platform'=>$pk,'platform_name'=>$pl,
                 'origin'=>$dom!==''?'https://'.$dom:'','meta'=>$m,'config'=>$e,'health'=>rrw_apps_health($m,$e,$pk),
-                'shown'=>!empty($site['apps'][$pk.'_enabled'])||!array_key_exists($pk.'_enabled',(array)($site['apps']??[]))];
+                'shown'=>!empty($site['apps'][$pk.'_enabled'])||!array_key_exists($pk.'_enabled',(array)($site['apps']??[])),'own'=>false,'type'=>'radio'];
+        }
+    }
+    foreach($own as $a){
+        foreach($a['platforms'] as $pk){
+            $rows[]=['brand'=>$a['id'],'brand_name'=>$a['appName'],'directory'=>false,'platform'=>$pk,'platform_name'=>RRW_APPS_PLATFORMS[$pk],
+                'origin'=>$a['site'],'meta'=>['available'=>false,'version'=>'','built_at'=>'','files'=>[]],'config'=>rrw_apps_entry($site,$a['id'],$pk),'health'=>[],
+                'shown'=>true,'own'=>true,'type'=>$a['type']];
         }
     }
     return ['status'=>'ok','default'=>$reg['default'],'items'=>$rows,'features'=>RRW_APPS_FEATURES];
@@ -290,7 +331,7 @@ function rrw_apps_public(array $site,string $root,array $brand,string $platform,
     $mt=$e['maintenance'];$maintenance=!empty($mt['enabled'])?['title'=>$mt['title']!==''?$mt['title']:'Wartungsarbeiten','text'=>$mt['text']!==''?$mt['text']:'Die App ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.']:null;
     $tm=(array)($site['apps']['telemetry']??[]);
     $out=['status'=>'ok','brand'=>$id,'platform'=>$platform,'features'=>$features,'notice'=>$notice,'update'=>$update,'maintenance'=>$maintenance,
-          'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors']),'listen'=>!empty($tm['usage'])&&!empty($tm['listen'])],'layout'=>null];
+          'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors']),'listen'=>!empty($tm['usage'])&&!empty($tm['listen'])],'layout'=>null,'tabs'=>$e['builder']['tabs']??[]];
     $b=$e['builder'];
     if(!empty($b['enabled'])){
         $layout=['theme'=>$b['theme'],'home'=>$b['home'],'stations'=>$b['stations'],'more_menu'=>$b['more_menu']];

@@ -10,6 +10,15 @@ window.AppsManager=(()=>{
  const when=iso=>{try{const d=new Date(iso);if(isNaN(d))return '–';return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '–';}};
  const root=()=>{try{return (typeof CMS!=='undefined'&&CMS)?CMS:(window.CMS||{});}catch(e){return window.CMS||{};}};
  const key=r=>r.brand+':'+r.platform;
+ const TAB_ICONS={home:'Start',news:'Neuigkeiten',info:'Info',shop:'Shop',calendar:'Termine',phone:'Kontakt',map:'Karte',mail:'Nachricht',user:'Profil',star:'Favoriten',play:'Medien',menu:'Menü'};
+ // Vorlagen für Baukasten-Apps: fertige Tab-Leisten für typische Websites (Pfade anpassen, dann „Speichern“)
+ const TAB_PRESETS={
+  verein:{label:'Verein / Gemeinde',tabs:[['Start','home','/'],['Aktuelles','news','/blog/'],['Termine','calendar','/termine/'],['Verein','info','/ueber-uns/'],['Kontakt','phone','/kontakt/']]},
+  shop:{label:'Shop / Laden',tabs:[['Start','home','/'],['Produkte','shop','/shop/'],['Angebote','star','/angebote/'],['Neuigkeiten','news','/blog/'],['Kontakt','phone','/kontakt/']]},
+  magazin:{label:'Magazin / Blog',tabs:[['Start','home','/'],['Neu','news','/blog/'],['Medien','play','/medien/'],['Über uns','info','/ueber-uns/']]},
+  gastro:{label:'Restaurant / Café',tabs:[['Start','home','/'],['Karte','menu','/speisekarte/'],['Anfahrt','map','/anfahrt/'],['Reservieren','phone','/reservierung/']]},
+  dienst:{label:'Dienstleister / Portfolio',tabs:[['Start','home','/'],['Leistungen','star','/leistungen/'],['Referenzen','play','/referenzen/'],['Kontakt','mail','/kontakt/']]}
+ };
  const FEATURES={directory:'Radioverzeichnis (Suche, Fremd-Streams)',assistant:'KI-Assistent',report:'Sender melden',cast:'Cast (nur Android)'};
  async function load(){
   S.err='';
@@ -28,6 +37,7 @@ window.AppsManager=(()=>{
   return '<div class="ap-health">'+h.map(x=>`<div class="dm-meta" style="color:${HC[x.level]||HC.info}">${HI[x.level]||''} ${esc(x.text)}</div>`).join('')+'</div>';
  }
  function card(r){
+  if(r.own)return `<div class="dm-row"><div class="dm-head"><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b><span class="dm-pill">eigene App</span><span class="dm-pill grey">${({web:'Website-App',content:'Baukasten-App'})[r.type]||'Radio-App'}</span></div><div class="dm-meta">Website ${esc(r.origin||'–')} · gebaut und heruntergeladen wird sie unter „Eigene App bauen“ (GitHub). Hinweise, Wartung und weitere Einstellungen unten gelten ohne neuen Build.</div></div>`;
   const m=r.meta||{},files=m.files||[];
   const state=!m.available?'<span class="dm-pill grey">noch nicht gebaut</span>':files.length&&files.every(f=>f.exists&&f.size_ok&&f.sha_ok!==false)?'<span class="dm-pill">online</span>':'<span class="dm-pill red">Datei fehlt oder unvollständig</span>';
   const rows=files.map(f=>`<div class="ap-file"><span><b>${esc(f.label)}</b> ${esc(f.name)} · ${size(f.size)}${dlTxt(f.name)}${f.exists?'':' · <b style="color:#e0245e">fehlt auf dem Server</b>'}${f.exists&&!f.size_ok?' · <b style="color:#e0245e">Größe stimmt nicht</b>':''}</span>${f.exists?`<a class="btn-g" href="${esc((r.origin||'')+f.url)}" target="_blank" rel="noopener"><i class="fas fa-download"></i></a>`:''}${f.sha256?`<button class="btn-g" title="Prüfsumme kopieren" onclick="AppsManager.copy('${esc(f.sha256)}')"><i class="fas fa-fingerprint"></i></button>`:''}</div>`).join('');
@@ -36,12 +46,12 @@ window.AppsManager=(()=>{
    <div class="dm-meta">Version <b>${esc(m.version||'–')}</b> · gebaut ${m.built_at?esc(when(m.built_at)):'–'}${m.package?` · Paket ${esc(m.package)}`:''}${m.cert_sha256?` · Zertifikat <code title="${esc(m.cert_sha256)}">${esc(m.cert_sha256.slice(0,8))}…${esc(m.cert_sha256.slice(-4))}</code>`:''}</div>${health(r)}${rows}</div>`;
  }
  function cfgBlock(r){
-  const c=S.managed[key(r)]||r.config,k=key(r);
+  const c=S.managed[key(r)]||r.config,k=key(r),own=!!r.own,radio=(r.type||'radio')==='radio';
   const feats=Object.keys(FEATURES).filter(f=>f!=='directory'||r.directory).map(f=>`<label class="ap-check"><input type="checkbox" ${c.features[f]!==false?'checked':''} onchange="AppsManager.set('${esc(k)}','features.${f}',this.checked)"> ${esc(FEATURES[f])}</label>`).join('');
   const n=c.notice||{};
-  return `<details class="ap-det"><summary><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b> <span class="dm-meta">${n.enabled?'Hinweis aktiv · ':''}${c.min_version?'Mindestversion '+esc(c.min_version):'keine Mindestversion'}</span></summary>
+  return `<details class="ap-det"><summary><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b> <span class="dm-meta">${n.enabled?'Hinweis aktiv · ':''}${(c.maintenance||{}).enabled?'Wartungsmodus an · ':''}${own?(radio?'Radio-App':'Website-App'):(c.min_version?'Mindestversion '+esc(c.min_version):'keine Mindestversion')}</span></summary>
    <div class="ap-body">
-    <div class="ap-sub">Funktionen in der App</div><div class="ap-checks">${feats}</div>
+    ${(own&&!radio)?'':`<div class="ap-sub">Funktionen in der App</div><div class="ap-checks">${feats}</div>`}
     <div class="ap-sub">Hinweis an alle Nutzer dieser App</div>
     <label class="ap-check"><input type="checkbox" ${n.enabled?'checked':''} onchange="AppsManager.set('${esc(k)}','notice.enabled',this.checked)"> Hinweis anzeigen (einmal pro Gerät, bis du den Text änderst)</label>
     <div class="ap-grid">
@@ -55,6 +65,7 @@ window.AppsManager=(()=>{
     <label class="ap-check"><input type="checkbox" ${(c.maintenance||{}).enabled?'checked':''} onchange="AppsManager.set('${esc(k)}','maintenance.enabled',this.checked)"> App sperren und Wartungsmeldung zeigen (Starten der App nicht möglich, bis du es wieder ausschaltest)</label>
     <div class="ap-grid"><div><label class="news-lbl">Überschrift</label><input class="fc w-100" maxlength="80" value="${esc((c.maintenance||{}).title||'')}" placeholder="Wartungsarbeiten" oninput="AppsManager.set('${esc(k)}','maintenance.title',this.value)"></div>
      <div class="ap-wide"><label class="news-lbl">Text</label><textarea class="fc w-100" rows="2" maxlength="600" oninput="AppsManager.set('${esc(k)}','maintenance.text',this.value)">${esc((c.maintenance||{}).text||'')}</textarea></div></div>
+    ${own?'<div class="dm-meta" style="margin:10px 0">Updates, Mindestversion und stufenweises Ausrollen gibt es für Apps, die über diese Website verteilt werden. Eigene Apps verteilst du über die gebaute Datei bzw. die App-Stores; hier steuerst du Hinweise und Wartung.</div>':`
     <div class="ap-sub">Update erzwingen</div>
     <div class="ap-grid"><div><label class="news-lbl">Mindestversion (z. B. 1.9.0)</label><input class="fc w-100" maxlength="14" value="${esc(c.min_version||'')}" placeholder="leer = kein Zwang" oninput="AppsManager.set('${esc(k)}','min_version',this.value)"></div>
      <div class="dm-meta" style="align-self:end">Aktuell gebaut: <b>${esc((r.meta&&r.meta.version)||'–')}</b>. Ältere Apps zeigen einen Hinweis „Update erforderlich“ mit Download-Link; ohne Eintrag wird nur auf neuere Versionen hingewiesen.</div></div>
@@ -71,8 +82,10 @@ window.AppsManager=(()=>{
       <button class="btn-g" type="button" ${(r.meta&&r.meta.cert_sha256)?'':'disabled'} onclick="AppsManager.pinCert('${esc(k)}')"><i class="fas fa-thumbtack"></i> Aktuelles Zertifikat festlegen</button></div>
       <div class="dm-meta">Schützt vor einem versehentlich oder bösartig getauschten Schlüssel: Weicht das Zertifikat eines neuen Builds ab, wird kein Update angeboten und es erscheint eine rote Warnung.</div></div>`:''}
     </div>
+    `}
     <div class="ap-sub">App-Builder – Aussehen &amp; Startseite</div>
-    ${window.AppBuilder?window.AppBuilder.html(k):''}
+    ${(own&&r.type==='content')?tabsHtml(k):''}
+    ${(window.AppBuilder&&(!own||radio))?window.AppBuilder.html(k):(own&&r.type!=='content'?'<div class="dm-meta">Eine Website-App zeigt deine Website; Startseite, Kacheln und Senderlisten gibt es nur bei Radio-Apps.</div>':'')}
    </div></details>`;
  }
  const hms=s=>{s=Math.round(+s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:m?`${m} min`:`${s} s`;};
@@ -100,7 +113,7 @@ window.AppsManager=(()=>{
   const any=(S.ov?S.ov.items:[]).some(r=>r.platform==='android'&&r.meta&&r.meta.signing==='debug');
   return `<details class="ap-det" ${any?'open':''} style="margin-top:14px"><summary><b>Android-Signaturschlüssel (einmalig einrichten)</b> <span class="dm-meta">${any?'noch nicht eingerichtet':'für Updates in der App'}</span></summary><div class="ap-body">
    <p class="hint">Damit sich die Android-App selbst aktualisieren kann, muss jede Version mit <b>demselben</b> Schlüssel signiert sein. Der Schlüssel gehört bewusst <b>nicht</b> ins CMS oder auf den Webserver: Wer ihn hat, kann Apps in eurem Namen signieren. Er liegt als geheimer Wert bei GitHub, wo die Apps gebaut werden.</p>
-   <ol class="alx-steps"><li>Auf dem PC im Repository <code>scripts/create-developer-keystore.ps1</code> ausführen (PowerShell). Es erzeugt den Schlüssel, fragt zweimal ein Passwort und gibt die vier Werte aus.</li>
+   <ol class="alx-steps"><li>Auf dem PC im Repository deiner App-Vorlage <code>scripts/create-developer-keystore.ps1</code> (Windows/PowerShell) oder <code>scripts/create-developer-keystore.sh</code> (Linux/macOS) ausführen. Es erzeugt den Schlüssel und gibt die vier Werte aus bzw. legt sie in Dateien ab.</li>
    <li>GitHub → Repository → <i>Settings → Secrets and variables → Actions → New repository secret</i>, viermal anlegen: <code>ANDROID_DEVELOPER_KEYSTORE_BASE64</code>, <code>ANDROID_DEVELOPER_KEYSTORE_PASSWORD</code>, <code>ANDROID_DEVELOPER_KEY_ALIAS</code>, <code>ANDROID_DEVELOPER_KEY_PASSWORD</code>.</li>
    <li>Den Schlüssel (<code>.jks</code>-Datei) <b>zusätzlich sicher sichern</b> (z. B. Passwortmanager/USB). Geht er verloren, können bestehende Installationen nicht mehr aktualisiert werden.</li>
    <li>Nächsten Android-Build abwarten: oben erscheint „Signatur stabil“. <b>Einmalig</b> muss die App danach neu installiert werden (alter Schlüssel ≠ neuer Schlüssel); ab dann klappen die Updates.</li></ol></div></details>`;
@@ -131,16 +144,35 @@ window.AppsManager=(()=>{
   const host=document.getElementById('appsManager');if(!host)return;
   if(!S.ov){host.innerHTML=`<div class="dm-empty">${esc(S.err||'Lädt …')}</div>`;return;}
   host.innerHTML=`<div class="ap-h">Übersicht <button class="btn-g" onclick="AppsManager.refresh()"><i class="fas fa-rotate"></i> Aktualisieren</button></div><div class="dm-list">${S.ov.items.map(card).join('')}</div>
-   <div class="ap-h">Funktionen, Hinweise, Wartung, Ausrollen &amp; App-Builder</div><p class="hint">Gilt je Marke und Plattform. „Speichern“ oben rechts übernimmt alles; die Apps lesen es beim nächsten Start.</p><div class="dm-list">${S.ov.items.map(cfgBlock).join('')}</div>
+   <div class="ap-h">Funktionen, Hinweise, Wartung, Ausrollen &amp; App-Builder</div><p class="hint">Gilt je App und Plattform. „Speichern“ oben rechts übernimmt alles; die Apps lesen es beim nächsten Start.</p><div class="dm-list">${S.ov.items.map(cfgBlock).join('')}</div>
    ${stats()}
    ${keyHelp()}
-   <div class="ap-h">Bilder der Apps</div><p class="hint">Icon, Startbild und Logo werden beim nächsten App-Bau übernommen.</p><div class="dm-list">${images()}</div>`;
+   ${S.ov.items.some(r=>!r.own)?`<div class="ap-h">Bilder der Apps</div><p class="hint">Icon, Startbild und Logo werden beim nächsten App-Bau übernommen.</p><div class="dm-list">${images()}</div>`:''}`;
  }
  function set(k,path,val){
   const c=S.managed[k];if(!c)return;const p=path.split('.');let o=c;
   for(let i=0;i<p.length-1;i++){o=o[p[i]]=o[p[i]]||{};}
   o[p[p.length-1]]=val;
  }
+ function tabs(k){const c=S.managed[k];if(!c)return [];c.builder=c.builder||{};return c.builder.tabs=c.builder.tabs||[];}
+ function tabsHtml(k){
+  const t=tabs(k),ek=esc(k);
+  const rows=t.map((x,i)=>`<div class="ap-tab"><select class="fc" onchange="AppsManager.tabSet('${ek}',${i},'icon',this.value)">${Object.keys(TAB_ICONS).map(ic=>`<option value="${ic}" ${x.icon===ic?'selected':''}>${esc(TAB_ICONS[ic])}</option>`).join('')}</select>
+   <input class="fc" maxlength="16" placeholder="Titel" value="${esc(x.title||'')}" oninput="AppsManager.tabSet('${ek}',${i},'title',this.value)">
+   <input class="fc" style="flex:2" placeholder="/seite/ oder https://…" value="${esc(x.url||'')}" oninput="AppsManager.tabSet('${ek}',${i},'url',this.value)">
+   <button class="btn-g" type="button" ${i?'':'disabled'} onclick="AppsManager.tabMove('${ek}',${i},-1)" title="Nach links">‹</button><button class="btn-g" type="button" ${i<t.length-1?'':'disabled'} onclick="AppsManager.tabMove('${ek}',${i},1)" title="Nach rechts">›</button><button class="btn-g" type="button" onclick="AppsManager.tabDel('${ek}',${i})" title="Entfernen"><i class="fas fa-trash"></i></button></div>`).join('');
+  const pre=Object.keys(TAB_PRESETS).map(p=>`<button class="btn-g" type="button" onclick="AppsManager.tabPreset('${ek}','${p}')">${esc(TAB_PRESETS[p].label)}</button>`).join('');
+  return `<div data-aptabs="${ek}"><div class="ap-sub">Inhalte der App (Tab-Leiste unten, bis zu 5 Einträge)</div><p class="hint">Jeder Tab zeigt eine Seite deiner Website – Seiten, Beiträge, Shop, Formulare, alles was du im CMS pflegst. Änderungen gelten sofort, ohne neuen App-Bau. Eine Leiste mit nur einem Eintrag oder keine Einträge blendet die Leiste aus.</p>
+   <div id="aptabs-${ek}">${rows||'<p class="hint">Noch keine Tabs. Wähle eine Vorlage oder füge Tabs hinzu.</p>'}</div>
+   <div class="ap-add"><button class="btn-g" type="button" ${t.length>=5?'disabled':''} onclick="AppsManager.tabAdd('${ek}')"><i class="fas fa-plus"></i> Tab hinzufügen</button></div>
+   <div class="ap-sub">Vorlage laden (ersetzt die Tabs)</div><div class="ap-add">${pre}</div></div>`;
+ }
+ function tabsRedraw(k){const el=document.querySelector(`[data-aptabs="${CSS.escape(k)}"]`);if(el)el.outerHTML=tabsHtml(k);}
+ function tabSet(k,i,f,v){const t=tabs(k);if(t[i])t[i][f]=v;}
+ function tabAdd(k){const t=tabs(k);if(t.length<5)t.push({title:'',icon:'star',url:'/'});tabsRedraw(k);}
+ function tabDel(k,i){tabs(k).splice(i,1);tabsRedraw(k);}
+ function tabMove(k,i,d){const t=tabs(k),j=i+d;if(j<0||j>=t.length)return;[t[i],t[j]]=[t[j],t[i]];tabsRedraw(k);}
+ function tabPreset(k,p){const pr=TAB_PRESETS[p];if(!pr)return;S.managed[k].builder=S.managed[k].builder||{};S.managed[k].builder.tabs=pr.tabs.map(x=>({title:x[0],icon:x[1],url:x[2]}));tabsRedraw(k);toast('Vorlage geladen – Pfade prüfen und „Speichern“');}
  function setList(k,path,val){set(k,path,String(val||'').split(/[\s,;]+/).filter(Boolean));}
  function pinCert(k){
   const r=(S.ov?S.ov.items:[]).find(x=>key(x)===k),c=r&&r.meta&&r.meta.cert_sha256;if(!c)return;
@@ -152,6 +184,5 @@ window.AppsManager=(()=>{
  async function refresh(){await render();toast('Aktualisiert');}
  function collect(){return {android_enabled:!!document.getElementById('cmsAndroid')?.checked,windows_enabled:!!document.getElementById('cmsWindows')?.checked,telemetry:S.tel,managed:S.managed};}
  function copy(t){try{navigator.clipboard.writeText(t);toast('Prüfsumme kopiert');}catch(e){toast('Kopieren nicht möglich',true);}}
- return {render,refresh,set,setList,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
+ return {ready:()=>!!S.ov,render,refresh,set,setList,tabSet,tabAdd,tabDel,tabMove,tabPreset,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
 })();
-window.saveApps=function(){return window.saveSection('apps',window.AppsManager.collect());};

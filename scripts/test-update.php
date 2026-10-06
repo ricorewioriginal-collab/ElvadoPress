@@ -112,6 +112,10 @@ pkg($pz=$tmp.'/p-1.15.0.zip','1.15.0',$ping());$gh['zips']['asset/11']=$pz;$gh['
 t('Release-Anhang mit falscher Prüfsumme → Abbruch',thr(fn()=>$svc->apply(),'Prüfsumme')&&trim(file_get_contents($cms.'/VERSION'))==='1.13.0');
 $gh['sha256']['12']=['x.sha256',hash_file('sha256',$pz).'  cms.zip'];$a=$svc->apply();
 t('Release-Anhang mit richtiger Prüfsumme → eingespielt (Anhang statt Quellarchiv)',$a['to']==='1.15.0');$svc->confirm();
+// App-Vorlage als weiterer Release-Anhang (app-template.zip) darf nie als CMS-Paket gewählt werden – auch nicht, wenn sie alphabetisch vor dem Paket steht
+$gh['releases']=[rel('v1.17.0',['assets'=>[['name'=>'app-template.zip','url'=>'https://api.github.com/repos/own/repo/releases/assets/21'],['name'=>'app-template.zip.sha256','url'=>'https://api.github.com/repos/own/repo/releases/assets/22'],['name'=>'elvadopress-1.17.0.zip','url'=>'https://api.github.com/repos/own/repo/releases/assets/23'],['name'=>'elvadopress-1.17.0.zip.sha256','url'=>'https://api.github.com/repos/own/repo/releases/assets/24']]])];
+$sv=$svc->check();$lt=$sv['latest']??[];
+t('Release mit App-Vorlage: gewählt wird das CMS-Paket und seine Prüfsumme',str_ends_with((string)($lt['zip_url']??''),'/assets/23')&&str_ends_with((string)($lt['sha256_url']??''),'/assets/24'),json_encode($lt));
 // ───── Überwachung (Watchdog)
 $gh['releases']=[rel('v1.16.0')];pkg($pw=$tmp.'/p-1.16.0.zip','1.16.0',$ping());$gh['zips']['zipball/v1.16.0']=$pw;$svc->apply();
 t('Überwachung: gesund + Frist nicht abgelaufen → nichts tun, Fenster bleibt',$svc->watchdog()===null&&$svc->status()['pending']!==null);

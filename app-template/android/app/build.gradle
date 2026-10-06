@@ -1,0 +1,129 @@
+plugins {
+    id 'com.android.application'
+}
+
+def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+def keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+// Nicht "keyAlias"/"keyPassword" nennen: lokale Variablen gleichen Namens verdecken im signingConfigs-Block die Gradle-Befehle gleichen Namens
+def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+def hasReleaseSigning = keystorePath && keystorePassword && releaseKeyAlias && releaseKeyPassword
+
+def developerKeystorePath = System.getenv("ANDROID_DEVELOPER_KEYSTORE_PATH")
+def developerKeystorePassword = System.getenv("ANDROID_DEVELOPER_KEYSTORE_PASSWORD")
+def developerKeyAlias = System.getenv("ANDROID_DEVELOPER_KEY_ALIAS")
+def developerKeyPassword = System.getenv("ANDROID_DEVELOPER_KEY_PASSWORD")
+def hasDeveloperSigning = developerKeystorePath && developerKeystorePassword && developerKeyAlias && developerKeyPassword
+def ciVersionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1") as Integer
+
+// Multi-Brand: Eine Code-Basis, mehrere Apps. Jede Marke aus android/brands.json wird ein
+// Product Flavor mit eigener Paket-ID, eigenem App-Namen, eigener Start-URL und eigenen
+// Branding-Dateien (android/app/src/<id>/res bzw. assets). Das CMS (Apps → Eigene App bauen) trägt die Marken ein.
+def brandList = new groovy.json.JsonSlurper().parse(file("../brands.json"))
+// Java-String-Literal aus beliebigem Text (für buildConfigField)
+def javaString = { String t -> '"' + t.replace('\\', '\\\\').replace('"', '\\"') + '"' }
+
+android {
+    namespace 'app.elvadopress.client'
+
+    sourceSets {
+        main {
+            assets.srcDirs += ['../../android-app/assets']
+        }
+    }
+    compileSdk 36
+
+    buildFeatures {
+        // Marken-Strings (app_name, launch_url, asset_statements) kommen aus android/brands.json per resValue
+        resValues true
+        buildConfig true
+    }
+
+    defaultConfig {
+        applicationId 'app.elvadopress.client'
+        minSdk 23
+        targetSdk 36
+        versionCode ciVersionCode
+        versionName '3.0.0'
+        manifestPlaceholders = [appAuthRedirectScheme: 'app.elvadopress.client.dev']
+    }
+
+    flavorDimensions = ['brand']
+    productFlavors {
+        brandList.each { b ->
+            create(b.id) {
+                dimension 'brand'
+                applicationId b.applicationId
+                resValue 'string', 'app_name', b.appName
+                resValue 'string', 'launch_url', b.launchUrl
+                resValue 'string', 'site_base', b.site
+                resValue 'string', 'theme_color', (b.themeColor ?: '#070A1C')   // Statusleiste/Hintergrund (App-Typ web)
+                // Optionale Funktionen der Radio-App je Marke ("radio" im Eintrag von android/brands.json): podcast, communityBase, shops – siehe ANLEITUNG.md
+                buildConfigField 'String', 'RADIO_CONFIG', javaString(groovy.json.JsonOutput.toJson(b.radio ?: [:]))
+                buildConfigField 'String', 'APP_TYPE', '"' + (b.type in ['web', 'content'] ? b.type : 'radio') + '"'   // radio = Radio-App (Standard), web = Website als App, content = Baukasten-App (Tab-Leiste mit eigenen Inhalten)
+                resValue 'bool', 'has_directory', (b.directory ? 'true' : 'false')  // Radioverzeichnis-Funktionen (Marken mit Verzeichnis)
+                resValue 'string', 'asset_statements', '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"' + b.site + '"}}]'
+            }
+        }
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystorePath)
+                storePassword keystorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+        if (hasDeveloperSigning) {
+            developer {
+                storeFile file(developerKeystorePath)
+                storePassword developerKeystorePassword
+                keyAlias developerKeyAlias
+                keyPassword developerKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField 'boolean', 'SELF_UPDATE', 'true'
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        developer {
+            initWith debug
+            applicationIdSuffix '.dev'
+            versionNameSuffix '-dev'
+            debuggable true
+            signingConfig hasDeveloperSigning ? signingConfigs.developer : signingConfigs.debug
+            matchingFallbacks = ['debug']
+        }
+        release {
+            // Store-Pakete aktualisiert der Store; kein Selbst-Update per APK (Play-Richtlinie), Berechtigung fehlt im Manifest
+            buildConfigField 'boolean', 'SELF_UPDATE', 'false'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+    implementation 'androidx.media3:media3-exoplayer:1.8.0'
+    implementation 'androidx.media3:media3-session:1.8.0'
+    implementation 'androidx.media3:media3-cast:1.8.0'
+    implementation 'androidx.mediarouter:mediarouter:1.7.0'
+    implementation 'net.openid:appauth:0.11.1'
+}

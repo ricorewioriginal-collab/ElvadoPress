@@ -362,7 +362,13 @@ async function savePortal(){
  if(start)await saveSection('pages',CMS.pages||[]);
 }
 function saveSocial(){saveSection('social',{ricorewi_tiktok:cmsRt.value.trim(),ricorewi_instagram:cmsRi.value.trim(),anmacha_tiktok:cmsAt.value.trim(),anmacha_instagram:cmsAi.value.trim()})}
-function saveApps(){saveSection('apps',{android_enabled:cmsAndroid.checked,windows_enabled:cmsWindows.checked})}
+// „Apps verwalten“ (apps-manager.js) liefert den vollständigen Bereich samt Einstellungen je App; cms-app.js wird später geladen und darf das nicht mit der Kurzfassung überschreiben
+function saveApps(){
+ const am=window.AppsManager;
+ if(am&&am.ready&&am.ready())return saveSection('apps',am.collect());
+ if(am&&am.ready)return alert('Die App-Verwaltung ist noch nicht geladen. Bitte kurz warten und erneut speichern.');
+ return saveSection('apps',{android_enabled:cmsAndroid.checked,windows_enabled:cmsWindows.checked});
+}
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
 function currentPage(){return (CMS?.pages||[]).find(p=>p.id===CURRENT_PAGE_ID)||null}
 function renderPages(){

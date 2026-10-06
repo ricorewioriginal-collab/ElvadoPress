@@ -4,6 +4,7 @@
 ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSION`: **1.0.0**. Das CMS ist PHP-basiert, dateibasiert mit optionalem Datenbankspiegel, besitzt eine WordPress-Kompatibilitätsschicht und optionale App-/Alexa-/KI-Erweiterungen. CI prüft Syntax, Smoke-Test und die vorhandenen Funktionstests.
 
 ## Zuletzt abgeschlossen
+- **App-Vorlage `app-template/`** (neutral, ohne Hersteller-Inhalte): Website-App, Baukasten-App (Tab-Leiste mit eigenen Inhalten, `type` `content`) und Radio-App für Android und Windows, Katalog `app-template/templates.json` + `VORLAGEN.md`, Anleitung `app-template/ANLEITUNG.md`, Export `scripts/export-app-template.sh`, Prüfung `scripts/verify-app-template.sh` (Android-SDK + .NET nötig) und `scripts/test-app-template.php`; Release hängt `app-template.zip` an. Neu in den Apps: eigene Sender in der Radio-App, Laufzeit-Konfiguration der Website-App (Hinweis, Wartung, Pflicht-Update), Funktionen je App über `"radio"` in `brands.json`. CMS: eigene Apps unter Apps → Apps verwalten (auch eigenständig; `app_config&brand=`), Marken-IDs `test…` abgelehnt (Gradle), `brands.json`-Zusätze bleiben erhalten, Update-Auswahl ignoriert `app-template.zip`.
 - Freie Bilder: Schlüssel/Quellen jetzt unter Einstellungen › Medien (Mediathek zeigt nur Hinweis + Suche); Openverse-Fehler behoben (anonym höchstens `page_size=20`, vorher 24 → 401 → „Bildquelle antwortet nicht“); Fehlermeldungen nach HTTP-Status (`rrw_stock_error_message`), Wikimedia mit beschreibendem User-Agent.
 - Tests für Beitragsfelder: `scripts/test-news-fields.php` (Slug-Eindeutigkeit, Kommentare default/open/closed, noindex, kanonische Adresse, Ausgabe im WP-Theme, Sitemap). Dafür `rrw_news_unique_slug()` und `rrw_news_seo_fields()` aus `news_save` nach `cms/lib/publish.php` ausgelagert (Verhalten unverändert).
 - Admin-Design pro Benutzer (Server: `cms/data/.prefs/admin.json`, API `admin_prefs_get/save`, localStorage nur als Zwischenspeicher); `test-apps.php` legt den Hash-Zwischenspeicher nicht mehr im echten `cms/data` an (`RRW_DATA_DIR`).
@@ -44,7 +45,8 @@ Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokum
 
 ## Bekannte Probleme
 - `INSTALL.md` enthält noch historisch gewachsene RicoReWi-/Control-Center-Formulierungen, die teilweise nicht zum aktuellen eigenständigen ElvadoPress-Status passen. Siehe `KNOWN_ISSUES.md`.
-- Der in `STATUS.md` dokumentierte offene App-Vorlagen-/App-Baukasten-/Alexa-Ausbau ist noch nicht als abgeschlossen ausgewiesen.
+- Fix: Der „Speichern“-Knopf der App-Verwaltung rief die Kurzfassung in `cms-app.js` auf (die später geladen wird und `window.saveApps` überschrieb) und speicherte nur die Plattform-Schalter – Einstellungen je App gingen verloren. `saveApps()` nutzt jetzt `AppsManager.collect()`.
+- App-Vorlage (`app-template/`) und Verwaltung eigener Apps sind umgesetzt, aber noch nicht auf Geräten erprobt (siehe `KNOWN_ISSUES.md`); Alexa-Ausbau offen.
 
 ## Nächste sinnvolle Schritte
 1. `INSTALL.md` fachlich gegen aktuellen ElvadoPress-Stand bereinigen, ohne weiterhin benötigte Connected-Mode-/Migrationshinweise zu verlieren.

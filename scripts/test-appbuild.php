@@ -26,6 +26,12 @@ t('Ungültige Branding-Angaben werden abgelehnt',function() use($base){
         [$b,$e]=clean($bad+$base);if($b!==null||$e==='')throw new RuntimeException('nicht abgelehnt: '.json_encode($bad));
     }
 });
+t('Marken-IDs, die Gradle als Flavor ablehnt (test…, androidtest…, Build-Typen), werden abgelehnt',function() use($base){
+    foreach(['testradio','tester','androidtestx','debug','release','developer','main'] as $id){
+        [$b,$e]=clean(['id'=>$id]+$base);if($b!==null||$e==='')throw new RuntimeException('nicht abgelehnt: '.$id);
+    }
+    [$b,$e]=clean(['id'=>'meinradio']+$base);eq($e,'');eq($b['id'],'meinradio');
+});
 t('Texte werden begrenzt',function() use($base){
     [$b]=clean(['shortDescription'=>str_repeat('k',200),'fullDescription'=>str_repeat('l',9000)]+$base);eq(mb_strlen($b['shortDescription']),80);eq(mb_strlen($b['fullDescription']),4000);
 });
@@ -93,6 +99,16 @@ t('Build: Branding-Dateien landen im Repository (Startbild, Screenshots, Store-T
     [$r,$put,$entry]=$run($b2);eq($r['ok'],true,$r['message']);
     eq($put,['android/brands.json','brands/meinapp/app_logo.png'],'ohne Branding nur wie bisher');
     exec('rm -rf '.escapeshellarg($root));
+});
+t('brands.json: von Hand ergänzte Angaben (z. B. "radio") bleiben erhalten, bekannte Felder folgen dem CMS (Typ-Wechsel entfernt "type")',function(){
+    $cur=[['id'=>'meinapp','applicationId'=>'de.alt.app','appName'=>'Alt','launchUrl'=>'https://alt.example/','site'=>'https://alt.example','filePrefix'=>'Alt','type'=>'web','themeColor'=>'#111111','radio'=>['podcast'=>true,'shops'=>[['title'=>'Shop','url'=>'https://s.example/']]]],
+          ['id'=>'andere','applicationId'=>'de.x.y','appName'=>'X','launchUrl'=>'https://x/','site'=>'https://x','filePrefix'=>'X']];
+    $GLOBALS['rrw_ab_http']=fn($m,$path,$tok,$json)=>['code'=>200,'body'=>json_encode(['content'=>base64_encode(json_encode($cur)),'sha'=>'x']),'headers'=>[]];
+    [$b]=rrw_ab_clean_brand(['type'=>'radio','applicationId'=>'de.neu.app']+$GLOBALS['__base']);   // Radio-App, ohne Farbe
+    [$json,$err]=rrw_ab_merge_brands(['repo'=>'me/x','branch'=>'app-builder','token'=>'t'],$b);unset($GLOBALS['rrw_ab_http']);
+    eq($err,'');$list=json_decode((string)$json,true);eq(count($list),2);eq($list[1]['id'],'andere','andere Marke unberührt');
+    $e=$list[0];eq($e['applicationId'],'de.neu.app');eq(array_key_exists('type',$e),false,'type entfernt');eq(array_key_exists('themeColor',$e),false,'Farbe entfernt');
+    eq($e['radio']['podcast'],true,'radio-Angaben bleiben');eq($e['radio']['shops'][0]['url'],'https://s.example/');
 });
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exit($fail?1:0);
