@@ -78,6 +78,16 @@ update_option('elvado_bk_layout',[]);
 t('Leeres gespeichertes Layout: Startseite im Normallayout',str_contains(page('/')['body'],'site-content'));
 delete_option('elvado_bk_layout');
 t('Ohne gespeichertes Layout gelten die Positionen wieder',str_contains(page('/')['body'],'bk-hero'));
+// Seitenleiste auf der Startseite (Customizer „Seitenleiste auch auf der Startseite“)
+update_option('elvado_bk_layout',elvado_bk_clean_layout([['id'=>'h','type'=>'hero','props'=>['title'=>'Kopf']],['id'=>'t','type'=>'text','props'=>['body'=>'Mittelteil']],['id'=>'c','type'=>'cta','props'=>['title'=>'Ruf']]]));
+update_option('sidebars_widgets',['sidebar-1'=>['search-1'],'array_version'=>3]);update_option('widget_search',[1=>['title'=>'Suche'],'_multiwidget'=>1]);
+$off=page('/')['body'];t('Seitenleiste auf der Startseite standardmäßig aus',!str_contains($off,'bk-home-grid'));
+set_theme_mod('home_sidebar',true);$on=page('/')['body'];
+t('Seitenleiste an: Hero volle Breite, danach Raster mit Hauptspalte und Seitenleiste',strpos($on,'bk-hero')!==false&&strpos($on,'bk-hero')<strpos($on,'bk-home-grid')&&strpos($on,'bk-home-main')<strpos($on,'Mittelteil')&&strpos($on,'Mittelteil')<strpos($on,'id="sidebar"')&&str_contains($on,'widget_search'));
+t('Seitenleiste an: Aufruf liegt in der Hauptspalte',strpos($on,'bk-cta')<strpos($on,'id="sidebar"')&&strpos($on,'bk-cta')>strpos($on,'bk-home-main'));
+update_option('sidebars_widgets',['sidebar-1'=>[],'array_version'=>3]);
+t('Ohne aktive Widgets kein Raster, auch wenn eingeschaltet',!str_contains(page('/')['body'],'bk-home-grid'));
+set_theme_mod('home_sidebar',false);
 // Erweiterbarkeit: Plugin-Haken je Abschnitt
 $hk=[];add_action('elvado_bk_after_section',function($sec) use(&$hk){ $hk[]=$sec['type']; });add_action('elvado_bk_after_sections',function(){ echo '<!--bk-plugin-->'; });
 update_option('elvado_bk_layout',elvado_bk_clean_layout([['type'=>'text','props'=>['body'=>'Hallo']],['type'=>'cta','props'=>['title'=>'X']]]));

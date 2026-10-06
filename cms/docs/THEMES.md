@@ -58,6 +58,7 @@ Das mitgelieferte Theme `cms/themes/elvado-baukasten` ist ein WordPress-Theme (l
 - **Design:** Akzent-, Hintergrund-, Karten-, Text- und Hero-Farben, Schriftart für Überschriften/Fließtext (Systemschriften, kein Fremd-Server), Schriftgröße, Eckenradius, Inhalts- und Seitenleistenbreite, Abschnittsabstand, Kopfbereich (links/zentriert, fixiert), Seitenleiste links/rechts, Fußzeilentext, zusätzliches CSS.
 - **Unterseiten** (Beiträge, Seiten, Archive, Suche, 404) nutzen das normale Layout mit Seitenleiste, Menüs (`primary`, `footer`) und Widgets (`sidebar-1`).
 - Alle Werte werden serverseitig begrenzt/bereinigt (Farben als Hex, Zahlen mit Grenzen, HTML über `wp_kses_post`, URLs über `esc_url`); eigenes CSS kann den Style-Tag nicht verlassen.
+- **Seitenleiste auch auf der Startseite:** Customizer → *Kopf & Fuß* → „Seitenleiste auch auf der Startseite (unter dem Hero)“ (`home_sidebar`, Standard aus). Führende Hero-Abschnitte laufen über die ganze Breite, alle weiteren Abschnitte stehen als Karten in der Hauptspalte neben der Seitenleiste (Widgets, Position/Breite wie bei Beiträgen: `sidebar_pos`, `sidebar_width`); ohne aktive Widgets bleibt die Startseite wie bisher.
 - Test: `php scripts/test-baukasten.php`.
 
 ## Radio-Theme „ElvadoPress Radio“ (mitgeliefert)

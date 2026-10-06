@@ -16,8 +16,9 @@ function rrw_demo_layout(array $c): array {
             ['title'=>'Freie Bilder','text'=>'Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons direkt in der Mediathek durchsuchen – mit Bildnachweis automatisch übernommen.'],
             ['title'=>'KI-Assistent','text'=>'Texte, Übersetzungen und Layouts mit EvoLink, OpenAI, Anthropic, Google, OpenRouter oder DeepSeek – mit deinem eigenen Schlüssel.'],
             ['title'=>'Updates mit Rückschritt','text'=>'Neue Versionen aus GitHub einspielen: mit Sicherung, Gesundheitsprüfung und automatischem Zurückspielen, falls etwas schiefgeht.']]]],
+        ['id'=>'builder','type'=>'image_text','props'=>['title'=>'Dein Design, deine Regeln','text'=>'<p>Der <strong>Homepage-Baukasten</strong> setzt Startseiten aus Abschnitten zusammen: Hero, Karten, Bild + Text, Beiträge, Aufruf, eigenes HTML. Per Drag & Drop sortieren, ausblenden, mit Live-Vorschau speichern – ohne eine Zeile Code. Farben, Schrift, Breiten und die Seitenleiste stellst du im Customizer ein.</p><p>Wer lieber programmiert, nutzt Plugin-Haken, Shortcodes und eigene Themes.</p>','image'=>'/cms/assets/demo/homepage-builder.svg','reverse'=>false,'btn_label'=>'Themes ansehen','btn_url'=>'/themes/','bg'=>'default']],
         ['id'=>'try','type'=>'text','props'=>['title'=>'Probier es selbst aus','align'=>'center','bg'=>'alt','body'=>'<p>Diese Website ist eine <strong>Live-Demo</strong> – und sie ist selbst mit ElvadoPress gebaut. Alle Funktionen sind freigeschaltet; nach <strong>'.$min.' Minuten</strong> wird alles automatisch auf den Ausgangszustand zurückgesetzt, du kannst also nichts kaputt machen.</p><p><a class="btn" href="/cms/?demo=1">Mit einem Klick in die Verwaltung</a></p><p>Zugang (falls manuell): Benutzer <code>'.$u.'</code> · Passwort <code>'.$p.'</code></p><p>Tipp: Unter <em>Design → Homepage-Baukasten</em> kannst du diese Startseite sofort umbauen.</p>']],
-        ['id'=>'uses','type'=>'features','props'=>['title'=>'Für jeden Zweck das passende Design','columns'=>'4','bg'=>'default','items'=>[
+        ['id'=>'uses','type'=>'features','props'=>['title'=>'Für jeden Zweck das passende Design','columns'=>'2','bg'=>'default','items'=>[
             ['title'=>'Radio & Podcast','text'=>'Player, Jetzt läuft, Sendeplan; laut.fm, Icecast oder Shoutcast; Alexa-Skill und App-Baukasten.'],
             ['title'=>'Bands & Musiker','text'=>'Tourdaten, Releases, Videos, Presse-Kit und Booking – im Poster-Stil.'],
             ['title'=>'Creator & Influencer','text'=>'Link-in-Bio, Empfehlungen mit Rabattcodes, Drops mit Countdown und Mediakit.'],
@@ -62,13 +63,39 @@ function rrw_demo_menu(): array {
     return ['top'=>[$m('Start','system:start'),$m('Funktionen','page:funktionen'),$m('Themes','page:themes'),$m('Demo-Anleitung','page:demo'),$m('Selbst betreiben','page:selbst-betreiben'),$m('Verwaltung','/cms/?demo=1')],'bottom'=>[]];
 }
 
-/** Beispielbeiträge: [Titel, Kategorie, Auszug, HTML]. */
+/** Beispielbeiträge: [Titel, Kategorie, Auszug, HTML, Schlagwörter]. */
 function rrw_demo_posts(): array {
     return [
-        ['Neu: CMS-Update über GitHub mit Rückschritt','Entwicklung','Neue Versionen suchen, einspielen und bei Problemen automatisch zurückrollen.','<p>Unter <strong>System → Version &amp; Update</strong> zeigt ElvadoPress immer die installierte und die neueste Version. Updates kommen aus GitHub (Release, Beta oder Branch), werden vor dem Einspielen geprüft und gesichert – und wenn die Gesundheitsprüfung fehlschlägt, spielt das CMS die alte Version automatisch zurück.</p>'],
-        ['Freie Bilder direkt in der Mediathek','Medien','Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons – mit Bildnachweis.','<p>Die Mediathek durchsucht fünf freie Bildquellen. Ein Klick übernimmt das Bild in deine Mediathek; Urheber, Quelle und Lizenz werden automatisch als Bildnachweis gespeichert und beim Einfügen als Bildunterschrift gesetzt.</p>'],
-        ['Fünf Themes – und keines sieht aus wie das andere','Design','Baukasten, Radio, Band, Creator und Klassisch mit passenden Konfigurationsmenüs.','<p>Jedes mitgelieferte Theme hat einen eigenen Stil und bringt – nur solange es aktiv ist – sein eigenes Menü in der Verwaltung mit: Sender und Sendeplan für Radio, Tourdaten für Bands, Link-in-Bio und Drops für Creator.</p>'],
-        ['KI-Assistent: Texte, Übersetzungen, Layouts','KI','Mit deinem eigenen Schlüssel bei EvoLink, OpenAI, Anthropic, Google, OpenRouter oder DeepSeek.','<p>Der Assistent schreibt Beiträge, übersetzt Texte und schlägt Layouts für den Homepage-Baukasten vor. Schlüssel liegen nur auf dem Server und werden nie angezeigt.</p>'],
-        ['Die Demo ist die Homepage','News','Diese Website ist selbst mit ElvadoPress und dem Homepage-Baukasten gebaut.','<p>Du siehst hier keine Attrappe, sondern ein laufendes ElvadoPress. Baue die Startseite unter <em>Design → Homepage-Baukasten</em> um – nach einigen Minuten ist wieder alles im Ausgangszustand.</p>'],
+        ['Neu: CMS-Update über GitHub mit Rückschritt','Entwicklung','Neue Versionen suchen, einspielen und bei Problemen automatisch zurückrollen.','<p>Unter <strong>System → Version &amp; Update</strong> zeigt ElvadoPress immer die installierte und die neueste Version. Updates kommen aus GitHub (Release, Beta oder Branch), werden vor dem Einspielen geprüft und gesichert – und wenn die Gesundheitsprüfung fehlschlägt, spielt das CMS die alte Version automatisch zurück.</p>','Updates, GitHub, Sicherheit'],
+        ['Freie Bilder direkt in der Mediathek','Medien','Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons – mit Bildnachweis.','<p>Die Mediathek durchsucht fünf freie Bildquellen. Ein Klick übernimmt das Bild in deine Mediathek; Urheber, Quelle und Lizenz werden automatisch als Bildnachweis gespeichert und beim Einfügen als Bildunterschrift gesetzt.</p>','Medien, Bilder, Lizenzen'],
+        ['Fünf Themes – und keines sieht aus wie das andere','Design','Baukasten, Radio, Band, Creator und Klassisch mit passenden Konfigurationsmenüs.','<p>Jedes mitgelieferte Theme hat einen eigenen Stil und bringt – nur solange es aktiv ist – sein eigenes Menü in der Verwaltung mit: Sender und Sendeplan für Radio, Tourdaten für Bands, Link-in-Bio und Drops für Creator.</p>','Themes, Baukasten, Design'],
+        ['KI-Assistent: Texte, Übersetzungen, Layouts','KI','Mit deinem eigenen Schlüssel bei EvoLink, OpenAI, Anthropic, Google, OpenRouter oder DeepSeek.','<p>Der Assistent schreibt Beiträge, übersetzt Texte und schlägt Layouts für den Homepage-Baukasten vor. Schlüssel liegen nur auf dem Server und werden nie angezeigt.</p>','KI, Texte, Layouts'],
+        ['Die Demo ist die Homepage','News','Diese Website ist selbst mit ElvadoPress und dem Homepage-Baukasten gebaut.','<p>Du siehst hier keine Attrappe, sondern ein laufendes ElvadoPress. Baue die Startseite unter <em>Design → Homepage-Baukasten</em> um – nach einigen Minuten ist wieder alles im Ausgangszustand.</p>','Demo, Baukasten, Homepage'],
+    ];
+}
+
+/** Widgets der Seitenleiste (WordPress-Widget-Optionen) und ihre Reihenfolge: [ 'sidebars'=>[…ids], 'options'=>[ 'widget_text'=>[…], … ] ]. */
+function rrw_demo_widgets(array $c): array {
+    $u=htmlspecialchars($c['user'],ENT_QUOTES);$p=htmlspecialchars($c['password'],ENT_QUOTES);$min=(int)$c['minutes'];
+    $text=fn(string $title,string $html)=>['title'=>$title,'text'=>$html,'filter'=>false];
+    $texts=[
+        1=>$text('','<p style="text-align:center;margin:0 0 8px"><img src="/cms/assets/brand/elvadopress-logo.png" alt="ElvadoPress" style="max-width:100%;height:auto"></p><p style="text-align:center;margin:0">Das erweiterbare CMS für Websites aller Art.</p>'),
+        2=>$text('Live-Demo','<p>Alle Funktionen sind freigeschaltet. Nach <strong>'.$min.' Minuten</strong> wird alles zurückgesetzt.</p><p>Benutzer <code>'.$u.'</code><br>Passwort <code>'.$p.'</code></p><p><a class="btn" href="/cms/?demo=1">Verwaltung öffnen</a></p>'),
+        3=>$text('Das kann ElvadoPress','<ul><li><a href="/funktionen/">Beiträge, Seiten, Menüs, Widgets</a></li><li><a href="/themes/">Fünf Themes + Baukasten</a></li><li>Freie Bilder in der Mediathek</li><li>KI-Assistent mit sechs Anbietern</li><li>Lovable &amp; GitHub-Sync</li><li>WordPress-Themes und -Plugins</li><li><a href="/selbst-betreiben/">Updates mit Rückschritt</a></li></ul>'),
+        4=>$text('Mitmachen','<p>ElvadoPress ist freie Software (GPL-2.0-or-later).</p><p><a class="btn" href="https://github.com/ricorewioriginal-collab/ElvadoPress">Auf GitHub ansehen</a></p>'),
+    ];
+    $texts['_multiwidget']=1;
+    return [
+        'sidebars'=>['text-1','text-2','search-1','text-3','recent-posts-1','categories-1','tag_cloud-1','pages-1','custom_html-1','archives-1','text-4'],
+        'options'=>[
+            'widget_text'=>$texts,
+            'widget_search'=>[1=>['title'=>'Suche'],'_multiwidget'=>1],
+            'widget_recent-posts'=>[1=>['title'=>'Neueste Beiträge','number'=>5,'show_date'=>true],'_multiwidget'=>1],
+            'widget_categories'=>[1=>['title'=>'Kategorien','count'=>true],'_multiwidget'=>1],
+            'widget_tag_cloud'=>[1=>['title'=>'Schlagwörter'],'_multiwidget'=>1],
+            'widget_pages'=>[1=>['title'=>'Seiten'],'_multiwidget'=>1],
+            'widget_custom_html'=>[1=>['title'=>'Fünf Themes','content'=>'<p><span class="btn btn-ghost">Baukasten</span> <span class="btn btn-ghost">Radio</span> <span class="btn btn-ghost">Band</span> <span class="btn btn-ghost">Creator</span> <span class="btn btn-ghost">Klassisch</span></p><p>Wechsle unter <em>Design → Themes</em> – jedes Theme bringt sein eigenes Menü mit.</p>'],'_multiwidget'=>1],
+            'widget_archives'=>[1=>['title'=>'Archiv','count'=>true],'_multiwidget'=>1],
+        ],
     ];
 }
