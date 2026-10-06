@@ -731,6 +731,19 @@ final class PluginManager
         return null;
     }
 
+    /** Adressen der Admin-Skripte aktiver Plugins, die überall in der Verwaltung gebraucht werden (z. B. Editor-Erweiterungen). @return list<string> */
+    public function globalAdminScripts(): array
+    {
+        $out = [];
+        foreach ($this->state()['active'] as $id) {
+            [$m] = $this->installedManifest($id);
+            if ($m !== null && $m['admin_js'] !== '' && $m['admin_global'] && $this->installedOfficial($id)) {
+                $out[] = '/cms/plugins/' . $id . '/' . $m['admin_js'] . '?v=' . rawurlencode($m['version']);
+            }
+        }
+        return $out;
+    }
+
     // ------------------------------------------------------------ Einstellungen
 
     public function settingsSchema(string $id): array

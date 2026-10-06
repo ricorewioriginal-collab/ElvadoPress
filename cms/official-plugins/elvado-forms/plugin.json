@@ -1,0 +1,34 @@
+{
+  "id": "elvado-forms",
+  "name": "Elvado Forms",
+  "description": "Formular-Builder: Text, E-Mail, Textarea, Auswahl, Checkbox, Radio und Datei-Upload mit Pflichtfeldern und Validierung, E-Mail-Versand per SMTP (oder PHP mail), optionale Speicherung, Spam-Schutz (Honeypot, Zeitfalle, Begrenzung, Rechenfrage), Webhook und DSGVO-Optionen. Einbindung per Shortcode in Seiten und Beiträgen.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "Inhalte",
+  "icon": "fa-envelope-open-text",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "tested_up_to": "1.x",
+  "capabilities": ["forms.manage", "forms.view_submissions"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "admin_js": "admin.js",
+  "settings": [
+    { "key": "smtp_host", "type": "text", "default": "", "group": "E-Mail-Versand (SMTP)", "label": "SMTP-Server", "help": "Leer = Versand über die PHP-Funktion mail() des Servers. Mit SMTP kommen Mails zuverlässiger an (SPF/DKIM beim Anbieter)." },
+    { "key": "smtp_port", "type": "number", "default": 587, "min": 1, "max": 65535, "group": "E-Mail-Versand (SMTP)", "label": "Port", "help": "587 (STARTTLS), 465 (SSL) oder 25." },
+    { "key": "smtp_security", "type": "select", "default": "tls", "group": "E-Mail-Versand (SMTP)", "label": "Verschlüsselung", "options": [{ "value": "tls", "label": "STARTTLS (Port 587)" }, { "value": "ssl", "label": "SSL/TLS (Port 465)" }, { "value": "none", "label": "Keine (nur lokal oder im Testbetrieb)" }] },
+    { "key": "smtp_user", "type": "text", "default": "", "group": "E-Mail-Versand (SMTP)", "label": "Benutzername" },
+    { "key": "smtp_password", "type": "secret", "default": "", "group": "E-Mail-Versand (SMTP)", "label": "Passwort", "help": "Wird nie wieder angezeigt. Leer lassen = unverändert; zum Löschen __clear__ eingeben." },
+    { "key": "from_email", "type": "email", "default": "", "group": "E-Mail-Versand (SMTP)", "label": "Absender-Adresse", "help": "Leer = noreply@<deine Domain>." },
+    { "key": "from_name", "type": "text", "default": "", "group": "E-Mail-Versand (SMTP)", "label": "Absender-Name" },
+    { "key": "default_to", "type": "email", "default": "", "group": "Standard", "label": "Standard-Empfänger", "help": "Empfänger für Formulare ohne eigene Angabe." },
+    { "key": "allow_uploads", "type": "toggle", "default": false, "group": "Datei-Uploads", "label": "Datei-Uploads erlauben", "help": "Erlaubt Datei-Felder. Dateien (Bilder, PDF, Office, Text) werden geprüft und geschützt gespeichert, nie ausgeführt." },
+    { "key": "upload_max_mb", "type": "number", "default": 5, "min": 1, "max": 25, "group": "Datei-Uploads", "label": "Höchstgröße pro Datei (MB)", "show_if": "allow_uploads" }
+  ],
+  "actions": [
+    { "id": "test_mail", "label": "Test-E-Mail senden", "icon": "fa-paper-plane", "confirm": "Eine Test-E-Mail an den Standard-Empfänger (oder deine Konto-Adresse) senden?" }
+  ]
+}

@@ -1619,11 +1619,12 @@ if(str_starts_with($action,'np_')){
     $npMgr=rrw_np();
     $npRole=function(array $u):string{ return !empty($u['superadmin'])?'admin':'editor'; };
     if($action==='np_public'){   // ohne Anmeldung: nur Plugin-Aktionen, die ausdrücklich öffentlich sind (z. B. Formular absenden)
-        $b=rrw_body();$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),'public');
+        $b=rrw_body();if(!$b&&isset($_POST['call'])){$b=['id'=>$_POST['id']??'','call'=>$_POST['call'],'args'=>json_decode((string)($_POST['args']??'{}'),true)?:[]];}   // multipart (Datei-Uploads)
+        $r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),'public');
         $code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code);
     }
     if($action==='np_call'){
-        $u=rrw_auth(false);$b=rrw_body();$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),$npRole($u));
+        $u=rrw_auth(false);$GLOBALS['rrw_np_user']=(string)($u['user']??'');$b=rrw_body();$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),$npRole($u));
         $code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code);
     }
     if($action==='np_download'){   // Datei aus einem Plugin-Datenordner (Admin): das Plugin liefert über die API-Aktion ['file'=>…,'name'=>…,'mime'=>…]; erlaubt sind nur Pfade in Plugin-Daten und cms/backups

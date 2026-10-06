@@ -1,0 +1,33 @@
+{
+  "id": "elvado-analytics",
+  "name": "Elvado Analytics",
+  "description": "Datenschutzfreundliche interne Statistik ohne Cookies und ohne gespeicherte IP-Adressen: Aufrufe, Besucher, Top-Seiten, Herkunft und Geräte. Optional Matomo oder Google Analytics – beides ist standardmäßig aus und wird erst nach bewusster Einrichtung und Bestätigung ausgeliefert.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "Statistik",
+  "icon": "fa-chart-line",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "tested_up_to": "1.x",
+  "capabilities": ["analytics.view", "analytics.manage"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "settings": [
+    { "key": "internal", "type": "toggle", "default": true, "group": "Interne Statistik", "label": "Interne Statistik", "help": "Zählt Seitenaufrufe auf deinem Server. Keine Cookies, keine IP-Speicherung: Besucher werden nur über einen täglich wechselnden Hash gezählt, der nach dem Tag nicht mehr zuordenbar ist." },
+    { "key": "honor_dnt", "type": "toggle", "default": true, "group": "Interne Statistik", "label": "„Do Not Track“ und Global Privacy Control beachten", "show_if": "internal" },
+    { "key": "retention_days", "type": "number", "default": 90, "min": 7, "max": 730, "group": "Interne Statistik", "label": "Aufbewahrung (Tage)", "show_if": "internal" },
+    { "key": "ack", "type": "toggle", "default": false, "group": "Externe Dienste", "label": "Ich habe die Datenschutzerklärung angepasst", "help": "Matomo und Google Analytics verarbeiten Daten Ihrer Besucher (Google in der Regel außerhalb der EU). Bitte Datenschutzerklärung und – falls nötig – Einwilligung (Cookie-Banner) vorbereiten. Ohne diese Bestätigung wird kein externes Skript ausgeliefert." },
+    { "key": "consent_cookie", "type": "text", "default": "", "group": "Externe Dienste", "label": "Cookie der Einwilligung (optional)", "help": "Name des Cookies, das dein Cookie-Banner setzt (z. B. cookie_consent). Ist es gesetzt, laden externe Dienste erst, wenn dieses Cookie vorhanden ist und nicht „0“, „false“, „no“ oder „denied“ lautet. Leer = ohne Einwilligungsabfrage." },
+    { "key": "matomo_url", "type": "url", "default": "", "group": "Matomo", "label": "Matomo-Adresse", "help": "Adresse deiner Matomo-Installation, z. B. https://matomo.example.org/" },
+    { "key": "matomo_site_id", "type": "number", "default": 0, "min": 0, "max": 999999, "group": "Matomo", "label": "Matomo-Website-ID", "help": "0 = Matomo aus." },
+    { "key": "matomo_cookieless", "type": "toggle", "default": true, "group": "Matomo", "label": "Ohne Cookies messen (disableCookies)" },
+    { "key": "ga_id", "type": "text", "default": "", "group": "Google Analytics", "label": "Messungs-ID (G-XXXXXXXXXX)", "help": "Leer = Google Analytics aus." },
+    { "key": "ga_anonymize", "type": "toggle", "default": true, "group": "Google Analytics", "label": "IP-Adressen anonymisieren" }
+  ],
+  "actions": [
+    { "id": "purge", "label": "Alle Statistikdaten löschen", "icon": "fa-trash", "confirm": "Alle gespeicherten Statistikdaten unwiderruflich löschen?" }
+  ]
+}

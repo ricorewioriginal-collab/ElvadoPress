@@ -3,6 +3,28 @@
     "note": "Erzeugt von scripts/build-official-plugins.php – nicht von Hand ändern.",
     "plugins": [
         {
+            "id": "elvado-ai",
+            "name": "Elvado AI",
+            "description": "KI-Werkzeuge für Inhalte und Apps auf Basis der zentralen KI-Zentrale: Texte verbessern, kürzen, zusammenfassen, übersetzen, Titel- und SEO-Vorschläge im Beitragseditor sowie Vorschläge für Tab-Leiste, Hinweise und Store-Texte im App-Bereich. Die Anbieter und Schlüssel verwaltest du weiterhin zentra",
+            "category": "KI",
+            "icon": "fa-wand-magic-sparkles",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "315c64846b8c10a40d1c7823c217946c843990fc7d51de0a65f46684135b16b4"
+        },
+        {
+            "id": "elvado-analytics",
+            "name": "Elvado Analytics",
+            "description": "Datenschutzfreundliche interne Statistik ohne Cookies und ohne gespeicherte IP-Adressen: Aufrufe, Besucher, Top-Seiten, Herkunft und Geräte. Optional Matomo oder Google Analytics – beides ist standardmäßig aus und wird erst nach bewusster Einrichtung und Bestätigung ausgeliefert.",
+            "category": "Statistik",
+            "icon": "fa-chart-line",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "4e2baac23ff6da4b9164b513dd74958602fffe1faee4794a3eeacf89c5e46a49"
+        },
+        {
             "id": "elvado-backup",
             "name": "Elvado Backup",
             "description": "Vollständige Backups (Inhalte, Einstellungen, Medien, Themes, Plugins) mit Prüfsummen, automatische Zeitpläne mit Rotation, Wiederherstellung mit Sicherheitskopie und Download. Passwörter, Schlüssel und serverlokale Dateien werden nicht exportiert. Ersetzt die Engine hinter dem bestehenden Bereich „",
@@ -12,6 +34,17 @@
             "recommended": true,
             "version": "1.0.0",
             "hash": "2ba764cf4d1c5b7abb18c260b50aa521fcf2216937108e46263a261277ae4e78"
+        },
+        {
+            "id": "elvado-forms",
+            "name": "Elvado Forms",
+            "description": "Formular-Builder: Text, E-Mail, Textarea, Auswahl, Checkbox, Radio und Datei-Upload mit Pflichtfeldern und Validierung, E-Mail-Versand per SMTP (oder PHP mail), optionale Speicherung, Spam-Schutz (Honeypot, Zeitfalle, Begrenzung, Rechenfrage), Webhook und DSGVO-Optionen. Einbindung per Shortcode in ",
+            "category": "Inhalte",
+            "icon": "fa-envelope-open-text",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "e1fbc77ae52c548d9876bab52d4137a21745629573afa7f054a0d4b8fd23cf00"
         },
         {
             "id": "elvado-performance",
@@ -34,6 +67,17 @@
             "recommended": true,
             "version": "1.0.0",
             "hash": "042f674fbbf7a0914f1b8930544ab93b0200d00fb4cc169445ab1fdb8ad5b2b0"
+        },
+        {
+            "id": "elvado-seo",
+            "name": "Elvado SEO",
+            "description": "Meta-Beschreibung, OpenGraph und Twitter-Cards, strukturierte Daten (Schema.org), SEO-Titel, robots-Regeln und eine echte XML-Sitemap – mit Vorschau für Suchergebnis und Social Media im Beitragseditor. Nutzt die SEO-Felder, die Beiträge und Seiten bereits haben.",
+            "category": "SEO & Inhalte",
+            "icon": "fa-magnifying-glass-chart",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "6ca6fe7818daa1d8a756c4c6d44756530f4087aada4d421b3541d2686f7c1d04"
         },
         {
             "id": "elvado-security",
