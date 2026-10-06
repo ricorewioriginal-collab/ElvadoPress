@@ -305,7 +305,10 @@ function rrw_apps_bucket(string $did,string $salt): int { return $did===''?100:h
 function rrw_apps_public(array $site,string $root,array $brand,string $platform,string $version,string $did='',string $salt='',int $code=0): array {
     $platform=isset(RRW_APPS_PLATFORMS[$platform])?$platform:'android';
     $reg=rrw_brands_registry($site);$id=(string)($brand['brand']??$brand['id']??$reg['default']);
-    $e=rrw_apps_entry($site,$id,$platform);$m=rrw_apps_meta($root,$id,$reg['default'],$platform);
+    // Eine explizit aufgelöste Marke kann außerhalb der lokalen Standalone-Registry liegen (z. B. Hersteller-App in Tests/Migrationen).
+    // Ist sie dort unbekannt, behandelt ihr eigener Build-Feed sie als Hauptmarke statt einen künstlichen -<brand>-Suffix zu verlangen.
+    $knownIds=array_column((array)($reg['items']??[]),'id');$metaDefault=in_array($id,$knownIds,true)?$reg['default']:$id;
+    $e=rrw_apps_entry($site,$id,$platform);$m=rrw_apps_meta($root,$id,$metaDefault,$platform);
     $features=$e['features'];if(empty($brand['directory']))$features['directory']=false;
     $notice=null;$n=$e['notice'];
     if(!empty($n['enabled'])&&($n['text']!==''||$n['title']!=='')){
