@@ -4,6 +4,7 @@
 ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSION`: **1.0.0**. Das CMS ist PHP-basiert, dateibasiert mit optionalem Datenbankspiegel, besitzt eine WordPress-Kompatibilitätsschicht und optionale App-/Alexa-/KI-Erweiterungen. CI prüft Syntax, Smoke-Test und die vorhandenen Funktionstests.
 
 ## Zuletzt abgeschlossen
+- KI-Menü zusammengefasst (ein Eintrag „KI“ mit Unterreitern), Live-Modelllisten (Gemini/Claude/EvoLink), Gemini-Standard `gemini-flash-latest` (Behebung des 404), größerer EvoLink-Katalog, fal.ai (Text + Medien), KI-Bilder/-Videos (`MediaGenerator`, `scripts/test-ai-media.php`). Exakte Modellnamen der Anbieter nicht live geprüft (kein Schlüssel im Sandkasten).
 - Öffentliches ElvadoPress-Branding/README wurde aufgewertet.
 - Dauerhafte Claude-Code-Arbeitsstruktur wurde eingerichtet: zentrale Regeln, Handover, Projektkarte, Architektur- und Development-Übersicht sowie bekannte Doku-Probleme.
 
@@ -31,6 +32,8 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 - KI-Zentrale: alle KI-Zugänge (Schlüssel, Anbieter, Modelle, eigene Anbieter wie Ollama, Einsatzzwecke) an einer Stelle (`cms/assets/ai-center.js`, `AiGatewayConfig`, `cms/lib/ai-providers.json`). KI-Assistent, Gateway, WordPress-Verbinder und Editor-Texthilfen nutzen sie; Altschlüssel im Assistenten lassen sich übernehmen. Details `cms/docs/KI-LOVABLE.md`. Der React-Reiter „KI-Anbieter“ verweist nur noch auf die Zentrale (Bündel neu gebaut).
 - KI-Website-Generator (Menü „Website-Generator“): Beschreibung → Entwurf (Titel, Farben, Startseite, Seiten, Beiträge) mit Vorschau, Übernehmen und Rückgängig; `cms/src/Ai/SiteBuilder.php`, `cms/assets/ai-builder.js`, Aktion `ai_site_plan`, Test `scripts/test-ai-sitebuilder.php`. Details `cms/docs/KI-LOVABLE.md`. Noch offen: KI-Entwickler für Themes/Widgets/Plugins (Aufgabe 10).
 - KI-Entwickler (Menü „KI-Entwickler“): Plugins, Widgets und Themes aus einer Beschreibung; Code-Ansicht, automatische Prüfung (Tokenizer + Sperrliste), Installation immer inaktiv, Aktivierung per Klick; `cms/src/Ai/CodeBuilder.php`, `cms/assets/ai-dev.js`, Test `scripts/test-ai-codebuilder.php`. Details `cms/docs/KI-LOVABLE.md`.
+- Alt-Texte und Bilder für den Website-Generator: `media_alt_save`/`ai_alt_suggest` (KI-Vorschlag mit Bildverständnis oder aus Metadaten, `cms/src/Ai/AltTexter.php`), Alt-Feld und Sammelvorschlag in der Mediathek, `image_alt` im Baukasten; Generator lädt freie Bilder (`ai_site_images`, `rrw_stock_pick()`), legt bei Bedarf „Bildnachweise“ an. Tests `test-ai-alttext`, `test-site-images`. Details `cms/docs/MEDIA.md`, `KI-LOVABLE.md`.
+- Deploy: Produktion läuft serverseitig (AnMaCha Universal Deploy, bei Änderung in main), keine GitHub-Actions-Läufe von Hand auslösen; Sync nach ricorewi-radio vorerst manuell über Branch `sync/elvadopress` (Guard „shared CMS files“ lässt nur diesen Branch durch).
 
 ## Aktuell in Arbeit
 Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokumentiert.

@@ -352,3 +352,15 @@ body.no-pack-ricorewi-radio:not(.rrw-standalone) [data-pack-app="ricorewi-radio"
 .aid-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}.aid-tab{border:1px solid var(--border);border-bottom:0;background:var(--surface3);color:var(--dim);border-radius:8px 8px 0 0;padding:5px 12px;font:600 .74rem ui-monospace,monospace;cursor:pointer}.aid-tab.on{background:var(--surface2);color:var(--accent)}
 .aid-code{width:100%;min-height:340px;border:1px solid var(--border);background:var(--field,var(--surface2));color:var(--text);border-radius:0 8px 8px 8px;padding:12px;font:.78rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;tab-size:2;white-space:pre;overflow:auto;resize:vertical}
 .aid-refine{margin-top:12px}.aid-install{margin-top:14px;display:grid;gap:8px;justify-items:start}
+.aib-q{font-size:.66rem;opacity:.75;margin-top:4px}
+
+/* KI-Menü: Unterreiter */
+.ai-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid var(--border,rgba(128,128,128,.25))}
+.ai-nav-btn{border:1px solid var(--border,rgba(128,128,128,.3));background:transparent;color:inherit;border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer}
+.ai-nav-btn:hover{border-color:var(--accent,#7c5cff)}
+.ai-nav-btn.on{background:var(--accent,#7c5cff);border-color:var(--accent,#7c5cff);color:#fff;font-weight:600}
+.aim-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.aim-grid label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.aim-out{margin-top:16px;display:grid;gap:12px}
+.aim-out img,.aim-out video{max-width:100%;max-height:60vh;border-radius:10px}
+.aim-bar{height:6px;border-radius:99px;background:rgba(128,128,128,.25);overflow:hidden}.aim-bar>i{display:block;height:100%;background:var(--accent,#7c5cff);transition:width .4s}

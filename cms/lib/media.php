@@ -62,6 +62,27 @@ function rrw_media_library_store(array $f,array $sizes,int $quality=86,string $m
     rrw_write_atomic($dir.'/meta.json',json_encode($meta,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
     return ['item'=>$meta,'warnings'=>$warnings];
 }
+/** Alternativtext eines Bibliothek-Bildes (meta.json „alt“). */
+function rrw_media_alt_save(string $id,string $alt): array {
+    if(!preg_match('/^[A-Za-z0-9_-]{6,80}$/',$id))throw new RuntimeException('Ungültige Bildkennung',400);
+    $file=rrw_media_dir().'/library/'.$id.'/meta.json';
+    $m=is_file($file)?json_decode((string)file_get_contents($file),true):null;
+    if(!is_array($m))throw new RuntimeException('Bild nicht gefunden',404);
+    $alt=mb_substr(trim(preg_replace('/\s+/u',' ',strip_tags($alt))),0,250);
+    if($alt==='')unset($m['alt']);else $m['alt']=$alt;
+    rrw_write_atomic($file,json_encode($m,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+    return ['id'=>$id,'alt'=>$alt];
+}
+/** Meta-Daten eines Bibliothek-Bildes und eine kleine Bilddatei für die KI (Variante ≤ 1,2 MB, sonst Original ≤ 1,2 MB, sonst leer). */
+function rrw_media_alt_source(string $id): array {
+    if(!preg_match('/^[A-Za-z0-9_-]{6,80}$/',$id))throw new RuntimeException('Ungültige Bildkennung',400);
+    $dir=rrw_media_dir().'/library/'.$id;$m=is_file($dir.'/meta.json')?json_decode((string)file_get_contents($dir.'/meta.json'),true):null;
+    if(!is_array($m))throw new RuntimeException('Bild nicht gefunden',404);
+    $file='';$cands=[];foreach((array)($m['variants']??[]) as $v){$cands[(int)($v['width']??0)]=$dir.'/'.basename((string)($v['path']??''));}
+    ksort($cands);foreach($cands as $w=>$f){if($w>=384&&is_file($f)&&filesize($f)<=1200000){$file=$f;break;}}
+    if($file===''){$o=$dir.'/'.basename((string)($m['original']['path']??''));if(is_file($o)&&filesize($o)<=1200000&&preg_match('/^image\/(jpeg|png|webp|gif)$/',(string)($m['mime']??'')))$file=$o;}
+    return ['meta'=>$m,'file'=>$file];
+}
 function rrw_media_pick_variant(array $item,$requested='auto',string $kind=''): string {
     $target=['favicon'=>192,'portal_icon'=>512,'android_app_icon'=>512,'android_inapp_logo'=>1024,'windows_logo'=>1024,'portal_logo'=>1200,'android_startscreen'=>1600][$kind]??1024;
     if(is_numeric($requested))$target=max(32,min(4096,(int)$requested));
@@ -107,7 +128,7 @@ function rrw_media_library_items(array $site=[]): array {
         foreach(glob($library.'/*',GLOB_ONLYDIR)?:[] as $dir){
             $meta=$dir.'/meta.json';if(!is_file($meta))continue;$m=json_decode((string)file_get_contents($meta),true);if(!is_array($m))continue;
             $orig=$m['original']??[];$url=(string)($orig['url']??'');$path='library/'.basename($dir);
-            $out[]=['id'=>(string)($m['id']??basename($dir)),'path'=>$path,'url'=>$url,'name'=>(string)($m['name']??basename($dir)),'bucket'=>'library','credit'=>$m['credit']??null,'mime'=>(string)($m['mime']??''),'size'=>(int)($orig['size']??0),'mtime'=>(int)@filemtime($meta),'width'=>(int)($m['width']??0),'height'=>(int)($m['height']??0),'variants'=>(array)($m['variants']??[]),'original'=>$orig];
+            $out[]=['id'=>(string)($m['id']??basename($dir)),'path'=>$path,'url'=>$url,'name'=>(string)($m['name']??basename($dir)),'bucket'=>'library','credit'=>$m['credit']??null,'alt'=>(string)($m['alt']??''),'mime'=>(string)($m['mime']??''),'size'=>(int)($orig['size']??0),'mtime'=>(int)@filemtime($meta),'width'=>(int)($m['width']??0),'height'=>(int)($m['height']??0),'variants'=>(array)($m['variants']??[]),'original'=>$orig];
         }
         foreach(glob($library.'/*')?:[] as $file){
             if(!is_file($file))continue;$ext=strtolower(pathinfo($file,PATHINFO_EXTENSION));if(!in_array($ext,['png','jpg','jpeg','webp','gif','svg','ico'],true))continue;

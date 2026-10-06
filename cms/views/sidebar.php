@@ -62,12 +62,9 @@
       </div>
       <div id="tcMenuHost"></div>
       <div class="tab-group single">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI &amp; Lovable</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
-          <button class="tab" data-tab="aibuilder" onclick="cmsTab('aibuilder',this);window.AiBuilder?.open()"><i class="fas fa-wand-magic-sparkles"></i>Website-Generator</button>
-          <button class="tab" data-tab="aidev" onclick="cmsTab('aidev',this);window.AiDev?.open()"><i class="fas fa-code"></i>KI-Entwickler</button>
-          <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>KI-Zentrale</button>
-          <button class="tab" data-tab="ai" onclick="cmsTab('ai',this);window.EpAi?.hub()"><i class="fas fa-robot"></i>KI-Texte &amp; Lovable</button>
+          <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>KI</button>
         </div>
       </div>
       <div class="tab-group">
@@ -112,7 +109,6 @@
           <button class="tab" data-pack="ricorewi-radio" data-tab="portal" onclick="cmsTab('portal',this)"><i class="fas fa-sliders"></i>Website-Inhalte</button>
           <button class="tab" data-tab="seo" onclick="cmsTab('seo',this);window.SystemManager?.loadSeo()"><i class="fas fa-magnifying-glass-chart"></i>SEO &amp; Suche</button>
           <button class="tab" data-tab="legal" onclick="cmsTab('legal',this)"><i class="fas fa-scale-balanced"></i>Rechtliches</button>
-          <button class="tab" data-pack-app="ricorewi-radio" data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()"><i class="fas fa-wand-magic-sparkles"></i>KI-Assistent</button>
           <button class="tab" data-pack="ricorewi-radio" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
         </div>
       </div>

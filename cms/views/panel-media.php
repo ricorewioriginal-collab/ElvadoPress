@@ -9,6 +9,8 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input id="mediaHubSearch" class="fc w-100" placeholder="Medien durchsuchen …"><select id="mediaHubType" class="fc"><option value="">Alle Typen</option><option value="image">Bilder</option><option value="logo">Logos</option><option value="news">News</option><option value="branding">Branding</option></select></div>
+        <div id="mediaAltBar" class="hint" style="display:none;margin-bottom:10px"></div>
+        <div id="mediaAltBulk" class="card" style="display:none;margin-bottom:12px"></div>
         <div id="mediaHubGrid" class="media-hub-grid"><div class="empty">Medien werden geladen …</div></div>
       </div>
       <div id="stockSettings" class="card"></div>

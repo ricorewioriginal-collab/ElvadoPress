@@ -9,14 +9,14 @@ function elvado_bk_schema(): array {
     return [
         'hero'=>['label'=>'Hero (Kopfbild)','icon'=>'fa-image','fields'=>[
             ['k'=>'title','label'=>'Überschrift (leer = Website-Titel)','type'=>'text'],['k'=>'text','label'=>'Text (leer = Untertitel)','type'=>'textarea'],
-            ['k'=>'image','label'=>'Hintergrundbild','type'=>'image'],['k'=>'overlay','label'=>'Bild abdunkeln','type'=>'checkbox','default'=>true],
+            ['k'=>'image','label'=>'Hintergrundbild','type'=>'image'],['k'=>'image_alt','label'=>'Bildbeschreibung (Alt-Text, leer = dekorativ)','type'=>'text'],['k'=>'overlay','label'=>'Bild abdunkeln','type'=>'checkbox','default'=>true],
             ['k'=>'btn_label','label'=>'Button-Text','type'=>'text','default'=>'Mehr erfahren'],['k'=>'btn_url','label'=>'Button-Ziel','type'=>'url'],
             ['k'=>'height','label'=>'Mindesthöhe (px)','type'=>'number','min'=>0,'max'=>900,'default'=>0]]],
         'text'=>['label'=>'Textabschnitt','icon'=>'fa-paragraph','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],['k'=>'body','label'=>'Inhalt (HTML erlaubt)','type'=>'textarea'],$al,$bg]],
         'features'=>['label'=>'Vorteile / Karten','icon'=>'fa-table-cells-large','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],
             ['k'=>'items','label'=>'Karten','type'=>'items','max'=>6],['k'=>'columns','label'=>'Spalten','type'=>'select','options'=>['0'=>'Automatisch','2'=>'2','3'=>'3','4'=>'4'],'default'=>'0'],$bg]],
         'image_text'=>['label'=>'Bild + Text','icon'=>'fa-table-columns','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],['k'=>'text','label'=>'Inhalt (HTML erlaubt)','type'=>'textarea'],
-            ['k'=>'image','label'=>'Bild','type'=>'image'],['k'=>'reverse','label'=>'Bild rechts','type'=>'checkbox'],['k'=>'btn_label','label'=>'Button-Text','type'=>'text'],['k'=>'btn_url','label'=>'Button-Ziel','type'=>'url'],$bg]],
+            ['k'=>'image','label'=>'Bild','type'=>'image'],['k'=>'image_alt','label'=>'Bildbeschreibung (Alt-Text, leer = dekorativ)','type'=>'text'],['k'=>'reverse','label'=>'Bild rechts','type'=>'checkbox'],['k'=>'btn_label','label'=>'Button-Text','type'=>'text'],['k'=>'btn_url','label'=>'Button-Ziel','type'=>'url'],$bg]],
         'posts'=>['label'=>'Neueste Beiträge','icon'=>'fa-newspaper','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text','default'=>'Neueste Beiträge'],
             ['k'=>'count','label'=>'Anzahl','type'=>'number','min'=>1,'max'=>12,'default'=>3],['k'=>'category','label'=>'Nur Kategorie (Name/Slug, leer = alle)','type'=>'text'],['k'=>'all_label','label'=>'Button „alle Beiträge“','type'=>'text'],$bg]],
         'cta'=>['label'=>'Aufruf (Call to Action)','icon'=>'fa-bullhorn','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],['k'=>'text','label'=>'Text','type'=>'text'],

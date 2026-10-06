@@ -83,11 +83,58 @@ window.MediaHub=(()=>{
   h.innerHTML='<div class="th"><div><div class="tt"><i class="fas fa-photo-film"></i>'+esc(selected.name)+'</div><div class="hint">'+esc(selected.mime||'')+' · '+formatBytes(selected.size)+(selected.width&&selected.height?' · '+selected.width+'×'+selected.height:'')+'</div></div><button class="btn-d" onclick="MediaHub.remove()"><i class="fas fa-trash"></i> Löschen</button></div>'+
    '<div class="media-detail"><div class="asset-preview" style="height:220px">'+(original?'<img src="'+esc(original)+'?m='+encodeURIComponent(selected.mtime||'')+'" alt="">':'')+'</div><div>'+
    '<label class="news-lbl">Original-URL</label><div style="display:flex;gap:6px"><input id="mediaHubUrl" class="fc w-100" readonly value="'+esc(original)+'"><button class="btn-g" onclick="navigator.clipboard.writeText(document.getElementById(\'mediaHubUrl\').value);cmsToast(\'URL kopiert ✓\')"><i class="fas fa-copy"></i></button></div>'+
+   (isLib(selected)?'<label class="news-lbl" style="margin-top:10px">Alternativtext (Alt-Text)</label><div style="display:flex;gap:6px"><input id="mediaHubAlt" class="fc w-100" maxlength="250" placeholder="Kurz beschreiben, was zu sehen ist" value="'+esc(selected.alt||'')+'"><button class="btn-g" id="mediaHubAltAi" onclick="MediaHub.altSuggest()" title="Die KI beschreibt das Bild"><i class="fas fa-wand-magic-sparkles"></i> KI-Vorschlag</button><button class="btn-a" onclick="MediaHub.altSave()"><i class="fas fa-floppy-disk"></i></button></div><div class="hint" style="margin-top:4px">Wichtig für Barrierefreiheit und Suchmaschinen. Leer lassen für rein dekorative Bilder.</div>':'')+
    (selected.credit?'<div class="hint" style="margin:10px 0"><i class="fas fa-copyright"></i> Bildnachweis: <b>'+esc(selected.credit.text||'')+'</b>'+(selected.credit.license?' · '+esc(selected.credit.license):'')+(selected.credit.source_url?' · <a href="'+esc(selected.credit.source_url)+'" target="_blank" rel="noopener">Quelle</a>':'')+'</div>':'')+
    (usageText(selected)?'<div class="danger-note" style="margin:10px 0"><i class="fas fa-link"></i> Verwendet als: <b>'+esc(usageText(selected))+'</b></div>':'')+
    '<label class="news-lbl" style="margin-top:10px">Erzeugte Größen</label>'+variantList(selected)+
    '<p class="hint" style="margin-top:8px">Original und Varianten gehören zu einem Medium. Die Website kann für Branding automatisch die passende Größe wählen.</p></div></div>'+
    brandingPickerHtml(selected);
+ }
+
+ const isLib=x=>!!x&&/^library\/[A-Za-z0-9_-]+$/.test(String(x.path||''))&&/^image\/(jpeg|png|webp|gif)$/.test(String(x.mime||''));
+ async function altSave(){
+  if(!selected)return;const v=document.getElementById('mediaHubAlt')?.value||'';
+  try{const d=await api('media_alt_save',{id:selected.id,alt:v});selected.alt=d.alt;const it=items.find(x=>x.id===selected.id);if(it)it.alt=d.alt;window.cmsToast?.('Alt-Text gespeichert ✓');renderAltBar();}catch(e){window.cmsToast?.(e.message,true);}
+ }
+ async function altSuggest(){
+  if(!selected)return;const b=document.getElementById('mediaHubAltAi');if(b){b.disabled=true;b.innerHTML='<i class="fas fa-spinner fa-spin"></i> …';}
+  try{const d=await api('ai_alt_suggest',{id:selected.id});const f=document.getElementById('mediaHubAlt');if(f)f.value=d.alt||'';window.cmsToast?.('Vorschlag eingetragen – bitte prüfen und speichern'+(d.mode==='text'?' (ohne Blick aufs Bild)':''));}
+  catch(e){window.cmsToast?.(e.message,true);}
+  if(b){b.disabled=false;b.innerHTML='<i class="fas fa-wand-magic-sparkles"></i> KI-Vorschlag';}
+ }
+ // Sammelvorschlag: Bilder ohne Alt-Text der Reihe nach von der KI beschreiben lassen, prüfen, gemeinsam speichern
+ let bulk=null;
+ function missingAlt(){return items.filter(x=>isLib(x)&&!(x.alt||'').trim());}
+ function renderAltBar(){
+  const h=document.getElementById('mediaAltBar');if(!h)return;const n=missingAlt().length;
+  h.innerHTML=n?'<i class="fas fa-universal-access"></i> <b>'+n+' Bild'+(n===1?'':'er')+' ohne Alt-Text.</b> <button class="btn-g" onclick="MediaHub.altBulkStart()"><i class="fas fa-wand-magic-sparkles"></i> Alt-Texte per KI vorschlagen</button>':'';
+  h.style.display=n?'':'none';
+ }
+ function altBulkStart(){
+  const list=missingAlt().slice(0,40);if(!list.length)return;
+  bulk={rows:list.map(x=>({id:x.id,url:x.url,name:x.name,alt:'',state:'wait'})),running:true,stop:false};altBulkDraw();altBulkRun();
+ }
+ function altBulkDraw(){
+  const h=document.getElementById('mediaAltBulk');if(!h)return;if(!bulk){h.style.display='none';h.innerHTML='';return}
+  h.style.display='';
+  h.innerHTML='<div class="th"><div class="tt"><i class="fas fa-universal-access"></i>Alt-Texte per KI vorschlagen</div><div style="display:flex;gap:8px"><button class="btn-g" onclick="MediaHub.altBulkClose()">Schließen</button><button class="btn-a" onclick="MediaHub.altBulkSave()"><i class="fas fa-floppy-disk"></i> Alle gefüllten speichern</button></div></div>'
+   +'<div class="hint" style="margin-bottom:8px">Prüfe die Vorschläge und passe sie an – gespeichert wird erst mit „Alle gefüllten speichern“. Bei Anbietern ohne Bildverständnis entstehen Vorschläge nur aus Titel und Dateiname.</div>'
+   +bulk.rows.map((r,i)=>'<div class="aib-item" style="display:flex;gap:10px;align-items:center"><img src="'+esc(r.url)+'" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px"><div style="flex:1;min-width:0"><div class="hint" style="font-size:.66rem">'+esc(r.name)+'</div><input class="fc w-100" maxlength="250" value="'+esc(r.alt)+'" oninput="MediaHub.altBulkSet('+i+',this.value)" placeholder="'+(r.state==='run'?'Die KI beschreibt …':(r.state==='wait'?'wartet …':(r.state==='err'?'':'Alt-Text')))+'">'+(r.state==='err'?'<div class="aic-bad" style="font-size:.7rem">'+esc(r.err||'Fehler')+'</div>':'')+'</div></div>').join('');
+ }
+ async function altBulkRun(){
+  for(let i=0;bulk&&i<bulk.rows.length&&!bulk.stop;i++){
+   const r=bulk.rows[i];r.state='run';altBulkDraw();
+   try{const d=await api('ai_alt_suggest',{id:r.id});r.alt=d.alt||'';r.state='ok';}catch(e){r.state='err';r.err=e.message;if(/Anbieter|Bildverständnis|Limit|zu viele/i.test(e.message)){for(let j=i+1;j<bulk.rows.length;j++){bulk.rows[j].state='err';bulk.rows[j].err='übersprungen';}altBulkDraw();break;}}
+   altBulkDraw();
+  }
+  if(bulk)bulk.running=false;
+ }
+ function altBulkSet(i,v){if(bulk&&bulk.rows[i])bulk.rows[i].alt=v;}
+ function altBulkClose(){if(bulk)bulk.stop=true;bulk=null;altBulkDraw();}
+ async function altBulkSave(){
+  if(!bulk)return;let ok=0;
+  for(const r of bulk.rows){if(!(r.alt||'').trim())continue;try{await api('media_alt_save',{id:r.id,alt:r.alt});const it=items.find(x=>x.id===r.id);if(it)it.alt=r.alt;ok++;}catch(e){window.cmsToast?.(e.message,true);}}
+  window.cmsToast?.(ok+' Alt-Text'+(ok===1?'':'e')+' gespeichert ✓');bulk.stop=true;bulk=null;altBulkDraw();renderAltBar();
  }
  function copyVariant(width){
   if(!selected)return;const v=(selected.variants||[]).find(x=>Number(x.width)===Number(width));const url=v?.url||selected.original?.url||selected.url||'';if(url){navigator.clipboard.writeText(url);window.cmsToast?.(width+'-px-URL kopiert ✓');}
@@ -122,6 +169,6 @@ window.MediaHub=(()=>{
   load(true).then(()=>{const h=document.getElementById('mediaHubDetail');if(h){h.style.display='';h.innerHTML='<div class="empty"><i class="fas fa-photo-film"></i>Wähle links ein Medium für <b>'+esc(label)+'</b>.</div>';}}); 
  }
  function cancelBrandingPick(){brandingPick=null;if(selected)select(items.indexOf(selected));}
- async function load(force=false){bind();window.StockMedia?.settings?.();try{const d=await api('media_library_list');items=d.items||[];render()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
- return {load,select,remove,copyVariant,assignBranding,beginBrandingPick,cancelBrandingPick,uploadFiles};
+ async function load(force=false){bind();window.StockMedia?.settings?.();try{const d=await api('media_library_list');items=d.items||[];render();renderAltBar()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
+ return {load,select,remove,copyVariant,assignBranding,beginBrandingPick,cancelBrandingPick,uploadFiles,altSave,altSuggest,altBulkStart,altBulkSet,altBulkClose,altBulkSave};
 })();

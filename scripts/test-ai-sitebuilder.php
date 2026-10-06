@@ -51,6 +51,14 @@ t('Startseite beginnt immer mit einem Hero',SiteBuilder::normalize(['site'=>['ti
 t('Teile abwählbar',(function(){$q=SiteBuilder::normalize($GLOBALS['good'],'',[],['home'=>false,'pages'=>false,'posts'=>true]);return $q['home']===[]&&$q['pages']===[]&&count($q['posts'])===1;})());
 t('Seitenadresse: Umlaute und Sonderzeichen',SiteBuilder::slug('Über uns & Größe!')==='ueber-uns-groesse'&&SiteBuilder::slug('???')==='seite');
 t('Reservierte Adressen werden nicht vergeben',SiteBuilder::normalize(['pages'=>[['title'=>'Impressum','blocks'=>[['type'=>'text','text'=>'x']]]]])['pages'][0]['slug']==='impressum-2');
+// Bild-Suchbegriffe (für die freien Bilder)
+t('Bild-Suchbegriffe: bereinigt (Sonderzeichen, Länge) und nur für hero, image_text und Beiträge',(function(){
+    $q=SiteBuilder::normalize(['site'=>['title'=>'X'],'home'=>[['type'=>'hero','props'=>['title'=>'a','image_query'=>'wood <b>workshop</b>, carpenter!!']],['type'=>'image_text','props'=>['title'=>'b','text'=>'c','image_query'=>str_repeat('abcd ',30)]],['type'=>'cta','props'=>['title'=>'c','image_query'=>'ignored']]],
+        'posts'=>[['title'=>'P','paragraphs'=>['x'],'image_query'=>'  ']]]);
+    return $q['home'][0]['props']['image_query']==='wood workshop carpenter'&&mb_strlen($q['home'][1]['props']['image_query'])<=60&&!isset($q['home'][2]['props']['image_query'])&&$q['posts'][0]['image_query']==='';
+})());
+t('Bild-Suchbegriff: zu kurz oder kein Text → leer',SiteBuilder::query('ab')===''&&SiteBuilder::query(['x'])===''&&SiteBuilder::query('Holz Werkstatt')==='Holz Werkstatt');
+t('Anweisung an die KI nennt image_query',str_contains($calls[0]['b']['messages'][0]['content'],'image_query'));
 // Fehlerfälle
 t('Zu kurze Beschreibung wird abgelehnt (ohne Anfrage)',thr(fn()=>$sb->plan(['description'=>'Hallo']),'genauer')!==null&&count($calls)===1);
 $answer='Das ist leider kein JSON.';

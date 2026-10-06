@@ -26,7 +26,9 @@ final class AiGatewayService
     public const MAX_TEXT_CHARS = 20000;
     public const MAX_OUTPUT_TOKENS = 4000;
     /** Aufgaben für größere Ergebnisse (Website-Entwurf, Code); nur von serverseitigen Aufrufern mit 'internal' => true nutzbar, nie direkt aus der Oberfläche. */
-    public const INTERNAL_TASKS = ['site' => 8000, 'code' => 12000];
+    public const INTERNAL_TASKS = ['site' => 8000, 'code' => 12000, 'alt' => 400];
+    /** Anbieter mit Bildverständnis (Bilder als Eingabe). Bei eigenen Anbietern und Routern unbekannt – dort nur Text. */
+    public const VISION = ['openai', 'anthropic', 'google'];
     public const TASKS = ['text' => 'Text schreiben', 'rewrite' => 'Text überarbeiten', 'translate' => 'Übersetzen', 'summarize' => 'Zusammenfassen', 'json' => 'Strukturierte Daten (JSON)', 'layout' => 'Seitenlayout (JSON für den Homepage-Baukasten)'];
     /** Abschnittstypen des Homepage-Baukastens (cms/themes/elvado-baukasten/inc/layout.php) mit den wichtigsten Feldern für den Prompt. */
     public const LAYOUT_TYPES = [
@@ -73,17 +75,22 @@ final class AiGatewayService
             }
             $own = [
                 'evolink' => ['label' => 'EvoLink Smart Route', 'group' => 'Smart Routing', 'kind' => 'openai', 'base_url' => 'https://api.evolink.ai/v1', 'base_editable' => true, 'model' => 'evolink-auto',
-                    'models' => ['evolink-auto'], 'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
-                    'note' => 'OpenAI-kompatibel mit automatischer Modellwahl (Kosten/Latenz). Basis-Adresse und Modellnamen laut EvoLink-Dokumentation prüfen und hier anpassen.'],
+                    'models' => ['evolink-auto', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-4-5-20251001', 'gpt-5.2', 'gpt-5-mini', 'gemini-2.5-pro', 'gemini-2.5-flash', 'deepseek-v4-chat', 'deepseek-v4-reasoner', 'kimi-k3', 'qwen3.8-max', 'glm-4.6', 'minimax-m3', 'doubao-seed-2.0-pro', 'grok-4'],
+                    'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
+                    'note' => 'Ein Schlüssel für Text, Programmierung (Code), Bilder und Videos. Texte: Auswahl oder „Modelle laden“; Bilder/Videos: Menü KI → Medien. Modellnamen laut EvoLink-Doku – bei „nicht gefunden“ dort den genauen Namen nachsehen.'],
+                'fal' => ['label' => 'fal.ai', 'group' => 'Medien & Modelle', 'kind' => 'fal', 'base_url' => 'https://fal.run', 'base_editable' => false, 'model' => 'google/gemini-2.5-flash',
+                    'models' => ['google/gemini-2.5-flash', 'google/gemini-2.5-pro', 'anthropic/claude-sonnet-4.5', 'openai/gpt-5-chat', 'deepseek/deepseek-chat-v3.1', 'meta-llama/llama-4-maverick'],
+                    'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
+                    'note' => 'Hauptsächlich für Bilder (FLUX, Recraft, Nano Banana …) und Videos (Kling, Veo, Hailuo …): Menü KI → Medien. Texte laufen über fal-ai/any-llm (OpenRouter-Modelle).'],
                 'anthropic' => ['label' => 'Anthropic (Claude)', 'group' => 'Direkt', 'kind' => 'anthropic', 'base_url' => 'https://api.anthropic.com/v1', 'base_editable' => false, 'model' => 'claude-sonnet-5-5',
                     'models' => ['claude-sonnet-5-5', 'claude-haiku-4-5-20251001', 'claude-opus-5-5'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => false, 'custom' => false, 'note' => 'Kostenpflichtig.'],
-                'google' => ['label' => 'Google (Gemini)', 'group' => 'Direkt', 'kind' => 'gemini', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta', 'base_editable' => false, 'model' => 'gemini-2.0-flash',
-                    'models' => ['gemini-2.0-flash', 'gemini-2.0-flash-lite'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Kostenloses Kontingent mit API-Schlüssel (Google AI Studio).'],
+                'google' => ['label' => 'Google (Gemini)', 'group' => 'Direkt', 'kind' => 'gemini', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta', 'base_editable' => false, 'model' => 'gemini-flash-latest',
+                    'models' => ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-3-pro-preview'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Kostenloses Kontingent mit API-Schlüssel (Google AI Studio).'],
                 'deepseek' => ['label' => 'DeepSeek', 'group' => 'Kostenlos / günstig', 'kind' => 'openai', 'base_url' => 'https://api.deepseek.com', 'base_editable' => false, 'model' => 'deepseek-chat',
                     'models' => ['deepseek-chat', 'deepseek-reasoner'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Sehr günstig.'],
             ];
             $base = [];
-            foreach (['evolink' => $own, 'openai' => $pre, 'anthropic' => $own, 'google' => $own, 'openrouter' => $pre, 'deepseek' => $own] as $id => $src) {
+            foreach (['evolink' => $own, 'fal' => $own, 'openai' => $pre, 'anthropic' => $own, 'google' => $own, 'openrouter' => $pre, 'deepseek' => $own] as $id => $src) {
                 if (isset($src[$id])) {
                     $base[$id] = $src[$id];
                 }
@@ -119,11 +126,27 @@ final class AiGatewayService
         foreach ($this->config->catalog() as $id => $def) {
             $keyed = $this->config->apiKey($id) !== '';
             if ($this->config->enabled($id) && ($keyed || !$def['needs_key'])) {
-                $out[] = ['id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'free' => $def['free'], 'model' => $this->config->model($id), 'models' => $def['models'], 'keyless' => !$keyed];
+                $out[] = ['id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'free' => $def['free'], 'model' => $this->config->model($id), 'models' => $def['models'], 'keyless' => !$keyed, 'vision' => in_array($id, self::VISION, true)];
             }
         }
         usort($out, static fn(array $a, array $b): int => ((int)$a['keyless']) <=> ((int)$b['keyless']));
         return $out;
+    }
+
+    /** Anbieter für Bildbeschreibungen: der des Einsatzzwecks „media“, wenn er Bilder lesen kann, sonst der erste nutzbare mit Bildverständnis; leer, wenn es keinen gibt. */
+    public function visionProvider(): string
+    {
+        $usable = array_column($this->usableProviders(), null, 'id');
+        $pref = $this->config->purposeProvider('media');
+        if ($pref !== '' && !empty($usable[$pref]['vision'])) {
+            return $pref;
+        }
+        foreach ($usable as $id => $u) {
+            if (!empty($u['vision'])) {
+                return (string)$id;
+            }
+        }
+        return '';
     }
 
     /**
@@ -173,6 +196,22 @@ final class AiGatewayService
         }
         $temperature = max(0.0, min(1.5, (float)($req['temperature'] ?? ($task === 'json' || $task === 'layout' ? 0.2 : 0.7))));
         $maxTokens = max(64, min($internal ? self::INTERNAL_TASKS[$task] : self::MAX_OUTPUT_TOKENS, (int)($req['max_tokens'] ?? 1200)));
+        $images = [];
+        if ($internal && is_array($req['images'] ?? null)) {
+            if (!in_array($pid, self::VISION, true)) {
+                throw new AiGatewayException($def['label'] . ' kann keine Bilder lesen. Wähle in der KI-Zentrale einen Anbieter mit Bildverständnis (OpenAI, Claude oder Gemini).', 400);
+            }
+            foreach (array_slice($req['images'], 0, 4) as $im) {
+                $mime = is_array($im) ? (string)($im['mime'] ?? '') : '';
+                $data = is_array($im) ? (string)($im['data'] ?? '') : '';
+                if (in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true) && $data !== '' && strlen($data) <= 1_700_000 && preg_match('~^[A-Za-z0-9+/=]+$~', $data)) {
+                    $images[] = ['mime' => $mime, 'data' => $data];
+                }
+            }
+            if (!$images) {
+                throw new AiGatewayException('Das Bild ist für die KI nicht verwendbar (Format oder Größe).', 400);
+            }
+        }
         [$system, $userMsg] = ($internal && is_string($req['system'] ?? null) && $req['system'] !== '')
             ? [(string)$req['system'], $prompt . ($text !== '' ? "\n\n" . $text : '')]
             : $this->messages($task, $prompt, $text, (string)($req['language'] ?? ''));
@@ -181,7 +220,7 @@ final class AiGatewayService
         $t0 = microtime(true);
         $status = 0;
         try {
-            $r = $this->call($def, $pid, $key, $model, $system, $userMsg, $temperature, $maxTokens, $wantJson, $internal ? 150 : 60);
+            $r = $this->call($def, $pid, $key, $model, $system, $userMsg, $temperature, $maxTokens, $wantJson, $internal ? 150 : 60, $images);
             $status = 200;
             $data = null;
             if ($wantJson) {
@@ -226,7 +265,7 @@ final class AiGatewayService
     }
 
     /** @return array{text:string,prompt_tokens:?int,completion_tokens:?int} */
-    private function call(array $def, string $pid, string $key, string $model, string $system, string $user, float $temp, int $maxTokens, bool $wantJson, int $timeout = 60): array
+    private function call(array $def, string $pid, string $key, string $model, string $system, string $user, float $temp, int $maxTokens, bool $wantJson, int $timeout = 60, array $images = []): array
     {
         $base = $this->config->baseUrl($pid);
         $opts = ['timeout' => $timeout, 'max_bytes' => 2_000_000, 'allow_local' => !empty($def['custom'])];
@@ -234,7 +273,7 @@ final class AiGatewayService
             case 'anthropic':
                 $resp = Http::postJson($base . '/messages', [
                     'model' => $model, 'max_tokens' => $maxTokens, 'temperature' => min(1.0, $temp), 'system' => $system,
-                    'messages' => [['role' => 'user', 'content' => $user]],
+                    'messages' => [['role' => 'user', 'content' => $images ? array_merge(array_map(static fn(array $i): array => ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $i['mime'], 'data' => $i['data']]], $images), [['type' => 'text', 'text' => $user]]) : $user]],
                 ], ['x-api-key: ' . $key, 'anthropic-version: 2023-06-01'], $opts);
                 break;
             case 'gemini':
@@ -244,14 +283,17 @@ final class AiGatewayService
                 }
                 $resp = Http::postJson($base . '/models/' . rawurlencode($model) . ':generateContent', [
                     'systemInstruction' => ['parts' => [['text' => $system]]],
-                    'contents' => [['role' => 'user', 'parts' => [['text' => $user]]]],
+                    'contents' => [['role' => 'user', 'parts' => array_merge(array_map(static fn(array $i): array => ['inlineData' => ['mimeType' => $i['mime'], 'data' => $i['data']]], $images), [['text' => $user]])]],
                     'generationConfig' => $gen,
                 ], ['x-goog-api-key: ' . $key], $opts);
+                break;
+            case 'fal':   // fal.ai: Text über den „any-llm“-Endpunkt (OpenRouter-Modelle), Bilder/Videos siehe MediaGenerator
+                $resp = Http::postJson(rtrim($base, '/') . '/fal-ai/any-llm', ['model' => $model, 'prompt' => $user, 'system_prompt' => $system], ['Authorization: Key ' . $key], $opts);
                 break;
             default:   // OpenAI-kompatibel
                 $payload = [
                     'model' => $model, 'temperature' => $temp, 'max_tokens' => $maxTokens,
-                    'messages' => [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $user]],
+                    'messages' => [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $images ? array_merge([['type' => 'text', 'text' => $user]], array_map(static fn(array $i): array => ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $i['mime'] . ';base64,' . $i['data']]], $images)) : $user]],
                 ];
                 if ($wantJson && !empty($def['json_mode'])) {
                     $payload['response_format'] = ['type' => 'json_object'];
@@ -285,6 +327,8 @@ final class AiGatewayService
             }
             $pt = isset($j['usageMetadata']['promptTokenCount']) ? (int)$j['usageMetadata']['promptTokenCount'] : null;
             $ct = isset($j['usageMetadata']['candidatesTokenCount']) ? (int)$j['usageMetadata']['candidatesTokenCount'] : null;
+        } elseif ($def['kind'] === 'fal') {
+            $text = (string)($j['output'] ?? '');
         } else {
             $m = $j['choices'][0]['message']['content'] ?? '';
             $text = is_string($m) ? $m : '';
@@ -314,7 +358,7 @@ final class AiGatewayService
         return match (true) {
             $status === 401 || $status === 403 => $label . ': Zugang abgelehnt – API-Schlüssel prüfen.',
             $status === 402 => $label . ': Guthaben oder Kontingent aufgebraucht.',
-            $status === 404 => $label . ': Modell oder Adresse nicht gefunden – Modellname prüfen.',
+            $status === 404 => $label . ': Modell oder Adresse nicht gefunden – das Modell ist vermutlich abgeschaltet oder falsch benannt. In der KI-Zentrale „Modelle laden“ wählen und das Modell auswählen.',
             $status === 429 => $label . ': Anbieter-Limit erreicht – später erneut versuchen.',
             $status >= 500 => $label . ' hat gerade ein Problem (HTTP ' . $status . ').',
             default => $label . ' lehnte die Anfrage ab (HTTP ' . $status . ')' . ($detail !== '' ? ': ' . $detail : '') . '.',

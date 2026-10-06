@@ -82,5 +82,11 @@ function rrw_wp_cms_media_handle_upload(string $file_id, int $post_id, array $po
 function rrw_wp_cms_media_rest(int $id): array {
     $p=rrw_wp_cms_media_post($id);$it=$p?$p->rrw_data:[];$m=rrw_wp_cms_media_meta($id)?:[];$mime=(string)($it['mime']??'');
     return ['id'=>$id,'date'=>$p?str_replace(' ','T',$p->post_date):'','slug'=>$p?$p->post_name:'','type'=>'attachment','link'=>$p?$p->guid:'','title'=>['rendered'=>$p?$p->post_title:''],'author'=>1,'status'=>'inherit',
-        'media_type'=>str_starts_with($mime,'image/')?'image':'file','mime_type'=>$mime,'media_details'=>$m,'source_url'=>rrw_wp_cms_media_url($it),'alt_text'=>''];
+        'media_type'=>str_starts_with($mime,'image/')?'image':'file','mime_type'=>$mime,'media_details'=>$m,'source_url'=>rrw_wp_cms_media_url($it),'alt_text'=>(string)($it['alt']??'')];
 }
+/** Alternativtext der Mediathek (meta.json „alt“) als WordPress-Metafeld _wp_attachment_image_alt. */
+add_filter('get_post_metadata',function($check,$id,$key,$single){
+    if($key!=='_wp_attachment_image_alt'||!rrw_wp_bridge('media'))return $check;
+    $it=rrw_wp_cms_media_map()[(int)$id]??null;if(!$it||(string)($it['alt']??'')==='')return $check;
+    return $single?(string)$it['alt']:[(string)$it['alt']];
+},10,4);
