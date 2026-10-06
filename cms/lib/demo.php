@@ -76,10 +76,10 @@ function rrw_demo_seed(string $newsFile,array $c): void {
     $cur=is_file($newsFile)?json_decode((string)file_get_contents($newsFile),true):[];if(!is_array($cur))$cur=[];
     $id=0;foreach($cur as $a)$id=max($id,(int)($a['id']??0));
     $t=time();
-    foreach($posts as $i=>[$title,$cat,$ex,$html]){
+    foreach($posts as $i=>[$title,$cat,$ex,$html,$tags]){
         $d=date('Y-m-d H:i:s',$t-($i+1)*3600);$id++;
         $cur[]=['id'=>$id,'slug'=>rrw_product_slugify($title),'title'=>$title,'category'=>$cat,'excerpt'=>$ex,'body_html'=>$html,'status'=>'published','featured'=>$i===0?1:0,
-            'author'=>$c['display_name'],'author_user'=>$c['user'],'tags'=>[],'image_url'=>'','image_mode'=>'thumbnail','published_at'=>$d,'created_at'=>$d,'updated_at'=>$d];
+            'author'=>$c['display_name'],'author_user'=>$c['user'],'tags'=>$tags,'image_url'=>'','image_mode'=>'thumbnail','published_at'=>$d,'created_at'=>$d,'updated_at'=>$d];
     }
     foreach($cur as &$a)if((int)($a['id']??0)===1){ $o=date('Y-m-d H:i:s',$t-86400);$a['published_at']=$a['created_at']=$a['updated_at']=$o; }   // Beispielbeitrag der Einrichtung hinter die Demo-Beiträge
     unset($a);
@@ -99,6 +99,9 @@ function rrw_demo_seed_site(array $ctx,array $c): void {
         $site=rrw_read_json($ctx['siteFile'],[]);
         $pages=rrw_clean_section('pages',rrw_demo_pages($c));if($pages!==null)$site['pages']=$pages;
         $menus=rrw_clean_section('menus',rrw_demo_menu());if($menus!==null)$site['menus']=$menus;
+        // Logo: Kopf der Website (Baukasten-Theme liest branding.portal_logo) und Symbol
+        $site['branding']=is_array($site['branding']??null)?$site['branding']:[];
+        $site['branding']['portal_logo']='/cms/assets/brand/elvadopress-logo.png';$site['branding']['portal_icon']='/cms/assets/brand/icon-192.png';
         $site['portal']=is_array($site['portal']??null)?$site['portal']:[];
         $site['portal']['tagline']='Das erweiterbare CMS für Websites aller Art';
         $site['portal']['footer_text']='ElvadoPress – freie Software (GPL-2.0-or-later) · Live-Demo, wird alle '.(int)$c['minutes'].' Minuten zurückgesetzt';
@@ -109,7 +112,11 @@ function rrw_demo_seed_site(array $ctx,array $c): void {
         if(rrw_wpi_activate_theme('elvado-baukasten')!==null)return;
         require_once $cms.'/themes/elvado-baukasten/inc/layout.php';
         elvado_bk_save_layout(rrw_demo_layout($c));
-        foreach(['color_accent'=>'#2f7bff','content_width'=>1120] as $k=>$v)set_theme_mod($k,$v);
+        foreach(['color_accent'=>'#2f7bff','content_width'=>1180,'home_sidebar'=>true,'sidebar_pos'=>'right','sidebar_width'=>300] as $k=>$v)set_theme_mod($k,$v);
+        // Seitenleiste mit Demo-Widgets (Logo, Zugang, Suche, Funktionen, Neueste Beiträge, Kategorien, Schlagwörter, Seiten, Themes, Archiv, GitHub)
+        $w=rrw_demo_widgets($c);
+        foreach($w['options'] as $opt=>$val)update_option($opt,$val);
+        update_option('sidebars_widgets',['sidebar-1'=>$w['sidebars'],'wp_inactive_widgets'=>[],'array_version'=>3]);
     }catch(Throwable $e){}
 }
 

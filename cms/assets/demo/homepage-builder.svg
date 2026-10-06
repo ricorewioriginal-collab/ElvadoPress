@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Der Homepage-Baukasten von ElvadoPress: Abschnittsliste links, Live-Vorschau rechts">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7bff"/><stop offset="1" stop-color="#8b3dff"/></linearGradient>
+    <linearGradient id="h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#3b2fa8"/></linearGradient>
+  </defs>
+  <rect x="8" y="8" width="624" height="384" rx="16" fill="#f4f6fb" stroke="#d6dbe8" stroke-width="2"/>
+  <rect x="8" y="8" width="624" height="38" rx="16" fill="#e6eaf4"/><rect x="8" y="30" width="624" height="16" fill="#e6eaf4"/>
+  <circle cx="30" cy="27" r="6" fill="#ff6b6b"/><circle cx="50" cy="27" r="6" fill="#ffd166"/><circle cx="70" cy="27" r="6" fill="#4ad66d"/>
+  <rect x="100" y="18" width="300" height="18" rx="9" fill="#fff"/><text x="114" y="31" font-family="system-ui,sans-serif" font-size="11" fill="#6b7590">Design → Homepage-Baukasten</text>
+  <!-- Abschnittsliste -->
+  <rect x="24" y="62" width="170" height="314" rx="10" fill="#fff" stroke="#d6dbe8"/>
+  <text x="38" y="84" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#1b2340">Abschnitte</text>
+  <g font-family="system-ui,sans-serif" font-size="11" fill="#1b2340">
+    <rect x="36" y="96" width="146" height="34" rx="8" fill="#eaf1ff" stroke="#2f7bff"/><text x="48" y="117">☰  Hero</text>
+    <rect x="36" y="138" width="146" height="34" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><text x="48" y="159">☰  Karten (6)</text>
+    <rect x="36" y="180" width="146" height="34" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><text x="48" y="201">☰  Bild + Text</text>
+    <rect x="36" y="222" width="146" height="34" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><text x="48" y="243">☰  Beiträge</text>
+    <rect x="36" y="264" width="146" height="34" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><text x="48" y="285">☰  Aufruf</text>
+  </g>
+  <rect x="36" y="318" width="146" height="34" rx="17" fill="url(#g)"/><text x="109" y="339" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#fff">+ Abschnitt</text>
+  <!-- Vorschau -->
+  <rect x="208" y="62" width="408" height="314" rx="10" fill="#fff" stroke="#d6dbe8"/>
+  <rect x="220" y="74" width="384" height="96" rx="8" fill="url(#h)"/>
+  <rect x="352" y="96" width="120" height="14" rx="7" fill="#fff"/><rect x="316" y="120" width="192" height="8" rx="4" fill="#fff" opacity=".7"/><rect x="368" y="140" width="88" height="20" rx="10" fill="#fff"/>
+  <g>
+    <rect x="220" y="184" width="120" height="70" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><rect x="232" y="198" width="60" height="8" rx="4" fill="#2f7bff"/><rect x="232" y="214" width="92" height="6" rx="3" fill="#b9c2d9"/><rect x="232" y="228" width="80" height="6" rx="3" fill="#b9c2d9"/>
+    <rect x="350" y="184" width="120" height="70" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><rect x="362" y="198" width="60" height="8" rx="4" fill="#8b3dff"/><rect x="362" y="214" width="92" height="6" rx="3" fill="#b9c2d9"/><rect x="362" y="228" width="80" height="6" rx="3" fill="#b9c2d9"/>
+    <rect x="480" y="184" width="124" height="70" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/><rect x="492" y="198" width="60" height="8" rx="4" fill="#00b4d8"/><rect x="492" y="214" width="96" height="6" rx="3" fill="#b9c2d9"/><rect x="492" y="228" width="84" height="6" rx="3" fill="#b9c2d9"/>
+  </g>
+  <rect x="220" y="268" width="384" height="96" rx="8" fill="#f4f6fb" stroke="#d6dbe8"/>
+  <rect x="232" y="280" width="150" height="72" rx="6" fill="url(#g)" opacity=".85"/>
+  <rect x="396" y="284" width="130" height="10" rx="5" fill="#1b2340"/><rect x="396" y="304" width="196" height="6" rx="3" fill="#b9c2d9"/><rect x="396" y="318" width="170" height="6" rx="3" fill="#b9c2d9"/><rect x="396" y="332" width="120" height="6" rx="3" fill="#b9c2d9"/>
+</svg>

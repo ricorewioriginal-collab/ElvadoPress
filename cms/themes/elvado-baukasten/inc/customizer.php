@@ -25,6 +25,7 @@ add_action('customize_register',function($wp){
     $add('header_layout','bk_head','Kopfbereich','select',['choices'=>['split'=>'Logo links, Menü rechts','center'=>'Zentriert']]);
     $add('header_sticky','bk_head','Kopfbereich beim Scrollen fixieren','checkbox');
     $add('sidebar_pos','bk_head','Seitenleiste (Beiträge/Seiten)','select',['choices'=>['right'=>'Rechts','left'=>'Links']]);
+    $add('home_sidebar','bk_head','Seitenleiste auch auf der Startseite (unter dem Hero)','checkbox');
     $add('footer_text','bk_head','Fußzeilentext (leer = © Jahr Name)','text');
     $sec('bk_hero','Baukasten: Hero',24);
     $add('hero_title','bk_hero','Überschrift (leer = Website-Titel)','text');$add('hero_text','bk_hero','Text (leer = Untertitel)','textarea');

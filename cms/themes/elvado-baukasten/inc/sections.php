@@ -6,7 +6,7 @@ function elvado_bk_defaults(): array {
     return [
         'color_accent'=>'#2563eb','color_bg'=>'#f6f7fb','color_card'=>'#ffffff','color_text'=>'#1b2230','color_hero_bg'=>'#1e3a8a','color_hero_text'=>'#ffffff',
         'font_head'=>'system','font_body'=>'system','font_size'=>16,'radius'=>14,'content_width'=>1120,'sidebar_width'=>300,'section_pad'=>56,
-        'header_layout'=>'split','header_sticky'=>false,'sidebar_pos'=>'right','footer_text'=>'','custom_css'=>'',
+        'header_layout'=>'split','header_sticky'=>false,'sidebar_pos'=>'right','home_sidebar'=>false,'footer_text'=>'','custom_css'=>'',
         'slot_1'=>'hero','slot_2'=>'features','slot_3'=>'posts','slot_4'=>'cta','slot_5'=>'none','slot_6'=>'none','slot_7'=>'none','slot_8'=>'none',
         'hero_title'=>'','hero_text'=>'','hero_image'=>'','hero_overlay'=>true,'hero_btn_label'=>'Mehr erfahren','hero_btn_url'=>'',
         'text_title'=>'Über uns','text_body'=>'','text_center'=>false,
@@ -89,10 +89,18 @@ function elvado_bk_section(array $s,int $n=0): void {
     }
 }
 function elvado_bk_render_front(): void {
-    $i=0;
+    $i=0;$grid=false;
+    // Seitenleiste auf der Startseite (Customizer „Seitenleiste auch auf der Startseite“): führende Hero-Abschnitte laufen über die ganze Breite,
+    // alle weiteren Abschnitte stehen in der linken/rechten Spalte neben den Widgets der Seitenleiste.
+    $withSide=!empty(elvado_bk_mod('home_sidebar'))&&is_active_sidebar('sidebar-1');$lead=true;
     foreach(elvado_bk_active_layout() as $s){
         if(!empty($s['hidden']))continue;
+        if($withSide&&!$grid&&!($lead&&($s['type']??'')==='hero')){ $grid=true;$lead=false;echo '<div class="bk-wrap bk-home-grid"><div class="bk-home-main">'; }
         do_action('elvado_bk_before_section',$s);elvado_bk_section($s,$i++);do_action('elvado_bk_after_section',$s);   // Haken für Plugins
+    }
+    if($withSide){
+        if(!$grid)echo '<div class="bk-wrap bk-home-grid"><div class="bk-home-main">';
+        echo '</div>';get_sidebar();echo '</div>';
     }
     do_action('elvado_bk_after_sections');
 }

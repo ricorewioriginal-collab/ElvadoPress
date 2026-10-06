@@ -60,3 +60,13 @@ img,video,iframe{max-width:100%;height:auto}
 .bk-bg-alt{background:var(--card)}.bk-bg-accent{background:var(--accent);color:var(--on-accent)}.bk-bg-accent .btn{background:var(--on-accent);color:var(--accent)}
 .bk-bg-dark{background:#0f172a;color:#e8ecf5}.bk-bg-dark .bk-feature{background:#1e293b;border-color:#334155}.bk-bg-dark a:not(.btn){color:#93c5fd}
 .bk-cta:not([class*=bk-bg-]){background:var(--accent);color:var(--on-accent)}.bk-spacer{display:block}
+/* Startseite mit Seitenleiste: Abschnitte in der Hauptspalte werden zu Karten, die Seitenleiste folgt der Einstellung „Seitenleiste (Beiträge/Seiten)“ */
+.bk-home-grid{display:grid;grid-template-columns:minmax(0,1fr) var(--sidebar);gap:32px;padding-top:32px;padding-bottom:32px;align-items:start}
+.sidebar-left .bk-home-grid{grid-template-columns:var(--sidebar) minmax(0,1fr)}.sidebar-left .bk-home-grid .bk-home-main{order:2}
+.bk-home-main .bk-section{padding:28px;margin:0 0 24px;border-radius:var(--radius)}
+.bk-home-main .bk-section.bk-bg-default,.bk-home-main .bk-section:not([class*="bk-bg-"]):not(.bk-cta){background:transparent;padding-left:0;padding-right:0}
+.bk-home-main .bk-wrap{max-width:none;padding:0}
+.bk-home-main .bk-spacer{margin:0}
+.bk-home-grid .widget-area{position:sticky;top:20px}
+@media(max-width:900px){.bk-home-grid,.sidebar-left .bk-home-grid{grid-template-columns:minmax(0,1fr)}.sidebar-left .bk-home-grid .bk-home-main{order:0}.bk-home-grid .widget-area{position:static}}
+.site-branding .custom-logo{height:44px;width:auto;max-width:220px;display:block}
