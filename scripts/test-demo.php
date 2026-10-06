@@ -28,7 +28,7 @@ $proc=proc_open(['php','-S',"127.0.0.1:$port",'-t',$pkg,$router],[1=>['file','/d
 for($i=0;$i<50;$i++){ $s=@fsockopen('127.0.0.1',$port,$e1,$e2,0.2);if($s){fclose($s);break;}usleep(100000); }
 function http(string $method,string $url,$body=null,array $hdr=[]): array {
     $c=curl_init($url);
-    curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_TIMEOUT=>120,CURLOPT_HTTPHEADER=>$hdr]);
+    curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_TIMEOUT=>120,CURLOPT_HTTPHEADER=>$hdr,CURLOPT_FOLLOWLOCATION=>$method==='GET',CURLOPT_MAXREDIRS=>3]);
     if($method==='POST'){ curl_setopt($c,CURLOPT_POST,true);curl_setopt($c,CURLOPT_POSTFIELDS,is_array($body)?json_encode($body):(string)$body); }
     $r=(string)curl_exec($c);$code=(int)curl_getinfo($c,CURLINFO_RESPONSE_CODE);$hs=(int)curl_getinfo($c,CURLINFO_HEADER_SIZE);curl_close($c);
     return ['code'=>$code,'head'=>substr($r,0,$hs),'body'=>substr($r,$hs),'json'=>json_decode(substr($r,$hs),true)];
@@ -37,15 +37,22 @@ $B="http://127.0.0.1:$port";
 
 /* Erste Anfrage richtet die Demo selbst ein */
 $r=http('GET',"$B/");
-t('Startseite sofort eingerichtet (kein Assistent)',$r['code']===200&&str_contains($r['body'],'ElvadoPress Demo'),'HTTP '.$r['code'].' '.substr(strip_tags($r['body']),0,120));
+t('Startseite sofort eingerichtet (kein Assistent)',$r['code']===200&&str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'Live-Demo'),'HTTP '.$r['code'].' '.substr(strip_tags($r['body']),0,120));
 t('Demo-Leiste im HTML der Website',str_contains($r['body'],'window.RRW_DEMO')&&str_contains($r['body'],'/cms/assets/demo.js'));
 t('Sperrdatei und Zustand vorhanden',is_file("$pkg/cms/data/install.lock")&&is_file("$pkg/cms/demo-state/state.json"));
 $st=json_decode((string)file_get_contents("$pkg/cms/demo-state/state.json"),true)?:[];
 t('Zeitfenster läuft (≈10 Minuten)',abs(((int)($st['started']??0)+600)-(time()+600))<30&&($st['resets']??0)===1,json_encode($st));
 $r=http('GET',"$B/willkommen/");
 t('Beispielbeitrag der Einrichtung erreichbar',$r['code']===200,'HTTP '.$r['code']);
-$r=http('GET',"$B/neu-die-demo-verwaltung/");
-t('Demo-Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Testinstanz'),'HTTP '.$r['code']);
+$r=http('GET',"$B/die-demo-ist-die-homepage/");
+t('Demo-Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Homepage-Baukasten'),'HTTP '.$r['code']);
+/* Die Demo-Website ist die ElvadoPress-Homepage (Baukasten-Theme, Layout, Seiten, Menü) */
+$h=http('GET',"$B/");
+t('Homepage: Baukasten-Abschnitte (Hero, Karten, Text, Beiträge, Aufruf)',str_contains($h['body'],'bk-hero')&&substr_count($h['body'],'bk-features')>=1&&str_contains($h['body'],'bk-posts')&&str_contains($h['body'],'bk-cta')&&str_contains($h['body'],'<h1>ElvadoPress</h1>'),substr(strip_tags($h['body']),0,200));
+t('Homepage: Produkttexte und Demo-Zugang',str_contains($h['body'],'Homepage-Baukasten')&&str_contains($h['body'],'Updates mit Rückschritt')&&str_contains($h['body'],'Fünf Themes')&&str_contains($h['body'],'ElvadoPress-Demo1')&&str_contains($h['body'],'/cms/?demo=1'));
+t('Homepage: Menü mit Seiten',str_contains($h['body'],'Funktionen')&&str_contains($h['body'],'Themes')&&str_contains($h['body'],'Selbst betreiben'));
+foreach(['funktionen','themes','demo','selbst-betreiben'] as $sl){ $pg=http('GET',"$B/$sl/");t("Seite /$sl/ erreichbar",$pg['code']===200&&strlen(strip_tags($pg['body']))>300,'HTTP '.$pg['code']); }
+t('Keine RicoReWi-Inhalte auf der Demo-Homepage',!stripos(str_replace('github.com/ricorewioriginal-collab/ElvadoPress','',$h['body']),'ricorewi')&&!stripos($h['body'],'anmacha'));
 $r=http('GET',"$B/demo/");
 t('Info-Seite erreichbar',$r['code']===200&&str_contains($r['body'],'Live-Demo'));
 $r=http('GET',"$B/cms/index.php");
@@ -64,13 +71,23 @@ t('Anmeldung mit Demo-Zugang',($r['json']['status']??'')==='ok'&&$tok!=='',$r['b
 $H=['X-Anmacha-Token: '.$tok,'Content-Type: application/json'];
 $r=http('GET',"$B/cms/api.php?action=news_list",null,$H);
 t('Verwaltung liefert Beiträge',($r['json']['status']??'')==='ok');
-$ok=0;$blocked=['plugin_upload','theme_upload','wp_plugin_install','media_upload','user_add','system_save','profile_update_self','backup_restore','database_config_save','assistant_chat','feed_test','redirects_save','member_register','wp_core_install'];
+$ok=0;$blocked=['plugin_upload','theme_upload','wp_plugin_install','wp_theme_upload','database_config_save','assistant_chat','feed_test','redirects_save','member_register','wp_core_install','update_apply','update_rollback','update_config_save','lovable_sync'];
 foreach($blocked as $a){ $r=http('POST',"$B/cms/api.php?action=$a",['x'=>1],$H);if($r['code']===403&&($r['json']['demo']??false))$ok++;else echo "nicht gesperrt: $a HTTP {$r['code']} {$r['body']}\n"; }
 t('Gefährliche Aktionen sind gesperrt',$ok===count($blocked),"$ok/".count($blocked));
+/* Alles andere ist frei (Benutzer, System, Backups, Medien, KI, Update-Anzeige …) */
+$free=0;$freeList=['user_add','user_update','profile_update_self','backup_create','backup_restore','media_upload','branding_upload','news_thumbnail_upload','ai_status','update_status','update_check','lovable_get','stock_status'];
+foreach($freeList as $a){ $r=http('POST',"$B/cms/api.php?action=$a",['x'=>1],$H);if(!($r['code']===403&&($r['json']['demo']??false)))$free++;else echo "zu Unrecht gesperrt: $a\n"; }
+t('Benutzer, Backups, Medien, KI, Update-Anzeige sind in der Demo frei',$free===count($freeList),"$free/".count($freeList));
+$r=http('POST',"$B/cms/api.php?action=system_save",['control_center'=>true],$H);
+t('Betriebsmodus (Control Center) bleibt gesperrt, damit die Anmeldung erhalten bleibt',$r['code']===403&&($r['json']['demo']??false));
+$r=http('POST',"$B/cms/api.php?action=system_save",['timezone'=>'Europe/Vienna'],$H);
+t('Zeitzone/Name änderbar',$r['code']!==403,$r['body']);
+$r=http('GET',"$B/cms/api.php?action=update_status",null,$H);
+t('Update-Anzeige ohne Notfall-Token',($r['json']['status']??'')==='ok'&&($r['json']['rescue_token']??'x')==='',substr($r['body'],0,200));
 $r=http('POST',"$B/cms/api.php?action=wp_admin_page",['page'=>'plugin-install.php','method'=>'GET'],$H);
 t('WordPress-Plugin-Installation gesperrt',$r['code']===403&&($r['json']['demo']??false),$r['body']);
-$r=http('POST',"$B/cms/api.php?action=wp_admin_ajax",['url'=>'/wp-admin/admin-ajax.php?action=upload-attachment','method'=>'POST','body'=>''],$H);
-t('WordPress-Upload gesperrt',$r['code']===403&&($r['json']['demo']??false),$r['body']);
+$r=http('POST',"$B/cms/api.php?action=wp_admin_ajax",['url'=>'/wp-admin/admin-ajax.php?action=install-plugin','method'=>'POST','body'=>''],$H);
+t('WordPress-Plugin-Installation per Ajax gesperrt',$r['code']===403&&($r['json']['demo']??false),$r['body']);
 $r=http('POST',"$B/cms/api.php?action=wp_admin_rest",['method'=>'POST','path'=>'/wp-json/wp/v2/plugins','body'=>'{}'],$H);
 t('WordPress-REST: Plugins gesperrt',$r['code']===403&&($r['json']['demo']??false),$r['body']);
 $r=http('GET',"$B/wp-admin/plugin-install.php");
@@ -92,8 +109,10 @@ $r=http('GET',"$B/cms/api.php?action=news_list",null,$H);
 t('Alte Sitzung nach Rücksetzen ungültig',$r['code']===401,'HTTP '.$r['code']);
 $r=http('GET',"$B/mein-demo-beitrag/");
 t('Eigener Beitrag nach Rücksetzen weg',$r['code']===404,'HTTP '.$r['code']);
-$r=http('GET',"$B/neu-die-demo-verwaltung/");
+$r=http('GET',"$B/die-demo-ist-die-homepage/");
 t('Beispielinhalt nach Rücksetzen wieder da',$r['code']===200);
+$r=http('GET',"$B/");
+t('Homepage nach Rücksetzen wieder im Ausgangszustand',str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'<h1>ElvadoPress</h1>'));
 $r=http('POST',"$B/cms/api.php?action=login",['username'=>$cfg['user'],'password'=>$cfg['password']]);
 t('Anmeldung nach Rücksetzen möglich',($r['json']['status']??'')==='ok');
 $errs=array_values(array_filter(explode("\n",(string)@file_get_contents($tmp.'/server.log')),fn($l)=>preg_match('/PHP (Fatal|Parse|Warning|Notice|Deprecated)/',$l)&&!str_contains($l,'JIT is incompatible')));

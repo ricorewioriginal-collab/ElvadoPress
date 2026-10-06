@@ -1080,7 +1080,7 @@ if(str_starts_with($action,'update_')){
         $uSvc=\Elvado\Update\UpdateService::forCms(__DIR__,$dataDir);
         $uSvc->settings()->rememberBaseUrl(((!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https'?'https':'http').'://'.(string)($_SERVER['HTTP_HOST']??'').rtrim(str_replace('\\','/',dirname((string)($_SERVER['SCRIPT_NAME']??''))),'/'));
         if($action==='update_badge'){ rrw_json(['status'=>'ok']+$uSvc->badge()); }
-        $uFull=static fn(array $s)=>$s+['rescue_token'=>$uSvc->rescueToken(),'webhook'=>'cms/update-webhook.php'];
+        $uFull=static fn(array $s)=>$s+['rescue_token'=>(function_exists('rrw_demo_enabled')&&rrw_demo_enabled())?'':$uSvc->rescueToken(),'webhook'=>'cms/update-webhook.php'];
         if($action==='update_status'){ $uSvc->tick();rrw_json(['status'=>'ok']+$uFull($uSvc->status())); }
         if($action==='update_check'){ rrw_json(['status'=>'ok']+$uFull($uSvc->check())); }
         if($action==='update_versions'){ rrw_json(['status'=>'ok','versions'=>$uSvc->versions()]); }
