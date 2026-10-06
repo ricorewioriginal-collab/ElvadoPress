@@ -51,6 +51,7 @@
           <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Menüs</button>
           <button class="tab" data-tab="widgets" onclick="cmsTab('widgets',this)"><i class="fas fa-puzzle-piece"></i>Widgets</button>
           <button class="tab" data-tab="branding" onclick="cmsTab('branding',this)"><i class="fas fa-palette"></i>Branding</button>
+          <button class="tab" data-tab="headerbuilder" onclick="cmsTab('headerbuilder',this);window.HeaderBuilder?.render()"><i class="fas fa-grip"></i>Header-Builder</button>
         </div>
       </div>
       <div class="tab-group single" data-feature="radio" hidden>
