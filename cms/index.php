@@ -118,6 +118,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
     <?php require __DIR__.'/views/panel-assistant.php'; ?>
 
     <?php require __DIR__.'/views/panel-branding.php'; ?>
+    <?php require __DIR__.'/views/panel-headerbuilder.php'; ?>
 
     <?php require __DIR__.'/views/panel-media.php'; ?>
 
@@ -182,6 +183,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/sandbox.js?v=1"></script>
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
+<script src="assets/header-builder.js?v=1"></script>
 <script src="assets/cms-app.js?v=43"></script>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>

@@ -298,7 +298,7 @@ async function initCms(){
    const p=document.querySelector('#cmsDenied p');if(p)p.textContent=e?.message||'Für diese Verwaltung fehlt die Berechtigung.';
  }
 }
-const PUBLIC_CMS_SECTIONS=new Set(['navigation','portal','social','apps','branding','core_network','pages','menus','widgets','widget_areas','feed_sources','rss','legal','brands']);
+const PUBLIC_CMS_SECTIONS=new Set(['navigation','portal','social','apps','branding','core_network','pages','menus','widgets','widget_areas','feed_sources','rss','legal','brands','header_builder']);
 function cmsCanon(v){if(Array.isArray(v))return '['+v.map(cmsCanon).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+cmsCanon(v[k])).join(',')+'}';return JSON.stringify(v)}
 function setPublishState(ok,text){
  const el=document.getElementById('cmsPublishState');if(!el)return;el.classList.toggle('bad',!ok);el.innerHTML='<i class="fas '+(ok?'fa-circle-check':'fa-triangle-exclamation')+'"></i> '+escCms(text|| (ok?'Alles gespeichert':'Nicht synchron'));
@@ -518,7 +518,14 @@ function dragPage(e,index){DRAG_PAGE=index;e.dataTransfer.effectAllowed='move'}
 function dropPage(e,index){e.preventDefault();if(DRAG_PAGE===null)return;const a=CMS.pages,it=a.splice(DRAG_PAGE,1)[0];let at=index;if(DRAG_PAGE<index)at--;a.splice(at,0,it);DRAG_PAGE=null;renderPages()}
 async function uploadBlockImage(zone,i){const input=document.getElementById('imgfile-'+zone+'-'+i),file=input?.files?.[0];if(!file)return cmsToast('Bitte Bild auswählen',true);const fd=new FormData();fd.append('file',file);try{const r=await fetch(CRON+'?action=media_upload',{method:'POST',headers:cmsHeaders(false),body:fd});const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');updBlock(zone,i,'url',d.url);renderBlocks(zone);cmsToast('Bild hochgeladen ✓')}catch(e){cmsToast(e.message,true)}}
 function previewCurrentPage(){const p=currentPage();if(!p)return cmsToast('Keine Seite gewählt',true);if(p.type==='custom'){window.open(location.origin+'/'+encodeURIComponent(p.slug)+'.html','_blank','noopener');return}const hash=p.system_target==='start'?'':p.system_target;window.open(location.origin+'/' +(hash?'#'+hash:''),'_blank','noopener')}
-async function savePages(){const p=currentPage();if(p?.type==='system'&&p.system_target==='start')await saveSection('portal',CMS.portal||{});await saveSection('pages',CMS.pages||[])}
+async function savePages(){
+ // Aktuelle Formularwerte vor dem Veröffentlichen sicher ins Seitenmodell übernehmen.
+ // Dadurch gehen auch Werte nicht verloren, wenn der Nutzer direkt aus einem Feld auf „Speichern“ klickt.
+ pageFieldChanged();
+ const p=currentPage();
+ if(p?.type==='system'&&p.system_target==='start')await saveSection('portal',CMS.portal||{});
+ await saveSection('pages',CMS.pages||[]);
+}
 
 function pageTargetOptions(cur){
  const sys=(CMS.pages||[]).filter(p=>p.type==='system'&&p.enabled!==false).map(p=>'<option value="system:'+escCms(p.system_target)+'" '+(cur==='system:'+p.system_target?'selected':'')+'>System: '+escCms(p.title)+'</option>').join('');
