@@ -65,6 +65,7 @@
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>KI</button>
+          <button class="tab" hidden data-pack-app="ricorewi-radio" data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()" aria-hidden="true" tabindex="-1"></button><!-- erreichbar über die Unterreiter im Menü „KI“; Markierung für die Paketlogik -->
         </div>
       </div>
       <div class="tab-group">
