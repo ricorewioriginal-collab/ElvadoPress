@@ -298,7 +298,7 @@ async function initCms(){
    const p=document.querySelector('#cmsDenied p');if(p)p.textContent=e?.message||'Für diese Verwaltung fehlt die Berechtigung.';
  }
 }
-const PUBLIC_CMS_SECTIONS=new Set(['navigation','portal','social','apps','branding','core_network','pages','menus','widgets','widget_areas','feed_sources','rss','legal','brands']);
+const PUBLIC_CMS_SECTIONS=new Set(['navigation','portal','social','apps','branding','core_network','pages','menus','widgets','widget_areas','feed_sources','rss','legal','brands','header_builder']);
 function cmsCanon(v){if(Array.isArray(v))return '['+v.map(cmsCanon).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+cmsCanon(v[k])).join(',')+'}';return JSON.stringify(v)}
 function setPublishState(ok,text){
  const el=document.getElementById('cmsPublishState');if(!el)return;el.classList.toggle('bad',!ok);el.innerHTML='<i class="fas '+(ok?'fa-circle-check':'fa-triangle-exclamation')+'"></i> '+escCms(text|| (ok?'Alles gespeichert':'Nicht synchron'));
