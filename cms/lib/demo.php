@@ -66,6 +66,9 @@ function rrw_demo_reset(): bool {
     if(empty($r['ok']))return false;
     rrw_demo_seed($ctx['newsFile'],$c);
     rrw_demo_seed_site($ctx,$c);
+    // SEO-Dateien nach dem Demo-Seed aus dem finalen Stand erzeugen, damit sie direkt nach Reset vorhanden sind.
+    $site=rrw_read_json($ctx['siteFile'],[]);$news=rrw_read_json($ctx['newsFile'],[]);
+    rrw_seo_generate($site,$news,$ctx['root']);
     rrw_system_config(true);
     return true;
 }
