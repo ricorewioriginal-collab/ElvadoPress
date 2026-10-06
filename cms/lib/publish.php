@@ -287,6 +287,18 @@ function rrw_clean_section(string $section,$value){
         $out=array_values(array_unique($out));
         return array_slice($out,0,40);
     }
+    if($section==='header_builder'){
+        $v=is_array($value)?$value:[];$out=['enabled'=>!empty($v['enabled']),'items'=>[]];
+        $types=['brand','navigation','search','live','social','assistant','link','whatsapp','phone','email'];
+        foreach(array_slice((array)($v['items']??[]),0,40) as $n=>$it){
+            if(!is_array($it))continue;
+            $type=in_array((string)($it['type']??''),$types,true)?(string)$it['type']:'link';
+            $id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($it['id']??''));if($id==='')$id='header_'.bin2hex(random_bytes(4));
+            $url=mb_substr(trim((string)($it['url']??'')),0,1500);
+            $out['items'][]=['id'=>$id,'type'=>$type,'label'=>mb_substr(trim((string)($it['label']??'')),0,100),'url'=>$url,'icon'=>preg_replace('/[^a-zA-Z0-9 _-]/','',(string)($it['icon']??'')),'tooltip'=>mb_substr(trim((string)($it['tooltip']??'')),0,180),'enabled'=>!array_key_exists('enabled',$it)||!empty($it['enabled']),'desktop'=>!array_key_exists('desktop',$it)||!empty($it['desktop']),'mobile'=>!array_key_exists('mobile',$it)||!empty($it['mobile']),'order'=>max(0,min(999,(int)($it['order']??$n)))];
+        }
+        usort($out['items'],fn($x,$y)=>$x['order']<=>$y['order']);return $out;
+    }
     if($section==='social'){foreach(['ricorewi_tiktok','ricorewi_instagram','anmacha_tiktok','anmacha_instagram'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,120);return $o??[];}
     if($section==='branding'){foreach(['portal_logo','portal_icon','favicon','android_inapp_logo','android_startscreen','android_app_icon','windows_logo'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));if(!in_array('ricorewi',$o,true))array_unshift($o,'ricorewi');return ['stations'=>$o];}
