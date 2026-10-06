@@ -1,4 +1,4 @@
-# RicoReWi Radio CMS – Themes
+# ElvadoPress – Themes
 
 ## Eigenes Theme-System
 
@@ -31,7 +31,7 @@ Nicht ausgeführt werden:
 - WordPress-Hooks
 - serverseitige WordPress-Plugins
 
-Warum: Ein vollständiges WordPress-PHP-Theme benötigt den WordPress-Core und dessen Laufzeit-API. Das RicoReWi CMS bleibt bewusst eigenständig und führt fremden PHP-Code nicht ungeprüft aus.
+Warum: Ein vollständiges WordPress-PHP-Theme benötigt den WordPress-Core und dessen Laufzeit-API. ElvadoPress bleibt bewusst eigenständig und führt fremden PHP-Code nicht ungeprüft aus.
 
 Das Ergebnis ist deshalb eine **WordPress-Kompatibilitätsschicht für Design und Assets**, nicht eine versteckte WordPress-Installation.
 
