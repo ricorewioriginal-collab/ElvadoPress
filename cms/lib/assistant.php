@@ -228,7 +228,8 @@ function rrw_assistant_podcast(string $origin,string $dataDir): ?array {
 function rrw_assistant_news(string $newsFile): array {
     $news=is_file($newsFile)?(json_decode((string)@file_get_contents($newsFile),true)?:[]):[];$out=[];
     foreach($news as $a){if(!is_array($a)||($a['status']??'')!=='published'||!empty($a['deleted_at']))continue;$out[]=$a;}
-    usort($out,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
+    $ts=static fn($x)=>strtotime((string)(($x['published_at']??'')!==''?$x['published_at']:($x['created_at']??'')))?:0;   // Zeitstempel statt Zeichenkettenvergleich
+    usort($out,fn($a,$b)=>$ts($b)<=>$ts($a));
     return array_map(fn($a)=>['title'=>(string)($a['title']??''),'date'=>substr((string)($a['published_at']??$a['created_at']??''),0,10),'excerpt'=>mb_substr(trim(html_entity_decode(strip_tags((string)($a['excerpt']??$a['intro']??$a['teaser']??$a['content']??'')))),0,220),'tags'=>(string)($a['tags']??'')],array_slice($out,0,6));
 }
 function rrw_assistant_brands(array $site): array {
@@ -482,7 +483,7 @@ function rrw_assistant_site_search(string $newsFile,string $q,string $origin,int
     $terms=rrw_assistant_search_terms($q);$news=is_file($newsFile)?(json_decode((string)@file_get_contents($newsFile),true)?:[]):[];$rows=[];
     foreach((array)$news as $a){
         if(!is_array($a)||($a['status']??'')!=='published'||!empty($a['deleted_at']))continue;
-        $pub=trim((string)($a['published_at']??''));if($pub!==''&&$pub>date('Y-m-d H:i:s'))continue;
+        $pubRaw=trim((string)($a['published_at']??''));if($pubRaw!==''&&($pubTs=strtotime($pubRaw))!==false&&$pubTs>time())continue;
         $title=trim((string)($a['title']??''));if($title==='')continue;
         $text=trim(html_entity_decode(strip_tags((string)($a['body_html']??$a['content']??''))));$ex=trim(html_entity_decode(strip_tags((string)($a['excerpt']??''))));
         $hay=[mb_strtolower($title),mb_strtolower($ex),mb_strtolower($text)];$score=0;

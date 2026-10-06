@@ -33,10 +33,28 @@ function rrw_write_atomic(string $file, string $content): void {
     @chmod($tmp,0644);
     if(!@rename($tmp,$file)){@unlink($tmp);throw new RuntimeException('Datei konnte nicht ersetzt werden');}
 }
+/**
+ * Zeitpunkt eines Beitrags als Unix-Zeit. Tolerant gegenüber den Formaten, die vorkommen ("2026-10-06 10:00:00", "2026-10-06T10:00" aus dem
+ * Datumsfeld des Editors, ISO 8601 mit Zeitzone); null bei leerem oder unlesbarem Wert. Nie Zeichenketten vergleichen: "T" sortiert hinter " ",
+ * ein Beitrag mit "…T10:00" wäre sonst bis zum nächsten Tag unsichtbar.
+ */
+function rrw_news_ts($v): ?int {
+    $s=trim((string)$v);if($s==='')return null;
+    $t=strtotime($s);return $t===false?null:$t;
+}
+/** Einheitliches Speicherformat "Y-m-d H:i:s" (Serverzeit); leer oder unlesbar → $fallback. */
+function rrw_news_date($v,string $fallback=''): string { $t=rrw_news_ts($v);return $t===null?$fallback:date('Y-m-d H:i:s',$t); }
+/** Sortierzeit eines Beitrags (Veröffentlichung, sonst Anlage). */
+function rrw_news_sort_ts(array $a): int { return rrw_news_ts($a['published_at']??'')??rrw_news_ts($a['created_at']??'')??0; }
+/** Vergleich "neueste zuerst" für usort. */
+function rrw_news_cmp_desc(array $a,array $b): int { return rrw_news_sort_ts($b)<=>rrw_news_sort_ts($a); }
 function rrw_news_is_live(array $a): bool {
     if (($a['status']??'draft')!=='published' || !empty($a['deleted_at'])) return false;
     $publishedAt=trim((string)($a['published_at']??''));
-    return $publishedAt===''||$publishedAt<=date('Y-m-d H:i:s');
+    if($publishedAt==='')return true;
+    $timestamp=rrw_news_ts($publishedAt);
+    if($timestamp===null)return false;
+    return $timestamp<=time();
 }
 // Rechteprüfung für Mehrfach-Redakteure: Admins dürfen alles, die Rolle 'autor'
 // nur eigene Beiträge bearbeiten/löschen/wiederherstellen. Beiträge ohne gespeicherten
@@ -449,7 +467,7 @@ function rrw_rss_xml(array $site): string {
     $news=rrw_read_json(__DIR__.'/../data/news.json',[]);
     $published=array_values(array_filter($news,'rrw_news_is_live'));
     if(!empty($site['rss']['include_external']))$published=array_merge($published,rrw_external_feed_articles($site));
-    usort($published,fn($a,$b)=>strcmp((string)($b['published_at']??$b['created_at']??''),(string)($a['published_at']??$a['created_at']??'')));
+    usort($published,'rrw_news_cmp_desc');
     $max=max(5,min(100,(int)($site['rss']['max_items']??50)));$published=array_slice($published,0,$max);
     $x=fn($s)=>htmlspecialchars((string)$s,ENT_XML1|ENT_QUOTES,'UTF-8');
     $cdata=fn($s)=>'<![CDATA['.str_replace(']]>',']]]]><![CDATA[>',(string)$s).']]>';

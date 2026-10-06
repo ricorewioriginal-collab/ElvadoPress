@@ -23,15 +23,18 @@ final class PostFeed
     public static function rowsFromNewsFile(string $file): array
     {
         $raw = is_file($file) ? json_decode((string)@file_get_contents($file), true) : null;
-        $now = date('Y-m-d H:i:s');
-        $rows = array_values(array_filter(is_array($raw) ? $raw : [], static function ($a) use ($now): bool {
+        $rows = array_values(array_filter(is_array($raw) ? $raw : [], static function ($a): bool {
             if (!is_array($a) || ($a['status'] ?? 'draft') !== 'published' || !empty($a['deleted_at'])) {
                 return false;
             }
             $p = trim((string)($a['published_at'] ?? ''));
-            return $p === '' || str_replace('T', ' ', $p) <= $now;
+            if ($p === '') {
+                return true;
+            }
+            $t = strtotime($p);   // tolerant: "2026-10-06 10:00:00", "2026-10-06T10:00", ISO mit Zeitzone
+            return $t !== false && $t <= time();
         }));
-        usort($rows, static fn($a, $b) => strcmp((string)($b['published_at'] ?? $b['created_at'] ?? ''), (string)($a['published_at'] ?? $a['created_at'] ?? '')));
+        usort($rows, static fn($a, $b) => (self::ts($b) <=> self::ts($a)));
         return $rows;
     }
 
@@ -64,6 +67,18 @@ final class PostFeed
     }
 
     /** @return list<string> */
+    /** Sortierzeit eines Beitrags (Veröffentlichung, sonst Anlage) als Unix-Zeit. */
+    private static function ts(array $a): int
+    {
+        foreach (['published_at', 'created_at'] as $k) {
+            $s = trim((string)($a[$k] ?? ''));
+            if ($s !== '' && ($t = strtotime($s)) !== false) {
+                return $t;
+            }
+        }
+        return 0;
+    }
+
     private static function tags(array $a): array
     {
         $t = $a['tags'] ?? '';

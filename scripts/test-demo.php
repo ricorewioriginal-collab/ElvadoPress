@@ -96,6 +96,13 @@ $r=http('GET',"$B/xmlrpc.php");
 t('xmlrpc.php gesperrt',$r['code']===403);
 $r=http('POST',"$B/cms/api.php?action=news_save",['title'=>'Mein Demo-Beitrag','body_html'=>'<p>Hallo</p>','status'=>'published','category'=>'News','image_mode'=>'thumbnail','tags'=>''],$H);
 t('Erlaubte Aktion (Beitrag speichern) funktioniert',($r['json']['status']??'')==='ok',$r['body']);
+/* Veröffentlichungszeit im Format des Editor-Datumsfelds ("YYYY-MM-DDTHH:MM", vor wenigen Minuten): Beitrag ist sofort sichtbar und wird einheitlich gespeichert */
+$r=http('POST',"$B/cms/api.php?action=news_save",['title'=>'Zeitformat-Test','body_html'=>'<p>Zeit</p>','status'=>'published','category'=>'News','image_mode'=>'thumbnail','tags'=>'','published_at'=>date('Y-m-d\TH:i',time()-600)],$H);
+t('Beitrag mit Editor-Zeitformat gespeichert',($r['json']['status']??'')==='ok',$r['body']);
+$nl=http('GET',"$B/cms/api.php?action=news_list",null,$H);$saved=null;foreach(($nl['json']['articles']??$nl['json']['news']??$nl['json']['items']??[]) as $x)if(($x['title']??'')==='Zeitformat-Test')$saved=$x;
+t('Veröffentlichungszeit wird als "Y-m-d H:i:s" gespeichert',is_array($saved)&&preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',(string)($saved['published_at']??'')),json_encode($saved['published_at']??null));
+$pub=http('GET',"$B/zeitformat-test/");
+t('Beitrag mit Editor-Zeitformat ist öffentlich sichtbar',$pub['code']===200,'HTTP '.$pub['code']);
 t('Mailversand ist in der Demo aus',(function() use($pkg){ $c='<?php define("RRW_DEMO",true);require "'.$pkg.'/cms/lib/mail.php";var_dump(rrw_send_mail("a@example.test","s","b","x@example.test"));'; exec('php -r '.escapeshellarg(substr($c,6)).' 2>&1',$o);return trim(implode('',$o))==='bool(false)'; })());
 
 /* Rücksetzen nach Ablauf */
