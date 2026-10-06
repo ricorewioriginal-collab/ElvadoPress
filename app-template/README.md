@@ -14,6 +14,8 @@ Diese Vorlage macht aus einer ElvadoPress-Website installierbare **Android-** un
 
 Beides gibt es für **Android** (APK) und **Windows** (Installer + portable EXE); pro App wählst du die Plattformen.
 
+> **Hier werden keine Apps gebaut.** Dieser Ordner ist eine Vorlage: Im ElvadoPress-Repository laufen keine App-Builds, die Workflows unter `app-template/.github/` sind dort nicht aktiv. Gebaut wird erst im eigenen App-Repository, das du aus dieser Vorlage anlegst (Klon des Repositorys oder `app-template.zip` aus dem Release; eine über den Installer eingerichtete ElvadoPress-Website bringt den Build-Assistenten im CMS mit).
+
 ## Schnellstart
 
 1. Aus diesem Ordner ein eigenes GitHub-Repository machen (privat genügt) – siehe [ANLEITUNG.md](ANLEITUNG.md), Abschnitt 1.
