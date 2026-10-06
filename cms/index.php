@@ -29,6 +29,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <link rel="stylesheet" href="assets/cms.css?v=33">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
+<script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
+
 </head>
 <body>
 <div id="navbarContainer"></div>
@@ -142,7 +144,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<link rel="stylesheet" href="assets/block-editor.css?v=1"><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=1"></script><script src="assets/blocks/editor.js?v=1"></script>
+<link rel="stylesheet" href="assets/block-editor.css?v=1"><link rel="stylesheet" href="assets/admin-themes.css?v=1"><script src="assets/admin-theme.js?v=1"></script><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=1"></script><script src="assets/blocks/editor.js?v=1"></script>
 <script src="assets/news-editor.js?v=18"></script>
 <script src="assets/stock-media.js?v=1"></script>
 <script src="assets/media-manager.js?v=6"></script>
