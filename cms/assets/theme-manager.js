@@ -89,21 +89,26 @@ window.ThemeManager=(()=>{
   if(ctrl.type==='textarea')return '<div class="customizer-control"><label><span>'+esc(ctrl.label)+'</span><span class="control-value">nur CSS</span></label><textarea class="fc w-100" rows="8" spellcheck="false" oninput="ThemeManager.change(\''+esc(ctrl.key)+'\',this.value)">'+esc(val)+'</textarea><div class="hint" style="margin-top:5px">Wird nur als CSS gespeichert; @import und &lt;style&gt;-Tags werden serverseitig entfernt.</div></div>';
   return '<div class="customizer-control"><label>'+esc(ctrl.label)+'</label><input class="fc w-100" value="'+esc(val)+'" oninput="ThemeManager.change(\''+esc(ctrl.key)+'\',this.value)"></div>';
  }
+ // Abschnitte wie im WordPress-Customizer: Liste mit Pfeil, Klick öffnet den Abschnitt, „Zurück“ führt zur Liste
+ let czGroups=[],czSec=-1;
  function renderCustomizer(){
   if(!editing||!draft)return;
   document.getElementById('themeCustomizerName').textContent=editing.name;
   const h=document.getElementById('themeCustomizerControls');
   const variants=(editing.variants||[]);
-  let html='';
-  if(variants.length){
-    html+='<div class="customizer-section"><button type="button" onclick="this.parentElement.classList.toggle(\'closed\')"><span>Varianten</span><i class="fas fa-chevron-up"></i></button><div class="customizer-section-body"><div class="theme-variants">'+variants.map(v=>'<button class="theme-variant '+(draft.variant===v.id?'on':'')+'" onclick="ThemeManager.variant(\''+esc(v.id)+'\')">'+esc(v.name||v.id)+'</button>').join('')+'</div></div></div>';
+  czGroups=[];
+  if(variants.length)czGroups.push({title:'Varianten',html:'<div class="theme-variants">'+variants.map(v=>'<button class="theme-variant '+(draft.variant===v.id?'on':'')+'" onclick="ThemeManager.variant(\''+esc(v.id)+'\')">'+esc(v.name||v.id)+'</button>').join('')+'</div>'});
+  groupedControls(editing).forEach(([name,controls])=>czGroups.push({title:name,html:controls.map(renderControl).join('')}));
+  if(!czGroups.length){h.innerHTML='<div class="empty">Dieses importierte CSS-Theme besitzt noch keine eigenen Customizer-Regler. Es kann trotzdem live angesehen und aktiviert werden.</div>';return}
+  if(czSec<0||czSec>=czGroups.length){
+    h.innerHTML='<div class="cz-list">'+czGroups.map((g,i)=>'<button type="button" onclick="ThemeManager.openSection('+i+')"><span>'+esc(g.title)+'</span><i class="fas fa-chevron-right"></i></button>').join('')+'</div>';
+  }else{
+    const g=czGroups[czSec];
+    h.innerHTML='<button type="button" class="cz-back" onclick="ThemeManager.openSection(-1)"><i class="fas fa-chevron-left"></i><span><small>Du passt gerade an</small><b>'+esc(g.title)+'</b></span></button><div class="cz-pane">'+g.html+'</div>';
   }
-  groupedControls(editing).forEach(([name,controls])=>{
-    html+='<div class="customizer-section"><button type="button" onclick="this.parentElement.classList.toggle(\'closed\')"><span>'+esc(name)+'</span><i class="fas fa-chevron-up"></i></button><div class="customizer-section-body">'+controls.map(renderControl).join('')+'</div></div>';
-  });
-  if(!(editing.controls||[]).length)html+='<div class="empty">Dieses importierte CSS-Theme besitzt noch keine eigenen Customizer-Regler. Es kann trotzdem live angesehen und aktiviert werden.</div>';
-  h.innerHTML=html;
  }
+ function openSection(i){czSec=i;renderCustomizer();const h=document.getElementById('themeCustomizerControls');if(h)h.scrollTop=0}
+ function togglePanel(){const c=document.getElementById('themeCustomizer');const hid=c.classList.toggle('hide-panel');const b=document.getElementById('czHide');if(b)b.innerHTML=hid?'<i class="fas fa-eye"></i> Einblenden':'<i class="fas fa-eye-slash"></i> Ausblenden'}
  function previewPayload(){
   try{sessionStorage.setItem('rrw_theme_customizer',JSON.stringify(draft))}catch(e){}
   const f=document.getElementById('themeCustomizerFrame');
@@ -112,7 +117,7 @@ window.ThemeManager=(()=>{
  }
  function customize(i){
   window.WpThemes?.czLeave?.();   // ein offener WordPress-Customizer wird zuerst beendet
-  editing=themes[i];if(!editing)return;
+  editing=themes[i];if(!editing)return;czSec=-1;
   draft=mergedDraft(editing);
   renderCustomizer();
   const shell=document.getElementById('themeCustomizer');shell.style.display='grid';
@@ -187,5 +192,5 @@ window.ThemeManager=(()=>{
   try{const d=await api('themes_list');themes=d.themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'ricorewi-neon',variant:'default',settings:{}};render()}
   catch(e){const h=document.getElementById('themeGrid');if(h)h.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
- return {dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
+ return {openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
 })();

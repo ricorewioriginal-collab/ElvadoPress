@@ -95,6 +95,7 @@
           <div class="cz-theme-row" id="czThemeRow" hidden></div>
           <div id="themeCustomizerControls" class="theme-customizer-controls"></div>
           <div class="theme-customizer-devices">
+            <button class="btn-g cz-hide" id="czHide" type="button" onclick="ThemeManager.togglePanel()"><i class="fas fa-eye-slash"></i> Ausblenden</button>
             <button class="btn-g on" data-device="desktop" onclick="ThemeManager.device('desktop',this)"><i class="fas fa-desktop"></i></button>
             <button class="btn-g" data-device="tablet" onclick="ThemeManager.device('tablet',this)"><i class="fas fa-tablet-screen-button"></i></button>
             <button class="btn-g" data-device="mobile" onclick="ThemeManager.device('mobile',this)"><i class="fas fa-mobile-screen"></i></button>
