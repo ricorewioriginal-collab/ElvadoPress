@@ -260,7 +260,7 @@ final class PluginManager
                 'optional' => array_keys($m['optional']['plugins'] ?? []), 'dependents' => $inst ? $this->dependents($id, false) : [],
                 'capabilities' => $m['capabilities'] ?? [], 'update_source' => $m['update']['source'] ?? 'bundled',
                 'tested_up_to' => $m['tested_up_to'] ?? '', 'requires' => $m['requires'] ?? null,
-                'has_settings' => !empty($m['settings_page']), 'settings' => $active ? $this->settingsSchema($id) : [], 'actions' => $active ? ($m['actions'] ?? []) : [],
+                'has_settings' => !empty($m['settings_page']), 'admin_js' => ($active && ($m['admin_js'] ?? '') !== '') ? '/cms/plugins/' . $id . '/' . $m['admin_js'] : '', 'admin_global' => !empty($m['admin_global']), 'settings' => $active ? $this->settingsSchema($id) : [], 'actions' => $active ? ($m['actions'] ?? []) : [],
                 'error' => (string)($s['errors'][$id] ?? ''),
             ];
         }

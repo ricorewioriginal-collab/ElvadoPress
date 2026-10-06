@@ -82,6 +82,11 @@ final class Manifest
             $e[] = 'Die Einstiegsdatei ("entry") ist ungültig.';
             $entry = '';
         }
+        $adminJs = trim((string)($raw['admin_js'] ?? ''));
+        if ($adminJs !== '' && !preg_match('~^[A-Za-z0-9_-]{1,40}\.js$~', $adminJs)) {
+            $e[] = 'admin_js ist ungültig.';
+            $adminJs = '';
+        }
         $icon = (string)($raw['icon'] ?? 'fa-plug');
         if (!preg_match('/^fa-[a-z0-9-]{2,40}$/', $icon)) {
             $icon = 'fa-plug';
@@ -104,8 +109,8 @@ final class Manifest
             'requires' => ['elvadopress' => $core, 'php' => $php, 'plugins' => $deps],
             'optional' => ['plugins' => $optDeps], 'tested_up_to' => $tested, 'capabilities' => array_values(array_unique($caps)),
             'update' => ['source' => $src, 'repo' => $repo], 'entry' => $entry,
-            'settings' => $settings, 'actions' => $actions,
-            'settings_page' => !empty($raw['settings_page']) || $settings || $actions,
+            'settings' => $settings, 'actions' => $actions, 'admin_js' => $adminJs, 'admin_global' => !empty($raw['admin_global']),
+            'settings_page' => !empty($raw['settings_page']) || $settings || $actions || $adminJs !== '',
         ], []];
     }
 

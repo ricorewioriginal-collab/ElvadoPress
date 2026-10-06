@@ -13,7 +13,7 @@ function rrw_np(?string $cmsDir=null,?string $dataDir=null,?string $version=null
     static $mgr=null;
     if($mgr===null||$fresh){
         $cms=$cmsDir??dirname(__DIR__);
-        $mgr=new PluginManager($cms,$dataDir??(defined('RRW_DATA_DIR')?(string)RRW_DATA_DIR:$cms.'/data'),$version??(function_exists('rrw_cms_version')?rrw_cms_version():'0.0.0'));
+        $mgr=new PluginManager($cms,$dataDir??(defined('RRW_DATA_DIR')?(string)RRW_DATA_DIR:$cms.'/data'),$version??(function_exists('rrw_cms_version')?rrw_cms_version():(trim((string)@file_get_contents($cms.'/VERSION'))?:'0.0.0')));
     }
     return $mgr;
 }
