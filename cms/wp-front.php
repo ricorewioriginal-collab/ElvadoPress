@@ -83,6 +83,17 @@ http_response_code($r['status']);
 foreach($r['headers'] as $k=>$v)header($k.': '.str_replace(["\r","\n"],'',(string)$v));
 if($preview!=='')header('Cache-Control: no-store');elseif($r['status']===200&&($r['headers']['Content-Type']??'')!==''&&($_SERVER['REQUEST_METHOD']??'GET')==='GET')header('Cache-Control: no-cache, must-revalidate');
 $body=$r['body'];
+// App-Modus (Baukasten-App): Kopf und Fuß der Website in der App ausblenden (siehe lib/appmode.php)
+if($preview===''&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false){
+    try{
+        require_once $cmsDir.'/lib/appmode.php';$am=rrw_appmode_detect();
+        if($am!==null){
+            header('Vary: User-Agent, Cookie',false);
+            require_once $cmsDir.'/lib/apps.php';
+            if(rrw_appmode_hide($am,rrw_apps_own($cmsDir.'/data'),(array)$GLOBALS['RRW_SITE']))$body=rrw_appmode_inject($body,true);
+        }
+    }catch(Throwable $e){}
+}
 if($liveCz&&$r['status']===200&&is_string($body)&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).rrw_wpc_live_script().substr($body,$p);
 if($sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).'<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:7px 12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">Sandbox – nicht öffentlich <a href="/?rrw_sbx=off" style="color:#fff;text-decoration:underline">Sandbox verlassen</a></div>'.substr($body,$p);
 echo $body;

@@ -129,9 +129,16 @@ Die **Baukasten-App** (`content`) ist die Vorlage für eine **eigene App mit eig
 
 Mit **Speichern** gilt die neue Leiste sofort in allen installierten Apps (beim nächsten Start; die zuletzt bekannte Leiste bleibt auch offline erhalten). Ein **neuer Build ist nicht nötig**. Weniger als zwei Tabs blenden die Leiste aus.
 
+| Seite wählen … | Auswahlliste mit Startseite, Seiten, Beiträgen und Kategorien deiner Website – trägt den Pfad (und, wenn leer, den Titel) ein |
+| Kopf und Fuß der Website | *Automatisch* (Baukasten-App: in der App ausblenden), *In der App ausblenden* oder *anzeigen* |
+
+Rechts neben dem Editor zeigt die **Live-Vorschau** die Website im Handy-Rahmen im App-Modus samt Tab-Leiste; Tabs lassen sich dort antippen. Für die Vorschau muss die Website unter der eingetragenen Adresse erreichbar sein.
+
+**App-Modus:** Die Apps hängen ihrem User-Agent `ElvadoPressApp/1.0 (brand=<id>; platform=android|windows)` an. Daran erkennt die Website die App und blendet – je nach Einstellung – Kopf und Fuß (`.site-header`, `#masthead`, `.site-footer`, `#colophon`) aus; das `<body>` bekommt die Klasse `elvado-app`. Eigene Elemente steuerst du mit den Klassen `elvado-hide-in-app` (nur im normalen Browser sichtbar) und `elvado-only-app` (nur in der App sichtbar, per CSS `display:none` für den Browser vorbelegen). Im Browser zum Ausprobieren: `?rrw_app=<id>` an die Adresse hängen (`?rrw_app=off` beendet das).
+
 **Gut zu wissen**
 
-* Die App zeigt deine Website im Vollbild – ein eigenes App-Aussehen (ohne Kopf/Fuß der Website) erreichst du über ein schlankes Theme oder eine Seitenvorlage für die App-Seiten.
+* Der App-Modus gilt für Themes, die Kopf und Fuß mit den üblichen Klassen ausgeben (alle mitgelieferten Elvado-Themes); bei fremden Themes ergänzt du die Selektoren im CSS deines Themes mit `body.elvado-app`.
 * Hinweis, Wartungsmodus und Pflicht-Update funktionieren wie bei der Website-App (Abschnitt 4).
 * Fremde Adressen, E-Mail und Telefon öffnen außerhalb der App; ein Tab mit fremder `https://`-Adresse lädt sie ausnahmsweise in der App.
 * Technisch: Die Leiste steht als `tabs` in der Antwort von `cms/api.php?action=app_config&brand=<id>`; Android und Windows lesen sie beim Start (`WebRuntime`).

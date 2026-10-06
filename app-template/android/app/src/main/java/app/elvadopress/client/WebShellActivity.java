@@ -79,6 +79,8 @@ public class WebShellActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        // Die Website erkennt die App (App-Modus: Kopf/Fuß ausblenden) am User-Agent – Format siehe cms/lib/appmode.php
+        s.setUserAgentString(s.getUserAgentString() + " ElvadoPressApp/1.0 (brand=" + BuildConfig.FLAVOR + "; platform=android)");
         web.setBackgroundColor(Color.WHITE);
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);

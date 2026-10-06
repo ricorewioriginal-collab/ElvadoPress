@@ -3,7 +3,7 @@
 // Die Einstellungen liegen in der Sektion "apps" (managed) und werden von den Apps über die öffentliche Aktion app_config abgeholt.
 window.AppsManager=(()=>{
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const S={ov:null,managed:{},busy:false,err:'',tel:{usage:false,errors:false,listen:false,geo:true},stats:null};
+ const S={targets:null,ov:null,managed:{},busy:false,err:'',tel:{usage:false,errors:false,listen:false,geo:true},stats:null};
  const api=(a,b)=>window.cmsApi(a,b);
  const toast=(m,bad)=>{try{window.cmsToast(m,!!bad);}catch(e){}};
  const size=n=>{n=+n||0;return n>=1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':n>=1024?Math.round(n/1024)+' KB':n?n+' B':'–';};
@@ -12,6 +12,7 @@ window.AppsManager=(()=>{
  const key=r=>r.brand+':'+r.platform;
  const TAB_ICONS={home:'Start',news:'Neuigkeiten',info:'Info',shop:'Shop',calendar:'Termine',phone:'Kontakt',map:'Karte',mail:'Nachricht',user:'Profil',star:'Favoriten',play:'Medien',menu:'Menü'};
  // Vorlagen für Baukasten-Apps: fertige Tab-Leisten für typische Websites (Pfade anpassen, dann „Speichern“)
+ const TAB_GLYPHS={home:'⌂',news:'▤',info:'ⓘ',shop:'🛒',calendar:'📅',phone:'☎',map:'📍',mail:'✉',user:'☺',star:'★',play:'▶',menu:'☰'};
  const TAB_PRESETS={
   verein:{label:'Verein / Gemeinde',tabs:[['Start','home','/'],['Aktuelles','news','/blog/'],['Termine','calendar','/termine/'],['Verein','info','/ueber-uns/'],['Kontakt','phone','/kontakt/']]},
   shop:{label:'Shop / Laden',tabs:[['Start','home','/'],['Produkte','shop','/shop/'],['Angebote','star','/angebote/'],['Neuigkeiten','news','/blog/'],['Kontakt','phone','/kontakt/']]},
@@ -27,6 +28,7 @@ window.AppsManager=(()=>{
   (S.ov?S.ov.items:[]).forEach(r=>{S.managed[key(r)]=JSON.parse(JSON.stringify(r.config));});
   const t=(root().apps&&root().apps.telemetry)||{};S.tel={usage:!!t.usage,errors:!!t.errors,listen:!!t.listen,geo:t.geo!==false};
   try{S.stats=await api('apps_stats');}catch(e){S.stats=null;}
+  if(S.targets===null&&(S.ov?S.ov.items:[]).some(r=>r.own&&r.type==='content')){try{S.targets=(await api('wp_link_targets')).items||[];}catch(e){S.targets=[];}}
  }
  function dlTxt(name){const x=(((S.stats||{}).downloads||{}).files||{})[name];return x?` · <b>${x.total}</b> Downloads (7 Tage ${x.last7}, 30 Tage ${x.last30})`:'';}
 
@@ -84,8 +86,8 @@ window.AppsManager=(()=>{
     </div>
     `}
     <div class="ap-sub">App-Builder – Aussehen &amp; Startseite</div>
-    ${(own&&r.type==='content')?tabsHtml(k):''}
-    ${(window.AppBuilder&&(!own||radio))?window.AppBuilder.html(k):(own&&r.type!=='content'?'<div class="dm-meta">Eine Website-App zeigt deine Website; Startseite, Kacheln und Senderlisten gibt es nur bei Radio-Apps.</div>':'')}
+    ${(own&&r.type==='content')?ownBlock(k):((own&&r.type==='web')?ownBlock(k):'')}
+    ${(window.AppBuilder&&(!own||radio))?window.AppBuilder.html(k):''}
    </div></details>`;
  }
  const hms=s=>{s=Math.round(+s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:m?`${m} min`:`${s} s`;};
@@ -156,18 +158,38 @@ window.AppsManager=(()=>{
  }
  function tabs(k){const c=S.managed[k];if(!c)return [];c.builder=c.builder||{};return c.builder.tabs=c.builder.tabs||[];}
  function tabsHtml(k){
-  const t=tabs(k),ek=esc(k);
+  const t=tabs(k),ek=esc(k),chrome=((S.managed[k]||{}).builder||{}).chrome||'auto';
   const rows=t.map((x,i)=>`<div class="ap-tab"><select class="fc" onchange="AppsManager.tabSet('${ek}',${i},'icon',this.value)">${Object.keys(TAB_ICONS).map(ic=>`<option value="${ic}" ${x.icon===ic?'selected':''}>${esc(TAB_ICONS[ic])}</option>`).join('')}</select>
    <input class="fc" maxlength="16" placeholder="Titel" value="${esc(x.title||'')}" oninput="AppsManager.tabSet('${ek}',${i},'title',this.value)">
    <input class="fc" style="flex:2" placeholder="/seite/ oder https://…" value="${esc(x.url||'')}" oninput="AppsManager.tabSet('${ek}',${i},'url',this.value)">
+   ${targetSelect(k,i)}
    <button class="btn-g" type="button" ${i?'':'disabled'} onclick="AppsManager.tabMove('${ek}',${i},-1)" title="Nach links">‹</button><button class="btn-g" type="button" ${i<t.length-1?'':'disabled'} onclick="AppsManager.tabMove('${ek}',${i},1)" title="Nach rechts">›</button><button class="btn-g" type="button" onclick="AppsManager.tabDel('${ek}',${i})" title="Entfernen"><i class="fas fa-trash"></i></button></div>`).join('');
   const pre=Object.keys(TAB_PRESETS).map(p=>`<button class="btn-g" type="button" onclick="AppsManager.tabPreset('${ek}','${p}')">${esc(TAB_PRESETS[p].label)}</button>`).join('');
-  return `<div data-aptabs="${ek}"><div class="ap-sub">Inhalte der App (Tab-Leiste unten, bis zu 5 Einträge)</div><p class="hint">Jeder Tab zeigt eine Seite deiner Website – Seiten, Beiträge, Shop, Formulare, alles was du im CMS pflegst. Änderungen gelten sofort, ohne neuen App-Bau. Eine Leiste mit nur einem Eintrag oder keine Einträge blendet die Leiste aus.</p>
+  return `<div data-aptabs="${ek}"><div class="ap-bcols"><div class="ap-bleft"><div class="ap-sub">Inhalte der App (Tab-Leiste unten, bis zu 5 Einträge)</div><p class="hint">Jeder Tab zeigt eine Seite deiner Website – Seiten, Beiträge, Shop, Formulare, alles was du im CMS pflegst. Änderungen gelten sofort, ohne neuen App-Bau. Eine Leiste mit nur einem Eintrag oder keine Einträge blendet die Leiste aus.</p>
    <div id="aptabs-${ek}">${rows||'<p class="hint">Noch keine Tabs. Wähle eine Vorlage oder füge Tabs hinzu.</p>'}</div>
    <div class="ap-add"><button class="btn-g" type="button" ${t.length>=5?'disabled':''} onclick="AppsManager.tabAdd('${ek}')"><i class="fas fa-plus"></i> Tab hinzufügen</button></div>
-   <div class="ap-sub">Vorlage laden (ersetzt die Tabs)</div><div class="ap-add">${pre}</div></div>`;
+   <div class="ap-sub">Vorlage laden (ersetzt die Tabs)</div><div class="ap-add">${pre}</div>
+   <div class="ap-sub">Aussehen in der App</div>
+   <label class="news-lbl">Kopf und Fuß der Website <select class="fc" onchange="AppsManager.set('${ek}','builder.chrome',this.value)"><option value="auto" ${chrome==='auto'?'selected':''}>Automatisch (Baukasten-App: ausblenden)</option><option value="hide" ${chrome==='hide'?'selected':''}>In der App ausblenden</option><option value="keep" ${chrome==='keep'?'selected':''}>In der App anzeigen</option></select></label>
+   <p class="hint">Eigene Elemente: Klasse <code>elvado-hide-in-app</code> blendet in der App aus, <code>elvado-only-app</code> zeigt nur in der App.</p></div>${phoneHtml(k)}</div></div>`;
  }
- function tabsRedraw(k){const el=document.querySelector(`[data-aptabs="${CSS.escape(k)}"]`);if(el)el.outerHTML=tabsHtml(k);}
+ // Live-Vorschau: die Website im Handy-Rahmen mit App-Modus (?rrw_app=<Marke>) und der Tab-Leiste, wie sie die App zeigt
+ function row(k){return (S.ov?S.ov.items:[]).find(r=>key(r)===k);}
+ function pvUrl(r,path){const o=String(r.origin||'').replace(/\/+$/,''),pa=/^https:/i.test(path||'')?path:o+(path||'/');return pa+(pa.includes('?')?'&':'?')+'rrw_app='+encodeURIComponent(r.brand);}
+ function phoneHtml(k){
+  const r=row(k);if(!r||!r.origin)return '';const t=((S.managed[k]||{}).builder||{}).tabs||[],valid=t.filter(x=>x.title&&x.url),col=r.theme_color||'#070a1c',ek=esc(k);
+  const bar=(r.type==='content'&&valid.length>=2)?`<div class="pv-tabs" style="background:${esc(col)}">${valid.map((x,i)=>`<button type="button" class="${i?'':'on'}" onclick="AppsManager.pvGo('${ek}',${i},this)"><span>${esc(TAB_GLYPHS[x.icon]||TAB_GLYPHS.star)}</span><em>${esc(x.title)}</em></button>`).join('')}</div>`:'';
+  return `<div class="ap-bright" data-appv="${ek}"><div class="pv-live" style="border-color:#111"><div class="pv-live-bar" style="background:${esc(col)}">${esc(r.brand_name)}</div><iframe title="App-Vorschau" loading="lazy" src="${esc(pvUrl(r,valid[0]&&r.type==='content'?valid[0].url:'/'))}"></iframe>${bar}</div><p class="hint">Vorschau der Website im App-Modus mit der Tab-Leiste, wie du sie gerade bearbeitest. Die Einstellung „Kopf und Fuß“ gilt in der Vorschau erst nach „Speichern“.</p><button class="btn-g" type="button" onclick="AppsManager.pvReload('${ek}')"><i class="fas fa-rotate"></i> Vorschau neu laden</button></div>`;
+ }
+ function pvGo(k,i,btn){const r=row(k),t=(((S.managed[k]||{}).builder||{}).tabs||[]).filter(x=>x.title&&x.url),f=document.querySelector(`[data-appv="${CSS.escape(k)}"] iframe`);if(!r||!f||!t[i])return;f.src=pvUrl(r,t[i].url);btn.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===btn));}
+ function pvReload(k){tabsRedraw(k);}
+ function targetSelect(k,i){
+  const t=S.targets||[];if(!t.length)return '';const groups={};t.forEach((x,n)=>{(groups[x.group]=groups[x.group]||[]).push([x,n]);});
+  return `<select class="fc" title="Seite aus dem CMS wählen" onchange="AppsManager.tabPick('${esc(k)}',${i},this.value);this.value=''"><option value="">Seite wählen …</option>${Object.keys(groups).map(g=>`<optgroup label="${esc(g)}">${groups[g].map(([x,n])=>`<option value="${n}">${esc(x.title)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+ }
+ function tabPick(k,i,n){const x=(S.targets||[])[+n],t=tabs(k);if(!x||!t[i])return;t[i].url=x.path;if(!String(t[i].title||'').trim())t[i].title=x.title.slice(0,16);tabsRedraw(k);}
+ function ownBlock(k){const r=row(k);return r&&r.type==='web'?`<div class="ap-bcols" data-aptabs="${esc(k)}"><div class="ap-bleft"><div class="dm-meta">Eine Website-App zeigt deine Website unverändert; Hinweise und Wartung stellst du oben ein. Für eine App mit eigenen Bereichen (Tab-Leiste) wähle den Typ Baukasten-App.</div></div>${phoneHtml(k)}</div>`:tabsHtml(k);}
+ function tabsRedraw(k){const el=document.querySelector(`[data-aptabs="${CSS.escape(k)}"]`);if(el)el.outerHTML=ownBlock(k);}
  function tabSet(k,i,f,v){const t=tabs(k);if(t[i])t[i][f]=v;}
  function tabAdd(k){const t=tabs(k);if(t.length<5)t.push({title:'',icon:'star',url:'/'});tabsRedraw(k);}
  function tabDel(k,i){tabs(k).splice(i,1);tabsRedraw(k);}
@@ -184,5 +206,5 @@ window.AppsManager=(()=>{
  async function refresh(){await render();toast('Aktualisiert');}
  function collect(){return {android_enabled:!!document.getElementById('cmsAndroid')?.checked,windows_enabled:!!document.getElementById('cmsWindows')?.checked,telemetry:S.tel,managed:S.managed};}
  function copy(t){try{navigator.clipboard.writeText(t);toast('Prüfsumme kopiert');}catch(e){toast('Kopieren nicht möglich',true);}}
- return {ready:()=>!!S.ov,render,refresh,set,setList,tabSet,tabAdd,tabDel,tabMove,tabPreset,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
+ return {ready:()=>!!S.ov,render,refresh,set,setList,tabSet,tabPick,pvGo,pvReload,tabAdd,tabDel,tabMove,tabPreset,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
 })();
