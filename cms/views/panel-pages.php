@@ -19,7 +19,7 @@
                 <div style="grid-column:1/-1"><label class="news-lbl">Seiten-Überschrift / Titel überschreiben</label><input id="peHeadline" class="fc w-100" placeholder="leer = vorhandenen Titel verwenden" oninput="pageFieldChanged()"></div>
                 <div style="grid-column:1/-1"><label class="news-lbl">Einleitung / Beschreibung überschreiben</label><textarea id="peIntro" class="fc w-100" rows="3" placeholder="leer = vorhandenen Text verwenden" oninput="pageFieldChanged()"></textarea></div>
                 <div style="grid-column:1/-1" class="pe-seo"><label class="news-lbl"><i class="fas fa-magnifying-glass-chart"></i> Suchmaschinen (SEO)</label>
-                  <input id="peMetaTitle" class="fc w-100" maxlength="160" placeholder="Meta-Titel (leer = Seitentitel – RicoReWi Radio)" oninput="pageFieldChanged()">
+                  <input id="peMetaTitle" class="fc w-100" maxlength="160" placeholder="Meta-Titel (leer = Seitentitel – Website-Name)" oninput="pageFieldChanged()">
                   <textarea id="peMetaDesc" class="fc w-100" rows="2" maxlength="300" placeholder="Meta-Beschreibung (leer = Einleitung)" oninput="pageFieldChanged()" style="margin-top:6px"></textarea>
                   <label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input id="peNoindex" class="switch" type="checkbox" onchange="pageFieldChanged()"> Nicht in Suchmaschinen aufnehmen (noindex, nicht in der Sitemap)</label></div>
               </div>
