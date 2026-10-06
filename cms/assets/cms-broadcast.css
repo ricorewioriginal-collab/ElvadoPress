@@ -68,6 +68,11 @@ table{border-color:var(--border)}
 #cmsLogin>a.btn-g{justify-content:center;width:100%}
 #cmsDenied>i{color:var(--bad)}
 
+/* Desktop: Navigation wächst mit der Seite statt in einem abgeschnittenen eigenen Scrollfenster. */
+@media(min-width:851px){
+  body:not(.cms-folded) .tabs{max-height:none!important;height:auto!important;overflow:visible!important;align-self:start}
+}
+
 /* ── Navigation im WordPress-Aufbau (Gruppen klappen auf, Menü einklappbar) ── */
 .tabs{padding:8px 8px 6px}
 .tabs .tab-group{border:0;background:transparent;border-radius:0;padding:0;margin:0}
