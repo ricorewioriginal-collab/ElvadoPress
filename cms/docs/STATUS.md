@@ -10,8 +10,8 @@
 ## Was läuft
 | Was | Wo | Wie |
 |---|---|---|
-| Live-Seite RicoReWi | ricorewi-radio.de | Workflow `deploy-production.yml` (ricorewi-radio) bei Push auf `main` |
-| Öffentliche Demo | https://elvadopress.ricorewi-radio.de (Info `/demo/`, Verwaltung `/cms/?demo=1`) | Workflow „Deploy ElvadoPress Demo“ (ricorewi-radio), Secret `ELVADOPRESS_DEMO_PATH` |
+| Live-Seite RicoReWi | ricorewi-radio.de | serverseitiges AnMaCha Universal Deploy im Projekt `ricorewi-radio` |
+| Öffentliche Demo | https://elvadopress.ricorewi-radio.de (Info `/demo/`, Verwaltung `/cms/?demo=1`) | serverseitiges AnMaCha Universal Deploy (`elvadopress`) |
 | CMS-Stand in ricorewi-radio | `cms/` | Workflow „Sync ElvadoPress“ (Pull Request `sync/elvadopress`) |
 
 Die Demo nutzt Benutzer `demo`, setzt alle 10 Minuten zurück und sperrt riskante Aktionen (`RRW_DEMO_BLOCKED` in `cms/lib/demo.php`). Sie liegt bewusst auf einer eigenen Subdomain (Wurzelpfade des CMS, Anmeldedaten pro Domain).
