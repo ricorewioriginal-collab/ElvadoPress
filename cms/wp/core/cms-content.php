@@ -33,7 +33,7 @@ function rrw_wp_cms_news_post(array $a): WP_Post {
     $mod=trim((string)($a['updated_at']??$date));if(strlen($mod)<19)$mod=$date;
     $id=(int)($a['id']??0);$slug=(string)($a['slug']??'');
     $p=new WP_Post((object)['ID'=>$id,'post_author'=>(string)rrw_wp_cms_author_id((string)($a['author']??'')),'post_date'=>$date,'post_date_gmt'=>get_gmt_from_date($date)?:$date,'post_content'=>(string)($a['body_html']??''),'post_title'=>esc_html((string)($a['title']??'')),
-        'post_excerpt'=>esc_html((string)($a['excerpt']??'')),'post_status'=>rrw_wp_cms_news_status($a,$date),'comment_status'=>'open','ping_status'=>'closed','post_name'=>$slug,'post_modified'=>$mod,'post_modified_gmt'=>get_gmt_from_date($mod)?:$mod,'post_parent'=>0,'guid'=>home_url('/#news/'.rawurlencode($slug)),'menu_order'=>0,'post_type'=>'post','filter'=>'raw']);
+        'post_excerpt'=>esc_html((string)($a['excerpt']??'')),'post_status'=>rrw_wp_cms_news_status($a,$date),'comment_status'=>(($a['comments']??'default')==='closed'?'closed':'open'),'ping_status'=>'closed','post_name'=>$slug,'post_modified'=>$mod,'post_modified_gmt'=>get_gmt_from_date($mod)?:$mod,'post_parent'=>0,'guid'=>home_url('/#news/'.rawurlencode($slug)),'menu_order'=>0,'post_type'=>'post','filter'=>'raw']);
     $p->rrw_source='news';$p->rrw_data=$a;return $p;
 }
 /** Inhaltsblöcke einer CMS-Seite (html/text) in Anzeigereihenfolge: [Liste, Index, Block, Marker-ID]. */

@@ -4,6 +4,7 @@ require_once __DIR__.'/pack.php';
 require_once __DIR__.'/brand.php';
 require_once __DIR__.'/product.php';
 require_once __DIR__.'/system.php';
+require_once __DIR__.'/htmlsafe.php';
 
 // Kernlogik zum Speichern und Veröffentlichen der CMS-Konfiguration:
 // site.json schreiben, index.html-Snapshot, eigene Seiten, RSS.
@@ -142,14 +143,8 @@ function rrw_news_tag_list(string $tags): array {
     $out=[];foreach(explode(',',$tags) as $t){$t=trim($t);if($t!=='')$out[]=$t;}return $out;
 }
 function rrw_safe_html(string $html): string {
-    $html=preg_replace('#<(script|object|embed|form|input|button|textarea|select)[^>]*>.*?</\1>#is','',$html);
-    $html=strip_tags($html,'<p><br><strong><b><em><i><u><s><ul><ol><li><h1><h2><h3><h4><blockquote><a><span><div><hr><small><code><img><figure><figcaption>');
-    // Ereignis-Attribute nur innerhalb von Tags entfernen – in Anführungszeichen, ohne Anführungszeichen und auch mit „/“ statt Leerzeichen davor
-    $html=preg_replace_callback('/<[a-z][^>]*>/i',function(array $m): string {
-        $t=$m[0];for($i=0;$i<3;$i++)$t=preg_replace('/[\s\/]on[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]*)/i','',$t);return $t;
-    },$html);
-    $html=preg_replace('/javascript\s*:/i','',$html);
-    return substr($html,0,50000);
+    // DOM-basierte Positivliste (cms/lib/htmlsafe.php): Block-Editor-Inhalt (Überschriften, Tabellen, Embeds, Block-Kommentare) bleibt erhalten, alles Aktive fliegt raus
+    return rrw_html_sanitize($html);
 }
 function rrw_clean_blocks($blocks): array {
     $out=[];if(!is_array($blocks))return $out;

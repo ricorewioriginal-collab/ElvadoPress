@@ -142,7 +142,8 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/news-editor.js?v=17"></script>
+<link rel="stylesheet" href="assets/block-editor.css?v=1"><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=1"></script><script src="assets/blocks/editor.js?v=1"></script>
+<script src="assets/news-editor.js?v=18"></script>
 <script src="assets/stock-media.js?v=1"></script>
 <script src="assets/media-manager.js?v=6"></script>
 <script src="assets/theme-manager.js?v=7"></script>
@@ -173,7 +174,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/sandbox.js?v=1"></script>
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
-<script src="assets/cms-app.js?v=42"></script>
+<script src="assets/cms-app.js?v=43"></script>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
 </body>
