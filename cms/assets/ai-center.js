@@ -74,7 +74,7 @@
   }
   function purposeSel(key,label,hint){
     var cur=key==='default'?edit.default_provider:(edit.purposes[key]||'');
-    var opts='<option value="">Automatisch (erster nutzbarer Anbieter)</option>'+usableNow().map(function(p){return '<option value="'+esc(p.id)+'" '+(p.id===cur?'selected':'')+'>'+esc(p.label)+'</option>'}).join('');
+    var opts='<option value="">Automatisch (erster nutzbarer Anbieter)</option>'+provs().map(function(p){var u=usableNow().indexOf(p)>=0;return '<option value="'+esc(p.id)+'" '+(p.id===cur?'selected':'')+(u||p.id===cur?'':' disabled')+'>'+esc(p.label)+(u?'':' – '+(p.needs_key?'Schlüssel fehlt':'ausgeschaltet'))+'</option>'}).join('');
     return '<div><label class="news-lbl">'+esc(label)+'</label><select class="fc w-100" onchange="AiCenter.setPurpose(\''+key+'\',this.value)">'+opts+'</select>'+(hint?'<div class="hint" style="font-size:.66rem;margin-top:3px">'+esc(hint)+'</div>':'')+'</div>';
   }
   function draw(){
