@@ -52,3 +52,23 @@ function rrw_np_migrate(): void {
         $m=rrw_np();$m->installSelection($m->recommendedIds(),false);$m->setMode('upgrade');
     }catch(Throwable $e){ error_log('[ElvadoPress] Plugin-Migration: '.$e->getMessage()); }
 }
+
+/**
+ * Kopplung KI-Zentrale ↔ Plugin „Elvado AI“: Sobald in der KI-Zentrale ein nutzbarer Anbieter eingerichtet ist, wird das Plugin (falls nicht aktiv) installiert und aktiviert.
+ * Nur einmal (Markierung im Plugin-Zustandsordner): schaltet der Administrator das Plugin später bewusst ab, bleibt es aus. Nicht im RicoReWi-Paket und nicht in der Demo.
+ * @return string Meldung für die Verwaltung ('' = nichts getan)
+ */
+function rrw_np_ai_autoactivate(bool $usable,?PluginManager $mgr=null): string {
+    if(!$usable)return '';
+    if(function_exists('rrw_pack_available')&&rrw_pack_available())return '';
+    $mgr??=rrw_np();$id='elvado-ai';
+    $flag=$mgr->stateDir().'/ai-autoactivated';
+    if($mgr->isActive($id)||is_file($flag))return '';
+    if(!isset($mgr->catalog()[$id]))return '';
+    try{
+        $r=$mgr->activate($id,true);
+        if(empty($r['ok']))return '';
+        @file_put_contents($flag,date('c'));
+        return 'Das Plugin „Elvado AI“ wurde aktiviert (KI-Werkzeuge im Editor und im App-Bereich). Du kannst es unter Plugins jederzeit abschalten.';
+    }catch(Throwable $e){ error_log('[ElvadoPress] KI-Plugin automatisch aktivieren: '.$e->getMessage());return ''; }
+}

@@ -153,6 +153,7 @@
       st=d.config;edit={custom:null,purposes:Object.assign({},st.purposes||{}),default_provider:st.default_provider||'',rate_limit:st.rate_limit,providers:{}};busy=false;
       refreshAssistant();
       if(!quiet){toast('KI-Zentrale gespeichert ✓');draw()}
+      if(d.plugin_message)toast(d.plugin_message);
     }).catch(function(e){busy=false;toast(e.message,true);throw e});
   }
   function migrate(){
