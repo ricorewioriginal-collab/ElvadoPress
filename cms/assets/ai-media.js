@@ -22,7 +22,7 @@
   }
   function draw(){
     var h=host();if(!h||!st.data)return;var ps=st.data.providers||[];
-    if(!ps.length){h.innerHTML='<div class="card"><div class="th"><div class="tt"><i class="fas fa-image"></i>Bilder &amp; Videos mit KI</div></div><p class="hint">Dafür braucht es einen Schlüssel für <b>EvoLink</b>, <b>fal.ai</b> oder <b>OpenAI</b>. Trage ihn im Reiter „Zentrale“ ein und schalte den Anbieter ein.</p><button class="btn-a" onclick="AiNav.go(\'aicenter\')"><i class="fas fa-brain"></i> Zur Zentrale</button></div>';return}
+    if(!ps.length){h.innerHTML='<div class="card"><div class="th"><div class="tt"><i class="fas fa-image"></i>Bilder &amp; Videos mit KI</div></div><p class="hint">Dafür braucht es einen Schlüssel für <b>EvoLink</b>, <b>fal.ai</b> oder <b>OpenAI</b>. Trage ihn im Reiter „Zentrale“ ein (die Karten von EvoLink, fal.ai und OpenAI stehen ganz oben) und speichere.</p><button class="btn-a" onclick="AiNav.go(\'aicenter\')"><i class="fas fa-brain"></i> Zur Zentrale</button></div>';return}
     var p=prov(),busy=!!st.job&&!st.res;
     h.innerHTML='<div class="card"><div class="th"><div class="tt"><i class="fas fa-image"></i>Bilder &amp; Videos mit KI</div></div>'
       +'<div class="aim-grid"><label>Anbieter<select class="fc" onchange="AiMedia.set(\'provider\',this.value)">'+ps.map(function(x){return '<option value="'+esc(x.id)+'"'+(x.id===st.provider?' selected':'')+'>'+esc(x.label)+'</option>'}).join('')+'</select></label>'
