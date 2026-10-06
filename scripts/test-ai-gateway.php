@@ -97,6 +97,37 @@ t('Protokoll: Aufrufe und Fehler gezählt, kein Prompt-Text',$sum['openai']['cal
 t('Protokoll enthält keine Schlüssel',!str_contains(json_encode($rows),'sk-test'));
 $def=$cfg->defaultProvider();$cfg->save(['default_provider'=>'google']);$d2=new AiGatewayService(AiGatewayConfig::load($tmp));$reply=fn($u,$h,$b)=>new HttpResponse(200,json_encode(['candidates'=>[['content'=>['parts'=>[['text'=>'G']]]]]]));
 t('Standard-Anbieter wird genutzt, wenn keiner gewählt ist',$d2->generate(['prompt'=>'x'])->provider==='google');
+// ---- KI-Zentrale: gemeinsame Anbieterliste, eigene Anbieter, Dienste ohne Schlüssel, Einsatzzwecke, Übernahme aus dem Assistenten
+$z=$tmp.'/zentral';mkdir($z);$zc=AiGatewayConfig::load($z);
+$cat=AiGatewayService::catalog();
+t('Katalog enthält die gemeinsamen Anbieter (Groq, Cerebras, Pollinations …) und die nativen (Claude, Gemini)',isset($cat['groq'],$cat['cerebras'],$cat['pollinations'],$cat['anthropic'],$cat['google'])&&!isset($cat['gemini']));
+t('Dienste ohne Schlüssel sind nicht ohne Einschalten nutzbar',(new AiGatewayService($zc))->usableProviders()===[]);
+$zc->save(['providers'=>['pollinations'=>['enabled'=>true]]]);$zc=AiGatewayConfig::load($z);
+$u=(new AiGatewayService($zc))->usableProviders();
+t('Eingeschalteter Dienst ohne Schlüssel ist nutzbar (ohne Authorization-Kopf)',count($u)===1&&$u[0]['id']==='pollinations'&&$u[0]['keyless']===true);
+$calls=[];$reply=fn($u,$h,$b)=>$openai('Hallo');$r=$zc->save(['providers'=>['groq'=>['api_key'=>'gsk-test-key-1234']]]);$zc=AiGatewayConfig::load($z);
+t('Anbieter mit Schlüssel stehen vor Diensten ohne Schlüssel',(new AiGatewayService($zc))->usableProviders()[0]['id']==='groq');
+(new AiGatewayService($zc))->generate(['provider'=>'pollinations','prompt'=>'x']);
+t('Aufruf ohne Schlüssel sendet keinen Authorization-Kopf',!array_filter($calls[count($calls)-1]['h'],fn($h)=>stripos($h,'authorization')===0));
+$zc->save(['custom'=>[['id'=>'ollama','label'=>'Ollama (lokal)','base_url'=>'http://localhost:11434/v1','model'=>'llama3.2','needs_key'=>false],['id'=>'openai','label'=>'Doppelt','base_url'=>'https://x.example/v1','model'=>'m'],['id'=>'boese','label'=>'x','base_url'=>'http://evil.example/v1','model'=>'m'],['id'=>'../x','label'=>'x','base_url'=>'https://x.example/v1','model'=>'m']],'providers'=>['ollama'=>['enabled'=>true]]]);
+$zc=AiGatewayConfig::load($z);
+t('Eigener Anbieter: nur gültige (https oder lokal), keine Kennung eines festen Anbieters, keine Sonderzeichen',count($zc->customProviders())===1&&$zc->customProviders()[0]['id']==='ollama');
+t('Eigener Anbieter erscheint im Katalog und ist ohne Schlüssel nutzbar',isset($zc->catalog()['ollama'])&&$zc->catalog()['ollama']['custom']===true&&in_array('ollama',array_column((new AiGatewayService($zc))->usableProviders(),'id'),true));
+$calls=[];$reply=fn($u,$h,$b)=>$openai('Lokal');$res=(new AiGatewayService($zc))->generate(['provider'=>'ollama','prompt'=>'x']);
+t('Eigener Anbieter: Adresse und Modell aus der Einstellung, lokale Adresse erlaubt (allow_local)',$res->text==='Lokal'&&$calls[0]['u']==='http://localhost:11434/v1/chat/completions'&&$calls[0]['b']['model']==='llama3.2'&&!empty($calls[0]['o']['allow_local']));
+$calls=[];(new AiGatewayService($zc))->generate(['provider'=>'groq','prompt'=>'x']);
+t('Feste Anbieter: allow_local ist aus',empty($calls[0]['o']['allow_local']));
+$zc->save(['purposes'=>['builder'=>'groq','developer'=>'gibtsnicht']]);$zc=AiGatewayConfig::load($z);
+t('Einsatzzwecke: gültiger Anbieter gespeichert, unbekannter verworfen',$zc->purposeProvider('builder')==='groq'&&$zc->purposeProvider('developer')==='');
+$calls=[];(new AiGatewayService($zc))->generate(['purpose'=>'builder','prompt'=>'x']);
+t('generate(purpose) wählt den Anbieter des Einsatzzwecks',str_contains($calls[0]['u'],'api.groq.com'));
+// Übernahme der Schlüssel aus dem KI-Assistenten
+$m=$tmp.'/migr';mkdir($m);$mc=AiGatewayConfig::load($m,['assistant'=>['providers'=>[['id'=>'groq','api_key'=>'alt-groq-key-12'],['id'=>'gemini','api_key'=>'alt-gemini-key-1'],['id'=>'unbekannt','api_key'=>'alt-unbek-key-1']]]]);
+t('Altbestand-Schlüssel gelten als „assistant“ und sind in der Admin-Sicht gelistet',$mc->keySource('groq')==='assistant'&&$mc->keySource('google')==='assistant'&&in_array('groq',$mc->adminView()['legacy_keys'],true));
+$moved=$mc->migrateAssistantKeys();$mc2=AiGatewayConfig::load($m);
+t('Übernahme kopiert die Schlüssel in die Zentrale (Gemini → Google), Unbekanntes bleibt draußen',$moved===['groq','google']&&$mc2->ownKey('groq')==='alt-groq-key-12'&&$mc2->ownKey('google')==='alt-gemini-key-1'&&$mc2->keySource('groq')==='central');
+t('Übernahme überschreibt keinen vorhandenen zentralen Schlüssel',(function() use($m){$c=AiGatewayConfig::load($m,['assistant'=>['providers'=>[['id'=>'groq','api_key'=>'andere-key-12345']]]]);return $c->migrateAssistantKeys()===[]&&$c->ownKey('groq')==='alt-groq-key-12';})());
+t('Admin-Sicht der Zentrale ohne Schlüssel (auch eigene Anbieter)',!str_contains(json_encode($zc->adminView()),'gsk-test'));
 Http::useTransport(null);
 t('Echter Client: private/lokale Adressen werden nie angefragt',Http::request('GET','http://127.0.0.1:9/x')->error==='Adresse nicht erlaubt'&&Http::request('GET','https://localhost/x')->error==='Adresse nicht erlaubt'&&Http::request('GET','ftp://x.example/a')->error==='Ungültige Adresse'&&Http::request('GET','https://a.example/x',[],null,['hosts'=>['b.example']])->error==='Host nicht erlaubt');
 system('rm -rf '.escapeshellarg($tmp));

@@ -1,0 +1,183 @@
+[
+    {
+        "id": "pollinations",
+        "label": "Pollinations.ai – kostenlos, ohne API-Key",
+        "type": "openai",
+        "base_url": "https://text.pollinations.ai/openai",
+        "model": "openai",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": false,
+        "models": [
+            "openai-fast",
+            "mistral",
+            "llama"
+        ]
+    },
+    {
+        "id": "llm7",
+        "label": "LLM7.io – kostenlos, ohne API-Key (Turbo-Stufe, limitiert)",
+        "type": "openai",
+        "base_url": "https://api.llm7.io/v1",
+        "model": "mistral-Nemo-Instruct-2407",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": false,
+        "models": [
+            "fast",
+            "default"
+        ]
+    },
+    {
+        "id": "groq",
+        "label": "Groq – kostenloses Kontingent (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model": "llama-3.3-70b-versatile",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "llama-3.1-8b-instant",
+            "openai/gpt-oss-20b",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "qwen/qwen3-32b"
+        ]
+    },
+    {
+        "id": "openrouter",
+        "label": "OpenRouter – kostenlose Modelle, automatisch gewählt (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "auto",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true
+    },
+    {
+        "id": "gemini",
+        "label": "Google Gemini – kostenloses Kontingent (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "model": "gemini-2.0-flash",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "gemini-2.0-flash-lite",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash"
+        ]
+    },
+    {
+        "id": "github",
+        "label": "GitHub Models – kostenlos für GitHub-Konten (API-Key = GitHub-Token)",
+        "type": "openai",
+        "base_url": "https://models.github.ai/inference",
+        "model": "openai/gpt-4.1-mini",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "openai/gpt-4.1-nano",
+            "openai/gpt-4o-mini",
+            "meta/Llama-3.3-70B-Instruct"
+        ]
+    },
+    {
+        "id": "cerebras",
+        "label": "Cerebras – kostenloses Kontingent (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://api.cerebras.ai/v1",
+        "model": "llama-3.3-70b",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "llama3.1-8b",
+            "gpt-oss-120b",
+            "qwen-3-32b"
+        ]
+    },
+    {
+        "id": "mistral",
+        "label": "Mistral – kostenloser Free-Tier (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://api.mistral.ai/v1",
+        "model": "mistral-small-latest",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "open-mistral-nemo",
+            "ministral-8b-latest"
+        ]
+    },
+    {
+        "id": "sambanova",
+        "label": "SambaNova – kostenloses Kontingent, sehr schnell (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://api.sambanova.ai/v1",
+        "model": "Meta-Llama-3.3-70B-Instruct",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "Meta-Llama-3.1-8B-Instruct",
+            "Qwen3-32B"
+        ]
+    },
+    {
+        "id": "nvidia",
+        "label": "NVIDIA NIM – kostenlose Start-Credits (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "model": "meta/llama-3.3-70b-instruct",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "meta/llama-3.1-8b-instruct",
+            "mistralai/mistral-nemo-12b-instruct"
+        ]
+    },
+    {
+        "id": "huggingface",
+        "label": "Hugging Face – monatliche Gratis-Credits (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://router.huggingface.co/v1",
+        "model": "meta-llama/Llama-3.3-70B-Instruct",
+        "enabled": true,
+        "builtin": true,
+        "free": true,
+        "needs_key": true,
+        "models": [
+            "Qwen/Qwen2.5-72B-Instruct"
+        ]
+    },
+    {
+        "id": "openai",
+        "label": "OpenAI – kostenpflichtig (API-Key nötig)",
+        "type": "openai",
+        "base_url": "https://api.openai.com/v1",
+        "model": "gpt-4o-mini",
+        "enabled": false,
+        "builtin": true,
+        "free": false,
+        "needs_key": true,
+        "models": [
+            "gpt-4.1-mini",
+            "gpt-4.1-nano"
+        ]
+    }
+]

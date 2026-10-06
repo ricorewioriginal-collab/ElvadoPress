@@ -176,6 +176,13 @@ t('Sonstige No-ops',upgrade_700()===null&&wp_cache_switch_to_blog_fallback(1)===
 // Bestandsschutz: Laden verändert keine Ausgabe/Optionen; Hooks nicht belegt
 t('Laden: keine zusätzlichen Hooks auf init/wp_head',!has_action('wp_head','wp_enqueue_img_auto_sizes_contain_css_fix')&&!has_action('init','_wp_connectors_init'));
 
+// KI-Zentrale: Schlüssel der Verbinder stehen nur in cms/data/.ai/gateway.json
+$ac=\Elvado\Ai\AiGatewayConfig::load($tmp.'/cms');$ac->save(['providers'=>['openai'=>['api_key'=>'zentral-openai-key-1']]]);
+t('KI-Zentrale: get_option der Verbinder liefert den zentralen Schlüssel',get_option('connectors_ai_openai_api_key')==='zentral-openai-key-1');
+update_option('connectors_ai_google_api_key','von-wordpress-google-key');
+t('KI-Zentrale: Speichern im Verbinder schreibt in die Zentrale und legt keine Kopie in den Optionen ab',\Elvado\Ai\AiGatewayConfig::load($tmp.'/cms')->ownKey('google')==='von-wordpress-google-key'&&!str_contains((string)@file_get_contents($tmp.'/cms/site.json'),'von-wordpress')&&get_option('connectors_ai_google_api_key')==='von-wordpress-google-key');
+update_option('connectors_ai_google_api_key',_wp_connectors_mask_api_key('von-wordpress-google-key'));
+t('KI-Zentrale: maskierter Wert überschreibt den Schlüssel nicht',\Elvado\Ai\AiGatewayConfig::load($tmp.'/cms')->ownKey('google')==='von-wordpress-google-key');
 echo $fail?"$fail Fehler von $n Prüfungen\n":"OK ($n Prüfungen)\n";
 @exec('rm -rf '.escapeshellarg($tmp));
 exit($fail?1:0);

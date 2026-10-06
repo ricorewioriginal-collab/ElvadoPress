@@ -11,8 +11,8 @@
     if(window.ElvadoReact)return Promise.resolve(window.ElvadoReact);
     if(loading)return loading;
     loading=new Promise(function(resolve,reject){
-      var css=document.createElement('link');css.rel='stylesheet';css.href='assets/react/elvado-react.css?v=1';document.head.appendChild(css);
-      var s=document.createElement('script');s.src='assets/react/elvado-react.js?v=1';s.async=true;
+      var css=document.createElement('link');css.rel='stylesheet';css.href='assets/react/elvado-react.css?v=2';document.head.appendChild(css);
+      var s=document.createElement('script');s.src='assets/react/elvado-react.js?v=2';s.async=true;
       s.onload=function(){window.ElvadoReact?resolve(window.ElvadoReact):reject(new Error('Oberfläche nicht verfügbar'))};
       s.onerror=function(){loading=null;reject(new Error('Die Oberfläche konnte nicht geladen werden'))};
       document.head.appendChild(s);

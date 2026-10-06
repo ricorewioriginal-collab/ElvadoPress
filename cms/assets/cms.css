@@ -311,3 +311,19 @@ body.no-pack-ricorewi-radio [data-pack="ricorewi-radio"]{display:none!important}
 body.no-pack-ricorewi-radio:not(.rrw-standalone) [data-pack-app="ricorewi-radio"]{display:none!important}
 .svc-own{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;display:grid;gap:8px}.svc-own-top{display:grid;grid-template-columns:auto 1fr minmax(150px,220px);gap:8px;align-items:center}.svc-own-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.svc-own-bar .ap-ctl{margin-left:auto}@media(max-width:600px){.svc-own-top{grid-template-columns:auto 1fr}.svc-own-top select{grid-column:1/-1}}
 .publish-state[hidden]{display:none!important}
+
+/* KI-Zentrale */
+.aic-group{font-size:.7rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 2px 6px}
+.aic-card{padding:14px}
+.aic-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.aic-grow{flex:1}
+.aic-badge{font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--dim);background:var(--surface3)}
+.aic-badge.good{color:var(--good);border-color:var(--good)}
+.aic-badge.warn{color:#d98a00;border-color:#d98a00}
+.aic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.aic-row{display:flex;gap:6px;align-items:center}
+.aic-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.aic-note{margin:0 0 8px}
+.aic-state,.aic-test,.aic-status{font-size:.74rem}
+.aic-ok{color:var(--good)}.aic-warn{color:#d98a00}.aic-bad{color:var(--bad)}.aic-mute{color:var(--muted)}
+.aic-status{margin-top:8px}

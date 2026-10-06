@@ -3,7 +3,7 @@
 // Modellliste, lokale Anbieter, Website-Suche. Mit RicoReWi-Paket prüft er, dass die bisherigen Vorgaben gelten. Aufruf: php scripts/test-assistant.php
 declare(strict_types=1);
 require_once __DIR__.'/../cms/lib/pack.php';
-require_once __DIR__.'/../cms/lib/assistant.php';
+require_once __DIR__.'/../cms/lib/assistant.php';require_once __DIR__.'/../cms/src/autoload.php';
 $fail=0;$n=0;
 function t(string $name,callable $fn){global $fail,$n;$n++;try{$fn();echo "  ok  $name\n";}catch(Throwable $e){$fail++;echo "FAIL  $name: ".$e->getMessage()."\n";}}
 function eq($a,$b,string $m=''){if($a!==$b)throw new RuntimeException(($m?$m.': ':'').'erwartet '.json_encode($b).', war '.json_encode($a));}
@@ -107,6 +107,33 @@ t('Chat im Website-Modus (ohne Anbieter): Antwort aus den Beiträgen, keine Radi
 }
 t('Test eines einzelnen Modells: Name wird geprüft, unbekannter Anbieter gemeldet',function() use($tmp){
     eq(rrw_assistant_test([],'gibtsnicht',$tmp,'m')['ok'],false);
+});
+// ---- Zentrale KI-Konfiguration (KI-Zentrale): Schlüssel und eigene Anbieter kommen von dort
+if(!function_exists('rrw_data_dir')){function rrw_data_dir():string{return $GLOBALS['tmpData'];}}
+$tmpData=$tmp.'/zentral';mkdir($tmpData);
+t('Ohne zentrale Einstellung bleibt alles wie bisher (Schlüssel des Assistenten gelten)',function(){
+    $c=rrw_assistant_with_central(rrw_assistant_clean(['providers'=>[['id'=>'groq','api_key'=>'alt-key-123456']]]));
+    foreach($c['providers'] as $p)if($p['id']==='groq'){eq($p['api_key'],'alt-key-123456');eq($p['key_source'],'assistant');return;}
+    throw new RuntimeException('groq fehlt');
+});
+t('Zentraler Schlüssel hat Vorrang, Google heißt im Assistenten „gemini“',function() use($tmpData){
+    \Elvado\Ai\AiGatewayConfig::load($tmpData)->save(['providers'=>['groq'=>['api_key'=>'zentral-groq-key-1'],'google'=>['api_key'=>'zentral-google-key-1']]]);
+    $c=rrw_assistant_with_central(rrw_assistant_clean(['providers'=>[['id'=>'groq','api_key'=>'alt-key-123456']]]));$k=[];foreach($c['providers'] as $p)$k[$p['id']]=[$p['api_key'],$p['key_source']];
+    eq($k['groq'],['zentral-groq-key-1','central']);eq($k['gemini'],['zentral-google-key-1','central']);eq($k['openrouter'][1],'');
+});
+t('Eigene Anbieter der Zentrale erscheinen im Assistenten (mit Markierung, ohne Speicherung in site.json)',function() use($tmpData){
+    \Elvado\Ai\AiGatewayConfig::load($tmpData)->save(['custom'=>[['id'=>'ollama','label'=>'Ollama (lokal)','base_url'=>'http://localhost:11434/v1','model'=>'llama3.2','needs_key'=>false]]]);
+    $c=rrw_assistant_with_central(rrw_assistant_clean([]));$o=null;foreach($c['providers'] as $p)if($p['id']==='ollama')$o=$p;
+    if(!$o)throw new RuntimeException('ollama fehlt');eq($o['central'],true);eq($o['needs_key'],false);eq($o['model'],'llama3.2');
+    foreach(rrw_assistant_clean([])['providers'] as $p)if($p['id']==='ollama')throw new RuntimeException('Anbieter der Zentrale darf nicht in die gespeicherte Konfiguration');
+    $v=rrw_assistant_admin_view([]);foreach($v['providers'] as $p)eq($p['api_key'],'','Admin-Sicht ohne Schlüssel');
+    $m=rrw_assistant_merge_keys([],['providers'=>[['id'=>'ollama','central'=>true,'base_url'=>'http://localhost:11434/v1','model'=>'x'],['id'=>'groq']]]);
+    eq(array_column($m['providers'],'id'),['groq'],'zentrale Zeilen werden beim Speichern nicht übernommen');
+});
+t('Anbieter ohne Schlüsselpflicht aus der Zentrale sind im Betrieb bereit; die öffentliche Sicht verrät keine Schlüssel',function() use($tmp){
+    $cfg=rrw_assistant_with_central(rrw_assistant_clean([]));$ids=array_column(rrw_assistant_providers_ready($cfg,$tmp),'id');
+    if(!in_array('ollama',$ids,true)||!in_array('groq',$ids,true))throw new RuntimeException('bereit: '.implode(',',$ids));
+    if(str_contains(json_encode(rrw_assistant_public([])),'zentral-groq'))throw new RuntimeException('Schlüssel in öffentlicher Sicht');
 });
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exit($fail?1:0);

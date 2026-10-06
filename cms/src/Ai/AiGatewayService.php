@@ -40,26 +40,67 @@ final class AiGatewayService
 
     /**
      * Anbieter-Katalog. kind: openai | anthropic | gemini. verified=false: Basis-Adresse/Modellnamen bitte in der Anbieter-Dokumentation prüfen.
+     * Die OpenAI-kompatiblen Anbieter (Groq, OpenRouter, Pollinations …) stehen in cms/lib/ai-providers.json und werden auch vom KI-Assistenten verwendet.
+     * @param list<array<string,mixed>> $custom eigene Anbieter aus der KI-Zentrale (AiGatewayConfig::customProviders())
      * @return array<string,array<string,mixed>>
      */
-    public static function catalog(): array
+    public static function catalog(array $custom = []): array
     {
-        return [
-            'evolink' => ['label' => 'EvoLink Smart Route', 'group' => 'Smart Routing', 'kind' => 'openai', 'base_url' => 'https://api.evolink.ai/v1', 'base_editable' => true, 'model' => 'evolink-auto',
-                'models' => ['evolink-auto'], 'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false,
-                'note' => 'OpenAI-kompatibel mit automatischer Modellwahl (Kosten/Latenz). Basis-Adresse und Modellnamen laut EvoLink-Dokumentation prüfen und hier anpassen.'],
-            'openai' => ['label' => 'OpenAI (GPT)', 'group' => 'Direkt', 'kind' => 'openai', 'base_url' => 'https://api.openai.com/v1', 'base_editable' => false, 'model' => 'gpt-4o-mini',
-                'models' => ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4.1'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'note' => 'Kostenpflichtig.'],
-            'anthropic' => ['label' => 'Anthropic (Claude)', 'group' => 'Direkt', 'kind' => 'anthropic', 'base_url' => 'https://api.anthropic.com/v1', 'base_editable' => false, 'model' => 'claude-sonnet-5-5',
-                'models' => ['claude-sonnet-5-5', 'claude-haiku-4-5-20251001', 'claude-opus-5-5'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => false, 'note' => 'Kostenpflichtig.'],
-            'google' => ['label' => 'Google (Gemini)', 'group' => 'Direkt', 'kind' => 'gemini', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta', 'base_editable' => false, 'model' => 'gemini-2.0-flash',
-                'models' => ['gemini-2.0-flash', 'gemini-2.0-flash-lite'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'note' => 'Kostenloses Kontingent mit API-Schlüssel (Google AI Studio).'],
-            'openrouter' => ['label' => 'OpenRouter (auch kostenlose Modelle)', 'group' => 'Kostenlos / günstig', 'kind' => 'openai', 'base_url' => 'https://openrouter.ai/api/v1', 'base_editable' => false, 'model' => 'openrouter/auto',
-                'models' => ['openrouter/auto', 'meta-llama/llama-3.3-70b-instruct:free'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => false,
-                'note' => 'Viele Modelle über einen Schlüssel; Modelle mit „:free“ sind kostenlos (Verfügbarkeit wechselt).'],
-            'deepseek' => ['label' => 'DeepSeek', 'group' => 'Kostenlos / günstig', 'kind' => 'openai', 'base_url' => 'https://api.deepseek.com', 'base_editable' => false, 'model' => 'deepseek-chat',
-                'models' => ['deepseek-chat', 'deepseek-reasoner'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'note' => 'Sehr günstig.'],
-        ];
+        static $base = null;
+        if ($base === null) {
+            $pre = [];
+            $raw = json_decode((string)@file_get_contents(dirname(__DIR__, 2) . '/lib/ai-providers.json'), true);
+            foreach (is_array($raw) ? $raw : [] as $p) {
+                if (!is_array($p) || ($p['id'] ?? '') === '' || $p['id'] === 'gemini') {   // Google läuft über die native Gemini-Schnittstelle (Eintrag „google“)
+                    continue;
+                }
+                $parts = explode(' – ', (string)$p['label'], 2);
+                $pre[(string)$p['id']] = ['label' => $parts[0], 'group' => !empty($p['free']) ? 'Kostenlos / günstig' : 'Direkt', 'kind' => 'openai', 'base_url' => (string)$p['base_url'], 'base_editable' => false,
+                    'model' => (string)$p['model'], 'models' => array_values(array_unique(array_merge([(string)$p['model']], (array)($p['models'] ?? [])))), 'free' => !empty($p['free']), 'needs_key' => !empty($p['needs_key']),
+                    'verified' => true, 'json_mode' => $p['id'] === 'openai', 'custom' => false,
+                    'note' => ($parts[1] ?? '') !== '' ? ucfirst((string)$parts[1]) : ''];
+            }
+            $pre['openai']['note'] = 'Kostenpflichtig.';
+            $pre['openrouter']['note'] = 'Viele Modelle über einen Schlüssel; Modelle mit „:free“ sind kostenlos (Verfügbarkeit wechselt).';
+            $pre['openrouter']['model'] = 'openrouter/auto';
+            foreach (['pollinations', 'llm7'] as $k) {
+                if (isset($pre[$k])) {
+                    $pre[$k]['group'] = 'Kostenlos ohne Schlüssel';
+                    $pre[$k]['note'] = 'Community-Dienst ohne Anmeldung – Eingaben gehen an Dritte, Qualität und Verfügbarkeit schwanken. Zum Ausprobieren gedacht.';
+                }
+            }
+            $own = [
+                'evolink' => ['label' => 'EvoLink Smart Route', 'group' => 'Smart Routing', 'kind' => 'openai', 'base_url' => 'https://api.evolink.ai/v1', 'base_editable' => true, 'model' => 'evolink-auto',
+                    'models' => ['evolink-auto'], 'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
+                    'note' => 'OpenAI-kompatibel mit automatischer Modellwahl (Kosten/Latenz). Basis-Adresse und Modellnamen laut EvoLink-Dokumentation prüfen und hier anpassen.'],
+                'anthropic' => ['label' => 'Anthropic (Claude)', 'group' => 'Direkt', 'kind' => 'anthropic', 'base_url' => 'https://api.anthropic.com/v1', 'base_editable' => false, 'model' => 'claude-sonnet-5-5',
+                    'models' => ['claude-sonnet-5-5', 'claude-haiku-4-5-20251001', 'claude-opus-5-5'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => false, 'custom' => false, 'note' => 'Kostenpflichtig.'],
+                'google' => ['label' => 'Google (Gemini)', 'group' => 'Direkt', 'kind' => 'gemini', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta', 'base_editable' => false, 'model' => 'gemini-2.0-flash',
+                    'models' => ['gemini-2.0-flash', 'gemini-2.0-flash-lite'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Kostenloses Kontingent mit API-Schlüssel (Google AI Studio).'],
+                'deepseek' => ['label' => 'DeepSeek', 'group' => 'Kostenlos / günstig', 'kind' => 'openai', 'base_url' => 'https://api.deepseek.com', 'base_editable' => false, 'model' => 'deepseek-chat',
+                    'models' => ['deepseek-chat', 'deepseek-reasoner'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Sehr günstig.'],
+            ];
+            $base = [];
+            foreach (['evolink' => $own, 'openai' => $pre, 'anthropic' => $own, 'google' => $own, 'openrouter' => $pre, 'deepseek' => $own] as $id => $src) {
+                if (isset($src[$id])) {
+                    $base[$id] = $src[$id];
+                }
+            }
+            foreach ($pre as $id => $def) {
+                $base[$id] ??= $def;
+            }
+        }
+        $out = $base;
+        foreach ($custom as $c) {
+            $id = (string)($c['id'] ?? '');
+            if ($id === '' || isset($out[$id])) {
+                continue;
+            }
+            $out[$id] = ['label' => (string)$c['label'], 'group' => 'Eigene Anbieter', 'kind' => 'openai', 'base_url' => (string)$c['base_url'], 'base_editable' => true, 'model' => (string)$c['model'],
+                'models' => array_values(array_unique(array_merge([(string)$c['model']], (array)($c['models'] ?? [])))), 'free' => !empty($c['free']), 'needs_key' => !array_key_exists('needs_key', $c) || !empty($c['needs_key']),
+                'verified' => false, 'json_mode' => false, 'custom' => true, 'note' => 'Eigener OpenAI-kompatibler Anbieter (z. B. Ollama oder LM Studio auf diesem Server).'];
+        }
+        return $out;
     }
 
     public function __construct(
@@ -69,15 +110,17 @@ final class AiGatewayService
     ) {
     }
 
-    /** Anbieter, die gerade nutzbar sind (aktiviert + Schlüssel). @return list<array<string,mixed>> */
+    /** Anbieter, die gerade nutzbar sind (aktiviert und mit Schlüssel bzw. ohne Schlüsselpflicht). Anbieter mit Schlüssel stehen vorn, Community-Dienste ohne Schlüssel zuletzt. @return list<array<string,mixed>> */
     public function usableProviders(): array
     {
         $out = [];
-        foreach (self::catalog() as $id => $def) {
-            if ($this->config->enabled($id) && $this->config->apiKey($id) !== '') {
-                $out[] = ['id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'free' => $def['free'], 'model' => $this->config->model($id), 'models' => $def['models']];
+        foreach ($this->config->catalog() as $id => $def) {
+            $keyed = $this->config->apiKey($id) !== '';
+            if ($this->config->enabled($id) && ($keyed || !$def['needs_key'])) {
+                $out[] = ['id' => $id, 'label' => $def['label'], 'group' => $def['group'], 'free' => $def['free'], 'model' => $this->config->model($id), 'models' => $def['models'], 'keyless' => !$keyed];
             }
         }
+        usort($out, static fn(array $a, array $b): int => ((int)$a['keyless']) <=> ((int)$b['keyless']));
         return $out;
     }
 
@@ -88,10 +131,11 @@ final class AiGatewayService
      */
     public function generate(array $req): AiResult
     {
-        $cat = self::catalog();
+        $cat = $this->config->catalog();
         $pid = (string)($req['provider'] ?? '');
         if ($pid === '') {
-            $pid = $this->config->defaultProvider() ?: ($this->usableProviders()[0]['id'] ?? '');
+            $purpose = (string)($req['purpose'] ?? '');
+            $pid = ($purpose !== '' ? $this->config->purposeProvider($purpose) : $this->config->defaultProvider()) ?: ($this->usableProviders()[0]['id'] ?? '');
         }
         if (!isset($cat[$pid])) {
             throw new AiGatewayException('Bitte einen KI-Anbieter wählen.', 400);
@@ -113,8 +157,8 @@ final class AiGatewayService
             throw new AiGatewayException($def['label'] . ' ist ausgeschaltet.', 400);
         }
         $key = $this->config->apiKey($pid);
-        if ($key === '') {
-            throw new AiGatewayException('Für ' . $def['label'] . ' ist noch kein API-Schlüssel hinterlegt (Menü „KI & Lovable“).', 400);
+        if ($key === '' && $def['needs_key']) {
+            throw new AiGatewayException('Für ' . $def['label'] . ' ist noch kein API-Schlüssel hinterlegt (Menü „KI-Zentrale“).', 400);
         }
         $user = (string)($req['user'] ?? '');
         if ($this->limiter !== null && !$this->limiter->hit('ai:' . ($user !== '' ? $user : 'anon'), $this->config->rateLimit(), 3600)) {
@@ -180,7 +224,7 @@ final class AiGatewayService
     private function call(array $def, string $pid, string $key, string $model, string $system, string $user, float $temp, int $maxTokens, bool $wantJson): array
     {
         $base = $this->config->baseUrl($pid);
-        $opts = ['timeout' => 60, 'max_bytes' => 2_000_000];
+        $opts = ['timeout' => 60, 'max_bytes' => 2_000_000, 'allow_local' => !empty($def['custom'])];
         switch ($def['kind']) {
             case 'anthropic':
                 $resp = Http::postJson($base . '/messages', [
@@ -207,7 +251,7 @@ final class AiGatewayService
                 if ($wantJson && !empty($def['json_mode'])) {
                     $payload['response_format'] = ['type' => 'json_object'];
                 }
-                $headers = ['Authorization: Bearer ' . $key];
+                $headers = $key !== '' ? ['Authorization: Bearer ' . $key] : [];
                 if ($pid === 'openrouter') {
                     $headers[] = 'X-Title: ElvadoPress';
                 }
