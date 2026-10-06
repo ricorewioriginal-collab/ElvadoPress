@@ -50,6 +50,18 @@ final class PluginManager
         return $out;
     }
 
+    /** IDs der empfohlenen, verfügbaren offiziellen Plugins (Essentials). @return list<string> */
+    public function recommendedIds(): array
+    {
+        $out = [];
+        foreach ($this->catalog() as $id => $c) {
+            if (!empty($c['recommended']) && $c['status'] === 'available') {
+                $out[] = $id;
+            }
+        }
+        return $out;
+    }
+
     /** Ist die ID für offizielle Plugins reserviert? (Dritt-Pakete dürfen sie nicht verwenden.) */
     public function reservedId(string $id): bool { return isset($this->catalog()[$id]); }
 

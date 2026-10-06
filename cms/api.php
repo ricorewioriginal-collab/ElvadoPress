@@ -361,7 +361,7 @@ function rrw_plugin_catalog(array $site): array {
     if(!is_dir($base))return [];
     foreach(glob($base.'/*',GLOB_ONLYDIR)?:[] as $dir){
         $file=$dir.'/plugin.json';if(!is_file($file))continue;$m=json_decode((string)file_get_contents($file),true);if(!is_array($m))continue;
-        if(($m['type']??'')==='native')continue;   // native Plugins verwaltet das Plugin-System (np_*), nicht diese Liste
+        if(($m['type']??'')==='native'||isset($m['entry'])||rrw_np()->reservedId(rrw_plugin_id((string)($m['id']??basename($dir)))))continue;   // native Plugins verwaltet das Plugin-System (np_*), nicht diese Liste
         $id=rrw_plugin_id((string)($m['id']??basename($dir)));if($id==='')continue;
         $out[]=[
             'id'=>$id,'name'=>(string)($m['name']??$id),'version'=>(string)($m['version']??'1.0.0'),
@@ -531,7 +531,7 @@ function rrw_site_lock(string $dataDir): void {
 rrw_ensure_dirs();
 $action=(string)($_GET['action']??'public');
 // Native Plugins: bei Verwaltungsaktionen für Plugins werden sie nicht vorab geladen (Installieren/Aktualisieren prüft sie selbst); sonst laden die aktiven Plugins hier ihre Erweiterungspunkte
-if(!in_array($action,['np_list','np_plan','np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_settings_get'],true)){ rrw_np_boot(); }
+if(!in_array($action,['np_list','np_plan','np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_settings_get','np_enable_recommended'],true)){ rrw_np_boot(); }
 // Update-Überwachung: öffentlicher Lebenszeichen-Ping (prüft, dass das CMS startet) und – nur solange ein frisches Update überwacht wird – die Gesundheitsprüfung nach der Antwort
 if($action==='update_ping')rrw_json(['status'=>'ok','version'=>rrw_cms_version()]);
 if(is_file($dataDir.'/.update/state.json')&&str_contains((string)@file_get_contents($dataDir.'/.update/state.json'),'"pending"')){
@@ -1636,6 +1636,8 @@ if(str_starts_with($action,'np_')){
     }
     $u=rrw_auth(true);$b=in_array($action,['np_list'],true)?[]:rrw_body();$pid=(string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??''));
     $res=function(array $r,string $what)use($activityLogFile,$u,$pid,$npMgr){ if(!empty($r['ok']))rrw_log_activity($activityLogFile,$u,'plugin',$what.($pid!==''?': '.$pid:'')); rrw_json($r+['plugins'=>$npMgr->rows()],!empty($r['ok'])?200:422); };
+    rrw_np_migrate();
+    if($action==='np_enable_recommended'){$r=$npMgr->installSelection($npMgr->recommendedIds(),true);if($r['activated']||!$r['failed'])$npMgr->setMode('recommended');rrw_log_activity($activityLogFile,$u,'plugin','Empfohlene Plugins aktiviert: '.implode(', ',$r['activated']));rrw_json(['status'=>$r['failed']?'error':'ok','ok'=>!$r['failed'],'message'=>($r['activated']?'Aktiviert: '.implode(', ',array_map(fn($x)=>$npMgr->catalog()[$x]['name']??$x,$r['activated'])).'. ':'').($r['failed']?'Nicht möglich: '.implode(' ',array_map(fn($k,$v)=>(($npMgr->catalog()[$k]['name']??$k).': '.$v),array_keys($r['failed']),$r['failed'])):''),'plugins'=>$npMgr->rows()],$r['failed']?422:200);}
     if($action==='np_list')rrw_json(['status'=>'ok','plugins'=>$npMgr->rows(),'cms_version'=>rrw_cms_version(),'php'=>PHP_VERSION,'mode'=>$npMgr->state()['mode']]);
     if($action==='np_plan')rrw_json(['status'=>'ok']+$npMgr->plan(array_map('strval',(array)($b['ids']??[]))));
     if($action==='np_install'){$r=$npMgr->install($pid,!empty($b['with_deps']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin installiert');}

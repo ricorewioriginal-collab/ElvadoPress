@@ -36,3 +36,19 @@ function rrw_np_tick(): void {
     if(!@touch($f))return;
     Hooks::run('tick',$now);
 }
+
+/**
+ * Bestehende Installation auf das Plugin-System heben: Die empfohlenen Essentials werden installiert, aber NICHT aktiviert – nichts ändert sich am Verhalten der Website,
+ * bis der Administrator sie bewusst einschaltet (Plugins › „Empfohlene aktivieren“). Frische Installationen (Installer) und das RicoReWi-Paket sind nicht betroffen.
+ * Läuft höchstens einmal (Zustandsdatei) und nur bei Aufrufen der Verwaltung.
+ */
+function rrw_np_migrate(): void {
+    static $done=false;if($done)return;$done=true;
+    $cms=dirname(__DIR__);$data=defined('RRW_DATA_DIR')?(string)RRW_DATA_DIR:$cms.'/data';
+    if(is_file($data.'/.plugins/state.json'))return;
+    if(!is_file($data.'/install.lock')&&!is_file($data.'/system.local.json')&&!is_file($data.'/site.json'))return;   // noch nicht eingerichtet
+    if(function_exists('rrw_pack_available')&&rrw_pack_available())return;   // RicoReWi-Paket: Verhalten unverändert lassen
+    try{
+        $m=rrw_np();$m->installSelection($m->recommendedIds(),false);$m->setMode('upgrade');
+    }catch(Throwable $e){ error_log('[ElvadoPress] Plugin-Migration: '.$e->getMessage()); }
+}

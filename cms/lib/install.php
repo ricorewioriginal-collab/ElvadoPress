@@ -8,6 +8,37 @@ require_once __DIR__.'/pack.php';
 // Sperrdatei (install.lock) verhindert jede Wiederholung.
 
 const RRW_INSTALL_PW_MIN = 10;
+const RRW_INSTALL_MODES = [
+    'recommended' => ['label' => 'Empfohlen', 'text' => 'ElvadoPress mit den empfohlenen Essentials: SEO, Security, Backup, Performance, Forms, Analytics, Redirects und KI-Werkzeuge – installiert und aktiviert.'],
+    'minimal' => ['label' => 'Minimal', 'text' => 'Nur ElvadoPress Core. Die grundlegende Sicherheit (Login, Rechte, geschützte Datenordner) gehört zum Core; es wird kein Plugin erzwungen.'],
+    'custom' => ['label' => 'Benutzerdefiniert', 'text' => 'Alle verfügbaren offiziellen Plugins ansehen und selbst wählen. Benötigte Plugins werden automatisch mit ausgewählt.'],
+];
+
+/** Verfügbare offizielle Plugins für die Auswahl im Installer. @return list<array{id:string,name:string,description:string,recommended:bool,status:string,needs:list<string>}> */
+function rrw_install_plugin_choices(): array {
+    require_once __DIR__.'/nplugins.php';
+    $m=rrw_np();$out=[];
+    foreach($m->catalog() as $id=>$c){
+        $needs=[];if($c['status']==='available'){[$man]=$m->libManifest($id);foreach(array_keys($man['requires']['plugins']??[]) as $d)$needs[]=$m->catalog()[$d]['name']??$d;}
+        $out[]=['id'=>$id,'name'=>(string)$c['name'],'description'=>(string)$c['description'],'recommended'=>!empty($c['recommended']),'status'=>(string)$c['status'],'needs'=>$needs];
+    }
+    return $out;
+}
+/**
+ * Plugins gemäß Installationsart einrichten. Ein Fehler hier macht die Einrichtung nie ungültig: Das CMS ist dann installiert, die betroffenen Plugins lassen sich später
+ * in der Verwaltung installieren. @return array{mode:string,installed:list<string>,activated:list<string>,failed:array<string,string>}
+ */
+function rrw_install_plugins_run(array $c): array {
+    $mode=in_array((string)($c['mode']??''),array_keys(RRW_INSTALL_MODES),true)?(string)$c['mode']:'recommended';
+    $res=['mode'=>$mode,'installed'=>[],'activated'=>[],'failed'=>[]];
+    try{
+        require_once __DIR__.'/nplugins.php';$m=rrw_np();
+        $ids=$mode==='recommended'?$m->recommendedIds():($mode==='custom'?array_values(array_filter(array_map('strval',(array)($c['plugins']??[])),fn($x)=>isset($m->catalog()[$x]))):[]);
+        if($ids){$r=$m->installSelection($ids,true);$res=['mode'=>$mode]+$r;}
+        $m->setMode($mode);
+    }catch(Throwable $e){ $res['failed']['_']=mb_substr($e->getMessage(),0,200); }
+    return $res;
+}
 
 /** Passwortregeln der Einrichtung (strenger als die Mindestlänge des lokalen Logins). @return ?string Fehlertext */
 function rrw_install_password_error(string $pw,string $user,string $site): ?string {
@@ -57,7 +88,9 @@ function rrw_install_clean(array $in): array {
     if($dbErr!==null){$e['db']=$dbErr;$db=['driver'=>'none'];}
     $drivers=rrw_db_drivers();
     if(isset($drivers[$db['driver']])&&$drivers[$db['driver']]['ext']!==''&&!extension_loaded($drivers[$db['driver']]['ext']))$e['db']='Die PHP-Erweiterung '.$drivers[$db['driver']]['ext'].' ist auf diesem Server nicht aktiv.';
-    return [['site_name'=>$site,'language'=>$lang,'timezone'=>$tz,'username'=>$user,'display_name'=>$display,'email'=>$email,'password'=>$pw,'db'=>$db,'db_create'=>!empty($in['db_create']),'sample'=>!empty($in['sample'])],$e];
+    $mode=(string)($in['install_mode']??'recommended');if(!isset(RRW_INSTALL_MODES[$mode]))$mode='recommended';
+    $pluginSel=[];foreach((array)($in['plugins']??[]) as $pid)if(is_string($pid)&&preg_match('/^[a-z][a-z0-9-]{2,40}$/',$pid))$pluginSel[]=$pid;
+    return [['site_name'=>$site,'language'=>$lang,'timezone'=>$tz,'username'=>$user,'display_name'=>$display,'email'=>$email,'password'=>$pw,'db'=>$db,'db_create'=>!empty($in['db_create']),'sample'=>!empty($in['sample']),'mode'=>$mode,'plugins'=>$pluginSel],$e];
 }
 /**
  * Einrichtung ausführen. $ctx: siteFile, newsFile, genDir, root, activityLog.
@@ -117,9 +150,10 @@ function rrw_install_run(array $c,array $ctx): array {
         else rrw_write_atomic($ctx['siteFile'],json_encode($site,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
         // Ohne das RicoReWi-Portal (eigenständiges CMS) liefert ein neutrales WordPress-Theme die Website aus
         if(!rrw_pack_available())rrw_install_default_theme();
+        $plugRes=rrw_pack_available()?null:rrw_install_plugins_run($c);   // Essentials je Installationsart (Fehler sind hier nie fatal)
         ftruncate($gate,0);fwrite($gate,json_encode(['installed_at'=>$now],JSON_UNESCAPED_SLASHES)."\n");
         @flock($gate,LOCK_UN);fclose($gate);@chmod($lock,0600);
-        return ['ok'=>true,'message'=>'Die Einrichtung ist abgeschlossen.'];
+        return ['ok'=>true,'message'=>'Die Einrichtung ist abgeschlossen.','plugins'=>$plugRes];
     }catch(Throwable $e){
         foreach($orig as $f=>$content){if($content===null)@unlink($f);else @file_put_contents($f,$content);}
         @flock($gate,LOCK_UN);fclose($gate);@unlink($lock);

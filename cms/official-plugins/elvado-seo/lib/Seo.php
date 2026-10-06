@@ -325,6 +325,11 @@ final class Seo
 
     public function tick(): void
     {
+        $f = $this->np->rootDir() . '/sitemap.xml';
+        $ours = is_file($f) && str_contains((string)@file_get_contents($f, false, null, 0, 200), 'Elvado SEO');
+        if ($this->s('sitemap') && !$ours && !is_file($this->flag())) {
+            @touch($this->flag());   // erste Sitemap nach der Aktivierung (oder wenn eine fremde sitemap.xml im Weg liegt)
+        }
         if (is_file($this->flag())) {
             @unlink($this->flag());
             $this->generate();
