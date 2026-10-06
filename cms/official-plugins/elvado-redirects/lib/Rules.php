@@ -132,7 +132,7 @@ final class Rules
         $st = '/%postname%/';
         try {
             if (function_exists('rrw_wp_boot')) {
-                rrw_wp_boot(['theme' => false]);
+                rrw_wp_boot(['theme' => true]);
             }
             if (function_exists('rrw_wp_link_structure')) {
                 $st = rrw_wp_link_structure();

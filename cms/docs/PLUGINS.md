@@ -1,4 +1,6 @@
-# RicoReWi Radio CMS – Plugin API
+# Plugin API (JavaScript-Plugins)
+
+> Dieses Dokument beschreibt die **reinen Frontend-/Admin-Plugins (JavaScript)**. Native offizielle Plugins mit Server-PHP (Essentials) und das Plugin-System: [PLUGIN-ENTWICKLUNG.md](PLUGIN-ENTWICKLUNG.md). WordPress-Plugins: [WORDPRESS.md](WORDPRESS.md).
 
 Plugins erweitern das Portal ohne beliebigen serverseitigen PHP-Code auszuführen.
 

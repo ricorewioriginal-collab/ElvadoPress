@@ -341,7 +341,7 @@ final class Seo
     {
         try {
             if (function_exists('rrw_wp_boot')) {
-                rrw_wp_boot(['theme' => false]);
+                rrw_wp_boot(['theme' => true]);   // mit Theme: ein früher Start ohne Theme würde ihn für den Rest der Anfrage festschreiben
             }
             if (!class_exists('WP_Query')) {
                 return ['ok' => false, 'message' => 'Die WordPress-Schicht ist nicht verfügbar.', 'count' => 0];

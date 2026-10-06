@@ -58,7 +58,7 @@ $uri=(string)($_SERVER['REQUEST_URI']??'/');
 $reqPath=(string)parse_url($uri,PHP_URL_PATH);
 // Native Plugins (Essentials): laden, geplante Aufgaben, frühe Anfragen (z. B. Seiten-Cache, Weiterleitungen) – siehe cms/lib/nplugins.php
 require_once $cmsDir.'/lib/nplugins.php';
-if($preview===''&&!$sbx){ rrw_np_boot();rrw_np_tick();rrw_np_do('front_request',$uri,$reqPath,(string)($_SERVER['REQUEST_METHOD']??'GET')); }
+if($preview===''&&!$sbx){ rrw_np_boot();rrw_np_do('front_request',$uri,$reqPath,(string)($_SERVER['REQUEST_METHOD']??'GET')); }
 // Wechsel vom CMS: Einmal-Token gegen Sitzungs-Cookie tauschen und auf die saubere Adresse weiterleiten
 if(isset($_GET['rrw_wp_login'])){
     $ok=rrw_wp_sess_token_consume((string)$_GET['rrw_wp_login']);
@@ -72,6 +72,7 @@ if($preview===''&&is_file(RRW_WP_DATA.'/customize-changesets/future.idx')){ try{
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){ $GLOBALS['rrw_wp_raw_body']=(string)file_get_contents('php://input',false,null,0,1048576);}
 $GLOBALS['rrw_wp_req_headers']=['Content-Type'=>(string)($_SERVER['CONTENT_TYPE']??''),'Accept'=>(string)($_SERVER['HTTP_ACCEPT']??''),'X-WP-Nonce'=>(string)($_SERVER['HTTP_X_WP_NONCE']??''),'X-HTTP-Method-Override'=>(string)($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']??'')];
 $r=rrw_wp_dispatch($uri,(string)($_SERVER['REQUEST_METHOD']??'GET'),$_GET,$_POST);
+if($preview===''&&!$sbx)rrw_np_tick();   // geplante Plugin-Aufgaben erst nach dem Laden von WordPress und Theme (sonst würde ein früher Start der WordPress-Schicht das Theme aussperren)
 if($r['status']===404&&$preview===''){
     // Weiterleitungen aus dem CMS (Werkzeuge) haben Vorrang vor der 404-Seite des Themes; unbekannte Pfade werden protokolliert
     try{

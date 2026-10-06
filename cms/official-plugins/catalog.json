@@ -66,7 +66,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "042f674fbbf7a0914f1b8930544ab93b0200d00fb4cc169445ab1fdb8ad5b2b0"
+            "hash": "63e64037b2363daeec57fbffdaca2632ea33916fcd5c85f68b3f0b082daac81b"
         },
         {
             "id": "elvado-seo",
@@ -77,7 +77,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "fdd71b6369f845f7955b389ae4a2c99d8a22c2c5e5cc32ca6148275742308d41"
+            "hash": "8a0d591e4934820fad8704e4a621cdfeb370ee8c10e1444e5766b9d02a290107"
         },
         {
             "id": "elvado-security",

@@ -29,6 +29,10 @@ ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung vo
 - Formulare, Umfragen, Community (Mitglieder, Forum, soziales Netzwerk)
 - SEO, Weiterleitungen, Wartungsmodus, Aktivitätsprotokoll
 
+**ElvadoPress Essentials (offizielle Plugins)**
+- **SEO** (Meta, OpenGraph, Schema.org, Sitemap, Editor-Vorschau), **Security** (Login-Schutz, Header, Prüfungen), **Backup** (Zeitplan, Rotation, Prüfsummen), **Performance** (Seiten-Cache, Lazy Loading, AVIF), **Forms** (Formular-Builder mit SMTP, Spam-Schutz, Webhook), **Analytics** (interne, cookiefreie Statistik; Matomo/Google nur nach bewusster Einrichtung), **Redirects** (automatische Weiterleitungen, Schleifenschutz), **AI** (KI-Werkzeuge für Texte und Apps auf Basis der KI-Zentrale)
+- Die Installationsart wählst du im Installer: *Empfohlen*, *Minimal* oder *Benutzerdefiniert*. Weitere offizielle Plugins (Newsletter, Podcast, Shop …) sind im Katalog als „noch nicht verfügbar“ geführt. Entwicklung eigener Plugins: [cms/docs/PLUGIN-ENTWICKLUNG.md](cms/docs/PLUGIN-ENTWICKLUNG.md).
+
 **Radio-Erweiterungen (für eigene Radio-Apps und -Seiten)**
 - **App-Baukasten:** eigene Android- und Windows-Apps (Radio-App oder Website-App) über GitHub-Actions bauen
 - **Alexa-Skill:** Sprachmodell, Skill-Angaben und Backend aus deinen eigenen Sendern erzeugen
@@ -45,7 +49,7 @@ Die öffentliche Testinstanz mit Demo-Benutzer setzt ihre Daten alle 10 Minuten 
 ## Installation
 
 1. Dateien auf einen Webserver legen (PHP 8.1 oder neuer mit `mbstring`; für den Datenbankspiegel zusätzlich `pdo_sqlite`, `pdo_mysql` oder `pdo_pgsql`; `zip` und `curl` empfohlen). `cms/data/` muss beschreibbar sein.
-2. `https://deine-domain/cms/` öffnen – der Einrichtungsassistent führt durch Website-Name, Sprache, Zeitzone, Administratorkonto und optional die Datenbank.
+2. `https://deine-domain/cms/` öffnen – der Einrichtungsassistent führt durch Website-Name, Sprache, Zeitzone, Administratorkonto, optional die Datenbank und die **Installationsart** (Empfohlen mit allen Essentials, Minimal nur Core, Benutzerdefiniert).
 3. Fertig: Die Website wird sofort mit dem neutralen Standard-Theme ausgeliefert; weitere Themes und Plugins installierst du in der Verwaltung.
 
 Ausführliche Hinweise stehen in [INSTALL.md](INSTALL.md) und in `cms/docs/`.
