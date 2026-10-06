@@ -114,6 +114,7 @@ function rrw_redirects_clean($rules): array {
         $out[]=['id'=>preg_match('/^[a-f0-9]{8}$/',(string)($r['id']??''))?(string)$r['id']:bin2hex(random_bytes(4)),'from'=>$from,'to'=>$to,'code'=>$code,'note'=>mb_substr(trim((string)($r['note']??'')),0,120)];
         if(count($out)>=500)break;
     }
+    if(function_exists('rrw_np_filter'))$out=rrw_np_filter('redirects_clean',$out);   // Plugins (Elvado Redirects): Schleifen erkennen
     return $out;
 }
 /** Erste passende Regel zum Pfad (exakt, Groß-/Kleinschreibung und Schrägstrich am Ende egal; „*“ am Ende = Präfix) oder null. */

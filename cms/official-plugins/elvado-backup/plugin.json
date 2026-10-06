@@ -1,0 +1,30 @@
+{
+  "id": "elvado-backup",
+  "name": "Elvado Backup",
+  "description": "Vollständige Backups (Inhalte, Einstellungen, Medien, Themes, Plugins) mit Prüfsummen, automatische Zeitpläne mit Rotation, Wiederherstellung mit Sicherheitskopie und Download. Passwörter, Schlüssel und serverlokale Dateien werden nicht exportiert. Ersetzt die Engine hinter dem bestehenden Bereich „Backups“.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": true,
+  "category": "Betrieb",
+  "icon": "fa-box-archive",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "tested_up_to": "1.x",
+  "capabilities": ["backup.create", "backup.restore", "backup.download"],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "settings": [
+    { "key": "schedule", "type": "select", "default": "off", "group": "Automatische Backups", "label": "Zeitplan", "help": "Ohne Zeitplan werden Backups nur von Hand erstellt. Geplante Backups laufen, sobald die Website nach der gewählten Zeit aufgerufen wird (oder per Cron über cms/update-cron.php).", "options": [{ "value": "off", "label": "Aus (nur manuell)" }, { "value": "daily", "label": "Täglich" }, { "value": "weekly", "label": "Wöchentlich" }] },
+    { "key": "weekday", "type": "select", "default": "1", "group": "Automatische Backups", "label": "Wochentag", "options": [{ "value": "1", "label": "Montag" }, { "value": "2", "label": "Dienstag" }, { "value": "3", "label": "Mittwoch" }, { "value": "4", "label": "Donnerstag" }, { "value": "5", "label": "Freitag" }, { "value": "6", "label": "Samstag" }, { "value": "7", "label": "Sonntag" }] },
+    { "key": "hour", "type": "number", "default": 3, "min": 0, "max": 23, "group": "Automatische Backups", "label": "Ab Uhrzeit (Stunde)" },
+    { "key": "keep", "type": "number", "default": 7, "min": 1, "max": 50, "group": "Aufbewahrung", "label": "Backups behalten (Rotation)", "help": "Ältere automatische und manuelle Backups werden gelöscht." },
+    { "key": "include_media", "type": "toggle", "default": true, "group": "Umfang", "label": "Medien (Bilder, Dateien) einschließen", "help": "Medien machen Backups groß. Ohne sie bleiben Inhalte, Einstellungen, Themes und Plugins erhalten." },
+    { "key": "notify_email", "type": "email", "default": "", "group": "Benachrichtigung", "label": "E-Mail bei fehlgeschlagenem automatischem Backup", "help": "Leer lassen für keine Benachrichtigung." }
+  ],
+  "actions": [
+    { "id": "create", "label": "Jetzt Backup erstellen", "icon": "fa-plus" },
+    { "id": "verify_all", "label": "Alle Backups prüfen", "icon": "fa-circle-check" }
+  ]
+}

@@ -3,6 +3,50 @@
     "note": "Erzeugt von scripts/build-official-plugins.php – nicht von Hand ändern.",
     "plugins": [
         {
+            "id": "elvado-backup",
+            "name": "Elvado Backup",
+            "description": "Vollständige Backups (Inhalte, Einstellungen, Medien, Themes, Plugins) mit Prüfsummen, automatische Zeitpläne mit Rotation, Wiederherstellung mit Sicherheitskopie und Download. Passwörter, Schlüssel und serverlokale Dateien werden nicht exportiert. Ersetzt die Engine hinter dem bestehenden Bereich „",
+            "category": "Betrieb",
+            "icon": "fa-box-archive",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "2ba764cf4d1c5b7abb18c260b50aa521fcf2216937108e46263a261277ae4e78"
+        },
+        {
+            "id": "elvado-performance",
+            "name": "Elvado Performance",
+            "description": "Seiten-Cache für Besucher, Lazy Loading für Bilder und Einbettungen, AVIF-Bilder (wenn der Server sie kann), optionales Browser-Caching per .htaccess und eine Leistungsübersicht. Sichere Voreinstellungen, keine aggressive Minifizierung.",
+            "category": "Leistung",
+            "icon": "fa-gauge-high",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "5499a5e7b262a23d22effc6a858c85211b72e7ae1a17056d570dfec1e847c8b1"
+        },
+        {
+            "id": "elvado-redirects",
+            "name": "Elvado Redirects",
+            "description": "Legt bei geänderter Beitrags-Adresse automatisch eine Weiterleitung an, erkennt Weiterleitungs-Schleifen und -Ketten und macht aus dem 404-Monitor mit einem Klick eine Weiterleitung. Nutzt die vorhandene Weiterleitungs-Verwaltung unter Werkzeuge (301/302/307/410).",
+            "category": "SEO & Inhalte",
+            "icon": "fa-right-left",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "042f674fbbf7a0914f1b8930544ab93b0200d00fb4cc169445ab1fdb8ad5b2b0"
+        },
+        {
+            "id": "elvado-security",
+            "name": "Elvado Security",
+            "description": "Schutz vor Brute-Force-Angriffen beim Login, Login-Protokoll, Sicherheits-Header, Sicherheitsübersicht und Dateiänderungs-Prüfung. Ergänzt den bestehenden Login, ersetzt ihn nicht.",
+            "category": "Sicherheit",
+            "icon": "fa-shield-halved",
+            "status": "available",
+            "recommended": true,
+            "version": "1.0.0",
+            "hash": "6328cfd0bc7a615125b3871797dc68faf80a37d1791999f663ca1a504f5c15cd"
+        },
+        {
             "id": "elvado-consent",
             "name": "Elvado Consent",
             "description": "Cookie- und Einwilligungsbanner.",
