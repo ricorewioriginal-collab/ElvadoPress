@@ -116,7 +116,7 @@
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-mobile-screen-button"></i><span>Apps &amp; Kanäle</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
-          <button class="tab" data-tab="apps" onclick="cmsTab('apps',this)"><i class="fas fa-mobile-screen"></i>Apps</button>
+          <button class="tab" data-tab="apps" onclick="cmsTab('apps',this);window.AppsManager?.render?.()"><i class="fas fa-mobile-screen"></i>Apps</button>
           <button class="tab" data-pack-app="ricorewi-radio" data-tab="alexa" onclick="cmsTab('alexa',this);window.AlexaManager?.render()"><i class="fab fa-amazon"></i>Alexa-Skill</button>
           <button class="tab" data-pack="ricorewi-radio" data-tab="directory" onclick="cmsTab('directory',this);window.DirectoryManager?.render()"><i class="fas fa-tower-broadcast"></i>Radioverzeichnis<span id="dmTabBadge" class="dm-badge" hidden></span></button>
           <button class="tab" data-tab="social" onclick="cmsTab('social',this)"><i class="fas fa-share-nodes"></i>Social</button>

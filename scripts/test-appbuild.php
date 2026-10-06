@@ -100,5 +100,15 @@ t('Build: Branding-Dateien landen im Repository (Startbild, Screenshots, Store-T
     eq($put,['android/brands.json','brands/meinapp/app_logo.png'],'ohne Branding nur wie bisher');
     exec('rm -rf '.escapeshellarg($root));
 });
+t('brands.json: von Hand ergänzte Angaben (z. B. "radio") bleiben erhalten, bekannte Felder folgen dem CMS (Typ-Wechsel entfernt "type")',function(){
+    $cur=[['id'=>'meinapp','applicationId'=>'de.alt.app','appName'=>'Alt','launchUrl'=>'https://alt.example/','site'=>'https://alt.example','filePrefix'=>'Alt','type'=>'web','themeColor'=>'#111111','radio'=>['podcast'=>true,'shops'=>[['title'=>'Shop','url'=>'https://s.example/']]]],
+          ['id'=>'andere','applicationId'=>'de.x.y','appName'=>'X','launchUrl'=>'https://x/','site'=>'https://x','filePrefix'=>'X']];
+    $GLOBALS['rrw_ab_http']=fn($m,$path,$tok,$json)=>['code'=>200,'body'=>json_encode(['content'=>base64_encode(json_encode($cur)),'sha'=>'x']),'headers'=>[]];
+    [$b]=rrw_ab_clean_brand(['type'=>'radio','applicationId'=>'de.neu.app']+$GLOBALS['__base']);   // Radio-App, ohne Farbe
+    [$json,$err]=rrw_ab_merge_brands(['repo'=>'me/x','branch'=>'app-builder','token'=>'t'],$b);unset($GLOBALS['rrw_ab_http']);
+    eq($err,'');$list=json_decode((string)$json,true);eq(count($list),2);eq($list[1]['id'],'andere','andere Marke unberührt');
+    $e=$list[0];eq($e['applicationId'],'de.neu.app');eq(array_key_exists('type',$e),false,'type entfernt');eq(array_key_exists('themeColor',$e),false,'Farbe entfernt');
+    eq($e['radio']['podcast'],true,'radio-Angaben bleiben');eq($e['radio']['shops'][0]['url'],'https://s.example/');
+});
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exit($fail?1:0);

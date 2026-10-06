@@ -15,7 +15,7 @@ public partial class App : System.Windows.Application
         // complex (e.g. the stations list with many Image elements) - a crash
         // that bypasses every managed exception handler below. Software
         // rendering avoids that GPU/driver dependency entirely.
-        if (Environment.GetEnvironmentVariable("RICOREWI_SCREENSHOT_MODE") == "1")
+        if (Environment.GetEnvironmentVariable("APP_SCREENSHOT_MODE") == "1")
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
         DispatcherUnhandledException += (_, e) =>
@@ -46,7 +46,7 @@ public partial class App : System.Windows.Application
         ErrorReporter.SaveCrash(ex);
         try
         {
-            var outDir = Environment.GetEnvironmentVariable("RICOREWI_SCREENSHOT_DIR");
+            var outDir = Environment.GetEnvironmentVariable("APP_SCREENSHOT_DIR");
             if (string.IsNullOrWhiteSpace(outDir)) outDir = AppContext.BaseDirectory;
             Directory.CreateDirectory(outDir);
             var logPath = Path.Combine(outDir, "windows-screenshot.log");

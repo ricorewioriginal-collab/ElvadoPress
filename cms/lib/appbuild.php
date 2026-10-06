@@ -8,6 +8,8 @@
 if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
 const RRW_AB_WORKFLOW='android-custom-brand.yml';   // Android (Standard-Plattform)
 const RRW_AB_WORKFLOW_WIN='windows-custom-brand.yml';
+const RRW_AB_WIN_PROJECT='windows-native/ElvadoPress.App.Windows.csproj';      // Projektdatei der Windows-App in der App-Vorlage (app-template/)
+const RRW_AB_WIN_PROJECT_OLD='windows-native/RicoReWi.Radio.Windows.csproj';  // frühere Vorlage
 // Plattformen: Workflow-Datei, Anfang des Lauf-Titels (run-name), Muster des Release-Tags und Dateiendungen der Pakete
 const RRW_AB_PLATFORMS=['android'=>['label'=>'Android','workflow'=>RRW_AB_WORKFLOW,'title'=>'App ','tag'=>'app-%s-','tagre'=>'/^app-%s-\d+$/','ext'=>'apk|aab'],
                         'windows'=>['label'=>'Windows','workflow'=>RRW_AB_WORKFLOW_WIN,'title'=>'Windows ','tag'=>'app-%s-win-','tagre'=>'/^app-%s-win-\d+$/','ext'=>'exe']];
@@ -86,7 +88,7 @@ function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
 function rrw_ab_http(string $method, string $path, string $token, ?array $json=null, array $extra=[], int $timeout=25): array {
     if(isset($GLOBALS['rrw_ab_http'])&&is_callable($GLOBALS['rrw_ab_http']))return ($GLOBALS['rrw_ab_http'])($method,$path,$token,$json,$extra);
     $url='https://api.github.com'.$path;$body=$json!==null?json_encode($json,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES):null;
-    $h=array_merge(['Accept: application/vnd.github+json','X-GitHub-Api-Version: 2022-11-28','User-Agent: RicoReWi-CMS-App-Builder','Authorization: Bearer '.$token],$extra);
+    $h=array_merge(['Accept: application/vnd.github+json','X-GitHub-Api-Version: 2022-11-28','User-Agent: ElvadoPress-App-Builder','Authorization: Bearer '.$token],$extra);
     if($body!==null)$h[]='Content-Type: application/json';
     if(function_exists('curl_init')){
         $ch=curl_init($url);$hdr=[];
@@ -119,10 +121,11 @@ function rrw_ab_check(string $dataDir): array {
     $ok=$push;
     $needWin=false;foreach($d['brands'] as $b)if(in_array('windows',(array)($b['platforms']??[]),true))$needWin=true;
     $files=['android/brands.json'=>'App-Quellen (android/)','.github/workflows/'.RRW_AB_WORKFLOW=>'Workflow „'.RRW_AB_WORKFLOW.'“ (Android)'];
-    if($needWin)$files+=['windows-native/RicoReWi.Radio.Windows.csproj'=>'Windows-Quellen (windows-native/)','.github/workflows/'.RRW_AB_WORKFLOW_WIN=>'Workflow „'.RRW_AB_WORKFLOW_WIN.'“ (Windows)'];
+    if($needWin)$files+=[RRW_AB_WIN_PROJECT=>'Windows-Quellen (windows-native/)','.github/workflows/'.RRW_AB_WORKFLOW_WIN=>'Workflow „'.RRW_AB_WORKFLOW_WIN.'“ (Windows)'];
     foreach($files as $p=>$label){
         $x=rrw_ab_http('GET','/repos/'.$d['repo'].'/contents/'.rrw_ab_enc($p).'?ref='.rawurlencode($def),$d['token']);
-        $has=$x['code']===200;$c[]=[$has,$label.($has?' vorhanden':' fehlt – das Repository muss auf den App-Quellen dieses Projekts beruhen.')];$ok=$ok&&$has;
+        if($x['code']!==200&&$p===RRW_AB_WIN_PROJECT)$x=rrw_ab_http('GET','/repos/'.$d['repo'].'/contents/'.rrw_ab_enc(RRW_AB_WIN_PROJECT_OLD).'?ref='.rawurlencode($def),$d['token']);   // Repositories aus der früheren Vorlage
+        $has=$x['code']===200;$c[]=[$has,$label.($has?' vorhanden':' fehlt – das Repository muss auf der App-Vorlage von ElvadoPress (Ordner app-template/) beruhen.')];$ok=$ok&&$has;
     }
     return ['ok'=>$ok,'checks'=>$c,'default_branch'=>$def];
 }
@@ -157,7 +160,9 @@ function rrw_ab_merge_brands(array $d, array $brand): array {
     if(($brand['type']??'radio')==='web')$entry['type']='web';
     if(($brand['themeColor']??'')!=='')$entry['themeColor']=$brand['themeColor'];
     $out=[];$done=false;
-    foreach($list as $b){ if(is_array($b)&&($b['id']??'')===$brand['id']){ $out[]=$entry;$done=true; }else $out[]=$b; }
+    // Zusätzliche Angaben, die von Hand in brands.json stehen (z. B. "radio": {"podcast": true, "shops": […]}), bleiben beim Speichern erhalten
+    $known=['id','applicationId','appName','launchUrl','site','filePrefix','directory','type','themeColor'];
+    foreach($list as $b){ if(is_array($b)&&($b['id']??'')===$brand['id']){ foreach($b as $k=>$v)if(!in_array($k,$known,true)&&!array_key_exists($k,$entry))$entry[$k]=$v;$out[]=$entry;$done=true; }else $out[]=$b; }
     if(!$done)$out[]=$entry;
     return [json_encode($out,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n",''];
 }
@@ -271,7 +276,7 @@ function rrw_ab_download(string $dataDir, string $id, int $assetId): void {
     $name=preg_replace('/[^A-Za-z0-9._-]/','_',$asset['name']);
     header('Content-Type: '.(str_ends_with(strtolower($asset['name']),'.exe')?'application/vnd.microsoft.portable-executable':'application/vnd.android.package-archive'));header('Content-Disposition: attachment; filename="'.$name.'"');header('X-Content-Type-Options: nosniff');header('Cache-Control: no-store');
     if(function_exists('curl_init')){
-        $ch=curl_init($loc);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>false,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>300,CURLOPT_HTTPHEADER=>['User-Agent: RicoReWi-CMS-App-Builder'],
+        $ch=curl_init($loc);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>false,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>300,CURLOPT_HTTPHEADER=>['User-Agent: ElvadoPress-App-Builder'],
             CURLOPT_WRITEFUNCTION=>function($c,$data){ echo $data;return strlen($data); }]);
         curl_exec($ch);curl_close($ch);
     }else{ $fh=@fopen($loc,'rb');if($fh){ while(!feof($fh))echo fread($fh,65536);fclose($fh); } }

@@ -18,7 +18,7 @@ public static class ErrorReporter
     private static string Build(string kind, string message, string where, string stack) =>
         JsonSerializer.Serialize(new Dictionary<string, string>
         {
-            ["platform"] = "windows", ["kind"] = kind, ["message"] = message, ["where"] = where, ["version"] = Version,
+            ["platform"] = "windows", ["brand"] = Brand.Id, ["kind"] = kind, ["message"] = message, ["where"] = where, ["version"] = Version,
             ["os"] = "Windows " + Environment.OSVersion.Version.Major + "." + Environment.OSVersion.Version.Build, ["stack"] = stack
         });
 
@@ -48,7 +48,7 @@ public static class ErrorReporter
     {
         try
         {
-            var json = JsonSerializer.Serialize(new Dictionary<string, object> { ["platform"] = "windows", ["did"] = did, ["station"] = station, ["seconds"] = seconds, ["version"] = Version });
+            var json = JsonSerializer.Serialize(new Dictionary<string, object> { ["platform"] = "windows", ["brand"] = Brand.Id, ["did"] = did, ["station"] = station, ["seconds"] = seconds, ["version"] = Version });
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
             using var res = await http.PostAsync(Brand.SiteBase + "/cms/api.php?action=app_listen", content);
         }

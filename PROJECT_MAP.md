@@ -22,6 +22,8 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/assets/blocks/`, `cms/assets/block-editor.css`, `cms/lib/htmlsafe.php` | Block-Editor (Beiträge, HTML-Blöcke von Seiten) und HTML-Bereinigung; siehe HANDOVER.md. |
 | `cms/assets/admin-themes.css`, `cms/assets/admin-theme.js` | Admin-Designs Neon/Hell/Dunkel/System. |
 | `cms/assets/ai-center.js`, `cms/views/panel-aicenter.php`, `cms/lib/ai-providers.json`, `cms/wp/core/ext/ai-central.php` | KI-Zentrale (zentrale KI-Konfiguration). |
+| `app-template/` (+ `scripts/export-app-template.sh`, `verify-app-template.sh`) | App-Vorlage für den Build-Assistenten (Android/Windows, Website-App und Radio-App), Anleitung `app-template/ANLEITUNG.md`. |
+| `cms/lib/appbuild.php`, `cms/lib/apps.php`, `cms/assets/app-build.js`, `cms/assets/apps-manager.js` | Build-Assistent und Verwaltung der Apps im Betrieb. |
 | `cms/assets/ai-builder.js`, `cms/src/Ai/SiteBuilder.php`, `cms/views/panel-aibuilder.php` | KI-Website-Generator. |
 | `cms/assets/ai-dev.js`, `cms/src/Ai/CodeBuilder.php`, `cms/views/panel-aidev.php` | KI-Entwickler (Plugins/Widgets/Themes). |
 | `cms/src/Ai/MediaGenerator.php`, `cms/assets/ai-media.js`, `cms/assets/ai-nav.js` | KI-Bilder/-Videos (EvoLink, fal.ai, OpenAI) und die gemeinsame KI-Navigation. |

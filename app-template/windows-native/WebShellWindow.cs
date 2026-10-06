@@ -1,22 +1,32 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
+using Button = System.Windows.Controls.Button;
+using Orientation = System.Windows.Controls.Orientation;
+using Brushes = System.Windows.Media.Brushes;
 
 namespace ElvadoPress.App.Windows;
 
 /// <summary>
 /// App-Typ "web": die Website als eigene Windows-App (Vollbild-WebView2) für beliebige Seiten, nicht nur Radio.
 /// Interne Links bleiben im Fenster, fremde Adressen und mailto:/tel: öffnen im Standard-Browser.
+/// Laufzeit-Einstellungen aus dem CMS (Apps → Apps verwalten): Wartungsmodus, Pflicht-Update, Hinweis an alle Nutzer – siehe WebRuntime.
 /// </summary>
 public class WebShellWindow : Window
 {
     private readonly WebView2 _web = new();
     private const string RetryUrl = "https://retry.invalid/";
+    private readonly Grid _root = new();
+    private readonly StackPanel _notice = new() { VerticalAlignment = System.Windows.VerticalAlignment.Top, Visibility = Visibility.Collapsed };
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(6) };
+    private Border? _block;
 
     public WebShellWindow()
     {
@@ -30,8 +40,78 @@ public class WebShellWindow : Window
             if (File.Exists(icon)) Icon = BitmapFrame.Create(new Uri(icon));
         }
         catch { }
-        Content = _web;
-        Loaded += async (_, _) => await InitAsync();
+        _root.Children.Add(_web);
+        _root.Children.Add(_notice);
+        Content = _root;
+        Loaded += async (_, _) => { await InitAsync(); await ApplyRuntimeAsync(); };
+    }
+
+    // ---- Laufzeit-Einstellungen aus dem CMS (nie blockierend: bei jedem Fehler läuft die App normal)
+
+    private async Task ApplyRuntimeAsync()
+    {
+        var c = await WebRuntime.FetchAsync(_http);
+        if (c.Maintenance) ShowBlock(c.MaintenanceTitle, c.MaintenanceText.Length > 0 ? c.MaintenanceText : "Die App ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.", "");
+        else if (c.UpdateRequired) ShowBlock("Update erforderlich", "Diese Version der App wird nicht mehr unterstützt. Bitte installiere die neueste Version.", c.UpdateUrl);
+        else HideBlock();
+        if (!c.Maintenance && !c.UpdateRequired && c.HasNotice && c.NoticeId != WebRuntime.NoticeSeen) ShowNotice(c);
+        else _notice.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowNotice(WebRuntimeConfig c)
+    {
+        _notice.Children.Clear();
+        var warn = c.NoticeLevel == "warn";
+        var box = new Border
+        {
+            Background = new SolidColorBrush(warn ? System.Windows.Media.Color.FromRgb(255, 236, 179) : System.Windows.Media.Color.FromRgb(225, 238, 255)),
+            Padding = new Thickness(16, 10, 16, 10)
+        };
+        var stack = new StackPanel();
+        var dark = new SolidColorBrush(System.Windows.Media.Color.FromRgb(20, 20, 30));
+        if (c.NoticeTitle.Length > 0) stack.Children.Add(new TextBlock { Text = c.NoticeTitle, FontWeight = FontWeights.Bold, FontSize = 15, Foreground = dark, TextWrapping = TextWrapping.Wrap });
+        if (c.NoticeText.Length > 0) stack.Children.Add(new TextBlock { Text = c.NoticeText, FontSize = 13, Foreground = dark, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 6) });
+        var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
+        if (c.NoticeUrl.Length > 0)
+        {
+            var more = new Button { Content = c.NoticeLabel.Length > 0 ? c.NoticeLabel : "Mehr erfahren", Margin = new Thickness(0, 0, 8, 0), Padding = new Thickness(12, 4, 12, 4) };
+            more.Click += (_, _) => OpenExternal(c.NoticeUrl);
+            row.Children.Add(more);
+        }
+        var ok = new Button { Content = "OK", Padding = new Thickness(18, 4, 18, 4) };
+        ok.Click += (_, _) => { WebRuntime.NoticeSeen = c.NoticeId; _notice.Visibility = Visibility.Collapsed; };
+        row.Children.Add(ok);
+        stack.Children.Add(row);
+        box.Child = stack;
+        _notice.Children.Add(box);
+        _notice.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Vollbild-Sperre (Wartungsmodus oder Pflicht-Update) über der Website.</summary>
+    private void ShowBlock(string title, string message, string actionUrl)
+    {
+        HideBlock();
+        var stack = new StackPanel { VerticalAlignment = System.Windows.VerticalAlignment.Center, HorizontalAlignment = System.Windows.HorizontalAlignment.Center, MaxWidth = 520, Margin = new Thickness(24) };
+        stack.Children.Add(new TextBlock { Text = title, FontSize = 24, FontWeight = FontWeights.Bold, Foreground = Brushes.White, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap });
+        stack.Children.Add(new TextBlock { Text = message, FontSize = 15, Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(220, 224, 240)), TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 20) });
+        if (actionUrl.Length > 0)
+        {
+            var go = new Button { Content = "Update laden", Padding = new Thickness(18, 8, 18, 8), Margin = new Thickness(0, 0, 0, 8) };
+            go.Click += (_, _) => OpenExternal(actionUrl);
+            stack.Children.Add(go);
+        }
+        var again = new Button { Content = "Erneut prüfen", Padding = new Thickness(18, 8, 18, 8) };
+        again.Click += async (_, _) => await ApplyRuntimeAsync();
+        stack.Children.Add(again);
+        var bg = System.Windows.Media.Color.FromRgb(7, 10, 28);
+        try { bg = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(Brand.ThemeColor); } catch { }
+        _block = new Border { Background = new SolidColorBrush(bg), Child = stack };
+        _root.Children.Add(_block);
+    }
+
+    private void HideBlock()
+    {
+        if (_block != null) { _root.Children.Remove(_block); _block = null; }
     }
 
     private static bool IsInternal(Uri uri)

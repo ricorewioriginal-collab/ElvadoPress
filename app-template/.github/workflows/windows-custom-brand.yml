@@ -68,6 +68,13 @@ jobs:
           foreach ($f in 'logo-lockup','startscreen') { if (Test-Path "brands/$env:BRAND/$f.png") { Copy-Item "brands/$env:BRAND/$f.png" "windows-native/assets/config/$f.png" -Force } }
           $cfg = [ordered]@{ id = $env:BRAND; name = $env:APP_NAME; website = "$env:APP_SITE/"; type = $env:APP_TYPE; themeColor = $env:APP_THEME }
           if ($env:APP_DIR -eq 'True') { $cfg.directory = $true }
+          # Optionale Funktionen der Radio-App ("radio" im Eintrag von android/brands.json): podcast, communityBase, shops
+          $bb = (Get-Content android/brands.json -Raw | ConvertFrom-Json) | Where-Object { $_.id -eq $env:BRAND } | Select-Object -First 1
+          if ($bb.radio) {
+            if ($bb.radio.podcast -eq $true) { $cfg.podcast = $true }
+            if ($bb.radio.communityBase -match '^https://') { $cfg.communityBase = $bb.radio.communityBase }
+            if ($bb.radio.shops) { $cfg.shops = @($bb.radio.shops) }
+          }
           $cfg | ConvertTo-Json -Compress | Set-Content windows-native/assets/config/brand.json -Encoding utf8
 
       - name: Bauen

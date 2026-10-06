@@ -79,3 +79,8 @@ Es gibt keine allgemeine verpflichtende `.env`-Datei für den normalen CMS-Betri
 Niemals Passwörter, Tokens, API-Keys, private SSH-Keys oder andere Secrets in Repository-Dokumentation oder Beispielwerte übernehmen. Laufzeitkonfigurationen wie `*.local.*` und Inhalte unter `cms/data/` sind entsprechend zu behandeln.
 
 Lizenz: GPL-2.0-or-later, siehe [LICENSE](LICENSE).
+
+## App-Vorlage (`app-template/`)
+- Statische Prüfung (läuft mit allen Tests): `php scripts/test-app-template.php`.
+- Bauen und Testen der Beispiel-Apps: `scripts/verify-app-template.sh [--android-only | --windows-only]` – braucht JDK 17, Android-SDK (Plattform 36, Build-Tools 36.0.0, `ANDROID_HOME`), Gradle ≥ 9.6 (`GRADLE=…`) und für den Windows-Teil das .NET-SDK 8 (kompiliert mit `EnableWindowsTargeting`, ohne Paket). Nicht Teil der CI.
+- Export für ein App-Repository: `scripts/export-app-template.sh <Ordner> [--zip=<Datei.zip>]`.

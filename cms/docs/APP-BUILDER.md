@@ -12,7 +12,7 @@ Beides gibt es für **Android** und **Windows**; pro App wählst du die Plattfor
 Android-Apps werden mit Gradle und dem Android-SDK gebaut. Das läuft nicht auf normalem Webhosting. Der Build läuft deshalb kostenlos bei **GitHub Actions**. Das CMS übernimmt alles Drumherum: Konfiguration schreiben, Build starten, Stand anzeigen, fertige APK ausliefern.
 
 ## Einrichtung (einmalig)
-1. **Repository anlegen** – aus der **App-Vorlage**: Sie enthält nur die Android- und Windows-Quellen, die beiden Build-Workflows und eine leere Marken-Liste (kein CMS, keine fremden Marken). Die Vorlage liegt als `app-template.zip` im Release „app-template“ des RicoReWi-Repositories und wird bei jeder Änderung an den Apps automatisch aktualisiert (`scripts/export-app-template.sh`). ZIP entpacken, in ein neues, leeres GitHub-Repository hochladen (privat ist möglich) und dort optional unter *Settings → Template repository* markieren.
+1. **Repository anlegen** – aus der **App-Vorlage**: Sie liegt im ElvadoPress-Repository im Ordner `app-template/` und als `app-template.zip` im Release. Sie enthält die Android- und Windows-Quellen, die beiden Build-Workflows und eine leere Marken-Liste (kein CMS, keine fremden Marken). Den Inhalt in ein neues, leeres (auch privates) GitHub-Repository legen; `scripts/export-app-template.sh` erzeugt Ordner oder ZIP. Die ausführliche Schritt-für-Schritt-Anleitung steht in `app-template/ANLEITUNG.md` (Wo/Was/Wie, Fehlersuche).
 2. **Token erzeugen** – GitHub → Settings → Developer settings → *Fine-grained personal access tokens*. Zugriff nur auf dieses Repository, Rechte: *Contents: Read and write*, *Actions: Read and write*, *Metadata: Read*.
 3. Im CMS **Repository** (`besitzer/name`) und **Token** eintragen, speichern und **Verbindung prüfen**. Das Token bleibt auf deinem Server (`cms/data/.apps/build.json`, nicht öffentlich) und wird nie an den Browser zurückgegeben.
 
@@ -21,7 +21,16 @@ Android-Apps werden mit Gradle und dem Android-SDK gebaut. Das läuft nicht auf 
 2. **Android bauen / Windows bauen**: Das CMS legt (falls nötig) den Branch `app-builder` aus dem Standard-Branch an, ergänzt die App in `android/brands.json`, lädt das Icon als PNG nach `brands/<id>/app_logo.png` und startet den Workflow. Das dauert etwa 5–10 Minuten.
 3. Die fertigen Pakete erscheinen im CMS zum Download: Android als **APK** (Pre-Release `app-<id>-<nr>`), Windows als **Installer und portable EXE** (Pre-Release `app-<id>-win-<nr>`). Android zum Testen auf dem Handy installieren („Unbekannte Quellen“ erlauben). Die Windows-Dateien sind nicht signiert – SmartScreen kann eine Warnung zeigen („Weitere Informationen → Trotzdem ausführen“).
 
-Die App fragt beim Start deine Website (`app_config`) nach Funktionen, Startseite und Hinweisen – die weitere Gestaltung (Kacheln, Farben, Wartungsmeldungen) erfolgt unverändert im CMS unter **Apps**.
+Die App fragt beim Start deine Website (`app_config&brand=<Marken-ID>`) nach Funktionen, Startseite, Hinweisen und Wartungsmodus – die weitere Gestaltung (Kacheln, Farben, Wartungsmeldungen) erfolgt unverändert im CMS unter **Apps**.
+
+## Eigene Apps im Betrieb verwalten
+CMS → **Apps → Apps verwalten** zeigt auch im eigenständigen CMS alle Apps aus dem Build-Assistenten (je Plattform ein Block). Ohne neuen Build einstellbar:
+
+* **Hinweis an alle Nutzer** (Überschrift, Text, Link, Art) und **Wartungsmodus** – für Website-Apps und Radio-Apps (Android und Windows).
+* **Funktionen** (KI-Assistent, Cast, Sender melden), **Startseite/Kacheln/Menü/Farben** und **eigene Sender** („App-Builder“, „Builder aktiv“) – für Radio-Apps.
+* **Anonyme Nutzungszahlen, Fehlerberichte, Hörstatistik** (standardmäßig aus).
+
+Die App meldet sich mit ihrer Marken-ID (`brand=`); das CMS erkennt sie an der Liste des Build-Assistenten (`cms/data/.apps/build.json`). Update-Steuerung (Mindestversion, stufenweises Ausrollen, Prüfsummen) gibt es nur für Apps, die über diese Website verteilt werden (Hersteller-Paket). Schlägt die Abfrage fehl, startet die App immer normal.
 
 ## Signatur und Play Store
 Ohne Schlüssel entsteht eine **Entwickler-APK** (Debug-Signatur). Für gleichbleibende Signatur und Updates lege diese Repository-Secrets an: `ANDROID_DEVELOPER_KEYSTORE_BASE64`, `ANDROID_DEVELOPER_KEYSTORE_PASSWORD`, `ANDROID_DEVELOPER_KEY_ALIAS`, `ANDROID_DEVELOPER_KEY_PASSWORD`. Pakete für den Play Store (AAB, Release-Schlüssel) werden mit dem Workflow „Android APK / AAB“ im Repository auf Knopfdruck erzeugt.
@@ -44,7 +53,7 @@ Nur angegebene Werte werden ins Repository geschrieben; Apps ohne diese Angaben 
 Für Radio-Apps erzeugt das CMS im Bereich **Alexa-Skill** das einreichfertige Paket (Sprachmodell, Skill-Angaben, Backend, Anleitung) passend zu deinen Sendern. Einreichen musst du es selbst bei Amazon (Developer-Konto, Zertifizierung); der Skill selbst braucht kein Control Center. Für Website-Apps ist kein Skill vorgesehen.
 
 ## Grenzen
-* **Radio-App:** Die Radio-App der Vorlage ist noch auf die Sender der Hersteller-App ausgelegt (Standardsender, laut.fm-Kennungen). Eigene Sender aus dem Builder (`layout.stations.custom`) und Marken ohne diesen Sender-Stamm zeigt sie noch nicht. Für eigene Themen und Inhalte ist die **Website-App** der vollständig allgemeine Typ.
+* **Radio-App:** Die Radio-App zeigt die eigenen Sender aus dem Builder (`layout.stations.custom`, mit „Builder aktiv“) und – falls vorhanden – das Core-Netzwerk der Website. Podcast, Community (Voting, Wünsche, Studiomail, Voicemail) und Shops hängen an Backends der Website und sind standardmäßig aus; sie lassen sich je App im Eintrag in `android/brands.json` unter `"radio"` einschalten (siehe `app-template/ANLEITUNG.md`). Für beliebige Themen und Inhalte ist die **Website-App** der allgemeine Typ.
 * Die Windows-App wird von GitHub Actions gebaut (Windows-Runner, ebenfalls kostenlos im Rahmen des Kontingents).
 * iOS/macOS gibt es nicht (Apple verlangt eigene Konten und Signatur).
 * Für den Build braucht es ein GitHub-Konto; ohne GitHub kann das Repository auch lokal mit Gradle gebaut werden (`gradle -p android assemble<Marke>Developer`).

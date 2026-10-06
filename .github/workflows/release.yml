@@ -34,6 +34,9 @@ jobs:
           mkdir -p dist
           git archive --format=zip --prefix="elvadopress-${VERSION}/" -o "dist/elvadopress-${VERSION}.zip" HEAD
           (cd dist && sha256sum "elvadopress-${VERSION}.zip" > "elvadopress-${VERSION}.zip.sha256")
+          # App-Vorlage für den Build-Assistenten (Apps → Eigene App bauen): als eigene Release-Datei, Anleitung darin (ANLEITUNG.md)
+          scripts/export-app-template.sh --zip=dist/app-template.zip
+          (cd dist && sha256sum app-template.zip > app-template.zip.sha256)
       - uses: softprops/action-gh-release@v2
         if: steps.v.outputs.skip != 'true'
         with:

@@ -32,7 +32,7 @@ public partial class MainWindow
         try
         {
             var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "";
-            var json = await _cmsHttp.GetStringAsync(Brand.SiteBase + "/cms/api.php?action=app_config&platform=windows&version=" + Uri.EscapeDataString(ver) + "&did=" + InstallId());
+            var json = await _cmsHttp.GetStringAsync(Brand.SiteBase + "/cms/api.php?action=app_config&platform=windows" + (Brand.Id.Length > 0 ? "&brand=" + Brand.Id : "") + "&version=" + Uri.EscapeDataString(ver) + "&did=" + InstallId());
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (!root.TryGetProperty("status", out var st) || st.GetString() != "ok") return;

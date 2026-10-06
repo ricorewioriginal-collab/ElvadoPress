@@ -20,7 +20,7 @@ Die Demo nutzt Benutzer `demo`, setzt alle 10 Minuten zurück und sperrt riskant
 `DEPLOY_SSH_*` (vorhanden), `ELVADOPRESS_DEMO_PATH` (Webordner der Demo-Subdomain).
 
 ## Offen (nur der Inhaber kann es tun)
-1. Repository `elvadopress-app-template` anlegen, danach mit `scripts/export-app-template.sh` bzw. dem Workflow `export-app-template.yml` (ricorewi-radio) befüllen.
+1. (erledigt) App-Vorlage liegt im Ordner `app-template/` dieses Repositories; `scripts/export-app-template.sh` erzeugt Ordner/ZIP, das Release hängt `app-template.zip` an. Ein eigenes Repository `elvadopress-app-template` ist nicht nötig.
 2. Zwei offengelegte KI-Schlüssel rotieren.
 3. Echter SMTP-Test mit einem Formular-Plugin.
 

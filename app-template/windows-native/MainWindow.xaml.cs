@@ -91,7 +91,7 @@ public partial class MainWindow : Window
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         var args = Environment.GetCommandLineArgs();
-        var screenshotMode = Environment.GetEnvironmentVariable("RICOREWI_SCREENSHOT_MODE") == "1"
+        var screenshotMode = Environment.GetEnvironmentVariable("APP_SCREENSHOT_MODE") == "1"
             || args.Any(a => string.Equals(a, "--screenshots", StringComparison.OrdinalIgnoreCase));
 
         if (!_singleInstanceMutex.WaitOne(TimeSpan.Zero, true))
@@ -145,7 +145,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            var outDir = Environment.GetEnvironmentVariable("RICOREWI_SCREENSHOT_DIR");
+            var outDir = Environment.GetEnvironmentVariable("APP_SCREENSHOT_DIR");
             if (string.IsNullOrWhiteSpace(outDir)) outDir = AppContext.BaseDirectory;
             Directory.CreateDirectory(outDir);
             File.AppendAllText(Path.Combine(outDir, "windows-screenshot.log"),
@@ -284,7 +284,7 @@ public partial class MainWindow : Window
     private async Task CaptureScreenshotSetAsync()
     {
         var args = Environment.GetCommandLineArgs();
-        var outDir = Environment.GetEnvironmentVariable("RICOREWI_SCREENSHOT_DIR");
+        var outDir = Environment.GetEnvironmentVariable("APP_SCREENSHOT_DIR");
         var argIndex = Array.FindIndex(args, a => string.Equals(a, "--screenshot-dir", StringComparison.OrdinalIgnoreCase));
         if (argIndex >= 0 && argIndex + 1 < args.Length && !string.IsNullOrWhiteSpace(args[argIndex + 1]))
             outDir = args[argIndex + 1];
@@ -564,7 +564,7 @@ public partial class MainWindow : Window
 
     private async Task ShowStationsAsync()
     {
-        Page("RICOReWi × ANMACHA", "Unsere Sender");
+        Page(Brand.Name.ToUpperInvariant(), "Sender");
         foreach (var id in _owned)
         {
             try { ContentHost.Children.Add(await BuildStationCardAsync(id)); }

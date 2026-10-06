@@ -1,8 +1,8 @@
 <?php $own=!function_exists('rrw_standalone')||!rrw_standalone(); /* eigenständig: nur eigene Apps, die mitgelieferten Apps des Herstellers bleiben verborgen */ ?>
 <section id="panel-apps" class="panel">
-  <div class="card" data-pack="ricorewi-radio"<?= $own?'':' hidden' ?>>
+  <div class="card">
     <div class="th" style="margin-bottom:10px">
-      <div><div class="wp-page-title">Apps verwalten</div><div class="wp-subtitle">Stand der Android- und Windows-Apps je Marke, Funktionen ein-/ausschalten, Hinweise an alle Nutzer und Mindestversion. Die Apps holen diese Einstellungen beim Start und alle 6 Stunden ab; Änderungen gelten ohne neues Update. Neue App-Versionen bieten sich den Nutzern zum Laden und Installieren an.</div></div>
+      <div><div class="wp-page-title">Apps verwalten</div><div class="wp-subtitle">Deine Apps im laufenden Betrieb: Hinweise an alle Nutzer, Wartungsmodus, Funktionen ein-/ausschalten, Startseite der Radio-Apps und anonyme Nutzungszahlen. Die Apps holen diese Einstellungen beim Start ab; Änderungen gelten ohne neuen Build. Apps des Herstellers zeigen zusätzlich Stand, Mindestversion und Updates.</div></div>
       <button class="btn-a" onclick="saveApps()"><i class="fas fa-floppy-disk"></i> Speichern</button>
     </div>
     <div id="appsManager"></div>

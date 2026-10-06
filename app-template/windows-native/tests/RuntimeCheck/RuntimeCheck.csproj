@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Prüft die Auswertung der CMS-Antwort (app_config) der Website-App ohne Windows und ohne Netz. Aufruf: dotnet run mit dem Projekt tests/RuntimeCheck -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\WebRuntime.cs" />
+    <Compile Include="..\..\Brand.cs" />
+  </ItemGroup>
+</Project>

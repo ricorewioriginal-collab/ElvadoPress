@@ -1,22 +1,37 @@
-# App-Vorlage für den Build-Assistenten
+# ElvadoPress App-Vorlage
 
-Diese Vorlage enthält die Quellen der Android- und Windows-App und die Build-Workflows. Sie wird vom **Build-Assistenten im CMS** (Apps → Eigene App bauen) benutzt: Das CMS trägt deine Apps in `android/brands.json` ein, lädt das Icon nach `brands/<id>/app_logo.png` und startet den Workflow – gebaut wird kostenlos bei GitHub Actions.
+Diese Vorlage macht aus einer ElvadoPress-Website installierbare **Android-** und **Windows-Apps**. Sie gehört zum **Build-Assistenten im CMS** (Apps → *Eigene App bauen*): Das CMS trägt deine Apps in `android/brands.json` ein, lädt Icon und Bilder hoch, startet die Build-Workflows und liefert die fertigen Pakete wieder aus. Alles Weitere (Hinweise, Wartung, Startseite der Radio-App …) steuerst du später **ohne neuen Build** im CMS unter *Apps → Apps verwalten*.
 
-## Einrichtung
-1. Auf GitHub **„Use this template“** wählen (oder den Inhalt in ein neues, leeres Repository hochladen). Privat ist möglich.
-2. Ein **Fine-grained Token** nur für dieses Repository erzeugen: *Contents: Read and write*, *Actions: Read and write*, *Metadata: Read*.
-3. Im CMS unter **Apps → Eigene App bauen** Repository (`besitzer/name`) und Token eintragen, **Verbindung prüfen**, App anlegen, **bauen**.
+**Ausführliche Anleitung (Wo/Was/Wie): [ANLEITUNG.md](ANLEITUNG.md)**
+
+## App-Typen
+
+| Typ | Wofür | Was die App tut |
+| --- | --- | --- |
+| **Website-App** (`web`) | jede Website: Shop, Verein, Magazin, Portfolio, Firma … | Deine Website im Vollbild, interne Links bleiben in der App, fremde Adressen/E-Mail/Telefon öffnen extern, Offline-Seite, eigene Farbe. Hinweise, Wartungsmodus und Pflicht-Update kommen aus dem CMS. |
+| **Radio-App** (`radio`) | Webradios | Sender (Core-Netzwerk deiner Website + eigene Streams), Player mit Hintergrundwiedergabe, Sendeplan, Favoriten, News, Cast, KI-Assistent – Funktionen, Startseite und Menü im CMS einstellbar. |
+
+Beides gibt es für **Android** (APK) und **Windows** (Installer + portable EXE); pro App wählst du die Plattformen.
+
+## Schnellstart
+
+1. Aus diesem Ordner ein eigenes GitHub-Repository machen (privat genügt) – siehe [ANLEITUNG.md](ANLEITUNG.md), Abschnitt 1.
+2. Fine-grained Token für genau dieses Repository erzeugen (*Contents*, *Actions*: Read and write, *Metadata*: Read).
+3. Im CMS unter **Apps → Eigene App bauen** Repository und Token eintragen, **Verbindung prüfen**, App anlegen, **bauen**.
 
 ## Inhalt
-| Ordner | Zweck |
+
+| Pfad | Zweck |
 | --- | --- |
-| `android/`, `android-app/` | Android-App (Radio-App und Website-App), Marken aus `android/brands.json` |
+| `android/`, `android-app/` | Android-App (Website-App und Radio-App), Marken aus `android/brands.json` |
 | `windows-native/` | Windows-App (WPF/WebView2) |
 | `.github/workflows/android-custom-brand.yml` | baut die Android-APK einer Marke |
 | `.github/workflows/windows-custom-brand.yml` | baut Installer und portable EXE einer Marke |
-| `brands/<id>/` | Icon und Bilder je Marke (legt das CMS an) |
+| `brands/<id>/` | Icon, Startbild, Logo, Store-Texte je App (legt das CMS an) |
+| `scripts/create-developer-keystore.*` | einmalig den Android-Signaturschlüssel erzeugen |
+| `icon-512.png`, `android-app/assets/config/` | Standard-Icon und Standardbilder (Platzhalter, werden pro App überschrieben) |
 
-## Signatur (optional)
-Ohne Schlüssel entstehen Entwickler-Pakete. Für gleichbleibende Android-Signatur: Repository-Secrets `ANDROID_DEVELOPER_KEYSTORE_BASE64`, `ANDROID_DEVELOPER_KEYSTORE_PASSWORD`, `ANDROID_DEVELOPER_KEY_ALIAS`, `ANDROID_DEVELOPER_KEY_PASSWORD`.
+## Hinweise
 
-Die Vorlage wird mit `scripts/export-app-template.sh` aus dem RicoReWi-Projekt erzeugt; Änderungen an den Apps bitte dort vornehmen und die Vorlage neu exportieren.
+* Die Quellen enthalten keine Marken- oder Zugangsdaten. Der interne Quelltext-Paketname `app.elvadopress.client` ist **nicht** die App-Kennung – die vergibst du pro App im CMS (z. B. `de.meinefirma.app`).
+* Änderungen an dieser Vorlage gehören in das ElvadoPress-Repository (Ordner `app-template/`); danach das eigene App-Repository aktualisieren (ANLEITUNG, Abschnitt 8).

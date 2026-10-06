@@ -65,6 +65,23 @@ public final class AppConfig {
             cfg.podcast = json.optBoolean("podcast", false);
         } catch (Exception ignored) {
         }
+        // Funktionen je Marke aus android/brands.json ("radio": podcast, communityBase, shops) – überschreiben die Datei app-config.json
+        try {
+            JSONObject radio = new JSONObject(BuildConfig.RADIO_CONFIG);
+            if (radio.has("podcast")) cfg.podcast = radio.optBoolean("podcast", false);
+            String cb = radio.optString("communityBase", "");
+            if (cb.startsWith("https://")) cfg.communityBase = cb.endsWith("/") ? cb : cb + "/";
+            JSONArray shops = radio.optJSONArray("shops");
+            if (shops != null) {
+                cfg.shops.clear();
+                for (int i = 0; i < shops.length(); i++) {
+                    JSONObject sh = shops.optJSONObject(i);
+                    if (sh == null || !sh.optString("url").startsWith("https://")) continue;
+                    cfg.shops.add(new String[]{sh.optString("title", sh.optString("url")), sh.optString("desc", ""), sh.optString("url")});
+                }
+            }
+        } catch (Exception ignored) {
+        }
         // Das Portal der App ist die Website der Marke (android/brands.json → site); Impressum und Datenschutz liegen dort, sofern nichts anderes konfiguriert ist
         try {
             String site = context.getString(R.string.site_base).trim();

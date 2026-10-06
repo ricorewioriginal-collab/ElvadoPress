@@ -48,7 +48,7 @@
                     <Grid Margin="24,12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="360"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock x:Name="PageEyebrow" Text="RICOReWi RADIO" Foreground="{StaticResource CyanBrush}" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock x:Name="PageEyebrow" Text="" Foreground="{StaticResource CyanBrush}" FontSize="11" FontWeight="Bold"/>
                             <TextBlock x:Name="PageTitle" Text="Start" FontSize="26" FontWeight="Bold"/>
                         </StackPanel>
                         <TextBox x:Name="QuickSearch" Grid.Column="1" Height="44" VerticalContentAlignment="Center"

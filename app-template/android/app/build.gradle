@@ -20,6 +20,8 @@ def ciVersionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1") as Integer
 // Product Flavor mit eigener Paket-ID, eigenem App-Namen, eigener Start-URL und eigenen
 // Branding-Dateien (android/app/src/<id>/res bzw. assets). Das CMS (Apps → Eigene App bauen) trägt die Marken ein.
 def brandList = new groovy.json.JsonSlurper().parse(file("../brands.json"))
+// Java-String-Literal aus beliebigem Text (für buildConfigField)
+def javaString = { String t -> '"' + t.replace('\\', '\\\\').replace('"', '\\"') + '"' }
 
 android {
     namespace 'app.elvadopress.client'
@@ -56,6 +58,8 @@ android {
                 resValue 'string', 'launch_url', b.launchUrl
                 resValue 'string', 'site_base', b.site
                 resValue 'string', 'theme_color', (b.themeColor ?: '#070A1C')   // Statusleiste/Hintergrund (App-Typ web)
+                // Optionale Funktionen der Radio-App je Marke ("radio" im Eintrag von android/brands.json): podcast, communityBase, shops – siehe ANLEITUNG.md
+                buildConfigField 'String', 'RADIO_CONFIG', javaString(groovy.json.JsonOutput.toJson(b.radio ?: [:]))
                 buildConfigField 'String', 'APP_TYPE', '"' + (b.type == 'web' ? 'web' : 'radio') + '"'   // radio = Radio-App (Standard), web = Website als App
                 resValue 'bool', 'has_directory', (b.directory ? 'true' : 'false')  // Radioverzeichnis-Funktionen (Marken mit Verzeichnis)
                 resValue 'string', 'asset_statements', '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"' + b.site + '"}}]'
@@ -115,6 +119,8 @@ android {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
     implementation 'androidx.media3:media3-exoplayer:1.8.0'
     implementation 'androidx.media3:media3-session:1.8.0'
     implementation 'androidx.media3:media3-cast:1.8.0'

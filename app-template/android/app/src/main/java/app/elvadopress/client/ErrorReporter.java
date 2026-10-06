@@ -37,7 +37,7 @@ final class ErrorReporter {
     }
 
     static JSONObject build(String kind, String message, String where, String version, String stack) throws Exception {
-        return new JSONObject().put("platform", "android").put("kind", kind).put("message", message).put("where", where)
+        return new JSONObject().put("platform", "android").put("brand", BuildConfig.FLAVOR).put("kind", kind).put("message", message).put("where", where)
                 .put("version", version).put("os", "Android " + Build.VERSION.RELEASE).put("stack", stack == null ? "" : stack);
     }
 
@@ -66,7 +66,7 @@ final class ErrorReporter {
     /** Hörsitzung (nur Sender + Sekunden) an das CMS, wenn die Hörstatistik dort eingeschaltet ist. Blockierend. */
     static void listen(String site, String did, String station, int seconds, String version) {
         try {
-            byte[] body = new JSONObject().put("platform", "android").put("did", did).put("station", station)
+            byte[] body = new JSONObject().put("platform", "android").put("brand", BuildConfig.FLAVOR).put("did", did).put("station", station)
                     .put("seconds", seconds).put("version", version).toString().getBytes(StandardCharsets.UTF_8);
             HttpURLConnection c = (HttpURLConnection) new URL(site + "/cms/api.php?action=app_listen").openConnection();
             c.setRequestMethod("POST");

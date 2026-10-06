@@ -739,7 +739,7 @@ public class MainActivity extends Activity {
         LinearLayout copy = Ui.vbox(this);
         copy.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout head = Ui.hbox(this);
-        miniStation = Ui.text(this, "RICOREWI RADIO", 10, Ui.CYAN, Ui.BOLD);
+        miniStation = Ui.text(this, getString(R.string.app_name).toUpperCase(java.util.Locale.ROOT), 10, Ui.CYAN, Ui.BOLD);
         miniStation.setAllCaps(true);
         miniStation.setLetterSpacing(0.06f);
         miniStation.setSingleLine(true);
@@ -4267,7 +4267,7 @@ public class MainActivity extends Activity {
         lastAppConfigCheck = System.currentTimeMillis();
         io.execute(() -> {
             try {
-                JSONObject d = getJson(siteBase() + "/cms/api.php?action=app_config&platform=android&version="
+                JSONObject d = getJson(siteBase() + "/cms/api.php?action=app_config&platform=android&brand=" + BuildConfig.FLAVOR + "&version="
                         + URLEncoder.encode(appVersion(), "UTF-8") + "&code=" + appVersionCode() + "&did=" + installId());
                 if (!"ok".equals(d.optString("status"))) return;
                 JSONObject tm = d.optJSONObject("telemetry");

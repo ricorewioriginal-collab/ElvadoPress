@@ -241,9 +241,28 @@ function rrw_apps_change_summary(string $section,$old,$new): string {
 }
 
 // Übersicht für das CMS: jede aktive Marke x Plattform
-function rrw_apps_overview(array $site,string $root): array {
+/** Eigene Apps aus dem Build-Assistenten (cms/data/.apps/build.json): Kennung → ['id','appName','type','platforms','site','icon']. */
+function rrw_apps_own(string $dataDir): array {
+    $f=rrw_apps_dir($dataDir).'/build.json';$d=is_file($f)?json_decode((string)@file_get_contents($f),true):null;$out=[];
+    foreach(is_array($d)?(array)($d['brands']??[]):[] as $b){
+        if(!is_array($b)||!preg_match('/^[a-z][a-z0-9]{2,19}$/',(string)($b['id']??'')))continue;
+        $pl=array_values(array_filter((array)($b['platforms']??['android']),fn($x)=>isset(RRW_APPS_PLATFORMS[$x])))?:['android'];
+        $out[$b['id']]=['id'=>$b['id'],'appName'=>(string)($b['appName']??$b['id']),'type'=>($b['type']??'radio')==='web'?'web':'radio','platforms'=>$pl,'site'=>(string)($b['site']??''),'icon'=>(string)($b['icon']??'')];
+    }
+    return $out;
+}
+/** Marken-Angabe für app_config, wenn die App eine eigene App des Build-Assistenten ist (Parameter brand=<Kennung>); sonst null (Marke wie bisher aus dem Hostnamen). */
+function rrw_apps_own_brand(array $own,string $id): ?array {
+    $id=strtolower(trim($id));if(!isset($own[$id]))return null;
+    return ['brand'=>$id,'id'=>$id,'origin'=>$own[$id]['site'],'directory'=>false];
+}
+/**
+ * Übersicht je Marke und Plattform. $own: eigene Apps des Build-Assistenten (zusätzliche Zeilen, ohne Downloads auf dieser Website);
+ * $onlyOwn: nur diese Zeilen (eigenständiger Betrieb – die Marken des Herstellers gehören nicht dazu).
+ */
+function rrw_apps_overview(array $site,string $root,array $own=[],bool $onlyOwn=false): array {
     $reg=rrw_brands_registry($site);$rows=[];
-    foreach($reg['items'] as $b){
+    foreach($onlyOwn?[]:$reg['items'] as $b){
         if(empty($b['enabled']))continue;
         $dom=trim((string)($b['primary_domain']??''));
         foreach(RRW_APPS_PLATFORMS as $pk=>$pl){
@@ -251,7 +270,14 @@ function rrw_apps_overview(array $site,string $root): array {
             $e=rrw_apps_entry($site,$b['id'],$pk);
             $rows[]=['brand'=>$b['id'],'brand_name'=>(string)($b['name']??$b['id']),'directory'=>!empty($b['directory']),'platform'=>$pk,'platform_name'=>$pl,
                 'origin'=>$dom!==''?'https://'.$dom:'','meta'=>$m,'config'=>$e,'health'=>rrw_apps_health($m,$e,$pk),
-                'shown'=>!empty($site['apps'][$pk.'_enabled'])||!array_key_exists($pk.'_enabled',(array)($site['apps']??[]))];
+                'shown'=>!empty($site['apps'][$pk.'_enabled'])||!array_key_exists($pk.'_enabled',(array)($site['apps']??[])),'own'=>false,'type'=>'radio'];
+        }
+    }
+    foreach($own as $a){
+        foreach($a['platforms'] as $pk){
+            $rows[]=['brand'=>$a['id'],'brand_name'=>$a['appName'],'directory'=>false,'platform'=>$pk,'platform_name'=>RRW_APPS_PLATFORMS[$pk],
+                'origin'=>$a['site'],'meta'=>['available'=>false,'version'=>'','built_at'=>'','files'=>[]],'config'=>rrw_apps_entry($site,$a['id'],$pk),'health'=>[],
+                'shown'=>true,'own'=>true,'type'=>$a['type']];
         }
     }
     return ['status'=>'ok','default'=>$reg['default'],'items'=>$rows,'features'=>RRW_APPS_FEATURES];
