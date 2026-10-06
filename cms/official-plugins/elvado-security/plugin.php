@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+if (!isset($np) || !($np instanceof \Elvado\Plugin\Context)) {
+    http_response_code(403);   // direkter Aufruf der Datei im Browser: nichts ausführen
+    exit;
+}
 // Elvado Security – Einstiegspunkt. Läuft nur als offizielles, unverändertes Plugin (siehe cms/src/Plugin/PluginManager.php).
 require_once __DIR__ . '/lib/Guard.php';
 

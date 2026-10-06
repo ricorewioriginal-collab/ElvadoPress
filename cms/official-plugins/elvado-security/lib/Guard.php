@@ -73,12 +73,27 @@ final class Guard
 
     // ---------------------------------------------------------------- Login-Schutz
 
+    /** Adresse des Besuchers; hinter einem vertrauten Proxy die linke Adresse aus X-Forwarded-For. */
+    private function clientIp(string $given): string
+    {
+        if ($this->s('trust_proxy')) {
+            foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR'] as $h) {
+                $v = trim(explode(',', (string)($_SERVER[$h] ?? ''))[0]);
+                if ($v !== '' && filter_var($v, FILTER_VALIDATE_IP)) {
+                    return $v;
+                }
+            }
+        }
+        return $given;
+    }
+
     /** Filter login_check: Fehlertext, wenn für diese Adresse oder diesen Benutzer gesperrt ist. */
     public function loginCheck(mixed $prev, string $user, string $ip): mixed
     {
         if (!$this->s('login_limit')) {
             return $prev;
         }
+        $ip = $this->clientIp($ip);
         $now = time();
         $keys = [$this->key('ip', $ip)];
         if (self::cleanUser($user) !== '') {
@@ -101,6 +116,7 @@ final class Guard
     /** Aktion login_result: zählen, sperren, protokollieren. */
     public function loginResult(string $user, bool $ok, string $ip): void
     {
+        $ip = $this->clientIp($ip);
         $now = time();
         if ($this->s('login_limit')) {
             $max = max(3, (int)$this->s('max_attempts'));

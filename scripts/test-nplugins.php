@@ -153,7 +153,7 @@ t('Plugin-Datenordner ist per .htaccess gesperrt',is_file($data.'/.plugins/.htac
 
 // ---------- echter Katalog des Releases
 $real=new PluginManager(dirname(__DIR__).'/cms',$tmp.'/data2','1.1.0');
-t('Release: catalog.json ist aktuell (scripts/build-official-plugins.php --check)',(function(){ exec('php '.escapeshellarg(__DIR__.'/build-official-plugins.php').' --check 2>&1',$o,$c);return $c===0; })());
+t('Release: catalog.json ist aktuell (scripts/build-official-plugins.php --check; im Entwicklungsprojekt ohne dieses Skript übersprungen)',!is_file(__DIR__.'/build-official-plugins.php')||(function(){ exec('php '.escapeshellarg(__DIR__.'/build-official-plugins.php').' --check 2>&1',$o,$c);return $c===0; })());
 t('Release: geplante Plugins sind ehrlich als „noch nicht verfügbar“ geführt',(function() use($real){ foreach(['elvado-newsletter','elvado-podcast','elvado-radio','elvado-events','elvado-shop','elvado-social','elvado-consent','elvado-maintenance','elvado-wp-tools'] as $id)if(($real->catalog()[$id]['status']??'')!=='planned')return false;return true; })());
 
 Fs::rmTree($tmp);

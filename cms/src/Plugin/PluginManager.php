@@ -307,8 +307,21 @@ final class PluginManager
         return ['ok' => true, 'message' => $done ? 'Installiert: ' . implode(', ', array_map(fn($x) => $this->catalog()[$x]['name'] ?? $x, $done)) . '.' : 'Bereits installiert.', 'installed' => $done];
     }
 
+    /** PHP-Dateien unter cms/plugins/ sind nicht direkt aufrufbar (nur das Plugin-System lädt sie). JS/CSS bleiben abrufbar. */
+    private function protectPluginsDir(): void
+    {
+        if (!is_dir($this->pluginsDir)) {
+            @mkdir($this->pluginsDir, 0755, true);
+        }
+        $f = $this->pluginsDir . '/.htaccess';
+        if (!is_file($f) && is_dir($this->pluginsDir)) {
+            @file_put_contents($f, "# PHP-Dateien der Plugins werden nur vom Plugin-System geladen, nie direkt aufgerufen\n<FilesMatch \"\\.(php|phtml|phar)$\">\n  <IfModule mod_authz_core.c>\n    Require all denied\n  </IfModule>\n  <IfModule !mod_authz_core.c>\n    Order allow,deny\n    Deny from all\n  </IfModule>\n</FilesMatch>\n");
+        }
+    }
+
     private function installOne(string $id): array
     {
+        $this->protectPluginsDir();
         if (!$this->libraryVerified($id)) {
             return ['ok' => false, 'message' => 'Das Paket „' . $id . '“ ist beschädigt oder wurde verändert und wird nicht installiert.'];
         }

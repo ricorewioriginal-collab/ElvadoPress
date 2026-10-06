@@ -43,6 +43,8 @@ t('Offizielle Plugins sind serverseitig als offiziell verifiziert',(function() u
 reboot($cms);
 t('Boot der aktiven Essentials ohne Fehler',!$mgr->state()['errors']&&Hooks::$errors===[]);
 
+// ---------- Schutz der Plugin-Dateien
+t('Plugins: PHP-Dateien unter cms/plugins sind per .htaccess nicht direkt aufrufbar; direkter Aufruf von plugin.php führt nichts aus',is_file($cms.'/plugins/.htaccess')&&str_contains(file_get_contents($cms.'/plugins/.htaccess'),'FilesMatch')&&(function() use($cms){ $o=shell_exec('php '.escapeshellarg($cms.'/plugins/elvado-security/plugin.php').' 2>&1');return !str_contains((string)$o,'Fatal')&&!str_contains((string)$o,'Undefined variable'); })());
 // ---------- Elvado Security
 $S=fn(string $call,array $a=[])=>$mgr->callApi('elvado-security',$call,$a,'admin');
 $mgr->saveSettings('elvado-security',['max_attempts'=>3,'lock_minutes'=>5]);
@@ -51,6 +53,7 @@ t('Security: vor Fehlversuchen keine Sperre',rrw_np_filter('login_check',null,'r
 for($i=0;$i<3;$i++)rrw_np_do('login_result','rico',false,$ip);
 $msg=rrw_np_filter('login_check',null,'rico',$ip);
 t('Security: nach zu vielen Fehlversuchen gesperrt (Meldung mit Minuten)',is_string($msg)&&str_contains($msg,'Minute'));
+t('Security: hinter Proxy zählt standardmäßig die Verbindungsadresse; mit „Proxy vertrauen“ die Header-Adresse',(function() use($mgr){ $mgr->saveSettings('elvado-security',['trust_proxy'=>true]);$_SERVER['HTTP_X_FORWARDED_FOR']='203.0.113.77, 10.0.0.1';$a=is_string(rrw_np_filter('login_check',null,'zzz','10.9.9.9'));unset($_SERVER['HTTP_X_FORWARDED_FOR']);$mgr->saveSettings('elvado-security',['trust_proxy'=>false]);$_SERVER['HTTP_X_FORWARDED_FOR']='203.0.113.77';$b=rrw_np_filter('login_check',null,'zzz','10.9.9.9');unset($_SERVER['HTTP_X_FORWARDED_FOR']);return $a&&$b===null; })());
 t('Security: andere Adresse, anderer Benutzer bleibt frei',rrw_np_filter('login_check',null,'anna','198.51.100.9')===null);
 rrw_np_do('login_result','rico',true,'198.51.100.5');
 t('Security: erfolgreicher Login hebt die Benutzer-Sperre nicht für fremde Adresse auf, Adress-Sperre bleibt',is_string(rrw_np_filter('login_check',null,'x',$ip)));

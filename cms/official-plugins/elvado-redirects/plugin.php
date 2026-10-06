@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+if (!isset($np) || !($np instanceof \Elvado\Plugin\Context)) {
+    http_response_code(403);   // direkter Aufruf der Datei im Browser: nichts ausführen
+    exit;
+}
 // Elvado Redirects – Einstiegspunkt (nur als offizielles, unverändertes Plugin ausgeführt).
 require_once __DIR__ . '/lib/Rules.php';
 

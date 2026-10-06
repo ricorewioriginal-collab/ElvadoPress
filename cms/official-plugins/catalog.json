@@ -11,7 +11,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "315c64846b8c10a40d1c7823c217946c843990fc7d51de0a65f46684135b16b4"
+            "hash": "5390f7e558a60debce55f624aa1cba6f3c4e79ae7c19a48160080d0804d80ec2"
         },
         {
             "id": "elvado-analytics",
@@ -22,7 +22,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "4e2baac23ff6da4b9164b513dd74958602fffe1faee4794a3eeacf89c5e46a49"
+            "hash": "e01f63e3cdd4cb1d3142fab00ff23f93497fe745f79b392958c4bcb528a77d0c"
         },
         {
             "id": "elvado-backup",
@@ -33,7 +33,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "2ba764cf4d1c5b7abb18c260b50aa521fcf2216937108e46263a261277ae4e78"
+            "hash": "5542dfe8cf5b726bb7d38085409a9c033831c87d81c18f4a80963b5d01dd0a00"
         },
         {
             "id": "elvado-forms",
@@ -44,7 +44,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "e1fbc77ae52c548d9876bab52d4137a21745629573afa7f054a0d4b8fd23cf00"
+            "hash": "6c886b2dac94450124aac10bd553cd663cae2a39d04c2fdc1de86048b154a796"
         },
         {
             "id": "elvado-performance",
@@ -55,7 +55,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "5499a5e7b262a23d22effc6a858c85211b72e7ae1a17056d570dfec1e847c8b1"
+            "hash": "7a9e005afbd7fb0a0225ddaa52c4a1beac599dfce00c7d698129f53b16fe4de2"
         },
         {
             "id": "elvado-redirects",
@@ -66,7 +66,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "63e64037b2363daeec57fbffdaca2632ea33916fcd5c85f68b3f0b082daac81b"
+            "hash": "a87cad9fb8a3b865708a796a0101a5ae9605d2d7f0ce89dba8db8e4e9d9a5b22"
         },
         {
             "id": "elvado-seo",
@@ -77,7 +77,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "8a0d591e4934820fad8704e4a621cdfeb370ee8c10e1444e5766b9d02a290107"
+            "hash": "56924af6c2880a66eeda0f3a173cc1dabdd4830e33b175f05eb097e30d2e99b4"
         },
         {
             "id": "elvado-security",
@@ -88,7 +88,7 @@
             "status": "available",
             "recommended": true,
             "version": "1.0.0",
-            "hash": "6328cfd0bc7a615125b3871797dc68faf80a37d1791999f663ca1a504f5c15cd"
+            "hash": "257f993fedf225c128dcaf8d58a6f7f7fbe73e8ac40086f8c7f297031222cf34"
         },
         {
             "id": "elvado-consent",

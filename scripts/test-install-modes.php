@@ -2,6 +2,8 @@
 // Installer-Modi (Empfohlen, Minimal, Benutzerdefiniert) und Upgrade einer bestehenden Installation – über den echten Einrichtungsassistenten (HTTP, Wegwerf-Kopie des CMS).
 declare(strict_types=1);
 $real=dirname(__DIR__);$n=0;$fail=0;
+require_once $real.'/cms/lib/pack.php';
+if(rrw_pack_available()){ echo "übersprungen: Mit dem RicoReWi-Paket richtet der Installer keine Essentials ein (eigenständiges CMS)\n";exit(0); }
 function t(string $name,bool $ok,string $info=''): void { global $n,$fail;$n++;if(!$ok){$fail++;echo "FAIL  $name".($info!==''?": $info":'')."\n";}else echo "  ok  $name\n"; }
 function rm(string $d): void { if(!is_dir($d)||is_link($d)){@unlink($d);return;}foreach(scandir($d)?:[] as $f)if($f!=='.'&&$f!=='..')rm($d.'/'.$f);@rmdir($d); }
 function http(string $method,string $url,array $headers=[],string $body=''): array {
