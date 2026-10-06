@@ -1,6 +1,7 @@
 <?php
 // Prüft die Update-Sicherheit der App-Verwaltung (cms/lib/apps.php): Aufruf  php scripts/test-apps.php
 declare(strict_types=1);
+if(!defined('RRW_DATA_DIR')){$td=sys_get_temp_dir().'/apps-data-'.bin2hex(random_bytes(4));mkdir($td,0777,true);define('RRW_DATA_DIR',$td);register_shutdown_function(fn()=>system('rm -rf '.escapeshellarg($td)));}   // Zwischenspeicher nicht im echten cms/data anlegen
 require_once __DIR__.'/../cms/lib/publish.php';
 require_once __DIR__.'/../cms/lib/apps.php';
 $fail=0;$n=0;

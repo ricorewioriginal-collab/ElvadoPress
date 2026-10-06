@@ -1021,6 +1021,17 @@ if($action==='branding_assign'){
 if($action==='core_validate'){rrw_auth(false);$st=strtolower(trim((string)($_GET['station']??'')));if(!preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$st))rrw_json(['status'=>'error','message'=>'Ungültiger Sendername'],400);$raw=@file_get_contents('https://api.laut.fm/station/'.rawurlencode($st));$d=json_decode((string)$raw,true);if(!is_array($d)||empty($d['name']))rrw_json(['status'=>'error','message'=>'Sender bei laut.fm nicht gefunden'],404);rrw_json(['status'=>'ok','station'=>$d]);}
 if($action==='core_add'){rrw_auth(false);$b=rrw_body();$st=strtolower(trim((string)($b['station']??'')));if(!preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$st))rrw_json(['status'=>'error','message'=>'Ungültiger Sendername'],400);$list=(array)($site['core_network']['stations']??[]);if(!in_array($st,$list,true))$list[]=$st;$site['core_network']=rrw_clean_section('core_network',['stations'=>$list]);rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','stations'=>$site['core_network']['stations']]);}
 if($action==='core_remove'){rrw_auth(true);$b=rrw_body();$st=strtolower(trim((string)($b['station']??'')));if($st==='ricorewi')rrw_json(['status'=>'error','message'=>'ricorewi ist geschützt'],400);if(strtolower(trim((string)($b['typed']??'')))!==$st||trim((string)($b['confirm']??''))!=='ENTFERNEN '.$st)rrw_json(['status'=>'error','message'=>'Sicherheitsbestätigung stimmt nicht'],400);$list=array_values(array_filter((array)($site['core_network']['stations']??[]),fn($x)=>$x!==$st));$site['core_network']=rrw_clean_section('core_network',['stations'=>$list]);rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','stations'=>$site['core_network']['stations']]);}
+if($action==='admin_prefs_get'||$action==='admin_prefs_save'){   // persönliche Einstellungen der Verwaltung (Design), pro Benutzer, nicht pro Browser
+    $u=rrw_auth(false);$pf=$dataDir.'/.prefs/admin.json';$all=is_file($pf)?json_decode((string)@file_get_contents($pf),true):[];$all=is_array($all)?$all:[];$name=(string)($u['user']??'');
+    if($name==='')rrw_json(['status'=>'error','message'=>'Kein Benutzer'],400);
+    if($action==='admin_prefs_save'){
+        $b=rrw_body();$t=(string)($b['theme']??'');if(!in_array($t,['neon','light','dark','auto'],true))rrw_json(['status'=>'error','message'=>'Unbekanntes Design'],400);
+        $all[$name]=['theme'=>$t];$dir=dirname($pf);if(!is_dir($dir)&&!@mkdir($dir,0775,true)&&!is_dir($dir))rrw_json(['status'=>'error','message'=>'Ordner nicht beschreibbar'],500);
+        if(!is_file($dir.'/.htaccess'))@file_put_contents($dir.'/.htaccess',"Require all denied\n<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n");
+        rrw_write_atomic($pf,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+    }
+    rrw_json(['status'=>'ok','theme'=>(string)($all[$name]['theme']??'')]);
+}
 if($action==='media_alt_save'){rrw_auth(false);$b=rrw_body();try{rrw_json(['status'=>'ok']+rrw_media_alt_save((string)($b['id']??''),(string)($b['alt']??'')));}catch(RuntimeException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],$e->getCode()>=400?$e->getCode():400);}}
 if($action==='media_library_list'){rrw_auth(false);rrw_json(['status'=>'ok','items'=>rrw_media_library_items($site)]);}
 if($action==='media_library_upload'){rrw_auth(false);$sizes=rrw_media_sizes($_POST['sizes']??'64,128,192,256,512,1024,1600');$quality=max(45,min(100,(int)($_POST['quality']??86)));$result=rrw_media_library_upload_variants($sizes,$quality);rrw_json(['status'=>'ok']+$result);}

@@ -141,7 +141,7 @@ function rrw_apps_vcmp(string $a,string $b): int {
 function rrw_apps_sha_check(string $path,string $expected): ?bool {
     $expected=strtolower(trim($expected));
     if(!preg_match('/^[a-f0-9]{64}$/',$expected)||!is_file($path))return null;       // unbekannt: keine Prüfsumme angegeben
-    $cf=rrw_apps_dir(dirname(__DIR__).'/data').'/hashcache.json';$cache=is_file($cf)?(json_decode((string)@file_get_contents($cf),true)?:[]):[];
+    $cf=rrw_apps_dir(defined('RRW_DATA_DIR')?rtrim((string)RRW_DATA_DIR,'/'):dirname(__DIR__).'/data').'/hashcache.json';$cache=is_file($cf)?(json_decode((string)@file_get_contents($cf),true)?:[]):[];
     $key=basename($path);$sig=filesize($path).':'.filemtime($path);
     if(!isset($cache[$key])||($cache[$key]['sig']??'')!==$sig){
         $h=@hash_file('sha256',$path);if($h===false)return false;
