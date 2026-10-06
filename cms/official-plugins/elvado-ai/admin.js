@@ -9,7 +9,10 @@
     return fetch('/cms/api.php?action=np_call',{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:JSON.stringify({id:'elvado-ai',call:name,args:args||{}})})
       .then(function(r){return r.json().catch(function(){return{status:'error',message:'Unerwartete Antwort'};});}).then(function(d){if(d.status!=='ok'&&!d.message)d.message='Fehler';return d;});
   }
-  function status(){if(st)return Promise.resolve(st);return call('status').then(function(d){st=d;return d;});}
+  function status(){   // das Promise (nicht erst das Ergebnis) merken: sonst startet jede DOM-Änderung bis zur Antwort eine neue Anfrage
+    if(!st)st=call('status').then(function(d){if(d.status!=='ok')st=null;return d;},function(e){st=null;throw e;});
+    return st;
+  }
   function toast(m,err){(window.cmsToast||function(x){alert(x);})(m,!!err);}
   window.ElvadoAi={call:call,status:status,toast:toast};
   function busy(btn,on){btn.disabled=on;btn.dataset.t=btn.dataset.t||btn.innerHTML;btn.innerHTML=on?'<i class="fas fa-spinner fa-spin"></i> KI arbeitet …':btn.dataset.t;}
@@ -39,6 +42,6 @@
       }
     });
   }
-  new MutationObserver(build).observe(document.body,{childList:true,subtree:true});
+  var tm=0;new MutationObserver(function(){if(tm)return;tm=setTimeout(function(){tm=0;build();},150);}).observe(document.body,{childList:true,subtree:true});   // gebündelt, damit eigene Änderungen keine Schleife auslösen
   build();
 })();

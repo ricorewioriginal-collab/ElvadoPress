@@ -1067,7 +1067,7 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
             $aiCfg=\Elvado\Ai\AiGatewayConfig::load($dataDir,$site);
             if($action==='ai_status')rrw_json(['status'=>'ok','providers'=>(new \Elvado\Ai\AiGatewayService($aiCfg))->usableProviders(),'tasks'=>\Elvado\Ai\AiGatewayService::TASKS,'default'=>$aiCfg->defaultProvider()]);
             if($action==='ai_config_get')rrw_json(['status'=>'ok','config'=>$aiCfg->adminView(),'tasks'=>\Elvado\Ai\AiGatewayService::TASKS]);
-            if($action==='ai_config_save'){ $aiCfg->save(is_array($kB['config']??null)?$kB['config']:[]);rrw_log_activity($activityLogFile,$kUser,'ai_config','KI-Gateway: Einstellungen gespeichert');rrw_json(['status'=>'ok','config'=>$aiCfg->adminView()]); }
+            if($action==='ai_config_save'){ $aiCfg->save(is_array($kB['config']??null)?$kB['config']:[]);rrw_log_activity($activityLogFile,$kUser,'ai_config','KI-Gateway: Einstellungen gespeichert');$npMsg='';if(!rrw_demo_enabled()){$npMsg=rrw_np_ai_autoactivate((bool)(new \Elvado\Ai\AiGatewayService($aiCfg))->usableProviders());}rrw_json(['status'=>'ok','config'=>$aiCfg->adminView(),'plugin_message'=>$npMsg]); }
             if($action==='ai_migrate_legacy'){   // Schlüssel, die früher im KI-Assistenten eingetragen wurden, in die KI-Zentrale übernehmen und dort entfernen
                 $moved=$aiCfg->migrateAssistantKeys();$cleared=0;$sa=(array)($site['assistant']??[]);
                 foreach((array)($sa['providers']??[]) as $i=>$p){if(is_array($p)&&trim((string)($p['api_key']??''))!==''&&$aiCfg->ownKey(\Elvado\Ai\AiGatewayConfig::centralId(strtolower((string)($p['id']??''))))!==''){$sa['providers'][$i]['api_key']='';$cleared++;}}

@@ -146,3 +146,10 @@ Zustand: `cms/data/.plugins/` (`state.json`, `settings/`, `data/<id>/`, `backup/
 ## Tests
 
 `php scripts/test-nplugins.php` (Framework), `php scripts/test-essentials.php` (alle Essentials), `php scripts/test-install-modes.php` (Installer-Modi und Upgrade über HTTP). Vor jedem Commit nach Plugin-Änderungen `php scripts/build-official-plugins.php`.
+
+
+## Hinweis zu Oberflächen-Skripten (`admin.js`)
+Wer in einem Plugin-Skript einen `MutationObserver` auf `document.body` setzt, darf dort keine Änderungen am DOM oder Netzwerkanfragen ungebündelt auslösen: Die Verwaltung ändert den DOM bei jeder Anfrage selbst (Ladeanzeige), das ergibt sonst eine Endlosschleife und die Seite friert ein. Regeln: Ergebnis-Promise statt Ergebnis zwischenspeichern, Callback mit `setTimeout` bündeln, eigene Änderungen ausschließen, nur bei echter Änderung schreiben. Vorbild: `official-plugins/elvado-ai/admin.js` und `elvado-seo/admin.js`.
+
+## Kopplung mit der KI-Zentrale
+Sobald in der KI-Zentrale ein nutzbarer Anbieter gespeichert wird, aktiviert `rrw_np_ai_autoactivate()` das Plugin *Elvado AI* einmalig. Wer es danach abschaltet, behält es aus.
