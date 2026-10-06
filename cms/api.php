@@ -361,6 +361,7 @@ function rrw_plugin_catalog(array $site): array {
     if(!is_dir($base))return [];
     foreach(glob($base.'/*',GLOB_ONLYDIR)?:[] as $dir){
         $file=$dir.'/plugin.json';if(!is_file($file))continue;$m=json_decode((string)file_get_contents($file),true);if(!is_array($m))continue;
+        if(($m['type']??'')==='native')continue;   // native Plugins verwaltet das Plugin-System (np_*), nicht diese Liste
         $id=rrw_plugin_id((string)($m['id']??basename($dir)));if($id==='')continue;
         $out[]=[
             'id'=>$id,'name'=>(string)($m['name']??$id),'version'=>(string)($m['version']??'1.0.0'),
@@ -386,6 +387,7 @@ function rrw_import_plugin_zip(string $zipPath): array {
     if($manifest===null)throw new RuntimeException('plugin.json fehlt');
     $m=json_decode((string)$manifest,true);if(!is_array($m))throw new RuntimeException('plugin.json ist ungültig');
     $id=rrw_plugin_id((string)($m['id']??$m['name']??'plugin'));if($id==='')throw new RuntimeException('Plugin-ID ungültig');
+    if(($m['type']??'')==='native'||rrw_np()->reservedId($id))throw new RuntimeException('Diese Plugin-ID ist für offizielle ElvadoPress-Plugins reserviert. Hochgeladene Plugins dürfen sie nicht verwenden und keinen Server-PHP-Code mitbringen.');
     $dir=__DIR__.'/plugins/'.$id;if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $x)if(is_file($x))@unlink($x);}else if(!@mkdir($dir,0755,true))throw new RuntimeException('Plugin-Ordner konnte nicht angelegt werden');
     $safe=['plugin.json','frontend.js','frontend.css','admin.js','README.md'];
     foreach($safe as $file){
@@ -513,6 +515,7 @@ require_once __DIR__.'/lib/system.php';
 require_once __DIR__.'/lib/product.php';
 require_once __DIR__.'/lib/install.php';
 require_once __DIR__.'/lib/pack.php';
+require_once __DIR__.'/lib/nplugins.php';
 rrw_system_apply_timezone();
 
 // Gleichzeitiges Bearbeiten (CMS, Control Center, mehrere Personen): Beim Speichern wird die Datei gesperrt und neu gelesen,
@@ -527,6 +530,8 @@ function rrw_site_lock(string $dataDir): void {
 }
 rrw_ensure_dirs();
 $action=(string)($_GET['action']??'public');
+// Native Plugins: bei Verwaltungsaktionen für Plugins werden sie nicht vorab geladen (Installieren/Aktualisieren prüft sie selbst); sonst laden die aktiven Plugins hier ihre Erweiterungspunkte
+if(!in_array($action,['np_list','np_plan','np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_settings_get'],true)){ rrw_np_boot(); }
 // Update-Überwachung: öffentlicher Lebenszeichen-Ping (prüft, dass das CMS startet) und – nur solange ein frisches Update überwacht wird – die Gesundheitsprüfung nach der Antwort
 if($action==='update_ping')rrw_json(['status'=>'ok','version'=>rrw_cms_version()]);
 if(is_file($dataDir.'/.update/state.json')&&str_contains((string)@file_get_contents($dataDir.'/.update/state.json'),'"pending"')){
@@ -1604,6 +1609,31 @@ if(str_starts_with($action,'wp_')){
         $r=delete_plugins([$file]);if(is_wp_error($r))rrw_json(['status'=>'error','message'=>$r->get_error_message()],422);
         rrw_log_activity($activityLogFile,$wpUser,'wp_plugin_delete','WordPress-Plugin „'.$file.'“ gelöscht');rrw_json(['status'=>'ok','plugins'=>$wpList()]);
     }
+    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],404);
+}
+// ---- Native ElvadoPress-Plugins (offizielle Essentials und weitere): Verwaltung, Einstellungen, Plugin-API (cms/lib/nplugins.php, cms/src/Plugin/)
+if(str_starts_with($action,'np_')){
+    $npMgr=rrw_np();
+    $npRole=function(array $u):string{ return !empty($u['superadmin'])?'admin':'editor'; };
+    if($action==='np_public'){   // ohne Anmeldung: nur Plugin-Aktionen, die ausdrücklich öffentlich sind (z. B. Formular absenden)
+        $b=rrw_body();$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),'public');
+        $code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code);
+    }
+    if($action==='np_call'){
+        $u=rrw_auth(false);$b=rrw_body();$r=$npMgr->callApi((string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??'')),(string)($b['call']??''),(array)($b['args']??[]),$npRole($u));
+        $code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code);
+    }
+    $u=rrw_auth(true);$b=in_array($action,['np_list'],true)?[]:rrw_body();$pid=(string)preg_replace('/[^a-z0-9-]/','',(string)($b['id']??''));
+    $res=function(array $r,string $what)use($activityLogFile,$u,$pid,$npMgr){ if(!empty($r['ok']))rrw_log_activity($activityLogFile,$u,'plugin',$what.($pid!==''?': '.$pid:'')); rrw_json($r+['plugins'=>$npMgr->rows()],!empty($r['ok'])?200:422); };
+    if($action==='np_list')rrw_json(['status'=>'ok','plugins'=>$npMgr->rows(),'cms_version'=>rrw_cms_version(),'php'=>PHP_VERSION,'mode'=>$npMgr->state()['mode']]);
+    if($action==='np_plan')rrw_json(['status'=>'ok']+$npMgr->plan(array_map('strval',(array)($b['ids']??[]))));
+    if($action==='np_install'){$r=$npMgr->install($pid,!empty($b['with_deps']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin installiert');}
+    if($action==='np_activate'){$r=$npMgr->activate($pid,!empty($b['with_deps']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin aktiviert');}
+    if($action==='np_deactivate'){$r=$npMgr->deactivate($pid,!empty($b['cascade']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin deaktiviert');}
+    if($action==='np_update'){$r=$npMgr->update($pid);$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin aktualisiert');}
+    if($action==='np_uninstall'){$r=$npMgr->uninstall($pid,!empty($b['purge']));$res(['status'=>$r['ok']?'ok':'error']+$r,'Plugin deinstalliert');}
+    if($action==='np_settings_get'){if(!$npMgr->isInstalled($pid))rrw_json(['status'=>'error','message'=>'Plugin nicht installiert'],404);rrw_json(['status'=>'ok','schema'=>$npMgr->settingsSchema($pid),'settings'=>$npMgr->settings($pid)]);}
+    if($action==='np_settings_save'){$r=$npMgr->saveSettings($pid,(array)($b['values']??[]));if($r['ok'])rrw_log_activity($activityLogFile,$u,'plugin','Plugin-Einstellungen gespeichert: '.$pid);rrw_json(['status'=>$r['ok']?'ok':'error']+$r,$r['ok']?200:422);}
     rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],404);
 }
 if($action==='plugins_list'){rrw_auth(false);rrw_json(['status'=>'ok','plugins'=>rrw_plugin_catalog($site),'active'=>$site['plugins']??[]]);}
