@@ -9,6 +9,8 @@ require_once __DIR__.'/tools.php';
 require_once __DIR__.'/feeds.php';
 
 const RRW_STOCK_PER_PAGE=24;
+/** Wikimedia verlangt einen beschreibenden User-Agent mit Kontakt (allgemeine Kennungen werden mit 429 gedrosselt). */
+const RRW_STOCK_UA='ElvadoPress/1.0 (+https://github.com/ricorewioriginal-collab/ElvadoPress; Bildsuche im CMS)';
 function rrw_stock_providers(): array {
     return [
         'pixabay'=>['name'=>'Pixabay','key'=>true,'key_url'=>'https://pixabay.com/api/docs/','license'=>'Pixabay-Inhaltslizenz (frei nutzbar, Namensnennung nicht nötig)','hosts'=>['pixabay.com','cdn.pixabay.com']],
@@ -49,11 +51,13 @@ function rrw_stock_status(string $dataDir): array {
 /* ───────── HTTP ───────── */
 /** JSON/Text-Abruf mit Kopfzeilen; Tests setzen $GLOBALS['rrw_stock_http'] (callable url,headers → string). */
 function rrw_stock_http(string $url,array $headers=[],int $timeout=10): string {
+    $GLOBALS['rrw_stock_last']=['code'=>0,'body'=>''];
     if(isset($GLOBALS['rrw_stock_http']))return (string)($GLOBALS['rrw_stock_http'])($url,$headers);
     if(!rrw_remote_feed_allowed($url)||!function_exists('curl_init'))return '';
     $ch=curl_init($url);
     curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>3,CURLOPT_CONNECTTIMEOUT=>4,CURLOPT_TIMEOUT=>$timeout,CURLOPT_USERAGENT=>rrw_feed_user_agent(false),CURLOPT_HTTPHEADER=>$headers,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_PROTOCOLS=>CURLPROTO_HTTP|CURLPROTO_HTTPS]);
     $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$final=(string)curl_getinfo($ch,CURLINFO_EFFECTIVE_URL);curl_close($ch);
+    $GLOBALS['rrw_stock_last']=['code'=>$code,'body'=>$raw===false?'':mb_substr((string)$raw,0,400)];
     return $raw!==false&&$code>=200&&$code<300&&rrw_remote_feed_allowed($final)?(string)$raw:'';
 }
 function rrw_stock_json(string $url,array $headers=[]): ?array { $r=rrw_stock_http($url,$headers);$j=$r!==''?json_decode($r,true):null;return is_array($j)?$j:null; }
@@ -97,9 +101,9 @@ function rrw_stock_search_request(string $p,string $key,string $q,int $page,stri
         return ['https://api.unsplash.com/search/photos?query='.$qe.'&per_page='.$per.'&page='.$page.($o!==''?'&orientation='.$o:''),['Authorization: Client-ID '.$key,'Accept-Version: v1'],'rrw_stock_parse_unsplash'];
     case 'openverse':
         $o=rrw_stock_orient($orient,['landscape'=>'wide','portrait'=>'tall','square'=>'square']);
-        return ['https://api.openverse.org/v1/images/?q='.$qe.'&page_size='.$per.'&page='.$page.'&license_type=commercial,modification&mature=false'.($o!==''?'&aspect_ratio='.$o:''),[],'rrw_stock_parse_openverse'];
+        return ['https://api.openverse.org/v1/images/?q='.$qe.'&page_size='.min($per,20).'&page='.$page.'&license_type=commercial,modification&mature=false'.($o!==''?'&aspect_ratio='.$o:''),[],'rrw_stock_parse_openverse'];
     case 'wikimedia':
-        return ['https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrsearch='.rawurlencode($q.' filetype:bitmap').'&gsrlimit='.$per.'&gsroffset='.(($page-1)*$per).'&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=640',[],'rrw_stock_parse_wikimedia'];
+        return ['https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrsearch='.rawurlencode($q.' filetype:bitmap').'&gsrlimit='.$per.'&gsroffset='.(($page-1)*$per).'&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=640',['User-Agent: '.RRW_STOCK_UA],'rrw_stock_parse_wikimedia'];
     }
     return ['',[],''];
 }
@@ -129,7 +133,7 @@ function rrw_stock_parse_openverse(array $j): array {
         $credit=rrw_stock_clip($h['attribution']??'',300);if($credit==='')$credit=rrw_stock_clip(($title!==''?'„'.$title.'“ ':'').($by!==''?'von '.$by.' ':'').'('.$lic.')',300);
         $out[]=rrw_stock_item('openverse',$id,['title'=>$title,'thumb'=>$h['thumbnail']??'','preview'=>$h['thumbnail']??'','width'=>$h['width']??0,'height'=>$h['height']??0,'author'=>$by,'author_url'=>$h['creator_url']??'','source_url'=>$h['foreign_landing_url']??'',
             'license'=>$lic,'license_url'=>$h['license_url']??'','attribution_required'=>!rrw_stock_license_free((string)($h['license']??'')),'download'=>$h['url']??'','credit'=>$credit]); }
-    return ['items'=>$out,'total'=>(int)($j['result_count']??count($out))];
+    return ['items'=>$out,'total'=>(int)($j['result_count']??count($out)),'per_page'=>20];   // anonym erlaubt Openverse höchstens 20 Treffer je Seite
 }
 function rrw_stock_parse_wikimedia(array $j): array {
     $out=[];foreach((array)($j['query']['pages']??[]) as $pid=>$h){ if(!is_array($h)||empty($h['imageinfo'][0]))continue;$i=$h['imageinfo'][0];$mime=(string)($i['mime']??'');if(!in_array($mime,['image/jpeg','image/png','image/webp','image/gif'],true))continue;
@@ -155,11 +159,21 @@ function rrw_stock_search(string $dataDir,string $p,string $q,int $page=1,string
     if(is_array($old)&&isset($old['t'],$old['d'])&&time()-(int)$old['t']<600)return $old['d'];
     [$url,$hdr,$parser]=rrw_stock_search_request($p,(string)$key,$q,$page,$orient);
     $j=rrw_stock_json($url,$hdr);
-    if($j===null)throw new RuntimeException('Die Bildquelle antwortet nicht. Schlüssel prüfen oder später erneut versuchen.');
+    if($j===null)throw new RuntimeException(rrw_stock_error_message($p));
     $r=$parser($j);$r+=['page'=>$page,'per_page'=>RRW_STOCK_PER_PAGE];
     $r['items']=array_map(function($i){ unset($i['download'],$i['track']);return $i; },$r['items']);   // Download-Adressen verlassen den Server nicht: die Übernahme holt sie selbst neu
     try{ rrw_tools_write(dirname($cache),basename($cache),['t'=>time(),'d'=>$r]); }catch(Throwable $e){}
     return $r;
+}
+/** Verständliche Fehlermeldung nach dem letzten Abruf der Bildquelle (HTTP-Status, Hinweis des Anbieters). */
+function rrw_stock_error_message(string $p): string {
+    $name=rrw_stock_providers()[$p]['name']??$p;$l=$GLOBALS['rrw_stock_last']??['code'=>0,'body'=>''];$c=(int)$l['code'];
+    $j=json_decode((string)$l['body'],true);$d=is_array($j)?(string)($j['detail']??$j['message']??$j['error']??''):'';$d=rrw_stock_clip($d,140);
+    if($c===0)return $name.' ist nicht erreichbar – später erneut versuchen.';
+    if($c===401||$c===403)return $name.': Zugang abgelehnt – API-Schlüssel prüfen (Einstellungen › Medien).'.($d!==''?' ('.$d.')':'');
+    if($c===429)return $name.': Anfrage-Limit erreicht – später erneut versuchen.';
+    if($c===400)return $name.' lehnte die Suche ab'.($d!==''?': '.$d:'.');
+    return $name.' antwortet gerade nicht (HTTP '.$c.')'.($d!==''?': '.$d:'').'.';
 }
 /** Einzelnes Bild (Einzelabruf nach Kennung) – liefert das Item inkl. Download-Adresse (nur serverintern). */
 function rrw_stock_detail(string $dataDir,string $p,string $id): array {

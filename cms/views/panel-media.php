@@ -13,6 +13,6 @@
         <div id="mediaAltBulk" class="card" style="display:none;margin-bottom:12px"></div>
         <div id="mediaHubGrid" class="media-hub-grid"><div class="empty">Medien werden geladen …</div></div>
       </div>
-      <div id="stockSettings" class="card"></div>
+      <div id="stockHint" class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b><i class="fas fa-images"></i> Freie Bilder</b><div class="hint">Suche in Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons. Die Schlüssel der Bildquellen stehen unter Einstellungen › Medien.</div></div><button class="btn-a" type="button" onclick="StockMedia.open({tab:'stock',onPick:function(){window.MediaHub&&MediaHub.load(true)}})"><i class="fas fa-magnifying-glass"></i> Freie Bilder suchen</button><button class="btn-g" type="button" onclick="StockMedia.goSetup()"><i class="fas fa-gear"></i> Bildquellen einrichten</button></div>
       <div id="mediaHubDetail" class="card" style="display:none"></div>
     </section>

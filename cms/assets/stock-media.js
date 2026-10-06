@@ -36,7 +36,7 @@
       var s=e.target.closest('[data-stk]');if(s){take(s.getAttribute('data-stk'));return}
       var pg=e.target.closest('[data-page]');if(pg){state.page=Math.max(1,state.page+(+pg.getAttribute('data-page')));search();return}
       if(e.target.closest('#stkGo')){state.page=1;search();return}
-      if(e.target.closest('#stkSetup')){close();if(window.cmsTab)cmsTab('media',document.querySelector('.tab[data-tab="media"]'));if(window.MediaHub)MediaHub.load();setTimeout(function(){var c=$('stockSettings');if(c)c.scrollIntoView({behavior:'smooth',block:'start'})},500)}
+      if(e.target.closest('#stkSetup')){close();goSetup()}
     });
     m.addEventListener('change',function(e){
       if(e.target.id==='stkProv'){state.prov=e.target.value;state.res=null;draw()}
@@ -116,5 +116,10 @@
     };
     host.querySelectorAll('[data-clear]').forEach(function(a){a.onclick=async function(e){e.preventDefault();if(!confirm('Schlüssel entfernen?'))return;var k={};k[a.getAttribute('data-clear')]='-';try{var d=await api('stock_config_save',{keys:k,enabled:{}});providers=d.providers;settings()}catch(x){toast(x.message,true)}}});
   }
-  window.StockMedia={open:open,settings:settings,info:info};
+  /** Zu Einstellungen › Medien (dort stehen die Schlüssel der Bildquellen). */
+  function goSetup(){
+    var b=document.querySelector('.tab[onclick*="WpSettings.open(\'media\')"]');if(window.cmsTab)cmsTab('settings',b);if(window.WpSettings)WpSettings.open('media');
+    setTimeout(function(){var c=$('stockSettings');if(c)c.scrollIntoView({behavior:'smooth',block:'start'})},900);
+  }
+  window.StockMedia={open:open,settings:settings,info:info,goSetup:goSetup};
 })();

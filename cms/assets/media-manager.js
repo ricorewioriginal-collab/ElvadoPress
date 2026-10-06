@@ -169,6 +169,6 @@ window.MediaHub=(()=>{
   load(true).then(()=>{const h=document.getElementById('mediaHubDetail');if(h){h.style.display='';h.innerHTML='<div class="empty"><i class="fas fa-photo-film"></i>Wähle links ein Medium für <b>'+esc(label)+'</b>.</div>';}}); 
  }
  function cancelBrandingPick(){brandingPick=null;if(selected)select(items.indexOf(selected));}
- async function load(force=false){bind();window.StockMedia?.settings?.();try{const d=await api('media_library_list');items=d.items||[];render();renderAltBar()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
+ async function load(force=false){bind();try{const d=await api('media_library_list');items=d.items||[];render();renderAltBar()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
  return {load,select,remove,copyVariant,assignBranding,beginBrandingPick,cancelBrandingPick,uploadFiles,altSave,altSuggest,altBulkStart,altBulkSet,altBulkClose,altBulkSave};
 })();
