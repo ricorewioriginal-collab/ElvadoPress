@@ -139,6 +139,18 @@ function rrw_slug(string $s): string {
     $s=preg_replace('/[^a-z0-9]+/','-',$s);$s=trim((string)$s,'-');return substr($s!==''?$s:'seite',0,70);
 }
 /** „a, b,, A“ → ['a','b','A'] (getrimmt, ohne Leere; Groß-/Kleinschreibung bleibt erhalten). */
+/** Adresse (Slug) eines Beitrags eindeutig halten: bei Doppelung „-2“, „-3“ … anhängen (der Beitrag selbst zählt nicht mit). */
+function rrw_news_unique_slug(array $news,int $id,string $slug): string {
+    $base=$slug;for($sn=2;$sn<200;$sn++){ $taken=false;foreach($news as $o)if((int)($o['id']??0)!==$id&&($o['slug']??'')===$slug){$taken=true;break;} if(!$taken)break;$slug=$base.'-'.$sn; }
+    return $slug;
+}
+/** SEO- und Kommentarfelder eines Beitrags aus der Eingabe: Kommentare default|open|closed, noindex (bool), kanonische Adresse nur als gültige http(s)-Adresse. */
+function rrw_news_seo_fields(array $b): array {
+    $canon=trim((string)($b['canonical_url']??''));
+    return ['seo_title'=>mb_substr(trim((string)($b['seo_title']??'')),0,70),'seo_description'=>mb_substr(trim((string)($b['seo_description']??'')),0,200),
+        'comments'=>in_array(($b['comments']??'default'),['open','closed'],true)?$b['comments']:'default','noindex'=>!empty($b['noindex']),
+        'canonical_url'=>(filter_var($canon,FILTER_VALIDATE_URL)&&preg_match('~^https?://~i',$canon))?mb_substr($canon,0,1200):''];
+}
 function rrw_news_tag_list(string $tags): array {
     $out=[];foreach(explode(',',$tags) as $t){$t=trim($t);if($t!=='')$out[]=$t;}return $out;
 }
