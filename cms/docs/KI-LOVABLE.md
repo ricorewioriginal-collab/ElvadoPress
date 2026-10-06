@@ -41,6 +41,13 @@ Menü **KI & Lovable → KI-Entwickler** (`cms/assets/ai-dev.js`, `cms/src/Ai/Co
 ## API (`cms/api.php`)
 `ai_status`, `ai_generate` (jeder angemeldete Benutzer, Rate-Limit je Benutzer/Stunde); `ai_config_get/save`, `ai_logs`, `lovable_get/save`, `lovable_secret_rotate`, `lovable_widget_save/delete`, `lovable_sync`, `core_posts_mirror` (nur Superadmin). Schlüssel sind schreibgeschützt (`__clear__` löscht), werden nie ausgeliefert; fehlen sie, gelten die Schlüssel des KI-Assistenten.
 
+## Ein KI-Menü, Modelle, Bilder und Videos
+- Die Seitenleiste hat einen Eintrag **KI**; darin Unterreiter (`assets/ai-nav.js`): Zentrale, Bilder & Videos, Website-Generator, Entwickler, Texte & Lovable, Assistent.
+- **Modelle**: „Modelle laden“ fragt live beim Anbieter ab (OpenAI-kompatibel inkl. EvoLink: `GET /models`; Gemini: `GET /v1beta/models`; Claude: `GET /v1/models`), sonst gilt der Katalog. Gemini-Standard ist der Alias `gemini-flash-latest` (überlebt Abschaltungen einzelner Versionen). Meldet ein Anbieter 404, weist die Fehlermeldung auf „Modelle laden“ hin.
+- **EvoLink**: ein Schlüssel für Text/Code (Katalog mit vielen Modellen, frei erweiterbar), Bilder und Videos. **fal.ai**: Text über `fal-ai/any-llm`, Bilder/Videos über die Queue (`queue.fal.run`, Kopf `Authorization: Key …`).
+- **Bilder & Videos** (`cms/src/Ai/MediaGenerator.php`, `ai_media_providers/start/status/save`): EvoLink (`/v1/images|videos/generations`, Abfrage `/v1/tasks/{id}`), fal.ai-Queue, OpenAI-Bilder. Bilder landen mit Vermerk „KI-generiert“ in der Mediathek, Videos unter `cms/media/videos/`. Limit 30 Aufträge/Stunde/Benutzer; in der Demo gesperrt.
+- Modellnamen der Anbieter ändern sich laufend; sie sind im Feld frei eingebbar. Test: `scripts/test-ai-media.php`.
+
 ## Lovable-Bridge
 Widget (Web-Component) wird per Shortcode `[lovable widget="…" project="…"]` oder React-Bridge eingebunden. Daten: `cms/api-lovable-provider.php` (CORS-Allowlist, ETag, Rate-Limit, nur öffentliche Beiträge). Skript-URL-Vorlage und erlaubte Hosts stellt der Betreiber unter „KI & Lovable“ ein.
 

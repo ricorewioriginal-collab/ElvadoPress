@@ -1059,14 +1059,52 @@ if(str_starts_with($action,'ai_')||str_starts_with($action,'lovable_')||$action=
                 try{ $r=(new \Elvado\Ai\AiGatewayService($aiCfg))->generate(['provider'=>$pid,'task'=>'text','prompt'=>'Antworte nur mit dem Wort: OK','max_tokens'=>64,'user'=>'']);rrw_json(['status'=>'ok','ok'=>true,'ms'=>(int)round((microtime(true)-$t0)*1000),'model'=>$r->model,'text'=>mb_substr($r->text,0,80)]); }
                 catch(\Elvado\Ai\AiGatewayException $e){ rrw_json(['status'=>'ok','ok'=>false,'ms'=>(int)round((microtime(true)-$t0)*1000),'error'=>$e->getMessage()]); }
             }
-            if($action==='ai_models'){   // Modellliste des Anbieters (OpenAI-kompatibel: GET /models, sonst die Vorschläge des Katalogs)
+            if($action==='ai_models'){   // Modellliste live beim Anbieter (OpenAI-kompatibel, Gemini, Claude); sonst die Vorschläge des Katalogs
                 $pid=(string)($kB['provider']??'');$cat=$aiCfg->catalog();if(!isset($cat[$pid]))rrw_json(['status'=>'error','message'=>'Unbekannter Anbieter'],400);
                 $def=$cat[$pid];$fallback=array_map(fn($m)=>['id'=>$m,'free'=>null,'ctx'=>0],(array)$def['models']);
-                if($def['kind']!=='openai'||!function_exists('rrw_assistant_parse_models'))rrw_json(['status'=>'ok','ok'=>true,'models'=>$fallback,'source'=>'catalog']);
-                $k=$aiCfg->apiKey($pid);if($k===''&&$def['needs_key'])rrw_json(['status'=>'ok','ok'=>true,'models'=>$fallback,'source'=>'catalog']);
-                $resp=\Elvado\Support\Http::request('GET',rtrim($aiCfg->baseUrl($pid),'/').'/models',$k!==''?['Authorization: Bearer '.$k]:[],null,['timeout'=>12,'max_bytes'=>1000000,'allow_local'=>!empty($def['custom'])]);
-                $list=$resp->ok()?rrw_assistant_parse_models($resp->json()):[];
+                $k=$aiCfg->apiKey($pid);if(($k===''&&$def['needs_key'])||!in_array($def['kind'],['openai','gemini','anthropic'],true))rrw_json(['status'=>'ok','ok'=>true,'models'=>$fallback,'source'=>'catalog']);
+                $base=rtrim($aiCfg->baseUrl($pid),'/');$opt=['timeout'=>12,'max_bytes'=>2000000,'allow_local'=>!empty($def['custom'])];$list=[];
+                if($def['kind']==='gemini'){
+                    $resp=\Elvado\Support\Http::request('GET',$base.'/models?pageSize=200',['x-goog-api-key: '.$k],null,$opt);
+                    foreach($resp->ok()?(array)($resp->json()['models']??[]):[] as $m){if(!is_array($m)||!in_array('generateContent',(array)($m['supportedGenerationMethods']??[]),true))continue;$id=preg_replace('~^models/~','',(string)($m['name']??''));if($id===''||preg_match('/embed|aqa|imagen|veo|tts|image|live|audio/i',$id))continue;$list[]=['id'=>$id,'free'=>null,'ctx'=>(int)($m['inputTokenLimit']??0)];}
+                    usort($list,fn($x,$y)=>[!str_contains($x['id'],'latest'),$x['id']]<=>[!str_contains($y['id'],'latest'),$y['id']]);
+                }elseif($def['kind']==='anthropic'){
+                    $resp=\Elvado\Support\Http::request('GET',$base.'/models?limit=100',['x-api-key: '.$k,'anthropic-version: 2023-06-01'],null,$opt);
+                    foreach($resp->ok()?(array)($resp->json()['data']??[]):[] as $m)if(is_array($m)&&preg_match('~^[\w.:/@+-]{1,120}$~',(string)($m['id']??'')))$list[]=['id'=>(string)$m['id'],'free'=>null,'ctx'=>0];
+                }else{
+                    $resp=\Elvado\Support\Http::request('GET',$base.'/models',$k!==''?['Authorization: Bearer '.$k]:[],null,$opt);
+                    $list=$resp->ok()&&function_exists('rrw_assistant_parse_models')?rrw_assistant_parse_models($resp->json()):[];
+                }
                 rrw_json(['status'=>'ok','ok'=>true,'models'=>$list?:$fallback,'source'=>$list?'provider':'catalog']);
+            }
+            if($action==='ai_media_providers')rrw_json(['status'=>'ok','providers'=>(new \Elvado\Ai\MediaGenerator($aiCfg))->providers(),'ratios'=>\Elvado\Ai\MediaGenerator::RATIOS]);
+            if($action==='ai_media_start'||$action==='ai_media_status'||$action==='ai_media_save'){   // KI-Bilder und -Videos (EvoLink, fal.ai, OpenAI): starten, abfragen, in die Mediathek übernehmen
+                @set_time_limit(180);$mg=new \Elvado\Ai\MediaGenerator($aiCfg);
+                if($action==='ai_media_start'){
+                    $rl=new \Elvado\Support\RateLimiter($dataDir.'/.ai/ratelimit');if(!$rl->hit('aimedia:'.(string)($kUser['user']??'anon'),30,3600))rrw_json(['status'=>'error','message'=>'Zu viele Medien-Aufträge in der letzten Stunde.'],429);
+                    $r=$mg->start((string)($kB['provider']??''),(string)($kB['kind']??''),(string)($kB['model']??''),(string)($kB['prompt']??''),(string)($kB['ratio']??'16:9'),(string)($kB['image_url']??''));
+                    rrw_log_activity($activityLogFile,$kUser,'ai_media','KI-Medien: '.(string)($kB['kind']??'').' gestartet ('.(string)($kB['provider']??'').')');rrw_json(['status'=>'ok']+$r);
+                }
+                if($action==='ai_media_status')rrw_json(['status'=>'ok']+$mg->status((string)($kB['job']??'')));
+                require_once __DIR__.'/lib/media.php';require_once __DIR__.'/lib/stockmedia.php';
+                $kind=(string)($kB['kind']??'');$url=(string)($kB['url']??'');$b64=(string)($kB['b64']??'');$prompt=trim((string)($kB['prompt']??''));
+                $tmp=tempnam(sys_get_temp_dir(),'aimg');if($tmp===false)rrw_json(['status'=>'error','message'=>'Temporäre Datei nicht möglich.'],500);
+                try{
+                    if($b64!==''){$raw=base64_decode($b64,true);if($raw===false||strlen($raw)>15728640||file_put_contents($tmp,$raw)===false)rrw_json(['status'=>'error','message'=>'Bilddaten ungültig.'],400);}
+                    elseif(!preg_match('~^https://[^\s"\'<>]{4,1500}$~',$url)||!rrw_stock_download($url,$tmp,$kind==='video'?83886080:15728640))rrw_json(['status'=>'error','message'=>'Das Ergebnis konnte nicht heruntergeladen werden (zu groß, abgelaufen oder nicht erreichbar).'],502);
+                    $base=trim(substr(preg_replace('/[^a-z0-9]+/','-',mb_strtolower($prompt!==''?$prompt:'ki-medien')),0,50),'-');
+                    if($kind==='video'){
+                        $head=(string)file_get_contents($tmp,false,null,0,16);$ext=str_contains(substr($head,4,4),'ftyp')?'mp4':(str_starts_with($head,"\x1A\x45\xDF\xA3")?'webm':'');
+                        if($ext==='')rrw_json(['status'=>'error','message'=>'Das Ergebnis ist keine unterstützte Videodatei (MP4 oder WebM).'],400);
+                        $dir=rrw_media_dir().'/videos';if(!is_dir($dir)&&!@mkdir($dir,0755,true))rrw_json(['status'=>'error','message'=>'Medienordner nicht beschreibbar.'],500);
+                        $fn=date('Ymd_His').'_'.bin2hex(random_bytes(4)).'-'.($base!==''?$base:'video').'.'.$ext;if(!@rename($tmp,$dir.'/'.$fn)){if(!@copy($tmp,$dir.'/'.$fn))rrw_json(['status'=>'error','message'=>'Video konnte nicht gespeichert werden.'],500);}@chmod($dir.'/'.$fn,0644);
+                        rrw_log_activity($activityLogFile,$kUser,'ai_media','KI-Medien: Video gespeichert');rrw_json(['status'=>'ok','kind'=>'video','url'=>'/cms/media/videos/'.$fn]);
+                    }
+                    $credit=['provider'=>'ai','provider_name'=>'KI-generiert','title'=>mb_substr($prompt,0,160),'author'=>'','author_url'=>'','source_url'=>'','license'=>'','license_url'=>'','attribution_required'=>false,'text'=>'KI-generiertes Bild','ai'=>true];
+                    $r=rrw_media_library_store(['tmp_name'=>$tmp,'size'=>(int)@filesize($tmp),'name'=>($base!==''?$base:'ki-bild').'-ki'],rrw_media_sizes('64,128,192,256,512,1024,1600'),90,'rename',$credit);
+                    rrw_log_activity($activityLogFile,$kUser,'ai_media','KI-Medien: Bild in die Mediathek übernommen');rrw_json(['status'=>'ok','kind'=>'image']+$r);
+                }catch(RuntimeException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],$e->getCode()>=400?(int)$e->getCode():400);}
+                finally{if(is_file($tmp))@unlink($tmp);}
             }
             if($action==='ai_site_plan'){   // KI-Website-Generator: Entwurf aus einer Beschreibung (wird nicht gespeichert)
                 @set_time_limit(200);

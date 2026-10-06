@@ -75,17 +75,22 @@ final class AiGatewayService
             }
             $own = [
                 'evolink' => ['label' => 'EvoLink Smart Route', 'group' => 'Smart Routing', 'kind' => 'openai', 'base_url' => 'https://api.evolink.ai/v1', 'base_editable' => true, 'model' => 'evolink-auto',
-                    'models' => ['evolink-auto'], 'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
-                    'note' => 'OpenAI-kompatibel mit automatischer Modellwahl (Kosten/Latenz). Basis-Adresse und Modellnamen laut EvoLink-Dokumentation prüfen und hier anpassen.'],
+                    'models' => ['evolink-auto', 'claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-4-5-20251001', 'gpt-5.2', 'gpt-5-mini', 'gemini-2.5-pro', 'gemini-2.5-flash', 'deepseek-v4-chat', 'deepseek-v4-reasoner', 'kimi-k3', 'qwen3.8-max', 'glm-4.6', 'minimax-m3', 'doubao-seed-2.0-pro', 'grok-4'],
+                    'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
+                    'note' => 'Ein Schlüssel für Text, Programmierung (Code), Bilder und Videos. Texte: Auswahl oder „Modelle laden“; Bilder/Videos: Menü KI → Medien. Modellnamen laut EvoLink-Doku – bei „nicht gefunden“ dort den genauen Namen nachsehen.'],
+                'fal' => ['label' => 'fal.ai', 'group' => 'Medien & Modelle', 'kind' => 'fal', 'base_url' => 'https://fal.run', 'base_editable' => false, 'model' => 'google/gemini-2.5-flash',
+                    'models' => ['google/gemini-2.5-flash', 'google/gemini-2.5-pro', 'anthropic/claude-sonnet-4.5', 'openai/gpt-5-chat', 'deepseek/deepseek-chat-v3.1', 'meta-llama/llama-4-maverick'],
+                    'free' => false, 'needs_key' => true, 'verified' => false, 'json_mode' => false, 'custom' => false,
+                    'note' => 'Hauptsächlich für Bilder (FLUX, Recraft, Nano Banana …) und Videos (Kling, Veo, Hailuo …): Menü KI → Medien. Texte laufen über fal-ai/any-llm (OpenRouter-Modelle).'],
                 'anthropic' => ['label' => 'Anthropic (Claude)', 'group' => 'Direkt', 'kind' => 'anthropic', 'base_url' => 'https://api.anthropic.com/v1', 'base_editable' => false, 'model' => 'claude-sonnet-5-5',
                     'models' => ['claude-sonnet-5-5', 'claude-haiku-4-5-20251001', 'claude-opus-5-5'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => false, 'custom' => false, 'note' => 'Kostenpflichtig.'],
-                'google' => ['label' => 'Google (Gemini)', 'group' => 'Direkt', 'kind' => 'gemini', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta', 'base_editable' => false, 'model' => 'gemini-2.0-flash',
-                    'models' => ['gemini-2.0-flash', 'gemini-2.0-flash-lite'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Kostenloses Kontingent mit API-Schlüssel (Google AI Studio).'],
+                'google' => ['label' => 'Google (Gemini)', 'group' => 'Direkt', 'kind' => 'gemini', 'base_url' => 'https://generativelanguage.googleapis.com/v1beta', 'base_editable' => false, 'model' => 'gemini-flash-latest',
+                    'models' => ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-3-pro-preview'], 'free' => true, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Kostenloses Kontingent mit API-Schlüssel (Google AI Studio).'],
                 'deepseek' => ['label' => 'DeepSeek', 'group' => 'Kostenlos / günstig', 'kind' => 'openai', 'base_url' => 'https://api.deepseek.com', 'base_editable' => false, 'model' => 'deepseek-chat',
                     'models' => ['deepseek-chat', 'deepseek-reasoner'], 'free' => false, 'needs_key' => true, 'verified' => true, 'json_mode' => true, 'custom' => false, 'note' => 'Sehr günstig.'],
             ];
             $base = [];
-            foreach (['evolink' => $own, 'openai' => $pre, 'anthropic' => $own, 'google' => $own, 'openrouter' => $pre, 'deepseek' => $own] as $id => $src) {
+            foreach (['evolink' => $own, 'fal' => $own, 'openai' => $pre, 'anthropic' => $own, 'google' => $own, 'openrouter' => $pre, 'deepseek' => $own] as $id => $src) {
                 if (isset($src[$id])) {
                     $base[$id] = $src[$id];
                 }
@@ -282,6 +287,9 @@ final class AiGatewayService
                     'generationConfig' => $gen,
                 ], ['x-goog-api-key: ' . $key], $opts);
                 break;
+            case 'fal':   // fal.ai: Text über den „any-llm“-Endpunkt (OpenRouter-Modelle), Bilder/Videos siehe MediaGenerator
+                $resp = Http::postJson(rtrim($base, '/') . '/fal-ai/any-llm', ['model' => $model, 'prompt' => $user, 'system_prompt' => $system], ['Authorization: Key ' . $key], $opts);
+                break;
             default:   // OpenAI-kompatibel
                 $payload = [
                     'model' => $model, 'temperature' => $temp, 'max_tokens' => $maxTokens,
@@ -319,6 +327,8 @@ final class AiGatewayService
             }
             $pt = isset($j['usageMetadata']['promptTokenCount']) ? (int)$j['usageMetadata']['promptTokenCount'] : null;
             $ct = isset($j['usageMetadata']['candidatesTokenCount']) ? (int)$j['usageMetadata']['candidatesTokenCount'] : null;
+        } elseif ($def['kind'] === 'fal') {
+            $text = (string)($j['output'] ?? '');
         } else {
             $m = $j['choices'][0]['message']['content'] ?? '';
             $text = is_string($m) ? $m : '';
@@ -348,7 +358,7 @@ final class AiGatewayService
         return match (true) {
             $status === 401 || $status === 403 => $label . ': Zugang abgelehnt – API-Schlüssel prüfen.',
             $status === 402 => $label . ': Guthaben oder Kontingent aufgebraucht.',
-            $status === 404 => $label . ': Modell oder Adresse nicht gefunden – Modellname prüfen.',
+            $status === 404 => $label . ': Modell oder Adresse nicht gefunden – das Modell ist vermutlich abgeschaltet oder falsch benannt. In der KI-Zentrale „Modelle laden“ wählen und das Modell auswählen.',
             $status === 429 => $label . ': Anbieter-Limit erreicht – später erneut versuchen.',
             $status >= 500 => $label . ' hat gerade ein Problem (HTTP ' . $status . ').',
             default => $label . ' lehnte die Anfrage ab (HTTP ' . $status . ')' . ($detail !== '' ? ': ' . $detail : '') . '.',
