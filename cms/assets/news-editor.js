@@ -2,6 +2,7 @@
 'use strict';
 let mounted=false, articles=[], canEdit=false, currentId=0, showTrash=false;
 let selectedIds=new Set();
+let be=null;   // Block-Editor (cms/assets/blocks/*.js)
 let quickEditId=0;
 let searchQuery='', statusFilter='all', sortKey='date_desc';
 let currentPage=1, currentPageItems=[];
@@ -28,13 +29,38 @@ function checked(id){return !!document.getElementById(id)?.checked;}
 function toast(m,kind){window.cmsToast?.(m,kind==='err');}
 function say(m,t){try{toast(m,t==='error'?'err':t==='success'?'ok':'inf');}catch(e){alert(m);}}
 
-function toolbar(cmd,arg){
-  const ed=document.getElementById('newsBody'); if(!ed)return; ed.focus();
-  if(cmd==='createLink'){
-    const u=prompt('Link-URL (https://…)'); if(!u)return;
-    document.execCommand('createLink',false,u);
-  }else document.execCommand(cmd,false,arg||null);
+/* Block-Editor des Beitragstexts */
+function canRawHtml(){return (typeof CMS_IS_SA!=='undefined'&&!!CMS_IS_SA)&&!window.RRW_DEMO}
+function pickBlockImage(cb){
+  if(!window.StockMedia){const u=prompt('Bild-Adresse (https://…)');if(u)cb({url:u.trim()});return}
+  StockMedia.open({onPick:(item,info)=>{cb({url:info.urlFor?info.urlFor(1024):info.url,alt:info.alt||'',caption:info.credit||''});if(info.attribution&&!info.credit)say('Bitte den Bildnachweis ergänzen.','info')}});
 }
+function uploadBlockImage(cb){
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/jpeg,image/png,image/webp';
+  inp.onchange=async()=>{const f=inp.files&&inp.files[0];if(!f)return;if(f.size>8*1024*1024)return say('Bild darf maximal 8 MB groß sein','error');
+    const fd=new FormData();fd.append('file',f);
+    try{const r=await fetch(CMS_API+'?action=news_thumbnail_upload',{method:'POST',headers:cmsNewsHeaders(false),body:fd});const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||d.error||'Upload fehlgeschlagen');cb({url:d.url,alt:''})}catch(e){say(e.message,'error')}};
+  inp.click();
+}
+function setBody(html){
+  const host=document.getElementById('newsBody');if(!host)return;
+  if(!window.EPB){host.innerHTML='<div class="empty">Block-Editor nicht geladen.</div>';return}
+  if(!be||!host.contains(be.el)){be=EPB.create(host,{html:html||'',onChange:()=>updateInfo(),pickImage:pickBlockImage,upload:uploadBlockImage,uploadFile:(file,cb)=>{if(file.size>8*1024*1024)return say('Bild darf maximal 8 MB groß sein','error');const fd=new FormData();fd.append('file',file);fetch(CMS_API+'?action=news_thumbnail_upload',{method:'POST',headers:cmsNewsHeaders(false),body:fd}).then(r=>r.json()).then(d=>{if(d.status==='ok')cb({url:d.url,alt:''});else say(d.message||'Upload fehlgeschlagen','error')}).catch(e=>say(e.message,'error'))},canRaw:canRawHtml()})}
+  else be.setHTML(html||'');
+}
+const getBody=()=>be?be.getHTML():'';
+function updateInfo(){
+  const el=document.getElementById('newsInfo');if(!el)return;
+  const ex=document.getElementById('newsExcerpt'),cnt=document.getElementById('newsExcerptCount');if(ex&&cnt)cnt.textContent=ex.value.length;
+  const a=articles.find(x=>x.id===currentId);
+  el.innerHTML=(be?esc(be.stats()):'')+'<br>ID: '+(currentId||'neu')+(a?'<br>Autor: '+esc(a.author||'–')+'<br>Erstellt: '+fmt(a.created_at)+'<br>Zuletzt geändert: '+fmt(a.updated_at):'');
+}
+function slugPreview(){
+  const el=document.getElementById('newsSlugPreview');if(!el)return;
+  const v=val('newsSlug').trim()||val('newsTitle').trim();const sl=v.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  el.textContent=location.origin+'/'+(sl||'…')+'/';
+}
+function toolbar(){/* früherer Formatierungsleisten-Aufruf; der Block-Editor bringt seine eigene Leiste mit */}
 window.newsFmt=toolbar;
 
 function renderCategoryOptions(){
@@ -308,30 +334,13 @@ function editorHtml(){
     <div class="editor-shell">
       <div class="editor-main">
         <div class="row g-3">
-          <div class="col-12"><label class="news-lbl">Titel</label><input id="newsTitle" class="fc w-100" maxlength="255" placeholder="Überschrift des Beitrags"></div>
-          <div class="col-12"><label class="news-lbl">Teaser</label><textarea id="newsExcerpt" class="fc w-100" rows="2" maxlength="600" placeholder="Kurze Zusammenfassung für die Übersicht"></textarea></div>
+          <div class="col-12"><label class="news-lbl">Titel</label><input id="newsTitle" class="fc w-100" maxlength="255" placeholder="Überschrift des Beitrags" style="font-size:1.25rem;font-weight:700"></div>
           <div class="col-12">
             <div id="newsAiHost" style="display:none;margin-bottom:12px"></div>
-            <label class="news-lbl">Artikel</label>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;padding:7px;background:var(--surface3);border:1px solid var(--border);border-bottom:0;border-radius:9px 9px 0 0;">
-              <button class="sp-tool-btn" onclick="newsFmt('bold')"><b>B</b></button><button class="sp-tool-btn" onclick="newsFmt('italic')"><i>I</i></button><button class="sp-tool-btn" onclick="newsFmt('formatBlock','h2')">H2</button><button class="sp-tool-btn" onclick="newsFmt('formatBlock','h3')">H3</button><button class="sp-tool-btn" onclick="newsFmt('insertUnorderedList')"><i class="fas fa-list-ul"></i></button><button class="sp-tool-btn" onclick="newsFmt('insertOrderedList')"><i class="fas fa-list-ol"></i></button><button class="sp-tool-btn" onclick="NewsMagazine.insertImage()" title="Bild einfügen (Mediathek oder freie Bilder)"><i class="fas fa-image"></i></button><button class="sp-tool-btn" onclick="window.EpAi&&EpAi.newsAssistant()" title="KI-Assistent: Text schreiben, überarbeiten, übersetzen"><i class="fas fa-wand-magic-sparkles"></i> KI</button><button class="sp-tool-btn" onclick="newsFmt('createLink')"><i class="fas fa-link"></i></button>
-            </div>
-            <div id="newsBody" contenteditable="true" style="min-height:260px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:0 0 9px 9px;padding:14px;line-height:1.65;outline:none;"></div>
-          </div>
-          <div class="col-md-6"><label class="news-lbl">Optionaler externer Link</label><input id="newsExternal" class="fc w-100" placeholder="https://…"></div>
-          <div class="col-md-6"><label class="news-lbl">Video URL</label><input id="newsVideo" class="fc w-100" placeholder="YouTube- oder TikTok-URL" oninput="NewsMagazine.videoPreview()"></div>
-          <div class="col-12"><label class="news-lbl">Tags / Hashtags</label><input id="newsTags" class="fc w-100" placeholder="${(window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'#Radio #Podcast #AnMaCha':'#Radio #Podcast #News'}" list="newsTagsList"><datalist id="newsTagsList"></datalist></div>
-          <div class="col-12">
-            <label class="news-lbl">Embed-/HTML-Code</label>
-            <textarea id="newsEmbedHtml" class="fc w-100" rows="4" placeholder="z. B. YouTube-, TikTok-, Instagram-, Spotify-, Vimeo- oder SoundCloud-Embed-Code"></textarea>
-            <div style="font-size:.68rem;color:var(--muted);margin-top:5px;">Skripte werden entfernt; sichere Medien-Embeds bleiben erhalten.</div>
+            <label class="news-lbl">Inhalt <span style="font-weight:400;text-transform:none;letter-spacing:0">– Blöcke wie im WordPress-Editor: „/“ tippen oder „+“ klicken · HTML-Block und Code-Editor inklusive</span></label>
+            <div id="newsBody"></div>
           </div>
           <div class="col-12"><div id="newsVideoPreview"></div></div>
-          <div class="col-12" style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
-            <label class="news-lbl"><i class="fas fa-magnifying-glass-chart" style="margin-right:5px"></i>SEO (optional, überschreibt Titel/Teaser nur in Suchergebnissen & Linkvorschauen)</label>
-          </div>
-          <div class="col-md-6"><label class="news-lbl">SEO-Titel</label><input id="newsSeoTitle" class="fc w-100" maxlength="70" placeholder="Standard: Beitragstitel"></div>
-          <div class="col-md-6"><label class="news-lbl">SEO-Beschreibung</label><input id="newsSeoDescription" class="fc w-100" maxlength="200" placeholder="Standard: Teaser"></div>
         </div>
       </div>
       <aside class="editor-sidebar">
@@ -343,13 +352,19 @@ function editorHtml(){
           <div id="newsSaveHint" class="hint" style="margin:10px 0">Öffentlich erscheint nur, was den Status „Veröffentlicht“ hat. Liegt „Veröffentlichung“ in der Zukunft, wird der Beitrag erst dann automatisch live geschaltet.</div>
           <div class="d-flex gap-2"><button class="btn-g" style="flex:1" onclick="NewsMagazine.preview()"><i class="fas fa-eye"></i> Vorschau</button><button class="btn-a" style="flex:1" onclick="NewsMagazine.save()"><i class="fas fa-floppy-disk"></i> Speichern</button></div>
         </div>
-        <div class="card editor-box">
-          <div class="tt" style="font-size:.85rem"><i class="fas fa-folder"></i> Kategorie</div>
-          <select id="newsCategory" class="fc w-100" style="margin-top:10px"></select>
-        </div>
-        <div class="card editor-box">
-          <div class="tt" style="font-size:.85rem"><i class="fas fa-image"></i> Beitragsbild</div>
-          <div style="display:flex;gap:7px;align-items:center;margin-top:10px">
+        <details class="card editor-box np-panel" open><summary><i class="fas fa-link"></i> Permalink</summary>
+          <label class="news-lbl">Adresse (Slug)</label><input id="newsSlug" class="fc w-100" maxlength="120" placeholder="wird aus dem Titel erzeugt" oninput="NewsMagazine.slugPreview()">
+          <div id="newsSlugPreview" class="hint" style="margin-top:6px;word-break:break-all"></div>
+        </details>
+        <details class="card editor-box np-panel" open><summary><i class="fas fa-folder"></i> Kategorie</summary>
+          <select id="newsCategory" class="fc w-100"></select>
+        </details>
+        <details class="card editor-box np-panel" open><summary><i class="fas fa-tags"></i> Schlagwörter</summary>
+          <input id="newsTags" class="fc w-100" placeholder="${(window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'#Radio #Podcast #AnMaCha':'#Radio #Podcast #News'}" list="newsTagsList"><datalist id="newsTagsList"></datalist>
+          <div class="hint" style="margin-top:6px">Mit Komma, Leerzeichen oder # trennen.</div>
+        </details>
+        <details class="card editor-box np-panel" open><summary><i class="fas fa-image"></i> Beitragsbild</summary>
+          <div style="display:flex;gap:7px;align-items:center">
             <input id="newsImage" class="fc w-100" placeholder="Bild-URL oder Upload">
             <button type="button" class="btn-g" onclick="NewsMagazine.openMediaPicker()" title="Aus Mediathek wählen"><i class="fas fa-photo-film"></i></button><button type="button" class="btn-g" onclick="NewsMagazine.pickFeatured()" title="Freie Bilder (Pixabay, Pexels, Unsplash …)"><i class="fas fa-images"></i></button>
             <button type="button" class="btn-g" onclick="document.getElementById('newsThumbFile').click()" title="Thumbnail hochladen"><i class="fas fa-upload"></i></button>
@@ -363,7 +378,31 @@ function editorHtml(){
             <option value="both">Thumbnail + Beitrag</option>
             <option value="none">Bild komplett ausblenden</option>
           </select>
-        </div>
+        </details>
+        <details class="card editor-box np-panel" open><summary><i class="fas fa-align-left"></i> Auszug (Teaser)</summary>
+          <textarea id="newsExcerpt" class="fc w-100" rows="3" maxlength="600" placeholder="Kurze Zusammenfassung für Übersicht und Linkvorschau"></textarea>
+          <div class="hint" style="margin-top:4px"><span id="newsExcerptCount">0</span> / 600 Zeichen</div>
+        </details>
+        <details class="card editor-box np-panel"><summary><i class="fas fa-comments"></i> Diskussion</summary>
+          <label class="news-lbl">Kommentare für diesen Beitrag</label>
+          <select id="newsComments" class="fc w-100"><option value="default">Wie in den Kommentar-Einstellungen</option><option value="open">Immer erlauben</option><option value="closed">Geschlossen</option></select>
+        </details>
+        <details class="card editor-box np-panel"><summary><i class="fas fa-magnifying-glass-chart"></i> Suchmaschinen &amp; Teilen</summary>
+          <label class="news-lbl">SEO-Titel</label><input id="newsSeoTitle" class="fc w-100" maxlength="70" placeholder="Standard: Beitragstitel">
+          <label class="news-lbl" style="margin-top:8px">SEO-Beschreibung</label><textarea id="newsSeoDescription" class="fc w-100" rows="2" maxlength="200" placeholder="Standard: Teaser"></textarea>
+          <label class="news-lbl" style="margin-top:8px">Kanonische Adresse (optional)</label><input id="newsCanonical" class="fc w-100" placeholder="https://… (nur bei Zweitveröffentlichung)">
+          <label style="display:flex;gap:8px;align-items:center;margin-top:8px;cursor:pointer"><input id="newsNoindex" type="checkbox"> Nicht in Suchmaschinen aufnehmen (noindex, nicht in der Sitemap)</label>
+        </details>
+        <details class="card editor-box np-panel"><summary><i class="fas fa-puzzle-piece"></i> Erweitert</summary>
+          <label class="news-lbl">Optionaler externer Link</label><input id="newsExternal" class="fc w-100" placeholder="https://…">
+          <label class="news-lbl" style="margin-top:8px">Video-URL</label><input id="newsVideo" class="fc w-100" placeholder="YouTube- oder TikTok-URL" oninput="NewsMagazine.videoPreview()">
+          <label class="news-lbl" style="margin-top:8px">Embed-/HTML-Code (Kopfbereich des Beitrags)</label>
+          <textarea id="newsEmbedHtml" class="fc w-100" rows="4" placeholder="z. B. Spotify-, Vimeo- oder SoundCloud-Embed-Code"></textarea>
+          <div class="hint" style="margin-top:5px">Skripte werden entfernt; sichere Medien-Embeds bleiben erhalten. Für HTML im Text den Block „HTML“ verwenden.</div>
+        </details>
+        <details class="card editor-box np-panel"><summary><i class="fas fa-circle-info"></i> Informationen</summary>
+          <div id="newsInfo" class="hint" style="line-height:1.7"></div>
+        </details>
       </aside>
     </div>
   </div>`;
@@ -494,7 +533,7 @@ function restoreAutosave(){
   document.getElementById('newsPublishedAt').value=d.published_at||'';
   document.getElementById('newsSeoTitle').value=d.seo_title||'';
   document.getElementById('newsSeoDescription').value=d.seo_description||'';
-  document.getElementById('newsBody').innerHTML=d.body_html||'';
+  setBody(d.body_html||'');
   renderThumbPreview(); videoPreview(); dismissAutosave();
   say('Lokaler Stand wiederhergestellt','success');
 }
@@ -521,7 +560,12 @@ function openEditor(a){
   document.getElementById('newsPublishedAt').value=d;
   document.getElementById('newsSeoTitle').value=a?.seo_title||'';
   document.getElementById('newsSeoDescription').value=a?.seo_description||'';
-  document.getElementById('newsBody').innerHTML=a?.body_html||'';
+  document.getElementById('newsSlug').value=a?.slug||'';
+  document.getElementById('newsComments').value=['open','closed'].includes(a?.comments)?a.comments:'default';
+  document.getElementById('newsNoindex').checked=!!a?.noindex;
+  document.getElementById('newsCanonical').value=a?.canonical_url||'';
+  setBody(a?.body_html||'');
+  slugPreview();updateInfo();
   renderThumbPreview();
   videoPreview();
   const revBtn=document.getElementById('newsRevisionsBtn'); if(revBtn)revBtn.style.display=currentId?'':'none';
@@ -558,7 +602,7 @@ async function restoreRevision(revisionId){
 }
 async function edit(id){try{const r=await fetch(CMS_API+'?action=news_get&id='+encodeURIComponent(id)+'&_='+Date.now(),{headers:cmsNewsHeaders(false)});const d=await r.json();if(!r.ok||d.status==='error'||d.error)throw new Error(d.message||d.error||'Fehler');openEditor(d.article);}catch(e){say(e.message,'error');}}
 function collectFormData(){
-  return {id:currentId,title:val('newsTitle').trim(),category:val('newsCategory'),excerpt:val('newsExcerpt').trim(),image_url:val('newsImage').trim(),image_mode:val('newsImageMode')||'thumbnail',external_url:val('newsExternal').trim(),video_url:val('newsVideo').trim(),tags:val('newsTags').trim(),embed_html:val('newsEmbedHtml').trim(),status:val('newsStatus'),featured:checked('newsFeatured'),published_at:val('newsPublishedAt'),seo_title:val('newsSeoTitle').trim(),seo_description:val('newsSeoDescription').trim(),body_html:document.getElementById('newsBody')?.innerHTML||''};
+  return {id:currentId,title:val('newsTitle').trim(),category:val('newsCategory'),excerpt:val('newsExcerpt').trim(),image_url:val('newsImage').trim(),image_mode:val('newsImageMode')||'thumbnail',external_url:val('newsExternal').trim(),video_url:val('newsVideo').trim(),tags:val('newsTags').trim(),embed_html:val('newsEmbedHtml').trim(),status:val('newsStatus'),featured:checked('newsFeatured'),published_at:val('newsPublishedAt'),seo_title:val('newsSeoTitle').trim(),seo_description:val('newsSeoDescription').trim(),slug:val('newsSlug').trim(),comments:val('newsComments')||'default',noindex:checked('newsNoindex'),canonical_url:val('newsCanonical').trim(),body_html:getBody()};
 }
 async function save(){
   if(!canEdit)return say('Keine Redaktionsrechte','error');
@@ -643,7 +687,7 @@ function videoPreview(){
 }
 function closeEditor(){stopAutosave();const el=document.getElementById('newsEditorCard');if(el)el.style.display='none';currentId=0;}
 function preview(){
-  const title=esc(val('newsTitle')||'Vorschau'),body=document.getElementById('newsBody')?.innerHTML||'',img=val('newsImage');
+  const title=esc(val('newsTitle')||'Vorschau'),body=getBody(),img=val('newsImage');
   const w=window.open('','_blank');if(!w)return;
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+title+'</title><style>body{margin:0;background:#07070b;color:#eee;font-family:Segoe UI,system-ui,sans-serif}.x{max-width:820px;margin:40px auto;padding:24px}.x img{width:100%;max-height:420px;object-fit:cover;border-radius:18px}.x h1{font-size:2.4rem}.x .b{line-height:1.7;font-size:1rem}.x a{color:#ffce00}</style></head><body><main class="x">'+(img?'<img src="'+esc(img)+'">':'')+'<h1>'+title+'</h1><div class="b">'+body+'</div></main></body></html>');w.document.close();
 }
@@ -670,26 +714,13 @@ async function importPrompt(){
 }
 
 /* Bild in den Artikeltext einfügen (Mediathek oder freie Bilder); bei Namensnennungspflicht mit Bildunterschrift */
-let savedRange=null;
-function rememberRange(){const sel=window.getSelection();if(sel&&sel.rangeCount){const r=sel.getRangeAt(0);const ed=document.getElementById('newsBody');if(ed&&ed.contains(r.commonAncestorContainer))savedRange=r.cloneRange()}}
 function insertImage(){
-  if(!window.StockMedia){say('Bildauswahl nicht verfügbar','error');return}
-  rememberRange();
-  StockMedia.open({onPick:(item,info)=>{
-    const ed=document.getElementById('newsBody');if(!ed)return;ed.focus();
-    const fig=document.createElement('figure'),img=document.createElement('img');img.src=info.urlFor(1024);img.alt=info.alt||'';fig.appendChild(img);
-    if(info.credit){const c=document.createElement('figcaption');c.textContent=info.credit;fig.appendChild(c)}
-    // hinter den Block einfügen, in dem der Cursor stand (oder ans Ende); ein leerer Absatz danach erlaubt weiteres Schreiben
-    let node=savedRange?savedRange.startContainer:null;while(node&&node.parentNode&&node.parentNode!==ed)node=node.parentNode;
-    const after=document.createElement('p');after.innerHTML='<br>';
-    if(node&&node.parentNode===ed){ed.insertBefore(fig,node.nextSibling)}else ed.appendChild(fig);
-    fig.after(after);ed.dispatchEvent(new Event('input',{bubbles:true}));
-    if(info.attribution&&!info.credit)say('Bitte den Bildnachweis ergänzen.','info');
-  }});
+  if(!be)return;
+  pickBlockImage(r=>{be.insertImage(r)});
 }
 function pickFeatured(){
   if(!window.StockMedia){say('Bildauswahl nicht verfügbar','error');return}
   StockMedia.open({tab:'stock',onPick:(item,info)=>{document.getElementById('newsImage').value=info.url;renderThumbPreview()}});
 }
-window.NewsMagazine={insertImage,pickFeatured,importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
+window.NewsMagazine={slugPreview,bodyApi:()=>be,insertImage,pickFeatured,importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
 })();

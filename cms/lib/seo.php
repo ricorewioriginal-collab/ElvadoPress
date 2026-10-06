@@ -35,7 +35,7 @@ function rrw_seo_generate(array $site,array $news,string $root): void {
     $map0=rrw_seo_system_map();$system=rrw_seo_generate_system_pages($site,$root,$seo);$noindexSlugs=[];foreach((array)($site['pages']??[]) as $np)if(!empty($np['noindex'])&&($np['type']??'')==='system')$noindexSlugs[$map0[(string)($np['system_target']??'')]??'']=1;
     foreach($system as $slug){if(isset($noindexSlugs[$slug]))continue;$urls[]=['loc'=>$base.'/'.$slug.'.html','lastmod'=>date('Y-m-d')];}
     foreach((array)($site['pages']??[]) as $p){if(empty($p['enabled'])||!empty($p['noindex'])||!rrw_page_is_live($p))continue;if(($p['type']??'')==='custom'&&!empty($seo['index_custom_pages']))$urls[]=['loc'=>$base.'/'.rawurlencode((string)$p['slug']).'.html','lastmod'=>date('Y-m-d')];}
-    if(!empty($seo['index_news']))foreach($news as $a){if(empty($a['slug'])||!rrw_news_is_live($a))continue;$urls[]=['loc'=>$base.'/news.html#'.rawurlencode((string)$a['slug']),'lastmod'=>substr((string)($a['updated_at']??$a['published_at']??date('Y-m-d')),0,10)];}
+    if(!empty($seo['index_news']))foreach($news as $a){if(empty($a['slug'])||!rrw_news_is_live($a)||!empty($a['noindex']))continue;$urls[]=['loc'=>$base.'/news.html#'.rawurlencode((string)$a['slug']),'lastmod'=>substr((string)($a['updated_at']??$a['published_at']??date('Y-m-d')),0,10)];}
     $xml='<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
     foreach($urls as $u)$xml.='  <url><loc>'.htmlspecialchars($u['loc'],ENT_XML1,'UTF-8').'</loc><lastmod>'.htmlspecialchars($u['lastmod'],ENT_XML1,'UTF-8').'</lastmod></url>'."\n";$xml.="</urlset>\n";
     rrw_write_atomic($root.'/sitemap.xml',$xml);

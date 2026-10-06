@@ -27,6 +27,7 @@
                 <button class="palette-btn" onclick="addBlock('heading')"><i class="fas fa-heading"></i> Überschrift</button>
                 <button class="palette-btn" onclick="addBlock('text')"><i class="fas fa-paragraph"></i> Text</button>
                 <button class="palette-btn" onclick="addBlock('html')"><i class="fas fa-code"></i> HTML</button>
+                <button class="palette-btn" onclick="addBlock('html');editHtmlBlock('before',blockArray('before').length-1)"><i class="fas fa-table-columns"></i> Block-Editor</button>
                 <button class="palette-btn" onclick="addBlock('image')"><i class="fas fa-image"></i> Bild</button>
                 <button class="palette-btn" onclick="addBlock('button')"><i class="fas fa-square-up-right"></i> Button</button>
                 <button class="palette-btn" onclick="addBlock('widget')"><i class="fas fa-puzzle-piece"></i> Widget</button>

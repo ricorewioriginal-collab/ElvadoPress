@@ -19,6 +19,7 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/src/Update/`, `cms/update-*.php`, `cms/assets/update-manager.js` | CMS-Aktualisierung über GitHub (Suche, Einspielen, Gesundheitsprüfung, Rückschritt); Doku `cms/docs/UPDATE.md`. |
 | `cms/views/` | PHP-Panels/Teilansichten der Verwaltung. |
 | `cms/assets/` | JavaScript, CSS, Branding und statische Verwaltungsassets. |
+| `cms/assets/blocks/`, `cms/assets/block-editor.css`, `cms/lib/htmlsafe.php` | Block-Editor (Beiträge, HTML-Blöcke von Seiten) und HTML-Bereinigung; siehe HANDOVER.md. |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |
 | `cms/data/` | Laufzeitdaten einer Installation; überwiegend nicht versioniert. |
 | `cms/docs/` | bestehende Fach- und Funktionsdokumentation; vor neuer Doku zuerst hier suchen. |

@@ -284,7 +284,12 @@ function feed_links_extra($args=[]) {}
 function rsd_link() {}
 function wlwmanifest_link() {}
 function wp_generator() { echo '<meta name="generator" content="WordPress '.esc_attr(get_bloginfo('version')).'" />'."\n"; }
-function rel_canonical() { if(!is_singular())return;$o=get_queried_object();if($o instanceof WP_Post)echo '<link rel="canonical" href="'.esc_url(get_permalink($o)).'" />'."\n"; }
+function rel_canonical() {
+    if(!is_singular())return;$o=get_queried_object();if(!($o instanceof WP_Post))return;
+    $c=($o->rrw_source??'')==='news'?(string)($o->rrw_data['canonical_url']??''):'';   // eigene kanonische Adresse des Beitrags (Zweitveröffentlichung)
+    echo '<link rel="canonical" href="'.esc_url($c!==''?$c:get_permalink($o)).'" />'."\n";
+    if(($o->rrw_source??'')==='news'&&!empty($o->rrw_data['noindex']))echo '<meta name="robots" content="noindex,follow" />'."\n";
+}
 function wp_resource_hints() {}
 function wp_robots() {}
 function wp_site_icon() {}

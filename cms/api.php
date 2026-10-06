@@ -958,6 +958,7 @@ if($action==='pack_status'){rrw_auth(false);rrw_json(['status'=>'ok','packs'=>rr
 const RRW_ADMIN_ONLY_SECTIONS=['apps','alexa','assistant','services','brands','storage','backup','plugins'];
 if($action==='save'){
     $authUser=rrw_auth(false);$b=rrw_body();$section=(string)($b['section']??'');
+    $GLOBALS['rrw_html_unfiltered']=!empty($authUser['superadmin']);   // Raw-HTML-Blöcke bleiben nur bei Administratoren unverändert (nie in der Demo)
     // Sicherheitsrelevante Bereiche (Apps, Alexa, KI-Assistent mit API-Schlüsseln, Dienste, Domains, Speicher, Backup, Plugins) wie ihre eigenen Lese-/Schreibaktionen
     // nur für Administratoren, nicht für Redakteure: sonst ließe sich die Sperre dieser Aktionen über das allgemeine Speichern umgehen.
     if(in_array($section,RRW_ADMIN_ONLY_SECTIONS,true)&&empty($authUser['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren dürfen diesen Bereich ändern'],403);
@@ -2083,11 +2084,13 @@ if($action==='news_duplicate'){
     rrw_json(['status'=>'ok','id'=>$newId,'article'=>$copy]);
 }
 if($action==='news_save'){
+    $GLOBALS['rrw_html_unfiltered']=!empty($newsAuth['superadmin']);   // Raw-HTML-Blöcke bleiben nur bei Administratoren unverändert (nie in der Demo)
     $b=rrw_body();$id=(int)($b['id']??0);if($id<=0){$id=1;foreach($news as $a)$id=max($id,(int)($a['id']??0)+1);}
     $now=date('Y-m-d H:i:s');$existing=null;foreach($news as $a)if((int)($a['id']??0)===$id){$existing=$a;break;}
     if($existing!==null&&!rrw_news_can_edit($existing,$newsAuth))rrw_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);
-    $slug=rrw_slug((string)($b['slug']??($existing['slug']??$b['title']??'news')));
-    $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?$b['image_mode']:'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>rrw_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>rrw_news_date($b['published_at']??'',$now),'body_html'=>rrw_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??rrw_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'seo_title'=>mb_substr(trim((string)($b['seo_title']??'')),0,70),'seo_description'=>mb_substr(trim((string)($b['seo_description']??'')),0,200),'updated_at'=>$now,'created_at'=>$now];
+    $slug=rrw_slug((string)(($b['slug']??'')!==''?$b['slug']:($existing['slug']??$b['title']??'news')));
+    $slugBase=$slug;for($sn=2;$sn<200;$sn++){ $taken=false;foreach($news as $o)if((int)($o['id']??0)!==$id&&($o['slug']??'')===$slug){$taken=true;break;} if(!$taken)break;$slug=$slugBase.'-'.$sn; }   // Adresse eindeutig halten
+    $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?$b['image_mode']:'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>rrw_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>rrw_news_date($b['published_at']??'',$now),'body_html'=>rrw_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??rrw_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'seo_title'=>mb_substr(trim((string)($b['seo_title']??'')),0,70),'seo_description'=>mb_substr(trim((string)($b['seo_description']??'')),0,200),'comments'=>in_array(($b['comments']??'default'),['open','closed'],true)?$b['comments']:'default','noindex'=>!empty($b['noindex']),'canonical_url'=>(filter_var(trim((string)($b['canonical_url']??'')),FILTER_VALIDATE_URL)&&preg_match('~^https?://~i',trim((string)$b['canonical_url'])))?mb_substr(trim((string)$b['canonical_url']),0,1200):'','updated_at'=>$now,'created_at'=>$now];
     if($existing!==null)rrw_news_save_revision($revisionsFile,$id,$existing);
     $found=false;foreach($news as &$a)if((int)($a['id']??0)===$id){$article['created_at']=$a['created_at']??$now;$a=$article;$found=true;break;}unset($a);if(!$found)$news[]=$article;
     rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");if(!isset($site['rss']['enabled'])||!empty($site['rss']['enabled']))rrw_write_atomic($root.'/rss.xml',rrw_rss_xml($site));rrw_log_activity($activityLogFile,$newsAuth,$existing!==null?'news_update':'news_create',($existing!==null?'Beitrag „':'Neuer Beitrag „').$article['title'].'“ '.($existing!==null?'bearbeitet':'angelegt'));rrw_json(['status'=>'ok','id'=>$id]);
@@ -2160,8 +2163,11 @@ if($action==='comments_list'){
     rrw_json(['status'=>'ok','comments'=>$out,'enabled'=>true]);
 }
 if($action==='comment_submit'){
-    if(empty($commentsCfg['enabled']))rrw_json(['status'=>'error','message'=>'Kommentare sind derzeit deaktiviert'],403);
     $b=rrw_body();
+    $cArt=null;foreach($news as $a)if((int)($a['id']??0)===(int)($b['article_id']??0)){$cArt=$a;break;}
+    $cMode=(string)($cArt['comments']??'default');   // je Beitrag: default = Einstellung der Website, open = immer, closed = nie
+    if($cMode==='closed')rrw_json(['status'=>'error','message'=>'Kommentare sind für diesen Beitrag geschlossen'],403);
+    if($cMode!=='open'&&empty($commentsCfg['enabled']))rrw_json(['status'=>'error','message'=>'Kommentare sind derzeit deaktiviert'],403);
     if(trim((string)($b['hp']??''))!=='')rrw_json(['status'=>'ok']); // Honeypot: Bots bekommen scheinbar Erfolg, es wird nichts gespeichert
     $articleId=(int)($b['article_id']??0);
     $article=null;foreach($news as $a)if((int)($a['id']??0)===$articleId){$article=$a;break;}

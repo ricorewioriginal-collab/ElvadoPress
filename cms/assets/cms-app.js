@@ -395,13 +395,22 @@ function blockHtml(b,zone,i){
  let editor='';
  if(b.type==='heading')editor=`<input class="fc w-100" value="${escCms(b.text||'')}" oninput="updBlock('${zone}',${i},'text',this.value)"><select class="fc" onchange="updBlock('${zone}',${i},'level',+this.value)"><option value="2" ${b.level===2?'selected':''}>H2</option><option value="3" ${b.level===3?'selected':''}>H3</option><option value="4" ${b.level===4?'selected':''}>H4</option></select>`;
  else if(b.type==='text'||b.type==='quote')editor=`<textarea class="fc w-100" rows="3" oninput="updBlock('${zone}',${i},'text',this.value)">${escCms(b.text||'')}</textarea>`;
- else if(b.type==='html')editor=`<textarea class="fc w-100" rows="4" oninput="updBlock('${zone}',${i},'html',this.value)">${escCms(b.html||'')}</textarea>`;
+ else if(b.type==='html')editor=`<textarea class="fc w-100" rows="4" oninput="updBlock('${zone}',${i},'html',this.value)">${escCms(b.html||'')}</textarea>`+(window.EPB?`<button type="button" class="btn-g" style="margin-top:6px" onclick="editHtmlBlock('${zone}',${i})"><i class="fas fa-table-columns"></i> Im Block-Editor bearbeiten</button>`:'');
  else if(b.type==='image')editor=`<input class="fc w-100" placeholder="Bild-URL" value="${escCms(b.url||'')}" oninput="updBlock('${zone}',${i},'url',this.value)"><div style="display:flex;gap:6px"><input id="imgfile-${zone}-${i}" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="fc w-100"><button class="btn-g" onclick="uploadBlockImage('${zone}',${i})"><i class="fas fa-upload"></i></button><button class="btn-g" title="Mediathek oder freie Bilder" onclick="pickBlockImage('${zone}',${i})"><i class="fas fa-images"></i></button></div><input class="fc w-100" placeholder="Alt-Text" value="${escCms(b.alt||'')}" oninput="updBlock('${zone}',${i},'alt',this.value)"><input class="fc w-100" placeholder="Bildunterschrift" value="${escCms(b.caption||'')}" oninput="updBlock('${zone}',${i},'caption',this.value)">`;
  else if(b.type==='button')editor=`<input class="fc w-100" placeholder="Beschriftung" value="${escCms(b.label||'')}" oninput="updBlock('${zone}',${i},'label',this.value)"><input class="fc w-100" placeholder="URL" value="${escCms(b.url||'')}" oninput="updBlock('${zone}',${i},'url',this.value)">`;
  else if(b.type==='widget')editor=`<select class="fc w-100" onchange="updBlock('${zone}',${i},'widget_id',this.value)">${(CMS.widgets||[]).map(w=>'<option value="'+escCms(w.id)+'" '+(w.id===b.widget_id?'selected':'')+'>'+escCms(w.name)+'</option>').join('')}</select>`;
  else if(b.type==='spacer')editor=`<input type="range" min="8" max="160" value="${Number(b.size)||32}" oninput="updBlock('${zone}',${i},'size',+this.value);this.nextElementSibling.textContent=this.value+' px'"><span class="hint">${Number(b.size)||32} px</span>`;
  else editor='<span class="hint">'+escCms(b.type)+'</span>';
  return `<div class="cms-block" draggable="true" ondragstart="dragBlock(event,'${zone}',${i})" ondragover="event.preventDefault()" ondrop="dropBlockAt(event,'${zone}',${i})"><div class="drag-handle"><i class="fas fa-grip-vertical"></i></div><div class="block-editor"><div class="hint" style="text-transform:uppercase;font-weight:900">${escCms(b.type)}</div>${editor}</div><div class="block-tools"><label title="anzeigen"><input type="checkbox" ${b.enabled!==false?'checked':''} onchange="updBlock('${zone}',${i},'enabled',this.checked)"></label><button class="btn-d" style="padding:6px 8px" onclick="removeBlock('${zone}',${i})"><i class="fas fa-trash"></i></button></div></div>`;
+}
+function editHtmlBlock(zone,i){
+ const a=blockArray(zone);if(!a[i]||!window.EPB)return;
+ const upload=(file,cb)=>{if(file.size>8*1024*1024)return cmsToast('Bild darf maximal 8 MB groß sein',true);const fd=new FormData();fd.append('file',file);fetch(CRON+'?action=media_upload',{method:'POST',headers:cmsHeaders(false),body:fd}).then(r=>r.json()).then(d=>{if(d.status==='ok')cb({url:d.url,alt:''});else cmsToast(d.message||'Upload fehlgeschlagen',true)}).catch(e=>cmsToast(e.message,true))};
+ EPB.modal({title:'HTML-Block bearbeiten',html:a[i].html||'',canRaw:(typeof CMS_IS_SA!=='undefined'&&!!CMS_IS_SA)&&!window.RRW_DEMO,
+  pickImage:cb=>{if(!window.StockMedia)return cmsToast('Bildauswahl nicht verfügbar',true);StockMedia.open({onPick:(item,info)=>cb({url:info.urlFor?info.urlFor(1600):info.url,alt:info.alt||'',caption:info.credit||''})})},
+  upload:cb=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/jpeg,image/png,image/webp';inp.onchange=()=>{if(inp.files[0])upload(inp.files[0],cb)};inp.click()},
+  uploadFile:upload,
+  onSave:v=>{a[i].html=v;renderBlocks(zone)}});
 }
 function pickBlockImage(zone,i){
  if(!window.StockMedia)return cmsToast('Bildauswahl nicht verfügbar',true);
