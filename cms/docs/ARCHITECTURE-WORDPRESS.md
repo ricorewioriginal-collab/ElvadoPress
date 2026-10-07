@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 2 (Fundament). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Stand Phase 3 (Inhalte über Adapter). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
 
 ## Schichten
 ```
@@ -30,5 +30,13 @@ Core wird bei der Installation von wordpress.org geladen: Version von uns gebild
 Zuerst MySQL/MariaDB (SQLite später). Bestehende WordPress-Tabellen mit gleichem Präfix werden erkannt und nicht überschrieben (Meldung „leere Datenbank nötig“).
 
 ## Phasen
-1 Analyse · **2 Engine-Fundament (dieser Stand)** · 3 Seiten/Beiträge/Taxonomien über Adapter · 4 Medien, Benutzer · 5 Plugins/Themes (echt) · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
+1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter (dieser Stand)** · 4 Medien, Benutzer · 5 Plugins/Themes (echt) · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
 Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scripts/test-wp-engine.php`.
+
+## Phase 3: Inhalte über Dienst und Adapter
+`ContentService` (`cms/src/Wp/ContentService.php`) prüft und bereinigt alle Eingaben serverseitig (Titel, Slug, Status, Datum, Kategorien/Schlagwörter, Bildadresse, Größen) und ruft den `ContentAdapter` auf. Einheitliches Inhaltsmodell: id, type, title, slug, content, excerpt, status (published/draft/scheduled/private/trash), date, modified, author, categories, tags, parent, image.
+- `WordPressAdapter`: lesen und schreiben mit den echten WordPress-Funktionen (WP_Query, wp_insert_post, wp_set_object_terms …). Administratoren dürfen HTML ungefiltert speichern; ohne dieses Recht filtert WordPress (kses).
+- `NativeAdapter`: liest den bisherigen ElvadoPress-Bestand (Beiträge aus `news.json`, Seiten aus `site.json`-Blöcken und Markdown) – Quelle für die spätere Migration; schreibgeschützt, die bisherige Verwaltung bleibt unverändert.
+- API (`cms/engine-api.php`, nur Administratoren): `content_list|get|save|delete`, `term_list|save|delete`; Quelle `?source=native|wordpress` (Standard: wordpress, wenn die Engine aktiv ist).
+- Noch nicht umgestellt: die bestehenden Panels „Beiträge“/„Seiten“ nutzen weiter die eigene Verwaltung; die Umstellung erfolgt mit der Migration (Phase 9). Medien und Benutzer: Phase 4 (Bilder werden bis dahin als Adresse gespeichert).
+Tests: `scripts/test-wp-engine-content.php` (Eingabeprüfung, NativeAdapter; mit `WPE_TEST_ZIP`/`WPE_TEST_DB` zusätzlich 31 Prüfungen gegen echtes WordPress).

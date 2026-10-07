@@ -129,6 +129,7 @@ final class Bridge
             wp_delete_post((int)$pid, true);
         }
         update_option('wp_page_for_privacy_policy', 0);
+        wp_update_term((int)get_option('default_category'), 'category', ['name' => 'Allgemein', 'slug' => 'allgemein']);   // deutsche Standard-Kategorie statt „Uncategorized“
         foreach ((array)$wpdb->get_col("SELECT comment_ID FROM {$wpdb->comments}") as $cid) {
             wp_delete_comment((int)$cid, true);
         }

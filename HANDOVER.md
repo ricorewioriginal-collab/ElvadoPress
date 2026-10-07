@@ -70,3 +70,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Neue Verwaltungsoberfläche + Live Builder
 `cms/assets/shell.css|js` (Markenblock, Seitenleiste, schlanke Statuszeile), Seitenleiste neu gruppiert (Website mit Live Builder, Medien, Design, Plugins, Benutzer, Werkzeuge, KI, Apps, Radio, Einstellungen, System). Live Builder: `cms/views/panel-livebuilder.php`, `cms/assets/live-builder.js`, API `wp_bk_draft|publish|discard`, Doku `cms/docs/LIVE-CUSTOMIZER.md`. Der alte Reiter „Homepage-Baukasten“ ist aus der Seitenleiste entfernt (Panel bleibt im Code).
+
+## Phase 3: Inhalte über Adapter
+`ContentService`, erweiterter `ContentAdapter` (NativeAdapter lesend, WordPressAdapter lesen/schreiben), API `content_*`/`term_*` in `cms/engine-api.php`, Test `scripts/test-wp-engine-content.php` (Integrationsteil mit `WPE_TEST_ZIP`/`WPE_TEST_DB`). Bestehende Panels unverändert; Umstellung/Migration folgt (Phase 9).
