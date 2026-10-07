@@ -173,7 +173,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=7"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script><script src="assets/elvado-plugins.js?v=3"></script>
-<script src="assets/system-manager.js?v=2"></script>
+<script src="assets/system-manager.js?v=3"></script>
 <script src="assets/users-manager.js?v=2"></script>
 <script src="assets/standalone-manager.js?v=1"></script><script src="assets/update-manager.js?v=1"></script>
 <script src="assets/activity-log.js?v=2"></script>
@@ -195,7 +195,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
 <script src="assets/header-builder.js?v=1"></script>
-<script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=3"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=46"></script>
+<script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=4"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=46"></script>
 <?php /* Erweiterungen aktiver offizieller Plugins für die ganze Verwaltung (z. B. SEO-Vorschau im Editor) */ try{ if(is_file(__DIR__.'/data/.plugins/state.json')){ require_once __DIR__.'/lib/nplugins.php';foreach(rrw_np()->globalAdminScripts() as $__s)echo '<script src="'.htmlspecialchars($__s,ENT_QUOTES).'" defer></script>'."\n"; } }catch(Throwable $__e){} ?>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>

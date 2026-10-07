@@ -61,7 +61,7 @@ function rrw_demo_engine_config(): ?array {
 }
 function rrw_demo_engine_enabled(): bool { return rrw_demo_engine_config()!==null; }
 /** Engine-Aktionen, die in der Demo gesperrt bleiben (der Aufbau läuft über engine_demo_setup; fremder Programmcode kommt nicht auf den Server). */
-const RRW_DEMO_ENGINE_BLOCKED=['engine_core','engine_db_test','engine_db_install','engine_mode','engine_remove','ext_upload','ext_safe'];
+const RRW_DEMO_ENGINE_BLOCKED=['engine_core','engine_db_test','engine_db_install','engine_db_unify','engine_mode','engine_remove','ext_upload','ext_safe'];
 /** Plugins/Themes aus dem WordPress-Verzeichnis, die sich in der Demo installieren (und wieder löschen) lassen: bekannte, weit verbreitete Pakete von wordpress.org. Betreiber: demo-engine.json → "allow_install":{"plugins":[…],"themes":[…]} (leere Listen = nichts). */
 const RRW_DEMO_ENGINE_ALLOW=['plugins'=>['classic-editor','hello-dolly'],'themes'=>['twentytwentyfive','twentytwentyfour']];
 function rrw_demo_engine_allowed(string $kind,string $slug): bool {

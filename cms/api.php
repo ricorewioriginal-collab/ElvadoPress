@@ -1782,7 +1782,13 @@ if($action==='database_test'){
 }
 if($action==='database_drivers'){rrw_auth(true);$o=[];foreach(rrw_db_drivers() as $k=>$d)$o[]=['id'=>$k,'label'=>$d['label'],'available'=>$d['ext']===''||extension_loaded($d['ext']),'port'=>$d['port']];rrw_json(['status'=>'ok','drivers'=>$o]);}
 if($action==='database_config_save'){
-    rrw_auth(true);$b=rrw_body();try{rrw_db_write_config((array)($b['database']??[]));$site['storage']=rrw_clean_section('storage',(array)($b['storage']??[]));rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','database'=>rrw_db_status(),'storage'=>$site['storage']]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
+    rrw_auth(true);$b=rrw_body();
+    // Eine Datenbank für CMS und WordPress-Kern: das Präfix der WordPress-Schicht darf nicht das Präfix der Engine sein
+    try{ $dbIn=(array)($b['database']??[]);$ep=@json_decode((string)@file_get_contents($dataDir.'/.wp-engine/db.json'),true);
+        if(in_array((string)($dbIn['driver']??''),['mysql','mariadb'],true)&&is_array($ep)&&strcasecmp((string)($ep['prefix']??'-'),trim((string)($dbIn['prefix']??'wp_')))===0)
+            rrw_json(['status'=>'error','message'=>'Das Tabellenpräfix „'.trim((string)($dbIn['prefix']??'')).'“ nutzt schon der WordPress-Kern in dieser Datenbank. Bitte ein anderes wählen (z. B. wpl_).'],400);
+    }catch(Throwable $e){}
+    try{rrw_db_write_config((array)($b['database']??[]));$site['storage']=rrw_clean_section('storage',(array)($b['storage']??[]));rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','database'=>rrw_db_status(),'storage'=>$site['storage']]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
 }
 if($action==='database_push'){
     rrw_auth(true);try{$x=rrw_db_push($site,rrw_read_json($newsFile,[]));try{ require_once __DIR__.'/src/autoload.php';$cdb=\Elvado\Database\DatabaseConnection::fromCmsSettings($dataDir);$cdb->migrateCore();$x['core_posts']=(new \Elvado\Repository\PostRepository($cdb))->mirror(rrw_read_json($newsFile,[])); }catch(Throwable $e){}rrw_json(['status'=>'ok','synced'=>$x,'database'=>rrw_db_status()]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
