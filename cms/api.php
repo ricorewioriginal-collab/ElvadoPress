@@ -1020,6 +1020,7 @@ if($action==='save'){
     // Optionale Zusatzfelder, die nicht im Formular stehen (von der WordPress-Schicht geschrieben), bleiben beim Speichern erhalten.
     if(is_array($value)&&in_array($section,['portal','legal'],true)){$kx=$section==='portal'?'tagline':'email';if(!array_key_exists($kx,$value)&&isset($site[$section][$kx]))$value[$kx]=$site[$section][$kx];}
     $clean=rrw_clean_section($section,$value);
+    if($section==='brands'){$cf=rrw_brand_domain_conflicts((array)($clean['items']??[]));if($cf)rrw_json(['status'=>'error','message'=>rrw_brand_conflict_message($cf,(array)($clean['items']??[]))],400);}
     if($section==='assistant'&&function_exists('rrw_assistant_admin_view')){$site[$section]=$clean;try{rrw_publish($site,$siteFile,$genDir,$root);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>'Dateispeicherung fehlgeschlagen: '.$e->getMessage()],500);}rrw_json(['status'=>'ok','value'=>rrw_assistant_admin_view($clean),'rev'=>rrw_section_rev(rrw_ensure_site_defaults(rrw_read_json($siteFile,[])),$section),'file'=>'cms/data/site.json','published'=>true]);}if($clean===null)rrw_json(['status'=>'error','message'=>'Ungültige Daten'],400);$prevSection=$site[$section]??null;$site[$section]=$clean;
     if($section==='pages'){$u0=rrw_auth(false);rrw_page_revisions_record($dataDir,$prevSection,$clean,(string)($u0['display_name']??$u0['user']??''));}
     if($section==='widget_areas'||$section==='theme')$site=rrw_theme_remember_mods($site);
@@ -1037,6 +1038,20 @@ if($action==='branding_upload'){
     $site['branding'][$kind]=$sync['url'];$site['branding_media'][$kind]=['path'=>$path,'size'=>'auto','source_url'=>$source,'assigned_at'=>date(DATE_ATOM)];
     rrw_publish($site,$siteFile,$genDir,$root);
     rrw_json(['status'=>'ok','url'=>$sync['url'],'branding'=>$site['branding'],'branding_media'=>$site['branding_media'],'updated_files'=>$sync['files'],'warnings'=>array_values(array_merge($result['warnings']??[],$sync['warnings']??[]))]);
+}
+if($action==='brand_create'){   // Neue Marke (optional als Kopie): nur Administratoren
+    $au=rrw_auth(false);if(empty($au['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren dürfen Marken anlegen'],403);
+    $b=rrw_body();rrw_site_lock($dataDir);$site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));
+    try{$items=rrw_brand_create(rrw_brands_registry($site),$b);}catch(InvalidArgumentException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],400);}
+    $reg=rrw_brands_registry($site);$reg['items']=$items;$site['brands']=rrw_brands_clean($reg);
+    try{rrw_publish($site,$siteFile,$genDir,$root);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>'Dateispeicherung fehlgeschlagen: '.$e->getMessage()],500);}
+    $newId=(string)end($site['brands']['items'])['id'];
+    rrw_log_activity($activityLogFile,$au,'brand_create','Marke „'.$newId.'“ angelegt'.(!empty($b['copy_from'])?' (Kopie von '.rrw_brand_id_clean((string)$b['copy_from']).')':''));
+    rrw_json(['status'=>'ok','id'=>$newId,'brands'=>$site['brands']]);
+}
+if($action==='brand_domain_check'){   // DNS-Prüfung (nur Namensauflösung): Administratoren
+    $au=rrw_auth(false);if(empty($au['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren'],403);
+    $b=rrw_body();rrw_json(['status'=>'ok']+rrw_brand_domain_dns((string)($b['domain']??($_GET['domain']??''))));
 }
 if($action==='brand_asset_assign'){
     rrw_auth(false);$b=rrw_body();$brandId=rrw_brand_id_clean((string)($b['brand_id']??''));$kind=preg_replace('/[^a-z_]/','',(string)($b['kind']??''));

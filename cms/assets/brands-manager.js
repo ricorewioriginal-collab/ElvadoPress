@@ -40,11 +40,12 @@ window.BrandsManager=(()=>{
   const r=reg(),isMain=b.id===r.default;
   return `<div class="brand-editor">
    <div class="th"><div><div class="tt"><i class="fas fa-globe"></i>${esc(b.name||b.id)} <code style="font-size:.7rem;color:var(--muted)">${esc(b.id)}</code></div><div class="hint">${isMain?'Hauptmarke: leere Felder übernehmen die globalen Einstellungen (Branding, SEO, Website) – so bleibt alles wie bisher.':'Leere Felder übernehmen die gemeinsamen Einstellungen der Website.'}</div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><label class="wm-check" style="margin:0"><input type="checkbox" ${b.enabled!==false?'checked':''} onchange="BrandsManager.set('enabled',this.checked)"> Aktiv</label><a class="btn-g" href="/?rrw_brand=${encodeURIComponent(b.id)}" target="_blank" rel="noopener"><i class="fas fa-eye"></i> Vorschau</a>${!b.builtin?'<button class="btn-d" onclick="BrandsManager.remove(\''+esc(b.id)+'\')"><i class="fas fa-trash"></i></button>':''}<button id="brandSaveBtn" class="btn-a" onclick="BrandsManager.save()"><i class="fas fa-floppy-disk"></i> Speichern</button></div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><label class="wm-check" style="margin:0"><input type="checkbox" ${b.enabled!==false?'checked':''} onchange="BrandsManager.set('enabled',this.checked)"> Aktiv</label><button class="btn-g" type="button" onclick="BrandsManager.duplicate('${esc(b.id)}')" title="Neue Marke mit den Einstellungen dieser Marke anlegen"><i class="fas fa-clone"></i> Duplizieren</button><a class="btn-g" href="/?rrw_brand=${encodeURIComponent(b.id)}" target="_blank" rel="noopener"><i class="fas fa-eye"></i> Vorschau</a>${!b.builtin?'<button class="btn-d" onclick="BrandsManager.remove(\''+esc(b.id)+'\')"><i class="fas fa-trash"></i></button>':''}<button id="brandSaveBtn" class="btn-a" onclick="BrandsManager.save()"><i class="fas fa-floppy-disk"></i> Speichern</button></div></div>
    <div class="widget-category-title">Marke</div>
    <div class="section-grid">${field(b,'name','Anzeigename')}${field(b,'short_name','Kurzname',{ph:'z.B. SenderWelt'})}${field(b,'claim','Claim',{ph:'Deine Streams. Deine Sender. Eine Welt.'})}${field(b,'title','Seitentitel',{ph:isMain?'leer = SEO-Seitentitel':'z.B. SenderWelt'})}${field(b,'title_suffix','Titel-Zusatz (Unterseiten)',{ph:'z.B. "Sendeplan – SenderWelt"'})}${field(b,'description','Meta Description',{type:'textarea',rows:2})}</div>
    <div class="widget-category-title" style="margin-top:14px">Domains</div>
    <div class="section-grid">${field(b,'primary_domain','Hauptdomain',{ph:'senderwelt.de',hint:'Ohne https://, ohne www. Die www-Variante wird automatisch erkannt.'})}<div><label class="news-lbl">Zusätzliche Domains</label><input class="fc w-100" value="${esc((b.domains||[]).join(', '))}" placeholder="www.senderwelt.de, senderwelt.eu" oninput="BrandsManager.setDomains(this.value)"><div class="hint" style="margin-top:4px">Kommagetrennt. Jede Domain muss serverseitig (KeyHelp) auf dieses Projekt zeigen, siehe Doku.</div></div></div>
+   <div style="margin:8px 0 0"><button class="btn-g" type="button" onclick="BrandsManager.dns(CMS.brands.items.find(x=>x.id==='${esc(b.id)}')?.primary_domain,'brandDnsOut')"><i class="fas fa-network-wired"></i> Hauptdomain prüfen (DNS)</button> <span class="hint" id="brandDnsOut" style="display:inline-block;margin-left:6px"></span></div>
    <div class="widget-category-title" style="margin-top:14px">Assets (Medien-Hub)</div>
    <div class="asset-grid">${ASSETS.map(a=>assetHtml(b,a)).join('')}</div>
    <div class="widget-category-title" style="margin-top:14px">SEO & Canonical</div>
@@ -76,14 +77,56 @@ window.BrandsManager=(()=>{
   open(id){S.editing=id;render();},
   set(path,val){const b=find(S.editing);if(!b)return;const keys=path.split('.');let o=b;keys.slice(0,-1).forEach(k=>{o[k]=o[k]&&typeof o[k]==='object'?o[k]:{};o=o[k];});o[keys.at(-1)]=val;S.dirty=true;if(path==='legal.imprint_mode'||path==='legal.privacy_mode'||path==='enabled')render();else{const btn=document.getElementById('brandSaveBtn');if(btn)btn.innerHTML='<i class="fas fa-floppy-disk"></i> Speichern';}},
   setDomains(v){const b=find(S.editing);if(!b)return;b.domains=String(v).split(/[,\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);S.dirty=true;},
-  add(){const r=reg();let id=prompt('Technische Kennung der neuen Marke (nur Kleinbuchstaben, Ziffern, Bindestrich):','');if(!id)return;id=id.toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-|-$/g,'');if(!id||find(id))return cmsToast('Kennung ungültig oder schon vergeben',true);
-   r.items.push({id,name:id,short_name:'',claim:'',enabled:false,builtin:false,primary_domain:'',domains:[],logo:'',logo_dark:'',logo_light:'',favicon:'',touch_icon:'',og_image:'',social_image:'',title:'',title_suffix:'',description:'',manifest_name:'',manifest_short_name:'',colors:{theme:'',accent:''},canonical_mode:'main',canonical_base:'',legal:{imprint_mode:'shared',imprint_url:'',imprint_content:'',privacy_mode:'shared',privacy_url:'',privacy_content:''},overrides:{portal:{}}});
-   S.editing=id;S.dirty=true;render();},
+  /* Marken-Assistent: Name, Kennung, Domains, optional als Kopie einer vorhandenen Marke (Teile wählbar). */
+  add(copyFrom=''){
+   const r=reg(),src=copyFrom?find(copyFrom):null;
+   document.getElementById('brandWiz')?.remove();
+   const o=document.createElement('div');o.id='brandWiz';o.style.cssText='position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+   const groups=[['design','Gestaltung (Logo, Favicon, Farben)'],['texts','Texte (Claim, Startseite, Footer)'],['legal','Rechtliches (Impressum, Datenschutz)'],['seo','SEO (Titel, Beschreibung, Manifest)']];
+   o.innerHTML=`<div class="card" style="max-width:560px;width:100%;max-height:92vh;overflow:auto" role="dialog" aria-modal="true" aria-label="Neue Marke">
+    <div class="th" style="margin-bottom:8px"><div><div class="wp-page-title" style="font-size:1.1rem">${src?'Marke duplizieren':'Neue Marke anlegen'}</div><div class="wp-subtitle">Eigene Domain(s), Logo, Texte und SEO; Inhalte (Seiten, Beiträge, Sender) bleiben gemeinsam.</div></div></div>
+    <div class="section-grid">
+     <div><label class="news-lbl">Anzeigename</label><input class="fc w-100" id="bwName" placeholder="z. B. Mein Radio" maxlength="80"></div>
+     <div><label class="news-lbl">Kennung</label><input class="fc w-100" id="bwId" placeholder="mein-radio" maxlength="40"><div class="hint">Technisch, nur Kleinbuchstaben, Ziffern, Bindestrich.</div></div>
+     <div><label class="news-lbl">Hauptdomain</label><input class="fc w-100" id="bwDom" placeholder="mein-radio.de"><div class="hint">Ohne https://, ohne www.</div></div>
+     <div><label class="news-lbl">Zusätzliche Domains</label><input class="fc w-100" id="bwDoms" placeholder="www.mein-radio.de, mein-radio.com"></div>
+    </div>
+    <div style="margin:6px 0"><button class="btn-g" type="button" id="bwDns"><i class="fas fa-network-wired"></i> Domain prüfen (DNS)</button> <span class="hint" id="bwDnsOut" style="display:inline-block;margin-left:6px"></span></div>
+    <div class="widget-category-title" style="margin-top:10px">Einstellungen übernehmen von</div>
+    <select class="fc w-100" id="bwFrom"><option value="">– leer starten –</option>${r.items.map(b=>`<option value="${esc(b.id)}" ${src&&src.id===b.id?'selected':''}>${esc(b.name||b.id)}</option>`).join('')}</select>
+    <div id="bwGroups" style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px">${groups.map(([k,l])=>`<label class="wm-check" style="margin:0"><input type="checkbox" data-g="${k}" ${k!=='seo'?'checked':''}> ${l}</label>`).join('')}</div>
+    <label class="wm-check" style="margin:12px 0 0"><input type="checkbox" id="bwOn" checked> Sofort aktivieren (die Domain zeigt dann diese Marke)</label>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn-g" type="button" id="bwCancel">Abbrechen</button><button class="btn-a" type="button" id="bwOk"><i class="fas fa-plus"></i> Marke anlegen</button></div>
+   </div>`;
+   document.body.appendChild(o);
+   const $=id=>document.getElementById(id);let idTouched=false;
+   const slug=t=>String(t).toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+   $('bwName').addEventListener('input',()=>{if(!idTouched)$('bwId').value=slug($('bwName').value)});$('bwId').addEventListener('input',()=>{idTouched=true});
+   $('bwFrom').addEventListener('change',()=>{$('bwGroups').style.display=$('bwFrom').value?'flex':'none'});$('bwGroups').style.display=src?'flex':'none';
+   const close=()=>o.remove();$('bwCancel').onclick=close;o.addEventListener('mousedown',e=>{if(e.target===o)close()});o.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+   $('bwDns').onclick=()=>api.dns($('bwDom').value,'bwDnsOut');
+   $('bwOk').onclick=async()=>{
+    const btn=$('bwOk');btn.disabled=true;
+    try{
+     const d=await cmsApi('brand_create',{name:$('bwName').value,id:$('bwId').value,primary_domain:$('bwDom').value,domains:$('bwDoms').value.split(/[,\s]+/).filter(Boolean),enabled:$('bwOn').checked,copy_from:$('bwFrom').value,copy:[...o.querySelectorAll('#bwGroups input:checked')].map(x=>x.dataset.g)});
+     CMS.brands=d.brands;S.editing=d.id;S.dirty=false;close();render();window.CMS_BRANDS_REFRESH?.();cmsToast('Marke angelegt ✓');
+    }catch(e){cmsToast(e.message,true);btn.disabled=false;}
+   };
+   setTimeout(()=>$('bwName').focus(),30);
+  },
+  duplicate(id){api.add(id);},
+  async dns(domain,outId){
+   const out=document.getElementById(outId);if(!out)return;const dom=String(domain||'').trim();
+   if(!dom){out.textContent='Bitte zuerst eine Domain eintragen.';return;}
+   out.textContent='Prüfe …';
+   try{const d=await cmsApi('brand_domain_check',{domain:dom});out.style.color=!d.ok?'#f87171':(d.match?'#34d399':'#fbbf24');out.textContent=(d.ok&&d.match?'✓ ':'')+d.message;}
+   catch(e){out.style.color='#f87171';out.textContent=e.message;}
+  },
   remove(id){const b=find(id);if(!b||b.builtin)return;if(!confirm('Marke „'+b.name+'“ löschen? Domains dieser Marke zeigen danach die Hauptmarke.'))return;reg().items=reg().items.filter(x=>x.id!==id);S.editing=null;S.dirty=true;api.save();},
   async save(){
    const r=reg();const b=find(S.editing);
    if(b&&b.enabled!==false&&!b.primary_domain&&b.id!==r.default)cmsToast('Hinweis: Marke ohne Hauptdomain wird nur per Vorschau erreichbar sein',true);
-   try{const d=await cmsApi('save',{section:'brands',value:r});CMS.brands=d.value;S.dirty=false;render();const live=await verifyPublicSection('brands',d.value);cmsToast(live?'Marken gespeichert & live ✓':'Gespeichert, Live-Stand bitte prüfen',!live);}
+   try{const d=await cmsApi('save',{section:'brands',value:r});CMS.brands=d.value;S.dirty=false;render();window.CMS_BRANDS_REFRESH?.();const live=await verifyPublicSection('brands',d.value);cmsToast(live?'Marken gespeichert & live ✓':'Gespeichert, Live-Stand bitte prüfen',!live);}
    catch(e){cmsToast(e.message,true);}
   },
   async upload(brandId,kind){

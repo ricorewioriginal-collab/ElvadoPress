@@ -299,3 +299,75 @@ function rrw_brand_render_static(string $html,array $brand,string $page): string
     }
     return $html;
 }
+
+// ───────── Marken anlegen, Domains absichern ─────────
+/** Jede Domain (mit/ohne „www.“) gehört genau einer Marke. @param list<array<string,mixed>> $items @return list<array{domain:string,brands:list<string>}> */
+function rrw_brand_domain_conflicts(array $items): array {
+    $seen=[];
+    foreach($items as $b){
+        foreach(array_filter(array_merge([(string)($b['primary_domain']??'')],(array)($b['domains']??[]))) as $d){$seen[preg_replace('/^www\./','',(string)$d)][(string)($b['id']??'')]=true;}
+    }
+    $out=[];foreach($seen as $d=>$ids)if(count($ids)>1)$out[]=['domain'=>(string)$d,'brands'=>array_map('strval',array_keys($ids))];
+    return $out;
+}
+/** Teile einer Marke, die beim Anlegen „als Kopie von …“ übernommen werden können. */
+const RRW_BRAND_COPY_GROUPS=[
+    'design'=>['logo','logo_dark','logo_light','favicon','touch_icon','og_image','social_image','colors'],
+    'seo'=>['title','title_suffix','description','manifest_name','manifest_short_name','canonical_mode','canonical_base'],
+    'texts'=>['claim','overrides'],
+    'legal'=>['legal'],
+];
+/**
+ * Neue Marke anlegen, optional als Kopie einer vorhandenen (nur die gewählten Teile; Kennung, Name und Domains sind immer neu).
+ * @param array{items:list<array<string,mixed>>} $reg bereinigte Markenliste @param array<string,mixed> $in id, name, short_name, primary_domain, domains[], enabled, copy_from, copy[]
+ * @return list<array<string,mixed>> neue Markenliste (noch nicht bereinigt/gespeichert)
+ * @throws InvalidArgumentException mit verständlicher Meldung
+ */
+function rrw_brand_create(array $reg,array $in): array {
+    $items=array_values((array)($reg['items']??[]));
+    $name=mb_substr(trim((string)($in['name']??'')),0,80);
+    $id=rrw_brand_id_clean((string)($in['id']??'')!==''?(string)$in['id']:$name);
+    if($id==='')throw new InvalidArgumentException('Bitte einen Namen oder eine Kennung angeben.');
+    foreach($items as $x)if(($x['id']??'')===$id)throw new InvalidArgumentException('Die Kennung „'.$id.'“ gibt es schon.');
+    if(count($items)>=20)throw new InvalidArgumentException('Es sind höchstens 20 Marken möglich.');
+    if($name==='')$name=$id;
+    $primaryRaw=trim((string)($in['primary_domain']??''));$primary=rrw_brand_domain_clean($primaryRaw);
+    if($primaryRaw!==''&&$primary==='')throw new InvalidArgumentException('Die Hauptdomain „'.$primaryRaw.'“ ist ungültig (Beispiel: meine-marke.de).');
+    $extra=[];
+    foreach((array)($in['domains']??[]) as $d){$d=trim((string)$d);if($d==='')continue;$c=rrw_brand_domain_clean($d);if($c==='')throw new InvalidArgumentException('Die Domain „'.$d.'“ ist ungültig.');if($c!==$primary)$extra[]=$c;}
+    $b=rrw_brand_blank(['id'=>$id,'name'=>$name,'short_name'=>mb_substr(trim((string)($in['short_name']??''))!==''?trim((string)$in['short_name']):$name,0,40),'primary_domain'=>$primary,'domains'=>array_values(array_unique($extra)),'enabled'=>!empty($in['enabled']),'builtin'=>false]);
+    $from=rrw_brand_id_clean((string)($in['copy_from']??''));
+    if($from!==''){
+        $src=null;foreach($items as $x)if(($x['id']??'')===$from)$src=$x;
+        if($src===null)throw new InvalidArgumentException('Die Vorlage-Marke „'.$from.'“ gibt es nicht.');
+        $groups=array_values(array_intersect(array_keys(RRW_BRAND_COPY_GROUPS),array_map('strval',(array)($in['copy']??['design','texts','legal']))));
+        foreach($groups as $g)foreach(RRW_BRAND_COPY_GROUPS[$g] as $k)if(array_key_exists($k,$src))$b[$k]=$src[$k];
+        if(in_array('texts',$groups,true)&&isset($b['overrides']['portal']['site_name'])&&$b['overrides']['portal']['site_name']!=='')$b['overrides']['portal']['site_name']=$name;
+    }
+    $items[]=$b;
+    $cf=rrw_brand_domain_conflicts($items);
+    if($cf)throw new InvalidArgumentException(rrw_brand_conflict_message($cf,$items));
+    return $items;
+}
+/** @param list<array{domain:string,brands:list<string>}> $cf @param list<array<string,mixed>> $items */
+function rrw_brand_conflict_message(array $cf,array $items): string {
+    $nm=[];foreach($items as $x)$nm[(string)($x['id']??'')]=(string)($x['name']??$x['id']??'');
+    return 'Jede Domain darf nur zu einer Marke gehören: '.implode('; ',array_map(fn($c)=>$c['domain'].' → '.implode(' und ',array_map(fn($i)=>'„'.($nm[$i]??$i).'“',$c['brands'])),$cf)).'.';
+}
+/**
+ * DNS-Prüfung einer Domain: zeigt sie auf denselben Server wie diese Verwaltung? (nur Namensauflösung, keine Anfrage an die Domain)
+ * @return array{ok:bool,domain:string,ips:list<string>,server_ips:list<string>,match:bool,message:string}
+ */
+function rrw_brand_domain_dns(string $domain,?string $adminHost=null): array {
+    $d=rrw_brand_domain_clean($domain);
+    if($d==='')return ['ok'=>false,'domain'=>'','ips'=>[],'server_ips'=>[],'match'=>false,'message'=>'Ungültige Domain.'];
+    $ips=array_values(array_unique(array_map('strval',(array)(@gethostbynamel($d)?:[]))));
+    $host=rrw_brand_host_normalize((string)($adminHost??($_SERVER['HTTP_HOST']??'')));
+    $mine=[];if(($sa=(string)($_SERVER['SERVER_ADDR']??''))!=='')$mine[]=$sa;
+    if($host!==''&&!preg_match('/^[0-9.:]+$/',$host))foreach((array)(@gethostbynamel($host)?:[]) as $ip)$mine[]=(string)$ip;
+    $mine=array_values(array_unique($mine));$match=(bool)array_intersect($ips,$mine);
+    if(!$ips)$msg='Für „'.$d.'“ wurde kein DNS-Eintrag gefunden. Lege beim Domain-Anbieter einen A-Eintrag auf'.($mine?' '.implode(', ',$mine):' die IP-Adresse dieses Servers').' an (und für „www.'.$d.'“ einen CNAME auf '.$d.').';
+    elseif($match)$msg='Die Domain zeigt auf diesen Server. Fehlt noch ein HTTPS-Zertifikat, richtest du es beim Hosting/Webserver für diese Domain ein.';
+    else $msg='Die Domain zeigt auf '.implode(', ',$ips).', dieser Server hat '.($mine?implode(', ',$mine):'eine andere Adresse').'. Passe den A-Eintrag an (Änderungen brauchen bis zu 24 Stunden).';
+    return ['ok'=>true,'domain'=>$d,'ips'=>$ips,'server_ips'=>$mine,'match'=>$match,'message'=>$msg];
+}
