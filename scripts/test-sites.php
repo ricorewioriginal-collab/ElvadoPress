@@ -44,7 +44,7 @@ t('Kontext setzen: nur bekannte Websites', rrw_site_use('mein-blog') && rrw_site
 $c = rrw_site_create(['name' => 'Kopie', 'domains' => ['kopie.example'], 'copy_from' => 'main', 'copy_media' => true]);
 $cd = $tmp . '/sites/kopie';
 t('Kopie der Hauptwebsite: Einstellungen, Inhalte, Layouts, Medien', is_file($cd . '/data/site.json') && is_file($cd . '/data/news.json') && is_file($cd . '/data/layouts/home.json') && is_file($cd . '/media/bild.png') && is_file($cd . '/generated/index.html') && $c['copied'] >= 5, (string)$c['copied']);
-t('Kopie: Anmeldung, Protokoll, versteckte Zustände (z. B. .wp) und Registry gehen nicht mit', !file_exists($cd . '/data/local-auth.local.php') && !file_exists($cd . '/data/activity-log.json') && !file_exists($cd . '/data/.wp') && !file_exists($cd . '/data/sites.json'));
+t('Kopie: Anmeldung, Protokoll, versteckte Zustände (.wp nur mit Theme-Aktivierung/Optionen) und Registry gehen nicht mit', !file_exists($cd . '/data/local-auth.local.php') && !file_exists($cd . '/data/activity-log.json') && !file_exists($cd . '/data/.wp/sess') && array_diff(scandir($cd . '/data/.wp') ?: [], ['.', '..', 'front-on', 'options.json']) === [] && !file_exists($cd . '/data/sites.json'));
 $c2 = rrw_site_create(['name' => 'Ohne Medien', 'copy_from' => 'kopie']);
 t('Kopie einer weiteren Website, Medien nur auf Wunsch', is_file($tmp . '/sites/ohne-medien/data/site.json') && !file_exists($tmp . '/sites/ohne-medien/media/bild.png'));
 
