@@ -10,3 +10,4 @@
 /cms/wp-content/uploads/*
 /cms/backups/
 /cms/plugins/
+/cms/wp-engine/

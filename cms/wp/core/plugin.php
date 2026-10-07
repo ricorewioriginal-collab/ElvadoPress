@@ -63,21 +63,53 @@ function rrw_wp_register_crash_guard(): void {
         $cur=$GLOBALS['rrw_wp_loading']??null;if(!$cur)return;
         $e=error_get_last();
         if($e&&in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR,E_USER_ERROR],true)){
+            if(str_starts_with($cur,'mu-plugins/')){   // Must-Use-Plugin: nicht abschaltbar, wird aber bis zur nächsten Änderung der Datei übersprungen
+                $f=(defined('WPMU_PLUGIN_DIR')?(string)WPMU_PLUGIN_DIR:WP_CONTENT_DIR.'/mu-plugins').'/'.basename($cur);
+                $skip=(array)get_option('rrw_wp_mu_skipped',[]);$skip[basename($cur)]=(int)@filemtime($f);update_option('rrw_wp_mu_skipped',$skip);
+                rrw_wp_log('Must-Use-Plugin '.basename($cur).' abgestürzt und bis zur nächsten Änderung übersprungen: '.$e['message']);
+                update_option('rrw_wp_plugin_errors',array_merge((array)get_option('rrw_wp_plugin_errors',[]),[$cur=>mb_substr($e['message'],0,300)]));
+                return;
+            }
             rrw_wp_log('Plugin '.$cur.' abgestürzt und automatisch deaktiviert: '.$e['message']);
             $list=array_values(array_diff(get_option_active_plugins(),[$cur]));update_option('active_plugins',$list);
             update_option('rrw_wp_plugin_errors',array_merge((array)get_option('rrw_wp_plugin_errors',[]),[$cur=>mb_substr($e['message'],0,300)]));
         }
     });
 }
+/**
+ * Must-Use-Plugins wie in WordPress: alle *.php direkt in wp-content/mu-plugins (nach Dateinamen sortiert), vor den normalen Plugins; nach jeder Datei mu_plugin_loaded (voller Pfad),
+ * danach muplugins_loaded. Ein Fehler in einer Datei wird gemeldet, bricht aber das Laden nicht ab (Must-Use-Plugins lassen sich nicht abschalten).
+ * @return array<string,string> Fehler je Datei
+ */
+function rrw_wp_load_mu_plugins(): array {
+    static $done=false;$errors=[];
+    if($done)return $errors;$done=true;
+    $dir=defined('WPMU_PLUGIN_DIR')?(string)WPMU_PLUGIN_DIR:WP_CONTENT_DIR.'/mu-plugins';
+    $files=is_dir($dir)?(glob($dir.'/*.php')?:[]):[];sort($files,SORT_STRING);
+    $skip=(array)get_option('rrw_wp_mu_skipped',[]);
+    foreach($files as $f){
+        if(!is_file($f))continue;
+        if(isset($skip[basename($f)])&&(int)$skip[basename($f)]===(int)@filemtime($f)){ $errors['mu-plugins/'.basename($f)]='abgestürzt, übersprungen bis die Datei geändert wird';continue; }
+        $GLOBALS['rrw_wp_loading']='mu-plugins/'.basename($f);
+        try{ include_once $f; }
+        catch(Throwable $e){ $errors['mu-plugins/'.basename($f)]=$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')';rrw_wp_log('Must-Use-Plugin '.basename($f).': '.$errors['mu-plugins/'.basename($f)]); }
+        $GLOBALS['rrw_wp_loading']=null;
+        do_action('mu_plugin_loaded',$f);
+    }
+    do_action('muplugins_loaded');
+    return $errors;
+}
 function rrw_wp_load_plugins(): array {
     static $loaded=[];$errors=[];
     rrw_wp_register_crash_guard();
+    $errors+=rrw_wp_load_mu_plugins();
     foreach(get_option_active_plugins() as $pl){
         if(isset($loaded[$pl]))continue;
         $v=validate_plugin($pl);if(is_wp_error($v)){$errors[$pl]=$v->get_error_message();continue;}
         $err=rrw_wp_include_plugin($pl);
         if($err!==null){ $errors[$pl]=$err; rrw_wp_log('Plugin '.$pl.' konnte nicht geladen werden: '.$err); update_option('active_plugins',array_values(array_diff(get_option_active_plugins(),[$pl]))); update_option('rrw_wp_plugin_errors',array_merge((array)get_option('rrw_wp_plugin_errors',[]),[$pl=>mb_substr($err,0,300)])); continue; }
         $loaded[$pl]=true;
+        if($err===null)do_action('plugin_loaded',WP_PLUGIN_DIR.'/'.$pl);   // wie in WordPress: nach jedem erfolgreich geladenen Plugin (voller Pfad)
     }
     do_action('plugins_loaded');
     return $errors;

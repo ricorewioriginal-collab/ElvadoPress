@@ -71,7 +71,7 @@ t('Layout: Abschnittstypen im System-Prompt, unbekannte Typen entfernt',str_cont
 $reply=fn($u,$h,$b)=>$openai('[{"type":"nix"}]');t('Layout ohne brauchbare Abschnitte → Fehler',thr(fn()=>$svc->generate(['provider'=>'openai','task'=>'layout','prompt'=>'x']),'Layout')!==null);
 // Abgleich mit dem Schema des Homepage-Baukastens (eine Quelle der Wahrheit)
 define('ABSPATH',__DIR__);require __DIR__.'/../cms/themes/elvado-baukasten/inc/layout.php';
-t('Layout-Typen des Gateways entsprechen dem Baukasten-Schema',array_keys(AiGatewayService::LAYOUT_TYPES)==array_keys(elvado_bk_schema()));
+t('Layout-Typen des Gateways entsprechen den acht Baukasten-Abschnitten (und liegen im Schema)',array_keys(AiGatewayService::LAYOUT_TYPES)==ELVADO_BK_TYPES&&!array_diff(ELVADO_BK_TYPES,array_keys(elvado_bk_schema())));
 // Fehler
 $reply=fn($u,$h,$b)=>new HttpResponse(401,'{"error":{"message":"Incorrect API key sk-test-openai-1234"}}');
 $e=thr(fn()=>$svc->generate(['provider'=>'openai','prompt'=>'x']),'API-Schlüssel prüfen');t('401: Schlüssel-Hinweis, Schlüssel nicht in der Meldung',$e!==null&&!str_contains($e->getMessage(),'sk-test'));

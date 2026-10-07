@@ -4,6 +4,7 @@
 ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSION`: **1.0.0**. Das CMS ist PHP-basiert, dateibasiert mit optionalem Datenbankspiegel, besitzt eine WordPress-Kompatibilitätsschicht und optionale App-/Alexa-/KI-Erweiterungen. CI prüft Syntax, Smoke-Test und die vorhandenen Funktionstests.
 
 ## Zuletzt abgeschlossen
+- **WordPress-Start wie im echten WordPress:** Referenzmessung mit einem echten WordPress 7.1.3 (nur zum Messen; Hooks aller typischen Verwaltungsseiten protokolliert, 1746 verschiedene, 964 davon in ElvadoPress nirgends vorhanden – überwiegend dynamische Familien und WordPress-eigene Bildschirme). Behoben: Must-Use-Plugins (`wp-content/mu-plugins`) werden geladen (`mu_plugin_loaded`, `muplugins_loaded`), `plugin_loaded` je Plugin, `setup_theme` vor dem Theme, `widgets_init` innerhalb von `init` (Priorität 1). Test `scripts/test-wp-startup.php` mit den Sollwerten aus WordPress 7.1.3. Lückenliste in `cms/docs/WORDPRESS.md`.
 - **WordPress-Meldungen in der Verwaltung (Hello Dolly & Co.):** Plugins, die nur `admin_notices` nutzen, zeigten in ElvadoPress nichts an, weil die Verwaltung diesen Hook nie auslöste. Neu: `rrw_wp_admin_notices_doc()` (`cms/wp/admin.php`), API `wp_admin_notices`, Skript `cms/assets/wp-notices.js` (abgeschotteter Rahmen oben in der Verwaltung, lädt nach Anmeldung und nach Aktivieren/Deaktivieren neu), Test `scripts/test-wp-notices.php`. Mit dem echten Hello Dolly 1.7.2 im Browser geprüft. Noch nicht ausgelöst werden `admin_footer_text`, `in_admin_header` und `plugin_action_links` (KNOWN_ISSUES).
 - **Demo-Anmeldung hing (Fix):** Die Oberflächen-Skripte von Elvado AI und Elvado SEO lösten über ihren `MutationObserver` (und den `fetch`-Wrapper der Verwaltung) eine Endlosschleife aus („Seite antwortet nicht“). Jetzt: Status-Promise wird gemerkt, Observer gebündelt (150 ms), SEO schreibt nur bei Änderung und ignoriert eigene Änderungen. Browser-Prüfung mit Playwright (Anmeldung + Beitragseditor); Regressionstest in `scripts/test-ai-coupling.php`.
 - **KI-Kopplung:** Wird in der KI-Zentrale ein nutzbarer Anbieter gespeichert (`ai_config_save`), aktiviert `rrw_np_ai_autoactivate()` (`cms/lib/nplugins.php`) das Plugin Elvado AI einmalig (Markierung `cms/data/.plugins/ai-autoactivated`; nicht in der Demo, nicht mit RicoReWi-Paket; spätere manuelle Deaktivierung bleibt bestehen). Test: `scripts/test-ai-coupling.php`.
@@ -63,3 +64,33 @@ Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokum
 - Nicht das gesamte Repository erneut analysieren.
 - `cms/docs/` enthält bereits umfangreiche Fach-Doku; keine parallelen Dokumentationen anlegen.
 - Keine RicoReWi-spezifischen Inhalte in ElvadoPress einführen; Sync-/Bestandsschutzregeln in `CLAUDE.md` beachten.
+
+## Phase 2: WordPress-Engine (Fundament)
+Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, Bridge, Adapter), `cms/engine-api.php`, `cms/wp-engine-boot.php`, `cms/lib/wpengine.php`, Panel „WordPress-Engine“ (System). Standard: aus. Test: `scripts/test-wp-engine.php`. Doku: `cms/docs/ARCHITECTURE-WORDPRESS.md`, `WORDPRESS-BRIDGE.md`. Offen: Phasen 3–11 (Inhalte über Adapter, Plugins/Themes, Live-Customizer, Migration, RicoReWi-Paket).
+
+## Neue Verwaltungsoberfläche + Live Builder
+`cms/assets/shell.css|js` (Markenblock, Seitenleiste, schlanke Statuszeile), Seitenleiste neu gruppiert (Website mit Live Builder, Medien, Design, Plugins, Benutzer, Werkzeuge, KI, Apps, Radio, Einstellungen, System). Live Builder: `cms/views/panel-livebuilder.php`, `cms/assets/live-builder.js`, API `wp_bk_draft|publish|discard`, Doku `cms/docs/LIVE-CUSTOMIZER.md`. Der alte Reiter „Homepage-Baukasten“ ist aus der Seitenleiste entfernt (Panel bleibt im Code).
+
+## Phase 3: Inhalte über Adapter
+`ContentService`, erweiterter `ContentAdapter` (NativeAdapter lesend, WordPressAdapter lesen/schreiben), API `content_*`/`term_*` in `cms/engine-api.php`, Test `scripts/test-wp-engine-content.php` (Integrationsteil mit `WPE_TEST_ZIP`/`WPE_TEST_DB`). Bestehende Panels unverändert; Umstellung/Migration folgt (Phase 9).
+
+## Phase 4: Medien, Benutzer, Rechte
+`Actor`/`Roles`/`PermissionException`, `MediaService`+`MediaAdapter` (Native lesend, WordPress), `UserService`+`UserAdapter` (Spiegel der lokalen Benutzer), API `media_*`/`user_*`; Besitzerregeln im `ContentService`. Test `scripts/test-wp-engine-media-users.php`. Bestehende Panels weiter unverändert (Umstellung mit der Migration, Phase 9).
+
+## Phase 5: Plugins und Themes (echt) + Absturzschutz
+`ExtensionSource/Installer/Service`, `WordPressExtensionAdapter`, Wächter/Probelauf/abgesicherter Modus in `Engine`/`Bridge`, `cms/src/Wp/mu/elvado-engine.php`, API `ext_*`, Panel „Plugins & Themes (Engine)“ (`wp-extensions.js`). Test `scripts/test-wp-engine-extensions.php`. Bisherige Plugin-/Theme-Panels (Nachbildung) unverändert bis zur Migration.
+
+## Phase 6: Komponenten-Registry
+`cms/src/Components/` (Registry, Component, Sanitizer, Layout, Renderer, CoreComponents, LayoutStore), `cms/lib/components.php`, `cms/components-api.php`; Baukasten-Theme nutzt die Registry für sein Schema + Sichtbarkeit/Responsive; Live Builder mit Katalog-Gruppen und Reiter Sichtbarkeit. Doku `cms/docs/COMPONENTS.md`. Tests `scripts/test-components.php`, `test-baukasten.php`. Produktspezifische Komponenten (Partner, Social Wall, Sender) nur über Erweiterungen/Paket.
+
+## Phase 7: Live Customizer / Preview Bridge
+`cms/assets/preview-bridge.js` (nur mit Vorschau-Schlüssel, via wp-front.php), `live-builder.js` neu (Baum, Brücke, Verlauf, Termin), Baukasten-Theme: Layout im `LayoutStore` (Bereich home), native/WP-Komponenten werden ausgegeben, API `wp_bk_rollback|revisions`, `publish_at`. Doku `cms/docs/LIVE-CUSTOMIZER.md`. Tests: `test-baukasten.php` (67), `test-components.php` (99); Browser: Klick-Auswahl, gefälschte Nachrichten wirkungslos (manuell geprüft).
+
+## Phase 8: Menüs, Widgets, Blöcke
+`NavigationService/Adapter`, `WidgetService/Adapter/Schemas`, `BlockService`, `cms/src/Blocks/Converter.php` (ep↔wp), API `nav_*|widgets_*|blocks_*`, Panel „Menüs, Widgets & Blöcke (Engine)“ (`wp-engine-content.js`), Theme: Komponente „Plugin-Widget“. Test `scripts/test-wp-engine-nav-widgets-blocks.php`. Bisherige Menü-/Widget-Panels unverändert bis zur Migration.
+
+## Phase 9: Migration – nur Trockenlauf
+`cms/src/Wp/Migration/` (Planner, ReportStore, TargetProbe/NullProbe/WordPressProbe), API `migration_plan|migration_report` (Admin, nicht Demo), Karte „Migration (Trockenlauf)“ im Panel WordPress-Engine, Test `scripts/test-wp-engine-migration.php` (28 + 3 mit echtem WordPress), Doku `cms/docs/MIGRATION.md`. Der Trockenlauf schreibt nichts außer dem Bericht (`cms/data/.wp-engine/migration/`). **Phase 9b echte Migration**: `Migrator`, `Backup`, `RunStore`, `ValidNavigation`, API `migration_run|rollback|runs` (Bestätigung `MIGRIEREN`), UI im Engine-Panel; schaltet NICHT um, wiederholbar, zurückbaubar; in Produktion nie ausgeführt. Danach: Panels auf Engine umstellen, Emulation `cms/wp` entfernen (Golden-Test in ricorewi-radio), Sync erst nach Freigabe der PRs.
+
+## Phase 10: Paket-Kompatibilität (neutraler Teil)
+`bind`/„bound“-Komponenten (`Component`, `Renderer::boundCss`), Paket-Lader/Ziele/Vorschau-Schlüssel/`rrw_components_inject` in `cms/lib/components.php`, API `layout_preview`, Live-Builder-Ziel-Auswahl, Test `scripts/test-components-packs.php` (37), Doku in `COMPONENTS.md`. Projektspezifische Pakete (RicoReWi) entstehen nur im Projekt-Repo unter `cms/packs/<paket>/`.

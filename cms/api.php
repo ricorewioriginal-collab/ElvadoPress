@@ -529,6 +529,7 @@ function rrw_site_lock(string $dataDir): void {
     @flock($h,LOCK_EX); // wird beim Ende der Anfrage freigegeben
 }
 rrw_ensure_dirs();
+if(defined('RRW_API_LIB_ONLY'))return;   // nur Hilfsfunktionen und Anmeldeprüfung laden, ohne Aktionen auszuführen (eigener Einstieg cms/engine-api.php für die WordPress-Engine)
 $action=(string)($_GET['action']??'public');
 // Native Plugins: bei Verwaltungsaktionen für Plugins werden sie nicht vorab geladen (Installieren/Aktualisieren prüft sie selbst); sonst laden die aktiven Plugins hier ihre Erweiterungspunkte
 if(!in_array($action,['np_list','np_plan','np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_settings_get','np_enable_recommended'],true)){ rrw_np_boot(); }
@@ -1329,7 +1330,7 @@ if(str_starts_with($action,'wp_')){
         rrw_wpc_use_theme($czSlug);ob_start();
     }
     // Homepage-Baukasten (visueller Abschnitts-Editor): Layout des Themes „elvado-baukasten“ lesen/speichern (Option elvado_bk_layout)
-    $wpBk=in_array($action,['wp_bk_get','wp_bk_save'],true);
+    $wpBk=in_array($action,['wp_bk_get','wp_bk_save','wp_bk_draft','wp_bk_publish','wp_bk_discard','wp_bk_rollback','wp_bk_revisions'],true);
     if($wpBk){ require_once __DIR__.'/wp/customizer-api.php';if(!rrw_wpc_use_theme('elvado-baukasten'))rrw_json(['status'=>'error','message'=>'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.'],404); }
     rrw_wp_boot(['user'=>['id'=>1,'login'=>(string)($wpUser['user']??'admin'),'name'=>(string)($wpUser['display_name']??''),'role'=>'administrator'],'admin'=>true,'theme'=>$wpCz||$wpBk||str_starts_with($action,'wp_admin_')]);
     if(str_starts_with($action,'wp_admin_'))rrw_wp_core_register();
@@ -1594,9 +1595,30 @@ if(str_starts_with($action,'wp_')){
         $finish(['status'=>'ok','saved'=>$r['saved'],'unchanged'=>$r['unchanged']]);
     }
     if($wpBk){
-        $bkOut=function(array $layout) use($wpThemes){ $t=$wpThemes();return ['status'=>'ok','layout'=>$layout,'custom'=>elvado_bk_saved_layout()!==null,'schema'=>elvado_bk_schema(),'active'=>$t['front']&&(string)get_option('template','')==='elvado-baukasten'||$t['active']==='elvado-baukasten'];};
-        if($action==='wp_bk_get')rrw_json($bkOut(elvado_bk_active_layout()));
-        if(array_key_exists('reset',$b)&&$b['reset']){ delete_option('elvado_bk_layout');rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Homepage-Baukasten auf die Customizer-Positionen zurückgesetzt');rrw_json($bkOut(elvado_bk_active_layout())); }
+        $GLOBALS['elvado_bk_actor']=new \Elvado\Wp\Actor(mb_substr((string)($wpUser['user']??'admin'),0,100),'admin');   // Layouts liegen im ElvadoPress-Speicher (Entwurf, Fassungen, Termin)
+        $bkSt=elvado_bk_store();
+        $bkOut=function(array $layout) use($wpThemes,$bkSt){ $t=$wpThemes();$st=$bkSt->get('home');
+            return ['status'=>'ok','layout'=>$layout,'custom'=>elvado_bk_saved_layout()!==null,'draft'=>$st['draft']!==null,'publish_at'=>(string)($st['draft']['publish_at']??''),'revisions'=>$bkSt->revisions('home'),'schema'=>elvado_bk_schema(),
+                'active'=>$t['front']&&(string)get_option('template','')==='elvado-baukasten'||$t['active']==='elvado-baukasten'];};
+        if($action==='wp_bk_get'){ $d=elvado_bk_draft_layout();rrw_json($bkOut($d!==null?$d:elvado_bk_active_layout())+['published'=>elvado_bk_active_layout()]); }
+        if($action==='wp_bk_revisions'){ rrw_json(['status'=>'ok','revisions'=>$bkSt->revisions('home')]); }
+        if($action==='wp_bk_draft'){
+            if(!is_array($b['layout']??null))rrw_json(['status'=>'error','message'=>'Layout fehlt'],400);
+            try{ $l=elvado_bk_save_draft($b['layout'],(string)($b['publish_at']??'')); }catch(\InvalidArgumentException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422); }
+            rrw_json($bkOut($l));
+        }
+        if($action==='wp_bk_discard'){ elvado_bk_discard_draft();rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Entwurf der Startseite verworfen');rrw_json($bkOut(elvado_bk_active_layout())); }
+        if($action==='wp_bk_publish'){
+            if(is_array($b['layout']??null))elvado_bk_save_draft($b['layout']);
+            if(elvado_bk_draft_layout()===null)rrw_json(['status'=>'error','message'=>'Es gibt keinen Entwurf zum Veröffentlichen.'],400);
+            $p=$bkSt->publish('home',elvado_bk_actor(),(string)($b['label']??''));
+            rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Startseite veröffentlicht (Fassung '.$p['n'].', '.count($p['layout']).' Abschnitte)');rrw_json($bkOut((array)$p['layout']));
+        }
+        if($action==='wp_bk_rollback'){
+            try{ $p=$bkSt->rollback('home',(int)($b['n']??0),elvado_bk_actor()); }catch(\RuntimeException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422); }
+            rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Startseite auf Fassung '.(int)($b['n']??0).' zurückgesetzt');rrw_json($bkOut((array)$p['layout']));
+        }
+        if(array_key_exists('reset',$b)&&$b['reset']){ delete_option('elvado_bk_layout');$bkSt->unpublish('home',elvado_bk_actor());rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Homepage-Baukasten auf die Customizer-Positionen zurückgesetzt');rrw_json($bkOut(elvado_bk_active_layout())); }
         if(!is_array($b['layout']??null))rrw_json(['status'=>'error','message'=>'Layout fehlt'],400);
         $l=elvado_bk_save_layout($b['layout']);rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Homepage-Baukasten gespeichert ('.count($l).' Abschnitte)');
         rrw_json($bkOut($l));

@@ -29,6 +29,7 @@ if($tok!==''&&preg_match('/^([a-z0-9_-]{1,80})\.(\d{9,11})\.([a-f0-9]{64})$/',$t
     $preview=$m[1];
     if(isset($_GET['rrw_wp_preview']))setcookie('rrw_wp_preview',$tok,['expires'=>(int)$m[2],'path'=>'/','httponly'=>true,'samesite'=>'Lax']);
     $GLOBALS['rrw_wp_preview_theme']=$preview;
+    add_action('wp_footer',function(){ echo '<script src="/cms/assets/preview-bridge.js?v=1" defer></script>'."\n"; },99);   // Vorschau-Brücke für den Live Builder (nur mit gültigem Vorschau-Schlüssel)
     $parent=$preview;foreach(array_map(fn($rt)=>$rt['dir'].'/'.$preview,rrw_wp_theme_roots()) as $d)if(is_file($d.'/style.css')){ $h=get_file_data($d.'/style.css',['Template'=>'Template']);if($h['Template']!==''&&preg_match('/^[a-z0-9_-]{1,80}$/',$h['Template']))$parent=$h['Template'];break; }
     add_filter('pre_option_stylesheet',fn()=>$preview);add_filter('pre_option_template',fn()=>$parent);
 }
