@@ -1,6 +1,7 @@
 <section id="panel-menus" class="panel">
       <div class="card">
-        <div class="th"><div><div class="wp-page-title">Menüs</div><div class="wp-subtitle">Wie bei WordPress: Seiten links auswählen, rechts ins Menü aufnehmen und per Drag & Drop anordnen.</div></div><button class="btn-a" onclick="saveMenus()"><i class="fas fa-floppy-disk"></i> Menü speichern</button></div>
+        <div class="th"><div><div class="wp-page-title">Menüs</div><div class="wp-subtitle">Wie bei WordPress: Seiten links auswählen, rechts ins Menü aufnehmen und per Drag & Drop anordnen.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn-g" type="button" data-vischeck="visCheckMenus"><i class="fas fa-eye"></i> Sichtbarkeit prüfen</button><button class="btn-a" onclick="saveMenus()"><i class="fas fa-floppy-disk"></i> Menü speichern</button></div></div>
+        <div id="visCheckMenus" class="card vis-box" hidden></div>
         <div class="wp-menu-select">
           <b>Zu bearbeitendes Menü:</b>
           <select id="menuEditingSelect" class="fc" onchange="switchMenuEditor(this.value)"><option value="top">Top Navigation · Desktop</option><option value="bottom">Bottom Navigation · Mobil</option></select>

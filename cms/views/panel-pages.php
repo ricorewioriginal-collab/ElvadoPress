@@ -2,6 +2,7 @@
       <div class="builder-shell">
         <aside class="card builder-sidebar">
           <div class="th"><div><div class="tt"><i class="fas fa-file-lines"></i>Seiten</div><div class="hint">Systemseiten und eigene Seiten.</div></div><button class="btn-a" onclick="cmsAddPage()"><i class="fas fa-plus"></i></button></div>
+          <button class="btn-g" type="button" data-vischeck="visCheckPages" style="width:100%;margin-bottom:8px"><i class="fas fa-eye"></i> Sichtbarkeit prüfen</button><div id="visCheckPages" class="vis-box" hidden></div>
           <div id="pageList" class="builder-list"></div>
         </aside>
         <div>
