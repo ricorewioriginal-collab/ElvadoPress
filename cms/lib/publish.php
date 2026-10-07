@@ -317,7 +317,7 @@ function rrw_clean_section(string $section,$value){
     if($section==='services'&&!rrw_pack_available()){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';return rrw_services_clean($value); }
     if($section==='services'){foreach(['radio_portal','control_center','public_api','news_api','tracker','apps_page','nextcloud','owncast','castopod','airdeck'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='pages'){
-        $out=[];$sys=['start','sender','senderdetail','sendeplan','voting','podcast','news','hilfe','apps','fanshop'];
+        $out=[];$sys=['start','sender','senderdetail','sendeplan','voting','podcast','news','hilfe','apps','fanshop'];if(rrw_pack_available())$sys[]='empfang';   // Systemseite „Empfang“ (RicoReWi-Paket)
         foreach(array_slice((array)$value,0,100) as $p){
             if(!is_array($p))continue;$type=($p['type']??'custom')==='system'?'system':'custom';$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($p['id']??''));if($id==='')$id='page_'.bin2hex(random_bytes(4));
             $slug=rrw_slug((string)($p['slug']??$p['title']??$id));$target=$type==='system'?strtolower(trim((string)($p['system_target']??$slug))):'';if($type==='system'&&!in_array($target,$sys,true))continue;
@@ -639,12 +639,13 @@ function rrw_ensure_site_defaults(array $site): array {
     $site['menus']=is_array($site['menus']??null)?$site['menus']:[];
     $site['menus']['top']=is_array($site['menus']['top']??null)?$site['menus']['top']:[];
     $site['menus']['bottom']=is_array($site['menus']['bottom']??null)?$site['menus']['bottom']:[];
-    $hasTopFavorites=!$ric;
-    foreach($site['menus']['top'] as $m)if((string)($m['target']??'')==='action:favoriten'){$hasTopFavorites=true;break;}
-    if(!$hasTopFavorites)$site['menus']['top'][]=['id'=>'m-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
-    $hasBottomFavorites=!$ric;
-    foreach($site['menus']['bottom'] as $m)if((string)($m['target']??'')==='action:favoriten'){$hasBottomFavorites=true;break;}
-    if(!$hasBottomFavorites)$site['menus']['bottom'][]=['id'=>'b-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+    // Favoriten-Menüpunkt (nur mit Paket): einmalig anlegen, solange das Menü noch leer ist – danach frei ausblendbar und löschbar (die Markierung verhindert ein erneutes Anlegen)
+    $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
+    if($ric&&empty($site['_meta']['favorites_menu_seeded'])){
+        $site['_meta']['favorites_menu_seeded']=true;
+        if(!$site['menus']['top'])$site['menus']['top'][]=['id'=>'m-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+        if(!$site['menus']['bottom'])$site['menus']['bottom'][]=['id'=>'b-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+    }
     // Partnerseite einmalig anlegen (danach frei bearbeitbar oder löschbar; die Markierung verhindert ein erneutes Anlegen)
     $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
     if($ric&&empty($site['_meta']['partner_page_seeded'])){
