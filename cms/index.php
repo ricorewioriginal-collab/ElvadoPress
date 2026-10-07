@@ -198,5 +198,6 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
 <script src="assets/shell.js?v=2"></script>
+<?php foreach(glob(__DIR__.'/packs/*/admin.js')?:[] as $pf){ $pk=basename(dirname($pf)); if(preg_match('/^[a-z0-9-]{1,40}$/',$pk)&&rrw_pack_available($pk)): ?><script src="packs/<?=$pk?>/admin.js?v=<?=(int)@filemtime($pf)?>"></script><?php endif; } ?>
 </body>
 </html>

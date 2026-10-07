@@ -103,10 +103,13 @@ window.AlexaManager=(()=>{
     <li><i>Test</i>: „Alexa, öffne ${esc(S.d.invocation)}“ ausprobieren; danach <i>Distribution</i> mit den Texten aus <code>skill.json</code> und den Icons ausfüllen und <i>Submit for review</i>.</li>
     <li>Nach der Freigabe zeigt oben „Status“, dass der Skill die Einstellungen abruft.</li></ol></div></details>`;
  }
+ const EXTRA=[];   // Zusatzabschnitte, die ein Projekt-Paket anmeldet (cms/packs/<paket>/admin.js) – der Kern kennt keine Projektinhalte
+ function registerSection(fn){if(typeof fn==='function')EXTRA.push(fn)}
+ function extraSections(){return EXTRA.map(f=>{try{return String(f()||'')}catch(e){return ''}}).join('')}
  function draw(){
   const host=document.getElementById('alexaManager');if(!host)return;
   if(!S.d){host.innerHTML=`<div class="dm-empty">${esc(S.err||'Lädt …')}</div>`;return;}
-  host.innerHTML=status()+own()+radio()+ops()+stations()+texts()+stats()+downloads();
+  host.innerHTML=status()+own()+radio()+ops()+stations()+texts()+stats()+extraSections()+downloads();
  }
  function set(path,val){
   const p=path.split('.');let o=S.cfg;for(let i=0;i<p.length-1;i++)o=o[p[i]]=o[p[i]]||{};o[p[p.length-1]]=val;
@@ -156,5 +159,5 @@ window.AlexaManager=(()=>{
  }
  async function clearStats(){if(!confirm('Alle Alexa-Zahlen löschen?'))return;try{await api('alexa_stats_clear',{});toast('Gelöscht');await render();}catch(e){toast(e.message,true);}}
  async function resetToken(){if(!confirm('Neues Token erzeugen? Der laufende Skill kann dann bis zum erneuten Einspielen von cms.json nichts mehr zählen.'))return;try{await api('alexa_token_reset',{});toast('Token erneuert – bitte das Paket neu laden');await render();}catch(e){toast(e.message,true);}}
- return {render,save,set,station,stream,extra,move,clearStats,resetToken,addStation,removeStation};
+ return {render,save,set,station,stream,extra,move,clearStats,resetToken,addStation,removeStation,registerSection};
 })();
