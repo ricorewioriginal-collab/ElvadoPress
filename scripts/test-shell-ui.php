@@ -54,5 +54,6 @@ t('Cache-Version erhöht', preg_match('/shell\.css\?v=([2-9]|\d{2,})/', (string)
 $alx = (string)file_get_contents("$cms/assets/alexa-manager.js");
 t('Alexa-Verwaltung: Zusatzabschnitte für Pakete (ohne Projektinhalte im Kern)', str_contains($alx, 'registerSection') && !str_contains($alx, 'Amazon Store-Auftritt') && !str_contains($alx, 'Senderwelt'));
 t('Paket-Skripte der Verwaltung nur für vorhandene Pakete', str_contains((string)file_get_contents("$cms/index.php"), "packs/*/admin.js") && str_contains((string)file_get_contents("$cms/index.php"), 'rrw_pack_available($pk)'));
+t('Systemstatus-Panel vorhanden und im Menü (System, Updates)', is_file("$cms/views/panel-sysstatus.php") && str_contains($side, "cmsTab('sysstatus'") && substr_count($side, 'data-tab="sysstatus"') === 2 && str_contains((string)file_get_contents("$cms/index.php"), 'panel-sysstatus.php'));
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
 exit($fail ? 1 : 0);

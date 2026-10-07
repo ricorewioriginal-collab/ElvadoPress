@@ -31,6 +31,7 @@ file_put_contents("$cms/data/local-auth.local.php", '<?php return ' . var_export
     ['username' => 'chef', 'password_hash' => password_hash('Test-Passwort-123!', PASSWORD_DEFAULT), 'role' => 'admin', 'display_name' => 'Chef', 'created_at' => date(DATE_ATOM)],
     ['username' => 'anna', 'password_hash' => password_hash('Test-Passwort-456!', PASSWORD_DEFAULT), 'role' => 'autor', 'display_name' => 'Anna', 'created_at' => date(DATE_ATOM)],
 ]], true) . ';');
+file_put_contents("$cms/data/news.json", json_encode([['id' => 1, 'slug' => 'hallo', 'title' => 'Hallo Welt', 'category' => 'Radio', 'body_html' => '<p>x</p>', 'status' => 'published', 'published_at' => '2024-01-01 10:00:00']]));
 $log = "$tmp/probe.log";
 file_put_contents("$tmp/probe.php", '<?php register_shutdown_function(function () { file_put_contents(' . var_export($log, true) . ', json_encode(["uri" => $_SERVER["REQUEST_URI"] ?? "", "abspath" => defined("ABSPATH"), "wp" => count(array_filter(get_included_files(), fn($x) => str_contains($x, "/wp-engine/core-") || str_contains($x, "wp-engine-boot.php")))]) . "\n", FILE_APPEND); });');
 $sock = stream_socket_server('tcp://127.0.0.1:0', $en, $es); $port = (int)explode(':', (string)stream_socket_get_name($sock, false))[1]; fclose($sock);
@@ -84,6 +85,24 @@ t('Autor: Layout der Startseite/Website nicht speicherbar', http('POST', $CMP . 
 t('Autor: eigenes Seitenlayout speicherbar', in_array(http('POST', $CMP . 'layout_save_draft&scope=page:mein-test', $autor, ['layout' => []])['code'], [200], true));
 t('Administrator darf Layouts speichern/veröffentlichen', http('POST', $CMP . 'layout_save_draft&scope=home', $admin, ['layout' => []])['code'] === 200 && http('POST', $CMP . 'layout_publish&scope=home', $admin, [])['code'] === 200);
 
+
+// ───────── 2b) Stabile REST-API (cms/rest.php) ─────────
+$R = '/cms/rest.php';
+$leak = [];
+foreach (['/', '/pages', '/posts', '/posts/1', '/categories', '/tags', '/media', '/navigation', '/components', '/layouts/home', '/status'] as $rt) { if (http('GET', $R . $rt)['code'] !== 401) { $leak[] = $rt; } }
+t('REST ohne Anmeldung: überall 401', $leak === [], json_encode($leak));
+$bearer = function (string $method, string $path, string $tok, ?array $body = null) { global $port; $ctx = stream_context_create(['http' => ['method' => $method, 'header' => "Authorization: Bearer $tok\r\nContent-Type: application/json", 'content' => $body === null ? '' : json_encode($body), 'ignore_errors' => true, 'timeout' => 60]]); $b = (string)@file_get_contents("http://127.0.0.1:$port$path", false, $ctx); $c = 0; foreach ($http_response_header ?? [] as $l) { if (preg_match('#^HTTP/\S+ (\d+)#', $l, $m)) { $c = (int)$m[1]; } } return ['code' => $c, 'json' => json_decode($b, true), 'body' => $b, 'headers' => $http_response_header ?? []]; };
+$d = $bearer('GET', $R . '/', $admin);
+t('REST: Anmeldung per „Authorization: Bearer“, Wurzel nennt Version und Routen', $d['code'] === 200 && ($d['json']['data']['version'] ?? 0) === 1 && in_array('pages', $d['json']['data']['routes'] ?? [], true) && str_contains(implode("\n", $d['headers']), 'X-ElvadoPress-API: 1'), $d['body']);
+t('REST: Cookie allein reicht nie', http('GET', $R . '/posts', null, null, ['Cookie: anmacha_session_token=' . $admin])['code'] === 401);
+$p = $bearer('GET', $R . '/posts', $admin);
+t('REST: Beiträge lesen (native Daten), mit Seitenangaben', $p['code'] === 200 && ($p['json']['meta']['total'] ?? 0) === 1 && ($p['json']['data'][0]['title'] ?? '') === 'Hallo Welt' && ($p['json']['meta']['source'] ?? '') === 'native' && isset($p['json']['meta']['pages']), $p['body']);
+t('REST: einzelner Beitrag, unbekannter 404, Seite und Medien lesbar', $bearer('GET', $R . '/posts/1', $admin)['code'] === 200 && $bearer('GET', $R . '/posts/999', $admin)['code'] === 404 && $bearer('GET', $R . '/pages', $admin)['code'] === 200 && $bearer('GET', $R . '/media', $admin)['code'] === 200 && $bearer('GET', $R . '/categories', $admin)['code'] === 200 && $bearer('GET', $R . '/navigation', $admin)['code'] === 200);
+t('REST: Komponenten und Layouts', ($c = $bearer('GET', $R . '/components', $admin))['code'] === 200 && count($c['json']['data']['components'] ?? []) > 5 && $bearer('GET', $R . '/layouts/home', $admin)['code'] === 200 && in_array($bearer('GET', $R . '/layouts/' . rawurlencode("x';y"), $admin)['code'], [404, 422], true) && $bearer('GET', $R . '/layouts/page:ok', $admin)['code'] === 200 && $bearer('GET', $R . '/layouts/foo', $admin)['code'] === 422);
+t('REST: Native Daten sind schreibgeschützt (409), Autoren dürfen nichts Fremdes', $bearer('POST', $R . '/posts', $admin, ['title' => 'x'])['code'] === 409 && $bearer('DELETE', $R . '/posts/1', $admin)['code'] === 409 && $bearer('GET', $R . '/status', $autor)['code'] === 403 && $bearer('GET', $R . '/status', $admin)['code'] === 200);
+t('REST: Routen- und Eingabeprüfung (404/405/400/422)', $bearer('GET', $R . '/gibtsnicht', $admin)['code'] === 404 && $bearer('GET', $R . '/posts/a/b', $admin)['code'] === 404 && $bearer('GET', $R . '/posts/' . rawurlencode('../x'), $admin)['code'] === 404 && $bearer('POST', $R . '/components', $admin, [])['code'] === 405 && $bearer('GET', $R . '/posts?source=evil', $admin)['code'] === 400 && $bearer('GET', $R . '/posts?status=evil', $admin)['code'] === 422 && $bearer('GET', $R . '/posts?source=wordpress', $admin)['code'] === 409);
+t('REST: Fehlerantworten ohne PHP-Meldungen oder Pfade', !str_contains($bearer('GET', $R . '/posts?status=evil', $admin)['body'], '.php'));
+
 // ───────── 3) Administrator: Verhalten, Methoden, Eingaben ─────────
 $st = http('GET', $ENG . 'engine_status', $admin);
 t('Administrator: Status 200 mit Betriebsart „aus“ (Standard)', $st['code'] === 200 && ($st['json']['engine']['mode'] ?? '') === 'off', $st['body']);
@@ -97,6 +116,7 @@ $r = http('POST', $ENG . 'migration_plan', $admin, []);
 t('Trockenlauf liefert Bericht, blockiert ohne aktive Engine, schreibt nur den Bericht', $r['code'] === 200 && ($r['json']['report']['dry_run'] ?? false) === true && ($r['json']['report']['verdict'] ?? '') === 'blocked' && ($r['json']['report']['wrote_anything'] ?? true) === false);
 $rep = glob("$cms/data/.wp-engine/migration/report-*.json") ?: [];
 t('Bericht liegt geschützt (0600) im Zustandsordner', count($rep) === 1 && (fileperms($rep[0]) & 0777) === 0600 && (fileperms("$cms/data/.wp-engine") & 0777) === 0700, $rep ? decoct(fileperms($rep[0]) & 0777) : 'kein Bericht');
+t('Systemstatus/Updates: nur Administratoren, Status ohne WordPress, ohne Geheimnisse', http('GET', $ENG . 'system_status', $autor)['code'] === 403 && http('GET', $ENG . 'updates_overview', $autor)['code'] === 403 && http('POST', $ENG . 'updates_check', $autor, [])['code'] === 403 && http('GET', $ENG . 'system_status', null)['code'] === 401 && ($ss = http('GET', $ENG . 'system_status', $admin))['code'] === 200 && ($ss['json']['system']['summary']['fail'] ?? 1) <= 1 && http('GET', $ENG . 'updates_overview', $admin)['code'] === 200 && http('GET', $ENG . 'updates_check', $admin)['code'] === 405);
 $bad = [];
 foreach (['content_save' => [['type' => '../x', 'item' => ['title' => 'x']], 'POST'], 'content_get&type=gibtsnicht&id=1' => [null, 'GET'], 'nav_get&id=' . rawurlencode('../../etc') => [null, 'GET'], 'term_list&taxonomy=evil' => [null, 'GET']] as $a => [$b, $m]) {
     $r = http($m, $ENG . $a, $admin, $b); if ($r['code'] < 400 || $r['code'] >= 500 || str_contains($r['body'], 'Stack trace') || str_contains($r['body'], '.php on line')) { $bad[] = "$a:{$r['code']}"; }
@@ -177,6 +197,17 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
         t('WordPress startet erst, wenn die Anfrage es braucht (und liefert Daten)', $wp['code'] === 200 && ($wp['json']['status'] ?? '') === 'ok' && ($rows[0]['abspath'] ?? false) === true, $wp['body']);
         $again = http('GET', $ENG . 'content_list&type=post', $admin);
         t('Start von WordPress dauert vertretbar (< 4 s kalt, < 3 s erneut)', $wp['ms'] < 4000 && $again['ms'] < 3000, "{$wp['ms']} / {$again['ms']} ms");
+        $w = $bearer('POST', $R . '/posts', $admin, ['title' => 'REST-Beitrag', 'content' => '<p>Hallo</p>', 'status' => 'published', 'categories' => ['Radio']]);
+        $wid = (string)($w['json']['data']['id'] ?? '');
+        t('REST mit WordPress: Beitrag anlegen (201), lesen, ändern, löschen', $w['code'] === 201 && $wid !== '' && ($bearer('GET', $R . '/posts/' . $wid, $admin)['json']['data']['title'] ?? '') === 'REST-Beitrag' && ($bearer('PATCH', $R . '/posts/' . $wid, $admin, ['title' => 'Geändert'])['json']['data']['title'] ?? '') === 'Geändert' && ($bearer('GET', $R . '/posts', $admin)['json']['meta']['source'] ?? '') === 'wordpress' && $bearer('DELETE', $R . '/posts/' . $wid . '?force=1', $admin)['code'] === 200 && $bearer('GET', $R . '/posts/' . $wid, $admin)['code'] === 404, $w['body']);
+        t('REST mit WordPress: Autor schreibt nur nach Rechten (Seiten nicht)', $bearer('POST', $R . '/pages', $autor, ['title' => 'Nein'])['code'] === 403, '');
+        t('REST mit WordPress: Medien und Navigation lesbar', $bearer('GET', $R . '/media', $admin)['code'] === 200 && $bearer('GET', $R . '/navigation', $admin)['code'] === 200 && $bearer('GET', $R . '/categories', $admin)['code'] === 200);
+        @unlink($log);
+        $bearer('GET', $R . '/components', $admin); $bearer('GET', $R . '/posts?source=native', $admin); $bearer('GET', $R . '/posts', null ?? 'x');
+        $rows = array_values(array_filter(array_map(fn($l) => json_decode($l, true), file($log, FILE_IGNORE_NEW_LINES) ?: [])));
+        t('REST: Komponenten, native Quelle und unberechtigte Anfragen starten WordPress nicht', count($rows) === 3 && array_filter($rows, fn($x) => $x['abspath'] || $x['wp'] > 0) === [], json_encode($rows));
+        $su = http('POST', $ENG . 'updates_check', $admin, []);
+        t('Update-Suche mit aktiver Engine: Antwort mit allen Arten (Netz kann fehlen, dann Hinweis statt Fehler)', ($su['json']['status'] ?? '') === 'ok' && count($su['json']['updates'] ?? []) === 6, $su['body']);
         $pl = http('POST', $ENG . 'migration_plan', $admin, []);
         t('Trockenlauf mit aktiver Engine prüft das Ziel und verändert WordPress nicht', ($pl['json']['report']['engine']['target_checked'] ?? false) === true, $pl['body']);
         $mysqli = @new mysqli($h === 'localhost' ? '127.0.0.1' : explode(':', $h)[0], $u, $pw, $name, (int)(explode(':', $h)[1] ?? 3306));

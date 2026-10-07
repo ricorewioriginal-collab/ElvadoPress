@@ -278,7 +278,7 @@ async function initCms(){
    if(idEl)idEl.textContent=CMS_USER?CMS_USER+(CMS_ROLE==='admin'?' · Admin':' · Autor'):'';
    const usersTab=document.getElementById('tab-users'); if(usersTab)usersTab.style.display=CMS_IS_SA?'':'none';
    const activityTab=document.getElementById('tab-activity'); if(activityTab)activityTab.style.display=CMS_IS_SA?'':'none';
-   ['apps','alexa','assistant','services','brands','plugins','plugins-upd','backups','database','directory','maintenance','redirects','privacy','community','system','contents','settings','wptools'].forEach(id=>{document.querySelectorAll('.tab[data-tab="'+id+'"]').forEach(t=>{t.hidden=!CMS_IS_SA;});});
+   ['apps','alexa','assistant','services','brands','plugins','plugins-upd','sysstatus','backups','database','directory','maintenance','redirects','privacy','community','system','contents','settings','wptools'].forEach(id=>{document.querySelectorAll('.tab[data-tab="'+id+'"]').forEach(t=>{t.hidden=!CMS_IS_SA;});});
    document.querySelectorAll('.wp-switch-sa').forEach(e=>{e.style.display=CMS_IS_SA?'flex':'none';});document.querySelectorAll('.sa-only').forEach(e=>{e.hidden=!CMS_IS_SA;});
    if(window.cmsNavRefresh)cmsNavRefresh();
    document.getElementById('cmsLogin').style.display='none';
