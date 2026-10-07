@@ -160,3 +160,15 @@ Das CMS und die WordPress-Schicht bilden zusammen ein eigenständig installierba
 - `cms/wp-content/.htaccess` sperrt den direkten URL-Aufruf von PHP-Dateien in Plugins/Themes; Bilder, CSS und JS bleiben abrufbar. Das ZIP-Entpacken verhindert Pfad-Tricks, Symlinks sowie `.htaccess`/`.user.ini`, und begrenzt Größe und Dateianzahl.
 - Ein Plugin, das beim Laden abstürzt (auch bei nicht abfangbaren Fehlern wie doppelt deklarierten Funktionen), wird beim nächsten Aufruf automatisch deaktiviert; der Grund steht in der Plugin-Liste. Fehler in einzelnen Hook-Funktionen werden protokolliert (`cms/data/.wp/debug.log`), die Seite läuft weiter.
 - `wp_remote_*` blockiert interne Adressen (SSRF-Schutz).
+
+
+## Abgleich mit dem echten WordPress (Referenzmessung)
+Als Referenz dient ein echtes WordPress (aktuelle Version 7.1.3, GPL – derselbe Lizenzrahmen wie ElvadoPress), das nur zum Messen läuft und nicht ausgeliefert wird. Gemessen wurde mit einem `all`-Hook, welche Hooks WordPress auf typischen Verwaltungsseiten auslöst, und was ElvadoPress davon überhaupt kennt.
+
+**Start-Reihenfolge** (geprüft von `scripts/test-wp-startup.php`, Sollwerte aus WordPress 7.1.3): `mu_plugin_loaded` (voller Pfad, je Datei) → `muplugins_loaded` → `plugin_loaded` (voller Pfad, je Plugin) → `plugins_loaded` → `setup_theme` → `after_setup_theme` → `init` (darin `widgets_init`, Priorität 1) → `wp_loaded`.
+
+**Must-Use-Plugins:** Alle `*.php` direkt in `wp-content/mu-plugins/`, alphabetisch, vor den normalen Plugins. Ein Fehler in einer Datei wird gemeldet, die übrigen laden weiter. Stürzt eine Datei PHP ab (Fatal), wird sie beim nächsten Start übersprungen, bis sich die Datei ändert (`rrw_wp_mu_skipped`) – ElvadoPress soll nie wegen eines einzelnen Plugins ausfallen.
+
+**Verwaltungs-Meldungen:** `admin_notices`/`all_admin_notices` erscheinen oben in der Verwaltung (z. B. „Hello Dolly“), siehe `cms/assets/wp-notices.js`.
+
+**Bekannte Lücken** (Hooks, die ElvadoPress nicht auslöst, weil es die zugehörigen WordPress-Bildschirme nicht gibt): Listen von Beiträgen/Benutzern/Kommentaren (`manage_*_columns`, `bulk_actions-*`, `views_*`, `*_row_actions`), WordPress-Anmeldeseite (`login_*`), `admin_footer_text`/`in_admin_header`/`in_admin_footer`/`update_footer`, `plugin_action_links`, Heartbeat (`heartbeat_settings`), `site_transient_update_plugins` (Plugin-Updates über WordPress). Plugins, die dort nur etwas ergänzen, laufen weiter; die Ergänzung ist in ElvadoPress nicht sichtbar.

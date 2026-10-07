@@ -54,11 +54,12 @@ function rrw_wp_boot(array $opts=[]): array {
     $GLOBALS['wp_query']=$GLOBALS['wp_the_query']=new WP_Query();
     rrw_wp_add_default_filters();
     $errors=rrw_wp_load_plugins();
+    do_action('setup_theme');   // wie in WordPress: vor dem Laden der functions.php des Themes
     if(!empty($opts['theme']))$errors+=rrw_wp_load_theme();
     do_action('after_setup_theme');
+    // Wie in WordPress läuft widgets_init innerhalb von init (Priorität 1): Plugins, die danach auf init hören, finden die Seitenleisten schon vor
+    add_action('init',function(){ rrw_wp_register_core_widgets();do_action('widgets_init'); },1);
     do_action('init');
-    rrw_wp_register_core_widgets();
-    do_action('widgets_init');
     do_action('wp_loaded');
     if(function_exists('rrw_np_do'))rrw_np_do('wp_ready');   // native Plugins dürfen jetzt WordPress-Hooks (add_action/add_filter) registrieren
     return $errors;
