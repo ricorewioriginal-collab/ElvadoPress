@@ -5,7 +5,7 @@ declare(strict_types=1);
 //
 // Einheitliches Inhaltsmodell (Beitrag/Seite):
 //   id (string), type ('post'|'page'), title, slug, content (HTML), excerpt, status ('published'|'draft'|'scheduled'|'private'|'trash'),
-//   date ('Y-m-d H:i:s', Ortszeit), modified, author (Anzeigename), categories (list<string>), tags (list<string>), parent (id oder ''), image (Adresse oder '')
+//   date ('Y-m-d H:i:s', Ortszeit), modified, author (Anzeigename), categories (list<string>), tags (list<string>), parent (id oder ''), image (Adresse oder ''), owner (Anmeldename der anlegenden Person oder '')
 // Begriff (Kategorie/Schlagwort): id (string), name, slug, count (int), parent (id oder '')
 
 namespace Elvado\Wp\Adapter;

@@ -156,7 +156,7 @@ final class NativeAdapter implements ContentAdapter
                 'date' => $date, 'modified' => (string)($a['updated_at'] ?? $date), 'author' => (string)($a['author'] ?? ''),
                 'categories' => ($c = trim((string)($a['category'] ?? ''))) !== '' ? [$c] : [],
                 'tags' => preg_split('/\s*,\s*/', (string)($a['tags'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [],
-                'parent' => '', 'image' => (string)($a['image_url'] ?? ''),
+                'parent' => '', 'image' => (string)($a['image_url'] ?? ''), 'owner' => (string)($a['author_user'] ?? ''),
             ];
         }
         return $out;
@@ -229,7 +229,7 @@ final class NativeAdapter implements ContentAdapter
     {
         $d = date('Y-m-d H:i:s', $mtime > 0 ? $mtime : time());
         return ['id' => $slug, 'type' => 'page', 'title' => $title, 'slug' => $slug, 'content' => $html, 'excerpt' => $excerpt, 'status' => $enabled ? 'published' : 'draft',
-            'date' => $d, 'modified' => $d, 'author' => '', 'categories' => [], 'tags' => [], 'parent' => '', 'image' => ''];
+            'date' => $d, 'modified' => $d, 'author' => '', 'categories' => [], 'tags' => [], 'parent' => '', 'image' => '', 'owner' => ''];
     }
 
     private static function blockHtml(array $b): string

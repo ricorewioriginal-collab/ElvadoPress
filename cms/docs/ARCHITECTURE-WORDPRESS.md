@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 3 (Inhalte über Adapter). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Stand Phase 4 (Medien, Benutzer, Rechte). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
 
 ## Schichten
 ```
@@ -30,7 +30,7 @@ Core wird bei der Installation von wordpress.org geladen: Version von uns gebild
 Zuerst MySQL/MariaDB (SQLite später). Bestehende WordPress-Tabellen mit gleichem Präfix werden erkannt und nicht überschrieben (Meldung „leere Datenbank nötig“).
 
 ## Phasen
-1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter (dieser Stand)** · 4 Medien, Benutzer · 5 Plugins/Themes (echt) · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
+1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte (dieser Stand)** · 5 Plugins/Themes (echt) · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
 Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scripts/test-wp-engine.php`.
 
 ## Phase 3: Inhalte über Dienst und Adapter
@@ -40,3 +40,10 @@ Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scri
 - API (`cms/engine-api.php`, nur Administratoren): `content_list|get|save|delete`, `term_list|save|delete`; Quelle `?source=native|wordpress` (Standard: wordpress, wenn die Engine aktiv ist).
 - Noch nicht umgestellt: die bestehenden Panels „Beiträge“/„Seiten“ nutzen weiter die eigene Verwaltung; die Umstellung erfolgt mit der Migration (Phase 9). Medien und Benutzer: Phase 4 (Bilder werden bis dahin als Adresse gespeichert).
 Tests: `scripts/test-wp-engine-content.php` (Eingabeprüfung, NativeAdapter; mit `WPE_TEST_ZIP`/`WPE_TEST_DB` zusätzlich 31 Prüfungen gegen echtes WordPress).
+
+## Phase 4: Medien, Benutzer, Rechte
+- **Rechte** (`Actor`, `Roles`): Rolle `admin` darf alles; `autor` legt Beiträge an und ändert/löscht nur **eigene** Beiträge und Medien (Besitzer = Anmeldename, in WordPress als Meta `_elvado_owner`), schreibt nur gefiltertes HTML (kses), darf weder Seiten noch Begriffe noch Benutzer noch die Engine verwalten. Herrenlose Inhalte ändern nur Administratoren. Die Dienste werfen `PermissionException` (API: 403).
+- **Medien** (`MediaService` + `MediaAdapter`): erlaubt sind Bilder (JPEG, PNG, GIF, WebP, AVIF), PDF, Audio (MP3, OGG, WAV, M4A), Video (MP4, WebM) bis 32 MB. Geprüft werden Endung, **echter Inhalt** (finfo), Bildgültigkeit, PDF-Kopf, eingebetteter PHP-Code; Namen werden bereinigt (`a.php.png` → `a_php.png`). SVG, ZIP, HTML und Ausführbares werden abgelehnt. WordPress legt Anhänge samt Größen unter `cms/wp-content/uploads` ab (dort PHP-Ausführung gesperrt, keine Ordnerliste).
+- **Benutzer** (`UserService` + `UserAdapter`): Anmeldung und Rechte bleiben bei ElvadoPress (lokale Benutzer). Die WordPress-Benutzer sind ein **Spiegel** (Autorenschaft, Kompatibilität); `user_sync` legt fehlende an und aktualisiert Name/E-Mail/Rolle, löscht nie und überträgt nie Passwörter (WordPress-Benutzer erhalten ein zufälliges, unbenutztes Passwort).
+- **API** (`cms/engine-api.php`): `media_list|get|upload|update|delete`, `user_list`, `user_sync` (Quelle `?source=native|wordpress` wie bei Inhalten). Angemeldete Personen dürfen Inhalte und Medien nach ihren Rechten, alles andere nur Administratoren.
+Tests: `scripts/test-wp-engine-media-users.php` (46 Prüfungen ohne Netz, mit `WPE_TEST_ZIP`/`WPE_TEST_DB` 26 weitere gegen echtes WordPress).

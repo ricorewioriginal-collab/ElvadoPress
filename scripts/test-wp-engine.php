@@ -151,7 +151,8 @@ t('Zählung Kategorien/Tags ohne Doppelte', $c['categories'] === 1 && $c['tags']
 t('Kaputte Daten stören nicht', (function () use ($cms) { file_put_contents("$cms/data/news.json", '{kaputt'); return (new NativeAdapter($cms, "$cms/data"))->counts()['posts'] === 0; })());
 
 // 8) Der Engine-Standard verändert nichts an einer ElvadoPress-Anfrage
-t('engine-api verweigert Gäste', (bool)preg_match('/rrw_auth\(true\)/', (string)file_get_contents(__DIR__ . '/../cms/engine-api.php')));
+$api = (string)file_get_contents(__DIR__ . '/../cms/engine-api.php');
+t('engine-api verweigert Gäste und beschränkt Nicht-Administratoren auf Inhalte/Medien', str_contains($api, 'rrw_auth(false)') && str_contains($api, '!$rrwActor->isAdmin() && !in_array($rrwEngineAction, [') && !preg_match("/'engine_[a-z_]+'.*'content_list'/", (string)preg_replace('/\n/', ' ', substr($api, (int)strpos($api, '!$rrwActor->isAdmin()'), 400))));
 t('Demo sperrt Schreib-Aktionen', (bool)preg_match('/demo/i', (string)file_get_contents(__DIR__ . '/../cms/engine-api.php')));
 
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";

@@ -11,8 +11,26 @@ final class ContentService
 {
     public const MAX_CONTENT = 2_000_000;
 
-    public function __construct(private readonly ContentAdapter $adapter)
+    /** Ohne Actor (Tests, Wartung) gelten Administratorrechte. */
+    public function __construct(private readonly ContentAdapter $adapter, private readonly ?Actor $actor = null)
     {
+    }
+
+    private function actor(): Actor { return $this->actor ?? new Actor('', 'admin'); }
+
+    /** Seiten und fremde Beiträge darf nur ändern, wer „content_any“ hat; Autoren nur eigene Beiträge (Besitzer = Anmeldename). */
+    private function authorize(string $type, ?array $existing): void
+    {
+        $a = $this->actor();
+        if ($a->can('content_any')) {
+            return;
+        }
+        if ($type !== 'post' || !$a->can('content_write')) {
+            throw new PermissionException('Dafür fehlt die Berechtigung (Seiten ändern nur Administratoren).');
+        }
+        if ($existing !== null && ($a->login === '' || strcasecmp((string)($existing['owner'] ?? ''), $a->login) !== 0)) {
+            throw new PermissionException('Du darfst nur eigene Beiträge ändern.');
+        }
     }
 
     public function adapter(): ContentAdapter { return $this->adapter; }
@@ -49,11 +67,20 @@ final class ContentService
             throw new \RuntimeException('Dieser Datenbestand ist schreibgeschützt (WordPress-Engine nicht aktiv).');
         }
         $d = [];
+        $existing = null;
         if (isset($in['id']) && (string)$in['id'] !== '') {
             $d['id'] = $this->id((string)$in['id']);
             if ($d['id'] === '') {
                 throw new \InvalidArgumentException('Ungültige Kennung.');
             }
+            $existing = $this->adapter->item($type, $d['id']);
+            if ($existing === null) {
+                throw new \RuntimeException('Der Inhalt wurde nicht gefunden.');
+            }
+        }
+        $this->authorize($type, $existing);
+        if ($existing === null && $this->actor()->login !== '') {
+            $d['owner'] = $this->actor()->login;   // Besitzer = anlegende Person
         }
         if (array_key_exists('title', $in)) {
             $t = trim(strip_tags((string)$in['title']));
@@ -113,7 +140,7 @@ final class ContentService
             }
             $d['image'] = $u;
         }
-        return $this->adapter->save($type, $d, $unfiltered);
+        return $this->adapter->save($type, $d, $unfiltered && $this->actor()->isAdmin());
     }
 
     public function delete(string $type, string $id, bool $force): bool
@@ -122,7 +149,15 @@ final class ContentService
         if (!$this->adapter->writable()) {
             throw new \RuntimeException('Dieser Datenbestand ist schreibgeschützt (WordPress-Engine nicht aktiv).');
         }
-        return $this->id($id) !== '' && $this->adapter->delete($type, $id, $force);
+        if ($this->id($id) === '') {
+            return false;
+        }
+        $ex = $this->adapter->item($type, $id);
+        if ($ex === null) {
+            return false;
+        }
+        $this->authorize($type, $ex);
+        return $this->adapter->delete($type, $id, $force);
     }
 
     /** @return list<array{id:string,name:string,slug:string,count:int,parent:string}> */
@@ -137,6 +172,9 @@ final class ContentService
         $tax = $this->tax($taxonomy);
         if (!$this->adapter->writable()) {
             throw new \RuntimeException('Dieser Datenbestand ist schreibgeschützt (WordPress-Engine nicht aktiv).');
+        }
+        if (!$this->actor()->can('terms_write')) {
+            throw new PermissionException('Kategorien und Schlagwörter verwalten nur Administratoren.');
         }
         $d = [];
         if (isset($in['id']) && (string)$in['id'] !== '') {
@@ -166,6 +204,9 @@ final class ContentService
         $tax = $this->tax($taxonomy);
         if (!$this->adapter->writable()) {
             throw new \RuntimeException('Dieser Datenbestand ist schreibgeschützt (WordPress-Engine nicht aktiv).');
+        }
+        if (!$this->actor()->can('terms_write')) {
+            throw new PermissionException('Kategorien und Schlagwörter verwalten nur Administratoren.');
         }
         return $this->id($id) !== '' && $this->adapter->deleteTerm($tax, $id);
     }

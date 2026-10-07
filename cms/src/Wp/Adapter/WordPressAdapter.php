@@ -119,6 +119,13 @@ final class WordPressAdapter implements ContentAdapter
         if (array_key_exists('author', $data)) {
             update_post_meta($pid, '_elvado_author', (string)$data['author']);
         }
+        if (($data['owner'] ?? '') !== '') {   // Besitzer = anlegende Person; Autor in WordPress = der gespiegelte Benutzer
+            update_post_meta($pid, '_elvado_owner', (string)$data['owner']);
+            $wu = get_user_by('login', (string)$data['owner']);
+            if ($wu instanceof \WP_User) {
+                wp_update_post(['ID' => $pid, 'post_author' => $wu->ID]);
+            }
+        }
         if (array_key_exists('image', $data)) {
             update_post_meta($pid, '_elvado_image_url', (string)$data['image']);
         }
@@ -210,7 +217,7 @@ final class WordPressAdapter implements ContentAdapter
             'author' => $author !== '' ? $author : (string)get_the_author_meta('display_name', (int)$p->post_author),
             'categories' => $isPost ? array_values(array_map('strval', wp_get_post_categories($p->ID, ['fields' => 'names']))) : [],
             'tags' => $isPost ? array_values(array_map('strval', wp_get_post_tags($p->ID, ['fields' => 'names']))) : [],
-            'parent' => $p->post_parent ? (string)$p->post_parent : '', 'image' => $img,
+            'parent' => $p->post_parent ? (string)$p->post_parent : '', 'image' => $img, 'owner' => (string)get_post_meta($p->ID, '_elvado_owner', true),
         ];
     }
 

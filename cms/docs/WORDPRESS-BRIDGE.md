@@ -8,4 +8,4 @@ Die Bridge (`cms/src/Wp/Bridge.php`) startet den echten WordPress-Core im Elvado
 - WordPress überschreibt globale Variablen (z. B. `$action`): Code im selben Scope nutzt präfixierte Namen (`$rrwEngine…`).
 - Ausgabeschutz: `rrw_wpe_guard_output()` wandelt HTML-Abbrüche von WordPress in JSON-Fehler.
 
-API (nur Administratoren, in der Demo gesperrt außer `engine_status`): Inhalte `content_list|get|save|delete`, `term_list|save|delete` (siehe ARCHITECTURE-WORDPRESS.md, Phase 3); Verwaltung `engine_status`, `engine_prepare`, `engine_core`, `engine_db_test`, `engine_db_install`, `engine_analyze`, `engine_mode`, `engine_remove`. Oberfläche: Verwaltung → System → WordPress-Engine.
+API (nur Administratoren, in der Demo gesperrt außer `engine_status`): Inhalte `content_list|get|save|delete`, `term_list|save|delete` (siehe ARCHITECTURE-WORDPRESS.md, Phase 3); Medien `media_list|get|upload|update|delete`, Benutzer `user_list|user_sync`; Verwaltung `engine_status`, `engine_prepare`, `engine_core`, `engine_db_test`, `engine_db_install`, `engine_analyze`, `engine_mode`, `engine_remove`. Oberfläche: Verwaltung → System → WordPress-Engine.

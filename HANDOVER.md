@@ -73,3 +73,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 3: Inhalte über Adapter
 `ContentService`, erweiterter `ContentAdapter` (NativeAdapter lesend, WordPressAdapter lesen/schreiben), API `content_*`/`term_*` in `cms/engine-api.php`, Test `scripts/test-wp-engine-content.php` (Integrationsteil mit `WPE_TEST_ZIP`/`WPE_TEST_DB`). Bestehende Panels unverändert; Umstellung/Migration folgt (Phase 9).
+
+## Phase 4: Medien, Benutzer, Rechte
+`Actor`/`Roles`/`PermissionException`, `MediaService`+`MediaAdapter` (Native lesend, WordPress), `UserService`+`UserAdapter` (Spiegel der lokalen Benutzer), API `media_*`/`user_*`; Besitzerregeln im `ContentService`. Test `scripts/test-wp-engine-media-users.php`. Bestehende Panels weiter unverändert (Umstellung mit der Migration, Phase 9).

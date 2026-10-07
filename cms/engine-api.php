@@ -2,8 +2,8 @@
 declare(strict_types=1);
 // Verwaltungs-API der WordPress-Engine (eigener Einstieg, damit echtes WordPress in einem sauberen globalen Gültigkeitsbereich startet und nicht in den Variablen von api.php).
 // Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_analyze, engine_mode, engine_remove;
-// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete. Alle nur für Administratoren
-// (Rechte für Redakteure folgen mit der Benutzerverwaltung). Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
+// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync.
+// Rechte: Administratoren alles; Autoren Inhalte/Medien nur eigene (Dienste prüfen), Seiten, Begriffe, Benutzer und Engine nur Administratoren. Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
 // Die Anmeldeprüfung kommt aus api.php (RRW_API_LIB_ONLY); in der Demo sind alle Aktionen außer engine_status gesperrt.
 define('RRW_API_LIB_ONLY', true);
 require __DIR__ . '/api.php';
@@ -12,7 +12,12 @@ require_once __DIR__ . '/lib/wpengine.php';
 
 $rrwEngineAction = (string)($_GET['action'] ?? 'engine_status');   // eigene Namen: WordPress überschreibt beim Start globale Variablen wie $action
 $rrwEngineSiteFile = $siteFile;
-$rrwEngineU = rrw_auth(true);
+$rrwEngineU = rrw_auth(false);
+$rrwActor = \Elvado\Wp\Actor::fromAuth($rrwEngineU);
+// Inhalte und Medien dürfen angemeldete Personen nach ihren Rechten (Dienst prüft); alles andere – Engine-Verwaltung, Benutzer, Begriffe ändern – nur Administratoren.
+if (!$rrwActor->isAdmin() && !in_array($rrwEngineAction, ['content_list', 'content_get', 'content_save', 'content_delete', 'term_list', 'term_save', 'term_delete', 'media_list', 'media_get', 'media_upload', 'media_update', 'media_delete'], true)) {
+    rrw_json(['status' => 'error', 'message' => 'Nur Administratoren dürfen diese Aktion ausführen'], 403);
+}
 if (function_exists('rrw_demo_enabled') && rrw_demo_enabled() && $rrwEngineAction !== 'engine_status') {
     rrw_json(['status' => 'error', 'message' => 'In der Demo gesperrt: Die WordPress-Engine lässt sich nur in einer eigenen ElvadoPress-Installation einrichten.'], 403);
 }
@@ -89,7 +94,7 @@ if ($rrwEngineAction === 'engine_analyze' || ($rrwEngineAction === 'engine_mode'
     $native = new \Elvado\Wp\Adapter\NativeAdapter(__DIR__, __DIR__ . '/data');
     rrw_json(['status' => 'ok', 'boot_ms' => $ms, 'native' => ['name' => $native->name(), 'counts' => $native->counts()], 'wordpress' => ['name' => $wp->name(), 'counts' => $wp->counts(), 'info' => $wp->info()]]);
 }
-if (str_starts_with($rrwEngineAction, 'content_') || str_starts_with($rrwEngineAction, 'term_')) {
+if (preg_match('/^(content|term|media|user)_/', $rrwEngineAction) === 1) {
     $rrwSource = (string)($_GET['source'] ?? ($rrwEngine->isActive() ? 'wordpress' : 'native'));
     if ($rrwSource === 'wordpress') {
         if (!$rrwEngine->isActive()) {
@@ -109,7 +114,63 @@ if (str_starts_with($rrwEngineAction, 'content_') || str_starts_with($rrwEngineA
     } else {
         rrw_json(['status' => 'error', 'message' => 'Unbekannte Quelle.'], 400);
     }
-    $rrwContent = new \Elvado\Wp\ContentService($rrwAdapter);
+    if (str_starts_with($rrwEngineAction, 'media_') || str_starts_with($rrwEngineAction, 'user_')) {
+        try {
+            if (str_starts_with($rrwEngineAction, 'media_')) {
+                $rrwMedia = new \Elvado\Wp\MediaService($rrwSource === 'wordpress' ? new \Elvado\Wp\Adapter\WordPressMediaAdapter() : new \Elvado\Wp\Adapter\NativeMediaAdapter(__DIR__), $rrwActor);
+                if ($rrwEngineAction === 'media_list') {
+                    rrw_json(['status' => 'ok', 'source' => $rrwSource] + $rrwMedia->list($_GET));
+                }
+                if ($rrwEngineAction === 'media_get') {
+                    $rrwItem = $rrwMedia->get((string)($_GET['id'] ?? ''));
+                    rrw_json($rrwItem === null ? ['status' => 'error', 'message' => 'Nicht gefunden.'] : ['status' => 'ok', 'item' => $rrwItem], $rrwItem === null ? 404 : 200);
+                }
+                if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                    rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+                }
+                if ($rrwEngineAction === 'media_upload') {
+                    $rrwF = $_FILES['file'] ?? null;
+                    if (!is_array($rrwF) || ($rrwF['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string)$rrwF['tmp_name'])) {
+                        rrw_json(['status' => 'error', 'message' => 'Der Upload ist fehlgeschlagen (Datei fehlt oder ist zu groß).'], 422);
+                    }
+                    $rrwItem = $rrwMedia->upload((string)$rrwF['tmp_name'], (string)$rrwF['name'], ['title' => $_POST['title'] ?? '', 'alt' => $_POST['alt'] ?? '', 'caption' => $_POST['caption'] ?? '']);
+                    $rrwEngineLog('Medium hochgeladen: ' . mb_substr((string)($rrwItem['name'] ?? ''), 0, 80));
+                    rrw_json(['status' => 'ok', 'item' => $rrwItem]);
+                }
+                if ($rrwEngineAction === 'media_update') {
+                    rrw_json(['status' => 'ok', 'item' => $rrwMedia->update((string)($rrwEngineB['id'] ?? ''), (array)($rrwEngineB['item'] ?? []))]);
+                }
+                if ($rrwEngineAction === 'media_delete') {
+                    $rrwOk = $rrwMedia->delete((string)($rrwEngineB['id'] ?? ''));
+                    $rrwEngineLog('Medium gelöscht (#' . (string)($rrwEngineB['id'] ?? '') . ')');
+                    rrw_json($rrwOk ? ['status' => 'ok'] : ['status' => 'error', 'message' => 'Nicht gefunden.'], $rrwOk ? 200 : 404);
+                }
+            } else {
+                $rrwNativeUsers = new \Elvado\Wp\Adapter\NativeUserAdapter(__DIR__ . '/data');
+                if ($rrwEngineAction === 'user_list') {
+                    $rrwUsers = new \Elvado\Wp\UserService($rrwSource === 'wordpress' ? new \Elvado\Wp\Adapter\WordPressUserAdapter() : $rrwNativeUsers, $rrwActor);
+                    rrw_json(['status' => 'ok', 'source' => $rrwSource, 'items' => $rrwUsers->list()]);
+                }
+                if ($rrwEngineAction === 'user_sync') {
+                    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                        rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+                    }
+                    if ($rrwSource !== 'wordpress') {
+                        rrw_json(['status' => 'error', 'message' => 'Der Abgleich braucht die aktive WordPress-Engine.'], 409);
+                    }
+                    $rrwRes = (new \Elvado\Wp\UserService(new \Elvado\Wp\Adapter\WordPressUserAdapter(), $rrwActor))->sync($rrwNativeUsers);
+                    $rrwEngineLog('Benutzer abgeglichen (' . count($rrwRes['created']) . ' neu, ' . count($rrwRes['updated']) . ' aktualisiert)');
+                    rrw_json(['status' => 'ok'] + $rrwRes);
+                }
+            }
+        } catch (\Elvado\Wp\PermissionException $e) {
+            rrw_json(['status' => 'error', 'message' => $e->getMessage()], 403);
+        } catch (\InvalidArgumentException | \RuntimeException $e) {
+            rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+        rrw_json(['status' => 'error', 'message' => 'Unbekannte Aktion'], 404);
+    }
+    $rrwContent = new \Elvado\Wp\ContentService($rrwAdapter, $rrwActor);
     $rrwType = (string)($_GET['type'] ?? $rrwEngineB['type'] ?? 'post');
     $rrwTax = (string)($_GET['taxonomy'] ?? $rrwEngineB['taxonomy'] ?? 'category');
     try {
@@ -143,6 +204,8 @@ if (str_starts_with($rrwEngineAction, 'content_') || str_starts_with($rrwEngineA
             $rrwOk = $rrwContent->deleteTerm($rrwTax, (string)($rrwEngineB['id'] ?? ''));
             rrw_json($rrwOk ? ['status' => 'ok'] : ['status' => 'error', 'message' => 'Nicht gefunden oder nicht löschbar (z. B. Standard-Kategorie).'], $rrwOk ? 200 : 404);
         }
+    } catch (\Elvado\Wp\PermissionException $e) {
+        rrw_json(['status' => 'error', 'message' => $e->getMessage()], 403);
     } catch (\InvalidArgumentException $e) {
         rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
     } catch (\RuntimeException $e) {
