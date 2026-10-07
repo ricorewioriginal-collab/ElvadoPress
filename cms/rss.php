@@ -4,6 +4,7 @@ declare(strict_types=1);
 header('Content-Type: application/rss+xml; charset=UTF-8');
 header('Cache-Control: public, max-age=300');
 
+require_once __DIR__.'/lib/sites.php';rrw_sites_request_context();   // mehrere Websites: Feed der aufgerufenen Domain
 require_once __DIR__.'/lib/product.php';
 require_once __DIR__.'/lib/pack.php';
 function rrw_xml(string $s): string {
@@ -17,13 +18,13 @@ $rrwBase=rtrim(rrw_default_canonical_base(),'/');$rrwBrandName='';
 try{
     require_once __DIR__.'/lib/seo.php';
     require_once __DIR__.'/lib/brand.php';
-    $rrwBrandSite=rrw_read_json(__DIR__.'/data/site.json',[]);
+    $rrwBrandSite=rrw_read_json(rrw_site_dir('data').'/site.json',[]);
     $rrwBrand=rrw_brand_resolve($rrwBrandSite,(string)($_SERVER['HTTP_HOST']??''),null);
     $rrwBase=rtrim($rrwBrand['origin'],'/');$rrwBrandName=(string)($rrwBrand['name']??'');
 }catch(Throwable $e){}
 header('Vary: Host');
 function rrw_cfg(): array {
-    $f=__DIR__.'/data/site.json';
+    $f=rrw_site_dir('data').'/site.json';
     if(!is_file($f))return [];
     $j=json_decode((string)file_get_contents($f),true);
     return is_array($j)?$j:[];
@@ -33,7 +34,7 @@ function rrw_cfg(): array {
 function rrw_public_news(array $cfg): array {
     if(rrw_pack_available())$j=rrw_public_news_remote('https://www.ricorewi-radio.de/cms/api.php?action=news_public&_='.time());
     if(isset($j)&&is_array($j)&&is_array($j['articles']??null))return $j['articles'];
-    $f=__DIR__.'/data/news.json';$rows=[];
+    $f=rrw_site_dir('data').'/news.json';$rows=[];
     if(is_file($f)){$x=json_decode((string)file_get_contents($f),true);if(is_array($x))$rows=$x;}
     $rows=array_values(array_filter($rows,function($a){
         if(!is_array($a)||($a['status']??'draft')!=='published'||!empty($a['deleted_at']))return false;

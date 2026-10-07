@@ -1,6 +1,6 @@
 # Mehrere eigenständige Websites (Multisite)
 
-**Stand:** Stufe 1 und 2 sind fertig: Bibliothek `cms/lib/sites.php` (`scripts/test-sites.php`), die API wählt die Website (Domain bzw. Verwaltungs-Kopf `X-EP-Site`, `scripts/test-sites-api.php`) und die Verwaltung hat den Bereich „Websites“ und einen Umschalter im Kopf. Auslieferung der Website auf ihrer Domain mit Theme/WordPress-Emulation (Stufe 3) und die WordPress-Engine je Website (Stufe 4) fehlen noch. Ohne weitere Website verändert sich nichts.
+**Stand:** Stufe 1 und 2 sind fertig: Bibliothek `cms/lib/sites.php` (`scripts/test-sites.php`), die API wählt die Website (Domain bzw. Verwaltungs-Kopf `X-EP-Site`, `scripts/test-sites-api.php`) und die Verwaltung hat den Bereich „Websites“ und einen Umschalter im Kopf. Stufe 3 (Auslieferung auf der eigenen Domain mit Theme/WordPress-Emulation, Feed, Medien-Adressen; `scripts/test-sites-front.php`) ist ebenfalls fertig; die WordPress-Engine je Website (Stufe 4) fehlt noch. Ohne weitere Website verändert sich nichts.
 
 ## Begriffe
 - **Marke** (Domains & Branding): andere Gestaltung/Texte/Domain auf **denselben Inhalten** einer Website.
@@ -24,7 +24,7 @@
 ## Einbindung in Stufen
 1. **Grundlage** (fertig): Bibliothek und Tests.
 2. **Native Ebene** (fertig für `cms/api.php` und alles, was darüber läuft; Auslieferung/Emulation folgt in Stufe 3; RicoReWi-spezifische Control-Center-Importe laufen nur für die Hauptwebsite): Die Pfad-Stellen für Inhalte (`$siteFile`, `$newsFile`, `$commentsFile`, `$revisionsFile`, `$notificationsFile`, `$newsViewsFile`, `$mediaDir`, `$genDir` in `cms/api.php`; `publish.php`, `components.php`/Layouts, `tools.php`, `seo.php`, `rss.php`, `rebuild.php` …) wechseln auf `rrw_site_dir()`; die Verwaltung sendet den Kontext im Kopf `X-EP-Site` (nur für angemeldete Administratoren mit lokaler Sitzung gültig). Die Hauptwebsite bleibt Byte für Byte gleich (Golden-Test, Marken-Fingerabdruck).
-3. **Auslieferung:** `index.php`/`wp-front.php` wählen per Domain die Website; die WordPress-Emulation läuft mit `RRW_WP_DATA` je Website (Vorbild: Sandbox, `cms/wp/sandbox.php`). Medien-Adressen je Website (Umschreibregel). Weitere Websites laufen zunächst **ohne** WordPress-Engine im nativen Modus.
+3. **Auslieferung** (fertig): `wp-front.php` (über `index.php` und die Umschreibregel) wählt per Domain die Website; die WordPress-Emulation läuft mit `RRW_WP_DATA = cms/sites/<kennung>/data/.wp` (Theme-Aktivierung `front-on`, Optionen) und liest Beiträge/Seiten/Menüs aus den Daten der Website (`RRW_WP_CMS_DATA`). Beim Anlegen werden Theme-Aktivierung und -Optionen der Vorlage übernommen (leere Website: Theme der Hauptwebsite). Medien-Adressen `/cms/media/…` werden in der ausgelieferten Seite auf `/cms/sites/<kennung>/media/…` umgeschrieben (gespeichert bleibt die neutrale Form). `cms/rss.php` liefert den Feed der aufgerufenen Domain. Weitere Websites laufen **ohne** WordPress-Engine im nativen Modus.
 4. **WordPress-Engine je Website:** eigener Tabellen-Präfix in derselben Datenbank (Muster: WordPress-Multisite), Migration und Update-Center je Website.
 5. **Verwaltung** (fertig): Bereich „Websites“ (anlegen, kopieren, Domains, DNS-Prüfung, aktivieren/deaktivieren, zum Verwalten wechseln), Kopf-Umschalter Website (gekennzeichnet, wenn nicht die Hauptwebsite) und Marke; „Domains & Branding“ gilt auch im eigenständigen CMS.
 
@@ -35,5 +35,6 @@
 - Domains werden nur per DNS-Namensauflösung geprüft (keine Anfrage an fremde Server).
 
 ## Grenzen (aktueller Stand)
-- Die öffentliche Auslieferung weiterer Websites (Seiten, Theme, Medien-Adressen) ist noch nicht eingebunden; die Vorschau-Rahmen im Live Builder/Customizer zeigen weiterhin die Hauptwebsite.
+- Die Vorschau-Rahmen im Live Builder/Customizer zeigen für weitere Websites noch die Hauptwebsite (Vorschau-Schlüssel gelten je Website, Rahmen-Adresse folgt).
+- Weitere Entry-Points (`radio.php`, `rest.php`, Sitemap/Robots der Plugins) nutzen noch die Hauptwebsite; Medien in der Verwaltung zeigen Bild-Adressen der Hauptwebsite.
 - Einige Bibliotheken leiten ihren Ordner selbst ab (`dirname(__DIR__) . '/data'`, z. B. Plugin-Zustand, Alexa, Backup) und bleiben global, bis sie auf `rrw_site_dir()` umgestellt sind.

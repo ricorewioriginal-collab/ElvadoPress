@@ -5,7 +5,6 @@
 declare(strict_types=1);
 $cmsDir=__DIR__;$root=dirname(__DIR__);
 if(is_file($cmsDir.'/lib/demo.json')){ require_once $cmsDir.'/lib/demo.php';rrw_demo_boot();rrw_demo_guard_front((string)parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH));ob_start('rrw_demo_inject'); }   // Demo-Betrieb
-$flag=$cmsDir.'/data/.wp/front-on';
 /* Sandbox: geheimer Link (?rrw_sbx=<Schlüssel>) → Cookie; eigene Optionen/Themes, nur lesend, nicht indexierbar (siehe wp/sandbox.php) */
 $sbx=false;
 $sbxTok=(string)($_GET['rrw_sbx']??$_COOKIE['rrw_sbx']??'');
@@ -19,6 +18,12 @@ if($sbxTok!==''){
     }elseif(isset($_COOKIE['rrw_sbx'])&&!isset($_GET['rrw_sbx'])){ setcookie('rrw_sbx','',['expires'=>1,'path'=>'/']);header('Location: '.str_replace(["\r","\n"],'',(string)($_SERVER['REQUEST_URI']??'/')));http_response_code(302);exit; }   // Sandbox gelöscht/Link erneuert → altes Cookie ablegen
     else{ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden';exit; }
 }
+/* Weitere Website (Multisite, lib/sites.php): Domain → eigene Daten und eigene WordPress-Ablage (Themes/Optionen), Medien-Adressen siehe unten. Ohne Registry bleibt alles wie bisher. */
+$siteId='';$siteData=$cmsDir.'/data';
+if(!$sbx&&is_file($cmsDir.'/data/sites.json')){
+    try{ require_once $cmsDir.'/lib/sites.php';$siteId=rrw_site_current();if($siteId!==''){ $siteData=rrw_site_dir('data',$siteId);if(!defined('RRW_WP_DATA'))define('RRW_WP_DATA',$siteData.'/.wp');if(!defined('RRW_MEDIA_DIR'))define('RRW_MEDIA_DIR',rrw_site_dir('media',$siteId)); } }catch(Throwable $e){ $siteId='';$siteData=$cmsDir.'/data'; }
+}
+$flag=$siteData.'/.wp/front-on';
 require_once $cmsDir.'/wp/load.php';
 
 /* Vorschau: signierter, 15 Minuten gültiger Schlüssel (?rrw_wp_preview=<theme>.<ablauf>.<signatur>) → Cookie */
@@ -53,7 +58,7 @@ if(!is_file($flag)&&$preview===''&&!$sbx){
     exit;
 }
 try{require_once $cmsDir.'/lib/tools.php';if($preview===''&&!$sbx)rrw_maint_gate($root);}catch(Throwable $e){}
-$GLOBALS['RRW_SITE']=json_decode((string)@file_get_contents($cmsDir.'/data/site.json'),true)?:[];
+$GLOBALS['RRW_SITE']=json_decode((string)@file_get_contents($siteData.'/site.json'),true)?:[];
 try{ require_once $cmsDir.'/lib/seo.php';require_once $cmsDir.'/lib/brand.php'; }catch(Throwable $e){}
 require_once $cmsDir.'/wp/router.php';
 require_once $cmsDir.'/wp/session.php';
@@ -80,7 +85,7 @@ if($preview===''&&!$sbx)rrw_np_tick();   // geplante Plugin-Aufgaben erst nach d
 if($r['status']===404&&$preview===''){
     // Weiterleitungen aus dem CMS (Werkzeuge) haben Vorrang vor der 404-Seite des Themes; unbekannte Pfade werden protokolliert
     try{
-        $dataDir=$cmsDir.'/data';$path=(string)parse_url($uri,PHP_URL_PATH);
+        $dataDir=$siteData;$path=(string)parse_url($uri,PHP_URL_PATH);
         $rules=rrw_tools_read(rrw_tools_dir($dataDir).'/redirects.json',['rules'=>[]])['rules']??[];$hit=is_array($rules)?rrw_redirect_match($rules,$path):null;
         if($hit){ $code=(int)($hit['code']??301);if($code===410){ http_response_code(410);header('Content-Type: text/plain; charset=utf-8');echo 'Diese Seite wurde dauerhaft entfernt.';exit; } header('Location: '.str_replace(["\r","\n"],'',(string)$hit['to']),true,$code);exit; }
         rrw_404_log($dataDir,$path,(string)($_SERVER['HTTP_REFERER']??''));
@@ -91,6 +96,7 @@ http_response_code($r['status']);
 foreach($r['headers'] as $k=>$v)header($k.': '.str_replace(["\r","\n"],'',(string)$v));
 if($preview!=='')header('Cache-Control: no-store');elseif($r['status']===200&&($r['headers']['Content-Type']??'')!==''&&($_SERVER['REQUEST_METHOD']??'GET')==='GET')header('Cache-Control: no-cache, must-revalidate');
 $body=$r['body'];
+if($siteId!==''&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false)$body=str_replace('/cms/media/','/cms/sites/'.$siteId.'/media/',$body);   // Medien dieser Website liegen in cms/sites/<kennung>/media
 // App-Modus (Baukasten-App): Kopf und Fuß der Website in der App ausblenden (siehe lib/appmode.php)
 if($preview===''&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false){
     try{
@@ -98,7 +104,7 @@ if($preview===''&&$r['status']===200&&is_string($body)&&stripos((string)($r['hea
         if($am!==null){
             header('Vary: User-Agent, Cookie',false);
             require_once $cmsDir.'/lib/apps.php';
-            if(rrw_appmode_hide($am,rrw_apps_own($cmsDir.'/data'),(array)$GLOBALS['RRW_SITE']))$body=rrw_appmode_inject($body,true);
+            if(rrw_appmode_hide($am,rrw_apps_own($siteData),(array)$GLOBALS['RRW_SITE']))$body=rrw_appmode_inject($body,true);
         }
     }catch(Throwable $e){}
 }
@@ -106,8 +112,8 @@ if($liveCz&&$r['status']===200&&is_string($body)&&($p=strripos($body,'</body>'))
 if($sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).'<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:7px 12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">Sandbox – nicht öffentlich <a href="/?rrw_sbx=off" style="color:#fff;text-decoration:underline">Sandbox verlassen</a></div>'.substr($body,$p);
 if($preview===''&&!$sbx&&is_string($body)&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false)$body=rrw_np_filter('front_output',$body,(int)$r['status']);   // Plugins: SEO, Leistung, Statistik, Sicherheits-Header
 // Live Builder (themeunabhängig): veröffentlichte Gestaltung, geänderte Texte und Reihenfolge der Bereich „Website“ (site:website); nur wenn etwas gespeichert ist oder eine signierte Vorschau läuft
-if(!$sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&(isset($_GET['rrw_ep_preview'])||is_file($cmsDir.'/data/layouts/site__website.json'))){
-    try{ require_once $cmsDir.'/lib/components.php';$body=rrw_components_inject($body,'site:website',$_GET,$cmsDir.'/data'); }catch(Throwable $e){}
+if(!$sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&(isset($_GET['rrw_ep_preview'])||is_file($siteData.'/layouts/site__website.json'))){
+    try{ require_once $cmsDir.'/lib/components.php';$body=rrw_components_inject($body,'site:website',$_GET,$siteData); }catch(Throwable $e){}
 }
 rrw_np_do('front_response',(int)$r['status'],$reqPath,(string)($r['headers']['Content-Type']??'text/html'));
 echo $body;

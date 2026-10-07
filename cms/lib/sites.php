@@ -249,6 +249,18 @@ function rrw_site_create(array $in): array
             $copied += rrw_site_copy_tree(rrw_site_dir('media', $src), $base . '/media', false);
         }
     }
+    // WordPress-Theme-Laufzeit: Aktivierung und Theme-Optionen mitnehmen (sonst wäre die neue Website ohne Theme)
+    $srcWp = rrw_site_dir('data', $from === '' || $from === 'main' ? '' : rrw_site_id_clean($from)) . '/.wp';
+    if (!is_file($srcWp . '/front-on')) {
+        $srcWp = rrw_site_dir('data', '') . '/.wp';
+    }
+    if (is_file($srcWp . '/front-on')) {
+        @mkdir($base . '/data/.wp', 0775, true);
+        @file_put_contents($base . '/data/.wp/front-on', gmdate('c'));
+        if ($from !== '' && is_file($srcWp . '/options.json') && @copy($srcWp . '/options.json', $base . '/data/.wp/options.json')) {
+            $copied++;
+        }
+    }
     $items[] = $site;
     rrw_sites_save($items);
     return ['site' => $site, 'copied' => $copied];
@@ -280,6 +292,9 @@ function rrw_sites_request_context(): void
     $id = rrw_site_current();
     if ($id !== '' && !defined('RRW_MEDIA_DIR')) {
         define('RRW_MEDIA_DIR', rrw_site_dir('media', $id));
+    }
+    if ($id !== '' && !defined('RRW_WP_DATA')) {   // Theme-Aktivierung und WordPress-Optionen gehören zur gewählten Website
+        define('RRW_WP_DATA', rrw_site_dir('data', $id) . '/.wp');
     }
 }
 
