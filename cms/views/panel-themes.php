@@ -22,6 +22,7 @@
         <section id="dgPortal" class="dg-sec">
           <div class="dg-head"><b>Portal-Designs</b><span class="hint">Behalten Radio-Player, Community und das Layout deiner Website – es ändert sich nur das Aussehen.</span></div>
           <div id="themeGrid" class="theme-grid"><div class="empty">Themes werden geladen …</div></div>
+          <div id="themeHidden" class="card" style="margin-top:12px" hidden></div>
         </section>
         <section id="dgSbx" class="dg-sec sa-only">
           <div class="dg-head"><b><i class="fas fa-flask"></i> Sandbox</b><span class="hint">Ein Spielraum zwischen deiner Live-Seite und dem Deployment: Themes installieren, aktivieren und anpassen, über einen geheimen Link live ansehen – und erst später live stellen. Deine Besucher sehen davon nichts.</span></div>
@@ -34,6 +35,7 @@
           <div id="wtState" class="hint" style="margin:6px 0"></div>
           <div style="margin-bottom:8px"><button class="btn-g" id="wtOff" onclick="WpThemes.off()" hidden><i class="fas fa-rotate-left"></i> Zurück zum Portal-Design</button> <span id="wtInstCount" hidden></span></div>
           <div id="wtInst" class="dg-wpgrid"></div>
+          <div id="wtHidden" class="card" style="margin-top:12px" hidden></div>
           <div class="danger-note" style="margin:10px 0 0"><i class="fas fa-shield-halved"></i> WordPress-Themes sind fremder PHP-Code und laufen mit den Rechten des CMS. Nutze die Vorschau, bevor du aktivierst.</div>
           <details class="dg-links" id="wrBox" ontoggle="if(this.open)WpLinks.loadReading()">
             <summary><i class="fas fa-house"></i> Startseite und Beitragsseite</summary>

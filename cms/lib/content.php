@@ -17,6 +17,7 @@ function rrw_content_sync_from_site(array $site): array {
     foreach((array)($site['pages']??[]) as $p){if(($p['type']??'')!=='custom')continue;$slug=rrw_slug((string)($p['slug']??$p['title']??'seite'));$dir=$root.'/'.$slug;if(!is_dir($dir))@mkdir($dir,0755,true);$file=$dir.'/page.md';
         if(isset($man['pages'][$slug])&&is_file($file)&&rrw_content_hash((string)file_get_contents($file))!==$man['pages'][$slug])continue;
         $txt=rrw_content_frontmatter($p).rrw_content_markdown_body($p);rrw_write_atomic($file,$txt);$man['pages'][$slug]=rrw_content_hash($txt);$written[]='cms/content/pages/'.$slug.'/page.md';}
+    $man=rrw_gitconfig_export($site,$man);
     rrw_content_manifest_save($man);
     return $written;
 }
@@ -83,7 +84,7 @@ function rrw_content_import_to_site(array $site,?string $onlySlug=null): array {
    Das Manifest cms/data/content-sync.json merkt sich je Datei den Stand des letzten Abgleichs; geänderte oder neue Dateien werden beim Veröffentlichen/Neuaufbau
    (rrw_publish, cms/rebuild.php im Deploy) und über api.php?action=content_pull in die Website übernommen. Beim allerersten Lauf wird nur der Ist-Stand gemerkt (nichts wird überschrieben). */
 function rrw_content_manifest_file(): string { return defined('RRW_CONTENT_MANIFEST')?(string)RRW_CONTENT_MANIFEST:__DIR__.'/../data/content-sync.json'; }
-function rrw_content_manifest(): array { $f=rrw_content_manifest_file();$j=is_file($f)?json_decode((string)file_get_contents($f),true):null;return is_array($j)?$j+['pages'=>[],'posts'=>[]]:['pages'=>[],'posts'=>[],'fresh'=>true]; }
+function rrw_content_manifest(): array { $f=rrw_content_manifest_file();$j=is_file($f)?json_decode((string)file_get_contents($f),true):null;return is_array($j)?$j+['pages'=>[],'posts'=>[],'config'=>[]]:['pages'=>[],'posts'=>[],'config'=>[],'fresh'=>true]; }
 function rrw_content_manifest_save(array $m): void { unset($m['fresh']);$d=dirname(rrw_content_manifest_file());if(!is_dir($d))return;rrw_write_atomic(rrw_content_manifest_file(),json_encode($m,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n"); }
 function rrw_content_hash(string $txt): string { return sha1(str_replace(["\r\n","\r"],"\n",$txt)); }
 function rrw_content_posts_root(): string { return defined('RRW_CONTENT_POSTS_DIR')?(string)RRW_CONTENT_POSTS_DIR:dirname(rrw_content_root()).'/posts'; }
@@ -144,6 +145,73 @@ function rrw_content_pull(array $site,?string $newsFile=null): array {
         $r=rrw_content_pull_posts($news,$man,$baseline);
         if($r['imported']){rrw_write_atomic($newsFile,json_encode($r['news'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");$imported=array_merge($imported,$r['imported']);}
     }
+    $cf=rrw_gitconfig_pull($site,$man,$baseline);$site=$cf['site'];$imported=array_merge($imported,$cf['applied']);
     rrw_content_manifest_save($man);
-    return ['site'=>$site,'imported'=>$imported,'baseline'=>$baseline];
+    return ['site'=>$site,'imported'=>$imported,'baseline'=>$baseline,'errors'=>$cf['errors']];
+}
+
+/* ───────── Konfiguration über Git: Menüs, Widgets, Theme, Plugins ─────────
+   cms/content/config/menus.json, widgets.json, widget_areas.json, theme.json, plugins.json. Dieselbe Regel wie bei Seiten und Beiträgen: geänderte Dateien werden übernommen,
+   der Spiegel Website → Datei (menus, widgets, widget_areas, theme) überschreibt keine ungeprüfte Änderung von außen.
+   theme.json: {"active":"<theme-id>","variant":"default","settings":{…}} (Portal-Theme mit cms/themes/<id>/theme.json) oder {"wordpress":"<theme-slug>"} (WordPress-Theme, Ordner cms/themes/<slug>/ mit style.css; das Theme selbst liegt im Repository).
+   plugins.json: {"enable":["<plugin-id>",…],"disable":["<plugin-id>",…]} (offizielle ElvadoPress-Plugins; Abhängigkeiten werden mitinstalliert). */
+const RRW_GITCONFIG_SECTIONS=['menus','widgets','widget_areas','theme'];
+function rrw_gitconfig_root(): string { return defined('RRW_CONTENT_CONFIG_DIR')?(string)RRW_CONTENT_CONFIG_DIR:dirname(rrw_content_root()).'/config'; }
+function rrw_gitconfig_value(array $site,string $sec): mixed {
+    if($sec==='theme'){$t=is_array($site['theme']??null)?$site['theme']:[];return ['active'=>(string)($t['active']??''),'variant'=>(string)($t['variant']??'default'),'settings'=>is_array($t['settings']??null)?$t['settings']:new stdClass];}
+    return $site[$sec]??($sec==='menus'?['top'=>[],'bottom'=>[]]:[]);
+}
+function rrw_gitconfig_text(mixed $v): string { return json_encode($v,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n"; }
+/** Website → Dateien: nur schreiben, wenn die Datei nicht von außen geändert wurde. */
+function rrw_gitconfig_export(array $site,array $man): array {
+    $root=rrw_gitconfig_root();
+    foreach(RRW_GITCONFIG_SECTIONS as $sec){
+        $file=$root.'/'.$sec.'.json';$txt=rrw_gitconfig_text(rrw_gitconfig_value($site,$sec));
+        if($sec==='theme'&&(string)(rrw_gitconfig_value($site,'theme')['active']??'')==='')continue;   // WordPress-Theme-Betrieb: kein Portal-Theme gesetzt
+        if(isset($man['config'][$sec])&&is_file($file)&&rrw_content_hash((string)file_get_contents($file))!==$man['config'][$sec])continue;
+        if(is_file($file)&&(string)file_get_contents($file)===$txt){$man['config'][$sec]=rrw_content_hash($txt);continue;}
+        if(!is_dir($root)&&!@mkdir($root,0755,true))continue;
+        rrw_write_atomic($file,$txt);$man['config'][$sec]=rrw_content_hash($txt);
+    }
+    return $man;
+}
+/** Dateien → Website. @return array{site:array,applied:list<string>,errors:list<string>} */
+function rrw_gitconfig_pull(array $site,array &$man,bool $baseline): array {
+    $root=rrw_gitconfig_root();$applied=[];$errors=[];
+    foreach(array_merge(RRW_GITCONFIG_SECTIONS,['plugins']) as $sec){
+        $file=$root.'/'.$sec.'.json';if(!is_file($file))continue;$raw=(string)file_get_contents($file);$h=rrw_content_hash($raw);
+        if(($man['config'][$sec]??'')===$h)continue;
+        if($baseline){$man['config'][$sec]=$h;continue;}
+        $d=json_decode($raw,true);if(!is_array($d)){$errors[]=$sec.'.json: kein gültiges JSON – nicht übernommen';$man['config'][$sec]=$h;continue;}
+        if($sec==='plugins'){
+            if(!function_exists('rrw_np')){$errors[]='plugins.json: Plugin-System nicht geladen';continue;}
+            $mgr=rrw_np();
+            foreach((array)($d['enable']??[]) as $id){$id=preg_replace('/[^a-z0-9_-]/','',(string)$id);if($id==='')continue;if($mgr->isActive($id))continue;$r=$mgr->activate($id,true);if(!empty($r['ok']))$applied[]='plugin:'.$id.' aktiviert';else $errors[]='Plugin '.$id.': '.($r['message']??'Aktivierung fehlgeschlagen');}
+            foreach((array)($d['disable']??[]) as $id){$id=preg_replace('/[^a-z0-9_-]/','',(string)$id);if($id===''||!$mgr->isActive($id))continue;$r=$mgr->deactivate($id,false);if(!empty($r['ok']))$applied[]='plugin:'.$id.' deaktiviert';else $errors[]='Plugin '.$id.': '.($r['message']??'Deaktivierung fehlgeschlagen');}
+            $man['config'][$sec]=$h;continue;
+        }
+        if($sec==='theme'&&is_string($d['wordpress']??null)&&$d['wordpress']!==''){   // WordPress-Theme (Ordner cms/themes/<slug>/ mit style.css) aktivieren
+            $slug=preg_replace('/[^a-z0-9_-]/','',strtolower((string)$d['wordpress']));
+            try{
+                if(!function_exists('rrw_wpi_activate_theme')){require_once dirname(__DIR__).'/wp/load.php';require_once dirname(__DIR__).'/wp/installer.php';}
+                $e=rrw_wpi_activate_theme($slug);
+                if($e===null)$applied[]='wordpress-theme:'.$slug;else $errors[]='theme.json: WordPress-Theme „'.$slug.'“: '.$e;
+            }catch(\Throwable $ex){$errors[]='theme.json: WordPress-Theme „'.$slug.'“ konnte nicht aktiviert werden';}
+            $man['config'][$sec]=$h;continue;
+        }
+        if($sec==='theme'){
+            $id=function_exists('rrw_theme_id')?rrw_theme_id((string)($d['active']??'')):'';$tf=(defined('RRW_THEMES_DIR')?(string)RRW_THEMES_DIR:dirname(__DIR__).'/themes').'/'.$id.'/theme.json';
+            if($id===''||!is_file($tf)){$errors[]='theme.json: Theme „'.($d['active']??'').'“ ist nicht installiert (Ordner cms/themes/<id>/ fehlt) – nicht übernommen';$man['config'][$sec]=$h;continue;}
+            $m=json_decode((string)file_get_contents($tf),true);$m=is_array($m)?$m:[];
+            if((string)($site['theme']['active']??'')!==$id){
+                $site=rrw_theme_remember_mods($site);$prev=$site['theme']['mods'][$id]??null;
+                if(is_array($prev['widget_areas']??null))$site['widget_areas']=rrw_clean_section('widget_areas',$prev['widget_areas']);elseif(is_array($m['widget_areas']??null))$site['widget_areas']=rrw_clean_section('widget_areas',$m['widget_areas']);
+            }
+            $site['theme']=rrw_clean_section('theme',['active'=>$id,'variant'=>$d['variant']??'default','settings'=>is_array($d['settings']??null)?$d['settings']:[],'layout'=>rrw_theme_layout_clean($m['layout']??[]),'mods'=>$site['theme']['mods']??[]]);
+            $site=rrw_theme_remember_mods($site);$applied[]='theme:'.$id;$man['config'][$sec]=$h;continue;
+        }
+        $clean=rrw_clean_section($sec,$d);if($clean===null){$errors[]=$sec.'.json: ungültig – nicht übernommen';$man['config'][$sec]=$h;continue;}
+        $site[$sec]=$clean;$applied[]='config:'.$sec;$man['config'][$sec]=$h;
+    }
+    return ['site'=>$site,'applied'=>$applied,'errors'=>$errors];
 }

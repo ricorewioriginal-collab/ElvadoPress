@@ -12,7 +12,8 @@
     var r=await fetch('api.php?action='+action+(q||'')+(sbx&&String(action).indexOf('wp_theme')===0?'&sandbox=1':'')+'&_='+Date.now(),o),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
     if(!r.ok||d.status==='error'){var er=new Error(d.message||'Fehler');er.errors=d.errors;throw er}return d;
   }
-  function take(d){themes=d.themes||themes;front=!!d.front;draw();if(sbx&&window.Sandbox)Sandbox.refresh()}
+  var hiddenT=[];
+  function take(d){themes=d.themes||themes;hiddenT=d.hidden_themes||[];front=!!d.front;draw();if(sbx&&window.Sandbox)Sandbox.refresh()}
   async function load(){
     bind();if(window.WpPlugins&&WpPlugins.autoLoad&&!sbx)WpPlugins.autoLoad();if(window.Sandbox)Sandbox.load();
     try{take(await call('wp_themes'))}catch(e){$('wtInst').innerHTML='<div class="hint">'+esc(e.message)+'</div>'}
@@ -25,6 +26,7 @@
   function draw(){
     var act=themes.filter(function(t){return t.active})[0];
     $('wtState').innerHTML=front&&act?'Aktiv: <b>'+esc(act.name)+'</b> – deine Website wird mit diesem WordPress-Theme ausgeliefert.':'Zurzeit ist <b>kein</b> WordPress-Theme aktiv – es gilt die normale CMS-Portal-Oberfläche.';
+    var hb=$('wtHidden');if(hb){hb.hidden=!hiddenT.length;hb.innerHTML=hiddenT.length?'<b>Ausgeblendete Themes</b> <span class="hint">(liegen im Code)</span>'+hiddenT.map(function(x){return '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span>'+esc(x.name)+'</span><button type="button" class="btn-g" onclick="WpThemes.unhide(\''+esc(x.slug)+'\')">Zurückholen</button></div>'}).join(''):''}
     $('wtOff').hidden=!front;if($('wtInstCount'))$('wtInstCount').textContent='('+themes.length+')';
     $('wtInst').innerHTML=themes.map(function(t,i){
       return '<div style="border:1px solid '+(t.active?'var(--good)':'var(--line)')+';border-radius:12px;overflow:hidden;display:flex;flex-direction:column">'+shot(t.screenshot,t.name)
@@ -32,7 +34,7 @@
         +(t.error?'<div class="hint" style="color:var(--bad);margin-top:4px"><i class="fas fa-triangle-exclamation"></i> '+esc(t.error)+'</div>':'')+'</div>'
         +'<div style="display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap">'+(t.error?'':'<button class="btn-g" onclick="WpThemes.preview('+i+')"><i class="fas fa-eye"></i> Vorschau</button><button class="btn-g" onclick="WpThemes.customize('+i+')"><i class="fas fa-sliders"></i> Anpassen</button>')
         +(t.active||t.error?'':'<button class="btn-a" onclick="WpThemes.activate('+i+')">Aktivieren</button>')
-        +(t.active||t.bundled?'':'<button class="btn-g" style="color:var(--bad)" title="Löschen" onclick="WpThemes.del('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div>';
+        +(t.active||t.slug==='rrw-classic'?'':'<button class="btn-g" style="color:var(--bad)" title="'+(t.bundled?'Ausblenden (liegt im Code)':'Löschen')+'" onclick="WpThemes.del('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div>';
     }).join('')||'<div class="hint">Keine Themes installiert.</div>';
     if(window.DesignHub)DesignHub.refresh();
   }
@@ -42,9 +44,10 @@
     try{take(await call('wp_theme_activate','',{slug:t.slug}));closePreview(true);toast('Theme aktiviert.');window.cmsPackRefresh&&cmsPackRefresh()}catch(e){toast(e.message,true)}
   }
   async function del(i){
-    var t=themes[i];if(!t||!confirm('Theme „'+t.name+'“ endgültig löschen?'))return;
-    try{take(await call('wp_theme_delete','',{slug:t.slug}));toast('Theme gelöscht.')}catch(e){toast(e.message,true)}
+    var t=themes[i];if(!t||!confirm(t.bundled?'Theme „'+t.name+'“ ausblenden? Es liegt im Code und lässt sich unter „Ausgeblendete Themes“ zurückholen.':'Theme „'+t.name+'“ endgültig löschen?'))return;
+    try{take(await call('wp_theme_delete','',{slug:t.slug}));toast(t.bundled?'Theme ausgeblendet.':'Theme gelöscht.')}catch(e){toast(e.message,true)}
   }
+  async function unhide(slug){try{take(await call('wp_theme_unhide','',{slug:slug}));toast('Theme wieder eingeblendet.')}catch(e){toast(e.message,true)}}
   async function off(){
     if(!confirm('WordPress-Theme-Auslieferung beenden und zur normalen CMS-Portal-Oberfläche zurückkehren?'))return;
     try{take(await call('wp_theme_deactivate','',{}));toast('Zurück beim CMS-Portal.');window.cmsPackRefresh&&cmsPackRefresh()}catch(e){toast(e.message,true)}
@@ -368,5 +371,5 @@
     Object.keys(cz.base).forEach(function(k){cz.values[k]=cz.base[k]});cz.cs=null;cz.savedSig='';cz.action='publish';cz.date='';cz.pending=true;
     czRefreshPub();czDraw();czState(cz.active?'Aktiv':'Vorschau');if(!$('czActions').hidden)czRenderActions();czSchedule();toast('Änderungen verworfen');
   }
-  window.WpThemes={czOpenMatch:czOpenMatch,setSandbox:function(on){sbx=!!on;themes=[];front=false;if($('wtInst'))$('wtInst').innerHTML='<div class="hint">Lädt …</div>';return load()},isSandbox:function(){return sbx},czToggleActions:czToggleActions,customize:customize,customizeSlug:function(slug){for(var i=0;i<themes.length;i++)if(themes[i].slug===slug)return customize(i)},czActive:function(){return !!cz},czClose:czClose,czPublish:czPublish,czReset:czReset,czLeave:czLeave,state:function(){var a=themes.filter(function(t){return t.active})[0];return {front:front,name:a?a.name:''}},redraw:function(){if(themes.length)draw()},demo:demo,load:load,tab:tab,search:search,install:install,preview:preview,activate:activate,del:del,off:off,closePreview:closePreview};
+  window.WpThemes={unhide:unhide,czOpenMatch:czOpenMatch,setSandbox:function(on){sbx=!!on;themes=[];front=false;if($('wtInst'))$('wtInst').innerHTML='<div class="hint">Lädt …</div>';return load()},isSandbox:function(){return sbx},czToggleActions:czToggleActions,customize:customize,customizeSlug:function(slug){for(var i=0;i<themes.length;i++)if(themes[i].slug===slug)return customize(i)},czActive:function(){return !!cz},czClose:czClose,czPublish:czPublish,czReset:czReset,czLeave:czLeave,state:function(){var a=themes.filter(function(t){return t.active})[0];return {front:front,name:a?a.name:''}},redraw:function(){if(themes.length)draw()},demo:demo,load:load,tab:tab,search:search,install:install,preview:preview,activate:activate,del:del,off:off,closePreview:closePreview};
 })();
