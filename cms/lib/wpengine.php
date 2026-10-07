@@ -44,9 +44,23 @@ function rrw_wpe_prepare(Engine $e): array
 }
 
 /** Aktuellen WordPress-Core laden, prüfen und einspielen (Prüfsumme, Sicherheitsprüfung, atomar). */
-function rrw_wpe_install_core(Engine $e, string $version): array
+function rrw_wpe_install_core(Engine $e, string $version, string $localZip = ''): array
 {
     $fail = fn(string $m): array => ['ok' => false, 'message' => $m, 'version' => ''];
+    if ($localZip !== '') {   // vom Betreiber bereitgestelltes ZIP (z. B. Demo ohne Internet): Version und Prüfsumme kommen aus dem Archiv; Sicherheitsprüfung und atomares Einspielen wie sonst
+        $z = new \ZipArchive();
+        if (!is_file($localZip) || $z->open($localZip) !== true) {
+            return $fail('Das bereitgestellte WordPress-ZIP lässt sich nicht öffnen.');
+        }
+        preg_match('/\$wp_version\s*=\s*\'([^\']+)\'/', (string)$z->getFromName('wordpress/wp-includes/version.php'), $m);
+        $z->close();
+        if (empty($m[1]) || preg_match('/^\d+\.\d+(\.\d+)?$/', $m[1]) !== 1) {
+            return $fail('Im bereitgestellten ZIP wurde keine WordPress-Version gefunden.');
+        }
+        $e->protect();
+        $r = (new CoreInstaller($e))->install($localZip, $m[1], sha1_file($localZip));
+        return $r['ok'] ? ['ok' => true, 'message' => 'WordPress ' . $m[1] . ' wurde geprüft und eingespielt.', 'version' => $m[1]] : $fail($r['message']);
+    }
     $l = CoreSource::latest();
     if (!$l['ok']) {
         return $fail($l['message']);

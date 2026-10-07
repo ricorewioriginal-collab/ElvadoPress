@@ -38,7 +38,48 @@ function rrw_demo_reset_at(): int {
 /** Öffentliche Angaben für Banner, Anmeldung und Startseite der Demo (enthält bewusst die Demo-Zugangsdaten). */
 function rrw_demo_public(): array {
     $c=rrw_demo_config();if(!$c)return [];
-    return ['user'=>$c['user'],'password'=>$c['password'],'minutes'=>$c['minutes'],'reset_at'=>rrw_demo_reset_at(),'now'=>time(),'site_name'=>$c['site_name']];
+    return ['user'=>$c['user'],'password'=>$c['password'],'minutes'=>$c['minutes'],'reset_at'=>rrw_demo_reset_at(),'now'=>time(),'site_name'=>$c['site_name'],'engine'=>rrw_demo_engine_enabled()];
+}
+
+// ---------- WordPress-Engine in der Demo ----------
+// Optional: Gibt es cms/lib/demo-engine.json (legt der Betreiber an, nicht im Repository), läuft die Demo mit dem echten WordPress-Core und allen Engine-Funktionen:
+// {"host":"localhost","name":"…","user":"…","pass":"…","prefix":"wpdemo_","core_zip":"/pfad/wordpress-X.Y.Z.zip" (optional, sonst Download von wordpress.org)}
+// Die Datenbank gehört allein der Demo (alle Tabellen mit dem Präfix werden beim Zurücksetzen gelöscht). Gesperrt bleibt, was fremden Programmcode auf den gemeinsamen Server brächte:
+// Plugin-/Theme-Installation und -Upload sowie der manuelle Aufbau der Engine (Core/Datenbank) – dafür gibt es in der Demo die Aktion engine_demo_setup.
+function rrw_demo_engine_config_file(): string { return __DIR__.'/demo-engine.json'; }
+/** @return array{host:string,name:string,user:string,pass:string,prefix:string,core_zip:string}|null */
+function rrw_demo_engine_config(): ?array {
+    static $c=false;if($c!==false)return $c;
+    if(!rrw_demo_enabled())return $c=null;
+    $f=rrw_demo_engine_config_file();$j=is_file($f)?json_decode((string)@file_get_contents($f),true):null;
+    if(!is_array($j))return $c=null;
+    $host=(string)($j['host']??'localhost');$name=(string)($j['name']??'');$user=(string)($j['user']??'');
+    $prefix=(string)($j['prefix']??'wpdemo_');
+    if($name===''||$user===''||preg_match('/^[A-Za-z0-9_.:\-]{1,120}$/',$host)!==1||preg_match('/^[A-Za-z0-9_]{1,20}$/',$prefix)!==1||str_ends_with($prefix,'_')===false)return $c=null;
+    $zip=(string)($j['core_zip']??'');if($zip!==''&&!is_file($zip))$zip='';
+    return $c=['host'=>$host,'name'=>$name,'user'=>$user,'pass'=>(string)($j['pass']??''),'prefix'=>$prefix,'core_zip'=>$zip];
+}
+function rrw_demo_engine_enabled(): bool { return rrw_demo_engine_config()!==null; }
+/** Engine-Aktionen, die in der Demo gesperrt bleiben (der Aufbau läuft über engine_demo_setup; fremder Programmcode kommt nicht auf den Server). */
+const RRW_DEMO_ENGINE_BLOCKED=['engine_core','engine_db_test','engine_db_install','engine_mode','engine_remove','ext_install','ext_upload','ext_delete','ext_safe'];
+/** Alle Tabellen der Demo-Datenbank mit dem Demo-Präfix löschen (nie andere). */
+function rrw_demo_engine_drop_tables(array $c): bool {
+    if(!class_exists('mysqli'))return false;
+    $host=$c['host'];$port=3306;
+    if(str_contains($host,':')&&!str_starts_with($host,'/')){ [$host,$p]=explode(':',$host,2);if(ctype_digit($p))$port=(int)$p; }
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $m=@new mysqli($host==='localhost'?'localhost':$host,$c['user'],$c['pass'],$c['name'],$port);
+    if($m->connect_errno)return false;
+    $like=str_replace(['\\','_','%'],['\\\\','\\_','\\%'],$c['prefix']).'%';
+    $res=$m->query("SHOW TABLES LIKE '".$m->real_escape_string($like)."'");
+    $ok=true;
+    while($res&&($row=$res->fetch_row())){ if(!$m->query('DROP TABLE `'.str_replace('`','``',(string)$row[0]).'`'))$ok=false; }
+    $m->close();
+    return $ok;
+}
+/** Beim Zurücksetzen: Datenbank der Engine leeren. Core-Dateien (cms/wp-engine) und vorinstallierte Plugins/Themes bleiben; der Zustand (cms/data) wird ohnehin geleert. */
+function rrw_demo_engine_reset(): bool {
+    $c=rrw_demo_engine_config();return $c?rrw_demo_engine_drop_tables($c):true;
 }
 
 /** Inhalt eines Ordners entfernen (der Ordner selbst und .htaccess/.gitkeep bleiben); Links werden nie verfolgt. */
@@ -70,6 +111,7 @@ function rrw_demo_reset(): bool {
     $site=rrw_read_json($ctx['siteFile'],[]);$news=rrw_read_json($ctx['newsFile'],[]);
     rrw_seo_generate($site,$news,$ctx['root']);
     rrw_system_config(true);
+    rrw_demo_engine_reset();   // WordPress-Tabellen der Demo leeren (nur mit demo-engine.json); die Engine richtet sich beim nächsten Aufruf selbst neu ein
     return true;
 }
 /** Beispielbeiträge, damit Website und Verwaltung gefüllt wirken (Texte: lib/demo-content.php). */
@@ -234,7 +276,7 @@ function rrw_demo_inject(string $html): string {
  * Ein fertiges Paket (Ordner mit cms/) zur Demo machen: Demo-Einstellungen, Startseite /demo/, Zustandsordner und Schutzdateien.
  * Wird von scripts/make-demo.php (ElvadoPress) und scripts/build-standalone.php --demo (Entwicklungsprojekt) genutzt.
  */
-function rrw_demo_make(string $dir, int $minutes=10): void {
+function rrw_demo_make(string $dir, int $minutes=10, ?array $engine=null): void {
     $dir=rtrim($dir,'/');$minutes=max(1,min(1440,$minutes));
     $w=function(string $rel,string $content,bool $append=false)use($dir){ $f=$dir.'/'.$rel;if(!is_dir(dirname($f)))mkdir(dirname($f),0775,true);file_put_contents($f,$content,$append?FILE_APPEND:0); };
     $w('cms/lib/demo.json',json_encode(['user'=>'demo','password'=>'ElvadoPress-Demo1','minutes'=>$minutes,'site_name'=>'ElvadoPress','display_name'=>'Demo-Benutzer'],JSON_PRETTY_PRINT)."\n");
@@ -244,7 +286,8 @@ function rrw_demo_make(string $dir, int $minutes=10): void {
     $w('demo/.htaccess',"DirectoryIndex index.html\n");
     $w('cms/demo-state/.htaccess',"Require all denied\n");
     // Die Demo-Konfiguration gehört nicht ins Netz (PHP-Dateien in cms/lib sind ohnehin gesperrt)
-    $w('cms/lib/.htaccess',"<Files \"demo.json\">\nRequire all denied\n</Files>\n",true);
+    $w('cms/lib/.htaccess',"<Files \"demo.json\">\nRequire all denied\n</Files>\n<Files \"demo-engine.json\">\nRequire all denied\n</Files>\n",true);
+    if($engine!==null){ $w('cms/lib/demo-engine.json',json_encode($engine,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");@chmod($dir.'/cms/lib/demo-engine.json',0600); }
 }
 
 // ---------- Vorinstallierte WordPress-Themes und -Plugins (Kompatibilität ausprobieren) ----------

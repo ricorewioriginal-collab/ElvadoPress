@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // Verwaltungs-API der WordPress-Engine (eigener Einstieg, damit echtes WordPress in einem sauberen globalen Gültigkeitsbereich startet und nicht in den Variablen von api.php).
 // Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_analyze, engine_mode, engine_remove;
-// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report; echte Migration (nur mit Bestätigung, protokolliert, zurückbaubar) migration_run, migration_rollback, migration_runs.
+// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report; echte Migration (nur mit Bestätigung, protokolliert, zurückbaubar) migration_run, migration_rollback, migration_runs; Demo: engine_demo_setup.
 // Rechte: Administratoren alles; Autoren Inhalte/Medien nur eigene (Dienste prüfen), Seiten, Begriffe, Benutzer und Engine nur Administratoren. Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
 // Die Anmeldeprüfung kommt aus api.php (RRW_API_LIB_ONLY); in der Demo sind alle Aktionen außer engine_status gesperrt.
 define('RRW_API_LIB_ONLY', true);
@@ -19,7 +19,15 @@ if (!$rrwActor->isAdmin() && !in_array($rrwEngineAction, ['content_list', 'conte
     rrw_json(['status' => 'error', 'message' => 'Nur Administratoren dürfen diese Aktion ausführen'], 403);
 }
 if (function_exists('rrw_demo_enabled') && rrw_demo_enabled() && $rrwEngineAction !== 'engine_status') {
-    rrw_json(['status' => 'error', 'message' => 'In der Demo gesperrt: Die WordPress-Engine lässt sich nur in einer eigenen ElvadoPress-Installation einrichten.'], 403);
+    // Demo: ohne demo-engine.json gesperrt; mit ihr läuft die Engine (echter Core, alle Funktionen) – gesperrt bleiben nur Aufbau von Hand und fremder Programmcode (Plugin-/Theme-Installation, -Upload, -Löschen)
+    if (!function_exists('rrw_demo_engine_enabled') || !rrw_demo_engine_enabled()) {
+        rrw_json(['status' => 'error', 'message' => 'In der Demo gesperrt: Die WordPress-Engine lässt sich nur in einer eigenen ElvadoPress-Installation einrichten.'], 403);
+    }
+    if (in_array($rrwEngineAction, RRW_DEMO_ENGINE_BLOCKED, true)) {
+        rrw_json(['status' => 'error', 'message' => in_array($rrwEngineAction, ['ext_install', 'ext_upload', 'ext_delete'], true)
+            ? 'In der Demo gesperrt: Plugins und Themes lassen sich nur in einer eigenen ElvadoPress-Installation installieren (die Demo teilt sich den Server mit anderen Websites). Vorinstallierte lassen sich aktivieren.'
+            : 'In der Demo ist die Engine bereits vorbereitet (Aufbau, Datenbank und Betriebsart verwaltet die Demo selbst).', 'demo' => true], 403);
+    }
 }
 $rrwEngineB = $_SERVER['REQUEST_METHOD'] === 'POST' ? rrw_body() : [];
 $rrwEngine = rrw_wpe();
@@ -36,6 +44,58 @@ if ($rrwEngineAction === 'engine_status') {
 }
 if ($rrwEngineAction === 'engine_prepare') {
     rrw_json(['status' => 'ok'] + rrw_wpe_prepare($rrwEngine));
+}
+if ($rrwEngineAction === 'engine_demo_setup') {
+    // Nur Demo mit demo-engine.json: Core (falls nötig), eigene Datenbank leeren, WordPress-Tabellen anlegen, Betriebsart „aktiv“. Wiederholbar; nach dem Zurücksetzen der Demo läuft es erneut.
+    if (!function_exists('rrw_demo_engine_enabled') || !rrw_demo_engine_enabled()) {
+        rrw_json(['status' => 'error', 'message' => 'Diese Aktion gibt es nur in der Demo mit vorbereiteter Engine.'], 403);
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+    }
+    $rrwDc = rrw_demo_engine_config();
+    $rrwLock = @fopen($rrwEngine->stateDir() . '/demo-setup.lock', 'c') ?: @fopen(sys_get_temp_dir() . '/ep-demo-setup-' . md5(__DIR__) . '.lock', 'c');
+    if ($rrwLock) {
+        @flock($rrwLock, LOCK_EX);
+    }
+    $rrwEngine->protect();
+    if ($rrwEngine->isActive() && !empty($rrwEngine->state()['db']['ready'])) {
+        rrw_json(['status' => 'ok', 'message' => 'Die Demo-Engine ist bereit.'] + rrw_wpe_status($rrwEngine, $rrwEngineDb));
+    }
+    @set_time_limit(300);
+    if ($rrwEngine->corePath() === null) {
+        $rrwCores = glob($rrwEngine->coreRoot() . '/core-*', GLOB_ONLYDIR) ?: [];
+        usort($rrwCores, fn($a, $b) => version_compare(substr(basename($b), 5), substr(basename($a), 5)));
+        if ($rrwCores !== []) {   // Core-Dateien liegen schon da (nur der Zustand wurde zurückgesetzt)
+            $rrwEngine->save(['core' => basename($rrwCores[0]), 'installed_at' => date('c')]);
+        } else {
+            $r = rrw_wpe_install_core($rrwEngine, '', $rrwDc['core_zip']);
+            if (!$r['ok']) {
+                rrw_json(['status' => 'error', 'message' => 'Der WordPress-Core ließ sich nicht einspielen: ' . $r['message']], 502);
+            }
+            $rrwEngineLog('Demo: WordPress ' . $r['version'] . ' eingespielt');
+        }
+    }
+    if (!rrw_demo_engine_drop_tables($rrwDc)) {
+        rrw_json(['status' => 'error', 'message' => 'Die Demo-Datenbank ließ sich nicht leeren (Zugang prüfen).'], 502);
+    }
+    $pre = rrw_wpe_pre_install($rrwEngine, $rrwEngineDb, ['host' => $rrwDc['host'], 'name' => $rrwDc['name'], 'user' => $rrwDc['user'], 'pass' => $rrwDc['pass'], 'prefix' => $rrwDc['prefix']]);
+    if (!$pre['ok']) {
+        rrw_json(['status' => 'error', 'message' => $pre['message']], 502);
+    }
+    $GLOBALS['rrw_wpe_engine'] = $rrwEngine;
+    $GLOBALS['rrw_wpe_db'] = $rrwEngineDb;
+    $GLOBALS['rrw_wpe_opts'] = ['installing' => true];
+    rrw_wpe_guard_output();
+    require __DIR__ . '/wp-engine-boot.php';
+    $res = \Elvado\Wp\Bridge::installSchema(rrw_demo_config()['site_name'] ?? 'ElvadoPress', 'demo@example.invalid');
+    if (!$res['ok']) {
+        rrw_json(['status' => 'error', 'message' => $res['message']], 502);
+    }
+    $rrwEngine->save(['mode' => 'installed', 'db' => ['ready' => true, 'checked_at' => date('c'), 'prefix' => $pre['prefix'], 'server' => $pre['server']]]);
+    $rrwEngine->setMode('active');
+    $rrwEngine->log('Demo: Engine eingerichtet und aktiv');
+    rrw_json(['status' => 'ok', 'message' => 'Die Demo-Engine ist eingerichtet und aktiv.'] + rrw_wpe_status($rrwEngine, $rrwEngineDb));
 }
 if ($rrwEngineAction === 'engine_core') {
     $r = rrw_wpe_install_core($rrwEngine, (string)($rrwEngineB['version'] ?? ''));
