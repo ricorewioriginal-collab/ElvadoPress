@@ -53,6 +53,8 @@
     var have={};layout.forEach(function(x){have[x.type]=1});
     Object.keys(schema).forEach(function(t){if(!have[t])layout.push({id:uid(),type:t,hidden:false,props:defaults(t)})});   // neue Bereiche des Pakets ergänzen
     layout=layout.filter(function(x){return schema[x.type]});
+    var ord=function(x){var o=((cat[x.type]||{}).data||{}).order;return typeof o==='number'?o:999};
+    layout.sort(function(a,b){return ord(a)-ord(b)});   /* Reihenfolge der Website, nicht der Kategorien */
     active=true;hasDraft=!!d.draft;publishAt=(d.draft&&d.draft.publish_at)||'';revisions=d.revisions||[];dirty=false;
     if(!sel||!locate(sel))sel=layout.length?layout[0].id:null;
     palette();draw();notice();badge();state(hasDraft?'Entwurf geladen (noch nicht veröffentlicht)':'');
@@ -186,8 +188,9 @@
     var f=frame();if(!f||!previewUrl)return;bridge.ready=false;
     f.src=previewUrl+(previewUrl.indexOf('?')<0?'?':'&')+'rrw_bk_t='+Date.now();$('lbUrl').textContent=location.origin+'/';
   }
-  async function getPreview(){if(target){try{var pd=await capi('layout_preview');previewUrl=pd.url;setFrame()}catch(e){state(e.message||'Vorschau nicht verfügbar',true)}return}
-    try{var d=await cmsApi('wp_theme_preview',{slug:'elvado-baukasten'});if(d.url){previewUrl=d.url;setFrame()}}catch(e){state(e.message||'Vorschau nicht verfügbar',true)}}
+  async function getPreview(){var tgt=target;   /* späte Antwort für ein inzwischen gewechseltes Ziel verwerfen */
+    if(tgt){try{var pd=await capi('layout_preview');if(tgt===target){previewUrl=pd.url;setFrame()}}catch(e){state(e.message||'Vorschau nicht verfügbar',true)}return}
+    try{var d=await cmsApi('wp_theme_preview',{slug:'elvado-baukasten'});if(d.url&&tgt===target){previewUrl=d.url;setFrame()}}catch(e){state(e.message||'Vorschau nicht verfügbar',true)}}
   function notice(){var n=$('lbNotice');if(target){n.style.display='';n.innerHTML='Hier gestaltest du die <b>bestehenden Bereiche</b> deiner Website (Abstände, Farben, Höhe, Sichtbarkeit). Die Website rendert weiter selbst – ihre Texte und Inhalte pflegst du wie bisher in den jeweiligen Verwaltungsbereichen.';return}if(active){n.style.display='none';return}n.style.display='';n.innerHTML='Das Theme „ElvadoPress Baukasten“ ist noch nicht aktiv. Du kannst hier bauen und die Vorschau nutzen; zum Veröffentlichen <a href="#" data-activate="1">Theme aktivieren</a>.'}
   function badge(){var b=$('lbSched');if(!b)return;b.hidden=!publishAt;b.textContent=publishAt?'Geplant: '+publishAt.replace('T',' '):''}
 
