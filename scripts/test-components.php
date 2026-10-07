@@ -215,6 +215,16 @@ t('Brücke: nur Eltern-Fenster und gleiche Herkunft, Schlüssel für Befehle', s
 t('Builder: nur der Vorschau-Frame, gleiche Herkunft, Schlüssel; kein „*“ als Ziel', str_contains($lbJs, 'e.source!==f.contentWindow||e.origin!==location.origin') && str_contains($lbJs, 'd.token!==bridge.token') && !str_contains($lbJs, ",'*')") && str_contains($lbJs, 'getRandomValues'));
 $wf = (string)file_get_contents(__DIR__ . '/../cms/wp-front.php');
 t('Brücke wird nur mit gültigem Vorschau-Schlüssel eingebunden', preg_match('/rrw_wp_preview_theme.*preview-bridge\.js/s', $wf) === 1 && substr_count($wf, 'preview-bridge.js') === 1);
+// Änderungsprotokoll je Fassung (Live Builder dokumentiert jede Änderung)
+$store->saveDraft('home', [['type' => 'text', 'props' => ['title' => 'Vier']]], $adm);
+$p4 = $store->publish('home', $adm, 'Titel', ['Text – Titel: «Drei» → «Vier»', '<b>Fett</b> Zeile', '', str_repeat('x', 300)]);
+t('Fassung speichert das Änderungsprotokoll (bereinigt, gekürzt)', ($p4['changes'][1] ?? '') === 'Fett Zeile' && count($p4['changes']) === 3 && mb_strlen($p4['changes'][2]) === 160 && ($p4['changes'][0] ?? '') === 'Text – Titel: «Drei» → «Vier»');
+t('Verlauf liefert das Protokoll; ältere Fassungen ohne Protokoll bleiben gültig', ($store->revisions('home')[0]['changes'] ?? null) === $p4['changes'] && ($store->revisions('home')[1]['changes'] ?? null) === []);
+$store->saveDraft('home', [['type' => 'text', 'props' => ['title' => 'Fünf']]], $adm); $store->publish('home', $adm, 'x', array_fill(0, 80, 'Zeile'));
+t('Höchstens 40 Protokollzeilen je Fassung', count($store->revisions('home')[0]['changes']) === 40);
+$apiSrc = (string)file_get_contents(__DIR__ . '/../cms/api.php'); $lbSrc = (string)file_get_contents(__DIR__ . '/../cms/assets/live-builder.js');
+t('Protokoll: Veröffentlichen (Startseite, Bereiche) und Customizer schreiben die Änderungen ins Aktivitätslog', str_contains($apiSrc, "(array)(\$b['changes']??[])") && str_contains($apiSrc, "'Customizer „'") && str_contains((string)file_get_contents(__DIR__ . '/../cms/components-api.php'), "implode('; ', array_slice(\$p['changes']"));
+t('Live Builder: Rückgängig/Wiederholen (Strg+Z/Y), Änderungsliste und Protokoll im Verlauf', str_contains($lbSrc, 'function histGo') && str_contains($lbSrc, 'function describe') && str_contains($lbSrc, "kind==='changes'") && str_contains($lbSrc, 'lb-chg') && str_contains((string)file_get_contents(__DIR__ . '/../cms/views/panel-livebuilder.php'), 'id="lbUndo"'));
 if (getenv("DBG")) { echo $html, "\n", $css, "\n"; }
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
 exit($fail ? 1 : 0);

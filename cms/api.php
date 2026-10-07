@@ -1680,8 +1680,8 @@ if(str_starts_with($action,'wp_')){
         if($action==='wp_bk_publish'){
             if(is_array($b['layout']??null))elvado_bk_save_draft($b['layout']);
             if(elvado_bk_draft_layout()===null)rrw_json(['status'=>'error','message'=>'Es gibt keinen Entwurf zum Veröffentlichen.'],400);
-            $p=$bkSt->publish('home',elvado_bk_actor(),(string)($b['label']??''));
-            rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Startseite veröffentlicht (Fassung '.$p['n'].', '.count($p['layout']).' Abschnitte)');rrw_json($bkOut((array)$p['layout']));
+            $p=$bkSt->publish('home',elvado_bk_actor(),(string)($b['label']??''),(array)($b['changes']??[]));
+            rrw_log_activity($activityLogFile,$wpUser,'wp_bk','Startseite veröffentlicht (Fassung '.$p['n'].', '.count($p['layout']).' Abschnitte)'.(($p['changes']??[])?' – '.implode('; ',array_slice($p['changes'],0,6)):''));rrw_json($bkOut((array)$p['layout']));
         }
         if($action==='wp_bk_rollback'){
             try{ $p=$bkSt->rollback('home',(int)($b['n']??0),elvado_bk_actor()); }catch(\RuntimeException $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],422); }
@@ -1863,8 +1863,11 @@ if($action==='theme_customize_save'){
     $switching=($site['theme']['active']??'ricorewi-neon')!==$id;
     if($switching){$site=rrw_theme_remember_mods($site);$prev=$site['theme']['mods'][$id]??null;if(is_array($prev['widget_areas']??null))$site['widget_areas']=rrw_clean_section('widget_areas',$prev['widget_areas']);elseif($found['widget_areas'])$site['widget_areas']=$found['widget_areas'];}
     $clean=rrw_clean_section('theme',['active'=>$id,'variant'=>$b['variant']??'default','settings'=>$b['settings']??[],'layout'=>$found['layout'],'mods'=>$site['theme']['mods']??[]]);
+    $czOld=is_array($site['theme']['settings']??null)?$site['theme']['settings']:[];$czNew=is_array($clean['settings']??null)?$clean['settings']:[];$czCh=[];
+    foreach(array_unique(array_merge(array_keys($czOld),array_keys($czNew))) as $czK){$o=$czOld[$czK]??null;$n2=$czNew[$czK]??null;if($o!==$n2&&count($czCh)<8)$czCh[]=mb_substr((string)$czK,0,40).': '.mb_substr(is_scalar($o)?(string)$o:'…',0,24).' → '.mb_substr(is_scalar($n2)?(string)$n2:'…',0,24);}
+    if(($site['theme']['variant']??'default')!==($clean['variant']??'default'))array_unshift($czCh,'Variante: '.($site['theme']['variant']??'default').' → '.($clean['variant']??'default'));
     $site['theme']=$clean;$site=rrw_theme_remember_mods($site);
-    rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','theme'=>$site['theme'],'widget_areas'=>$site['widget_areas']??[]]);
+    rrw_publish($site,$siteFile,$genDir,$root);rrw_log_activity($activityLogFile,rrw_auth(false),'theme_customize','Customizer „'.$id.'“ gespeichert'.($czCh?' – '.implode('; ',array_slice($czCh,0,6)):' (keine Wertänderung)'));rrw_json(['status'=>'ok','theme'=>$site['theme'],'widget_areas'=>$site['widget_areas']??[]]);
 }
 if($action==='theme_reset_areas'){
     rrw_auth(false);$id=rrw_theme_id((string)($site['theme']['active']??'ricorewi-neon'));

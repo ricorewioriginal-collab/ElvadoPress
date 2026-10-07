@@ -10,9 +10,10 @@
       <select id="lbTarget" class="fc lb-target" aria-label="Bearbeiten" hidden></select>
       <span id="lbState" class="lb-state" aria-live="polite"></span><span id="lbSched" class="lb-sched" hidden></span>
       <div class="lb-actions">
+        <button type="button" class="btn-g lb-hist" id="lbUndo" title="Rückgängig (Strg+Z)" aria-label="Rückgängig" disabled><i class="fas fa-rotate-left"></i></button><button type="button" class="btn-g lb-hist" id="lbRedo" title="Wiederholen (Strg+Y)" aria-label="Wiederholen" disabled><i class="fas fa-rotate-right"></i></button>
         <button type="button" class="btn-g" id="lbDraft"><i class="fas fa-floppy-disk"></i> Entwurf speichern</button>
         <div class="lb-pubgroup"><button type="button" class="btn-a" id="lbPublish"><i class="fas fa-rocket"></i> Veröffentlichen</button><button type="button" class="btn-a lb-chev" id="lbPubMore" aria-haspopup="true" aria-label="Veröffentlichungsoptionen"><i class="fas fa-chevron-down"></i></button>
-          <div class="lb-pop" id="lbPubPop" hidden><button type="button" data-lbmore="schedule"><i class="fas fa-calendar-check"></i>Veröffentlichung planen …</button><button type="button" data-lbmore="history"><i class="fas fa-clock-rotate-left"></i>Verlauf / Fassung wiederherstellen</button></div></div>
+          <div class="lb-pop" id="lbPubPop" hidden><button type="button" data-lbmore="schedule"><i class="fas fa-calendar-check"></i>Veröffentlichung planen …</button><button type="button" data-lbmore="changes"><i class="fas fa-list-check"></i>Änderungen anzeigen</button><button type="button" data-lbmore="history"><i class="fas fa-clock-rotate-left"></i>Verlauf / Fassung wiederherstellen</button></div></div>
         <div class="lb-more"><button type="button" class="btn-g" id="lbMore" aria-haspopup="true" aria-label="Weitere Aktionen"><i class="fas fa-ellipsis-vertical"></i></button>
           <div class="lb-pop" id="lbMorePop" hidden>
             <button type="button" data-lbmore="discard"><i class="fas fa-rotate-left"></i>Entwurf verwerfen</button>
