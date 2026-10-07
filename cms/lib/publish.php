@@ -517,6 +517,7 @@ function rrw_rss_xml(array $site): string {
     return $out."</channel></rss>\n";
 }
 function rrw_publish(array $site,string $siteFile,string $genDir,string $root): void {
+    if(function_exists('rrw_content_pull')){ try{ $pull=rrw_content_pull($site);$site=$pull['site']; }catch(\Throwable $e){} }   // Dateien (Git) → Website, bevor der Spiegel Website → Dateien schreibt
     rrw_write_atomic($siteFile,json_encode($site,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
     // Startseiten-Snapshot und statische Seiten gehören zum Portal (index.html); das eigenständige CMS liefert über ein WordPress-Theme aus und hat keine
     if(is_file($root.'/index.html')){ rrw_update_index_snapshot($site,$root);rrw_generate_custom_pages($site,$root); }
