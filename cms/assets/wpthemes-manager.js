@@ -175,11 +175,19 @@
   function czEditorSec(){return {id:'_editor',title:'Website-Editor',description:'',html:'<div class="hint">Dieses Theme gestaltet Kopfzeile, Fußzeile und Vorlagen mit dem Website-Editor.</div>'+(cz.active?'<button class="btn-g" type="button" data-czedit="1"><i class="fas fa-pen-ruler"></i> Website-Editor öffnen</button>':'<div class="hint">Der Website-Editor steht zur Verfügung, sobald das Theme aktiv ist.</div>'),controls:[]}}
   function czOpenMatch(re){var l=czAllSections(),m=l.filter(function(x){return re.test(x.title)})[0]||l[0];if(m){cz.sec=m.id;czDraw()}}
   function czAllSections(){var l=cz.sections.slice();if(cz.block)l.splice(Math.min(1,l.length),0,czEditorSec());return l}
+  /* Seitenstruktur: die Vorschau (preview-bridge.js) liest die Seite des aktiven Themes und meldet ihre Bereiche; Klick scrollt dorthin und markiert sie. */
+  function czStructHtml(){
+    var n=(cz&&cz.struct)||[];if(!n.length)return '<div class="hint cz-note" style="margin-top:12px">Die Seitenstruktur erscheint, sobald die Vorschau geladen ist.</div>';
+    return '<div class="cz-struct" style="margin-top:14px"><b>Seitenstruktur</b><div class="hint">Bereiche der Seite – anklicken, um dorthin zu springen.</div>'+n.slice(0,80).map(function(x,i){
+      return '<button type="button" class="btn-g cz-st" data-czst="'+i+'" style="display:block;width:100%;text-align:left;margin-top:4px;padding-left:'+(8+Math.min(+x.d||0,4)*14)+'px"><span>'+esc(x.l||x.s)+'</span></button>'}).join('')+'</div>';
+  }
+  function czBridge(msg){var f=$('themeCustomizerFrame');if(f&&f.contentWindow&&cz&&cz.stoken){msg.ep=1;msg.token=cz.stoken;try{f.contentWindow.postMessage(msg,location.origin)}catch(x){}}}
   function czDraw(){
     var box=$('themeCustomizerControls'),list=czAllSections(),sec=cz.sec?list.filter(function(x){return x.id===cz.sec})[0]:null,h='';
     if(!sec){
       cz.sec='';
       h='<div class="cz-list">'+list.map(function(x){return '<button type="button" data-czsec="'+esc(x.id)+'"><span>'+esc(x.title)+'</span><i class="fas fa-chevron-right"></i></button>'}).join('')+'</div>';
+      h+=czStructHtml();
       if(cz.unsupported)h+='<div class="hint cz-note" style="margin-top:12px">'+(cz.unsupported===1?'Eine weitere Einstellung dieses Themes lässt':cz.unsupported+' weitere Einstellungen dieses Themes lassen')+' sich hier nicht bearbeiten.</div>';
     }else h='<button type="button" class="cz-back" data-czback="1"><i class="fas fa-chevron-left"></i><span><small>Du passt gerade an</small><b>'+esc(sec.title)+'</b></span></button><div class="cz-pane">'+(sec.description?'<div class="hint">'+esc(sec.description)+'</div>':'')+(sec.html||sec.controls.map(czCtl).join(''))+'</div>';
     box.innerHTML=h;box.scrollTop=0;
@@ -220,6 +228,7 @@
   }
   function czOnClick(e){
     var t=e.target.closest?e.target:null;
+    var st=cz&&t&&t.closest('[data-czst]');if(st){var nd=(cz.struct||[])[+st.getAttribute('data-czst')];if(nd)czBridge({type:'select',id:nd.s,sel:nd.s,scroll:true});return}
     var sc=cz&&t&&t.closest('[data-czsec]');if(sc){cz.sec=sc.getAttribute('data-czsec');czDraw();return}
     if(cz&&t&&t.closest('[data-czback]')){cz.sec='';czDraw();return}
     var go=cz&&t&&t.closest('[data-czgo]');
@@ -251,6 +260,12 @@
     cz.rendered[id]=to;
   }
   window.addEventListener('message',function(e){
+    var fr=cz&&$('themeCustomizerFrame');
+    if(fr&&e.origin===location.origin&&e.source===fr.contentWindow&&e.data&&e.data.ep===1){
+      var m=e.data;if(!cz.stoken)cz.stoken=Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)),function(b){return ('0'+b.toString(16)).slice(-2)}).join('');
+      if(m.type==='hello'){czBridge({type:'init',edit:false,regions:[],labels:{}});return}
+      if(m.type==='structure'&&m.token===cz.stoken&&Array.isArray(m.nodes)){cz.struct=m.nodes.slice(0,200);if(!cz.sec)czDraw();return}
+    }
     var d=e.data,a=cz&&d&&d.type==='rrw-wpc-ack'?cz.acks[d.id]:null;if(e.origin!==location.origin||!a)return;
     clearTimeout(a.t);delete cz.acks[d.id];
     if(!d.count){cz.rendered[a.id]=a.from;cz.pending=true;czSchedule()}
