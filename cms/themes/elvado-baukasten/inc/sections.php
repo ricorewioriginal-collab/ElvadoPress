@@ -88,20 +88,32 @@ function elvado_bk_section(array $s,int $n=0): void {
         echo '<div class="bk-spacer" data-bk="'.esc_attr((string)($s['id']??$n)).'" style="height:'.(int)$p['height'].'px" aria-hidden="true"></div>';return;
     }
 }
+/** Fügt einem Abschnitt die Klassen für „auf diesem Gerät ausblenden“ hinzu und sammelt die CSS-Regeln geräteabhängiger Werte. */
+function elvado_bk_decorate(string $html,array $s,&$css): string {
+    $cls=\Elvado\Components\Layout::hideClasses($s);
+    if($cls)$html=preg_replace('/class="/','class="'.implode(' ',$cls).' ',$html,1);
+    $c=elvado_bk_registry()->get((string)($s['type']??''));
+    if($c)$css.=(new \Elvado\Components\Renderer(elvado_bk_registry()))->css($c,$s,'data-bk');
+    return $html;
+}
 function elvado_bk_render_front(): void {
-    $i=0;$grid=false;
+    $i=0;$grid=false;$extra=false;$extraCss='';
     // Seitenleiste auf der Startseite (Customizer „Seitenleiste auch auf der Startseite“): führende Hero-Abschnitte laufen über die ganze Breite,
     // alle weiteren Abschnitte stehen in der linken/rechten Spalte neben den Widgets der Seitenleiste.
     $withSide=!empty(elvado_bk_mod('home_sidebar'))&&is_active_sidebar('sidebar-1');$lead=true;
     foreach(elvado_bk_active_layout() as $s){
-        if(!empty($s['hidden']))continue;
+        if(!empty($s['hidden'])||!\Elvado\Components\Layout::visible($s,['member'=>is_user_logged_in()]))continue;   // ausgeblendet, außerhalb des Zeitfensters oder nicht für diese Zielgruppe
         if($withSide&&!$grid&&!($lead&&($s['type']??'')==='hero')){ $grid=true;$lead=false;echo '<div class="bk-wrap bk-home-grid"><div class="bk-home-main">'; }
-        do_action('elvado_bk_before_section',$s);elvado_bk_section($s,$i++);do_action('elvado_bk_after_section',$s);   // Haken für Plugins
+        do_action('elvado_bk_before_section',$s);
+        if(isset($s['visibility'])||isset($s['responsive'])){ ob_start();elvado_bk_section($s,$i++);echo elvado_bk_decorate((string)ob_get_clean(),$s,$extraCss);$extra=true; }   // Geräte-Sichtbarkeit und geräteabhängige Werte (nur wenn gesetzt)
+        else elvado_bk_section($s,$i++);
+        do_action('elvado_bk_after_section',$s);   // Haken für Plugins
     }
     if($withSide){
         if(!$grid)echo '<div class="bk-wrap bk-home-grid"><div class="bk-home-main">';
         echo '</div>';get_sidebar();echo '</div>';
     }
+    if($extra)echo '<style id="bk-responsive">'.\Elvado\Components\Renderer::baseCss().$extraCss.'</style>';
     do_action('elvado_bk_after_sections');
 }
 function elvado_bk_is_builder_page(): bool { if(!is_front_page()||is_paged())return false;foreach(elvado_bk_active_layout() as $s)if(empty($s['hidden']))return true;return false; }

@@ -79,3 +79,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 5: Plugins und Themes (echt) + Absturzschutz
 `ExtensionSource/Installer/Service`, `WordPressExtensionAdapter`, Wächter/Probelauf/abgesicherter Modus in `Engine`/`Bridge`, `cms/src/Wp/mu/elvado-engine.php`, API `ext_*`, Panel „Plugins & Themes (Engine)“ (`wp-extensions.js`). Test `scripts/test-wp-engine-extensions.php`. Bisherige Plugin-/Theme-Panels (Nachbildung) unverändert bis zur Migration.
+
+## Phase 6: Komponenten-Registry
+`cms/src/Components/` (Registry, Component, Sanitizer, Layout, Renderer, CoreComponents, LayoutStore), `cms/lib/components.php`, `cms/components-api.php`; Baukasten-Theme nutzt die Registry für sein Schema + Sichtbarkeit/Responsive; Live Builder mit Katalog-Gruppen und Reiter Sichtbarkeit. Doku `cms/docs/COMPONENTS.md`. Tests `scripts/test-components.php`, `test-baukasten.php`. Produktspezifische Komponenten (Partner, Social Wall, Sender) nur über Erweiterungen/Paket.

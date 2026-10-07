@@ -1,6 +1,6 @@
 # Live Builder (Website → Live Builder)
 
-Drei Spalten: **Seitenstruktur** (Bereiche der Startseite, Drag & Drop, ein-/ausblenden, duplizieren, löschen), **Einstellungen** des gewählten Bereichs (Reiter Inhalt/Design, Felder aus dem Schema des Themes) und **Live-Vorschau** (Desktop/Tablet/Mobil). Auf schmalen Fenstern schaltet die Leiste oben zwischen den Spalten um.
+Drei Spalten: **Seitenstruktur** (Bereiche der Startseite, Drag & Drop, ein-/ausblenden, duplizieren, löschen), **Einstellungen** des gewählten Bereichs (Reiter Inhalt, Design mit Tablet-/Mobil-Werten und Sichtbarkeit; Schema und Gruppen aus der Komponenten-Registry, siehe `COMPONENTS.md`) und **Live-Vorschau** (Desktop/Tablet/Mobil). Auf schmalen Fenstern schaltet die Leiste oben zwischen den Spalten um.
 
 ## Entwurf und Veröffentlichen
 - Jede Änderung wird nach kurzer Pause als **Entwurf** gespeichert (`wp_bk_draft`, Option `elvado_bk_layout_draft`).

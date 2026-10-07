@@ -104,5 +104,20 @@ $GLOBALS['rrw_wp_preview_theme']='anderes-theme';
 t('Vorschau eines anderen Themes zeigt den Entwurf nicht',elvado_bk_active_layout()[0]['props']['title']==='Öffentlich');
 unset($GLOBALS['rrw_wp_preview_theme']);
 elvado_bk_discard_draft();t('Verwerfen entfernt den Entwurf',elvado_bk_draft_layout()===null);
+// Komponenten-Registry: Schema kommt von dort; Sichtbarkeit je Gerät, Zeitfenster, Zielgruppe und geräteabhängige Werte (nur wenn gesetzt – sonst bleibt die Ausgabe unverändert)
+$plain=elvado_bk_clean_layout([['id'=>'p1','type'=>'text','props'=>['title'=>'Plain','body'=>'x']]]);
+t('Ohne Sichtbarkeit/Responsive keine neuen Schlüssel und kein Zusatz-CSS',!isset($plain[0]['visibility'])&&!isset($plain[0]['responsive']));
+update_option('elvado_bk_layout',$plain);$h0=page('/')['body'];t('Ohne Zusätze kein bk-responsive-Block',!str_contains($h0,'bk-responsive')&&!str_contains($h0,'ep-hide-'));
+$vis=elvado_bk_clean_layout([['id'=>'v1','type'=>'text','props'=>['title'=>'Nur Desktop','body'=>'x'],'visibility'=>['devices'=>['desktop']]],
+  ['id'=>'v2','type'=>'hero','props'=>['title'=>'Hero','height'=>400],'responsive'=>['mobile'=>['height'=>150],'tablet'=>['height'=>250]]],
+  ['id'=>'v3','type'=>'text','props'=>['title'=>'Zukunft','body'=>'x'],'visibility'=>['from'=>'2999-01-01 00:00']],
+  ['id'=>'v4','type'=>'text','props'=>['title'=>'Nur Mitglieder','body'=>'x'],'visibility'=>['audience'=>'members']],
+  ['id'=>'v5','type'=>'text','props'=>['title'=>'Nirgends','body'=>'x'],'visibility'=>['devices'=>[]]]]);
+t('Sichtbarkeit und Responsive werden gespeichert',($vis[0]['visibility']['devices']??null)===['desktop']&&($vis[1]['responsive']['mobile']['height']??0)===150&&isset($vis[2]['visibility']));
+update_option('elvado_bk_layout',$vis);$hv=page('/')['body'];
+t('Nur Desktop: Klassen für Tablet und Mobil',preg_match('/<section class="ep-hide-tablet ep-hide-mobile bk-section[^"]*" id="bk-v1"/',$hv)===1);
+t('Geräte-CSS und geräteabhängige Hero-Höhe',str_contains($hv,'<style id="bk-responsive">')&&str_contains($hv,'.ep-hide-mobile{display:none!important}')&&str_contains($hv,'[data-bk="v2"]{min-height:400px;}')&&str_contains($hv,'@media (max-width:640px){[data-bk="v2"]{min-height:150px;}}')&&str_contains($hv,'@media (max-width:1024px){[data-bk="v2"]{min-height:250px;}}'));
+t('Zeitfenster, Zielgruppe und „kein Gerät“ blenden aus',!str_contains($hv,'Zukunft')&&!str_contains($hv,'Nur Mitglieder')&&!str_contains($hv,'Nirgends'));
+t('Das Schema des Themes kommt aus der Registry',elvado_bk_schema()===elvado_bk_registry()->legacySchema(ELVADO_BK_TYPES)&&array_keys(elvado_bk_schema())===['hero','text','features','image_text','posts','cta','html','spacer']);
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

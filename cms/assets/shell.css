@@ -99,3 +99,10 @@ body.cms-folded .cms-brand>div{display:none}
   .lb-grid[data-lbview="settings"]{grid-template-columns:0 minmax(0,1fr) 0}
   .lb-grid[data-lbview="settings"] .lb-structure,.lb-grid[data-lbview="settings"] .lb-preview{display:none}
 }
+
+/* Live Builder: Komponenten-Gruppen, geräteabhängige Werte, Sichtbarkeit */
+.lb-pgroup{margin:10px 2px 2px;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.lb-resp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.lb-resp label{display:block;font-size:.7rem;color:var(--muted);margin:0}
+.lb-resp label span{display:block;margin-bottom:2px}
+.lb-devs{display:grid;gap:6px}

@@ -4,7 +4,14 @@
 (function(){
   'use strict';
   var layout=[],schema={},sel=null,tab='content',active=false,hasDraft=false,dirty=false,loaded=false,dragId=null,timer=null,saving=false,pending=false,previewUrl='';
-  var DESIGN={bg:1,align:1,overlay:1,height:1,columns:1,reverse:1};
+  var cat={},catCats={};   // Komponenten-Katalog (components-api.php): Kategorie, Beschreibung, Feldgruppen, geräteabhängige Felder
+  function fdef(type,k){var c=cat[type];if(!c)return null;for(var i=0;i<c.fields.length;i++)if(c.fields[i].k===k)return c.fields[i];return null}
+  function grp(type,k){var f=fdef(type,k);return f?f.group:'content'}
+  async function loadCatalog(){
+    try{var tk=sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+      var r=await fetch('/cms/components-api.php?action=components_catalog',{headers:{'X-AnMaCha-Token':tk}}),d=await r.json();
+      if(d.status==='ok'){cat={};(d.components||[]).forEach(function(c){cat[c.id]=c});catCats=d.categories||{}}}catch(e){}
+  }
   function $(id){return document.getElementById(id)}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function uid(){return 's'+Math.random().toString(36).slice(2,10)}
@@ -42,18 +49,41 @@
       h+='<div class="lb-items">'+it.map(function(x,i){return '<div class="lb-card"><input class="fc" placeholder="Titel" maxlength="120" value="'+esc(x.title)+'" data-k="'+f.k+'" data-i="'+i+'" data-f="title">'
         +'<textarea class="fc" rows="2" placeholder="Text" maxlength="400" data-k="'+f.k+'" data-i="'+i+'" data-f="text">'+esc(x.text)+'</textarea><button type="button" class="btn-g" data-itemdel="'+f.k+'|'+i+'" aria-label="Karte löschen"><i class="fas fa-trash"></i></button></div>'}).join('')
         +(it.length<(f.max||6)?'<button type="button" class="btn-g" data-itemadd="'+f.k+'"><i class="fas fa-plus"></i> Karte</button>':'')+'</div>';}
+    var cdef=fdef(s.type,f.k);
+    if(cdef&&cdef.responsive&&(f.type==='number'||f.type==='select'||f.type==='checkbox')&&tab==='design'){
+      var rv=s.responsive||{};
+      h+='<div class="lb-resp">'+['tablet','mobile'].map(function(d){var cur=(rv[d]||{})[f.k];
+        var inp=f.type==='select'?'<select class="fc" data-k="'+f.k+'" data-dev="'+d+'"><option value="">erbt</option>'+Object.keys(f.options).map(function(o){return '<option value="'+esc(o)+'"'+(cur!==undefined&&String(cur)===o?' selected':'')+'>'+esc(f.options[o])+'</option>'}).join('')+'</select>'
+          :'<input class="fc" type="number" min="'+f.min+'" max="'+f.max+'" placeholder="erbt" value="'+(cur===undefined?'':esc(cur))+'" data-k="'+f.k+'" data-dev="'+d+'">';
+        return '<label><span>'+(d==='tablet'?'Tablet':'Mobil')+'</span>'+inp+'</label>'}).join('')+'</div>';
+    }
     return h+'</div>';
+  }
+  function visPanel(s){
+    var v=Object.assign({devices:['desktop','tablet','mobile'],audience:'all',from:'',until:''},s.visibility||{});
+    var dv={desktop:'Desktop',tablet:'Tablet',mobile:'Mobil'};
+    var h='<div class="lb-field"><label>Auf diesen Geräten zeigen</label><div class="lb-devs">'+Object.keys(dv).map(function(k){return '<label class="lb-sw"><input class="switch" type="checkbox" data-vis="dev" data-v="'+k+'"'+(v.devices.indexOf(k)>=0?' checked':'')+'><span>'+dv[k]+'</span></label>'}).join('')+'</div></div>';
+    h+='<div class="lb-field"><label for="lbvAud">Wer sieht den Bereich?</label><select class="fc" id="lbvAud" data-vis="audience"><option value="all"'+(v.audience==='all'?' selected':'')+'>Alle</option><option value="guests"'+(v.audience==='guests'?' selected':'')+'>Nur Besucher (nicht angemeldet)</option><option value="members"'+(v.audience==='members'?' selected':'')+'>Nur Angemeldete</option></select></div>';
+    h+='<div class="lb-field"><label for="lbvFrom">Sichtbar ab</label><input class="fc" type="datetime-local" id="lbvFrom" data-vis="from" value="'+esc((v.from||'').replace(' ','T'))+'"></div>';
+    h+='<div class="lb-field"><label for="lbvUntil">Sichtbar bis</label><input class="fc" type="datetime-local" id="lbvUntil" data-vis="until" value="'+esc((v.until||'').replace(' ','T'))+'"></div>';
+    return h+'<p class="hint">Ohne Angaben ist der Bereich immer sichtbar. Geräteabhängige Werte (Höhe, Spalten) stehen im Reiter „Design“.</p>';
   }
   function drawFields(){
     var h=$('lbFields'),t=$('lbSetTitle'),i=sel?find(sel):-1;if(!h)return;
     if(i<0){t.textContent='Bereich bearbeiten';h.innerHTML='<div class="hint" style="padding:12px">Wähle links einen Bereich, um ihn zu bearbeiten.</div>';return}
     var s=layout[i],sc=schema[s.type]||{label:s.type,fields:[]};t.textContent=sc.label+' bearbeiten';
-    var fs=(sc.fields||[]).filter(function(f){return tab==='design'?DESIGN[f.k]:!DESIGN[f.k]});
+    if(tab==='visibility'){h.innerHTML=visPanel(s);return}
+    var fs=(sc.fields||[]).filter(function(f){return tab==='design'?grp(s.type,f.k)==='design':grp(s.type,f.k)!=='design'});
     if(!fs.length&&tab==='design'){h.innerHTML='<div class="hint" style="padding:12px">Für diesen Bereich gibt es keine Design-Einstellungen.</div>';return}
     h.innerHTML=fs.map(function(f){return field(s,f)}).join('');
   }
   function draw(){drawList();drawFields()}
-  function palette(){var p=$('lbPalette');p.innerHTML=Object.keys(schema).map(function(t){return '<button type="button" data-add="'+t+'"><i class="fas '+schema[t].icon+'"></i> '+esc(schema[t].label)+'</button>'}).join('')}
+  function palette(){
+    var p=$('lbPalette'),groups={},order=[];
+    Object.keys(schema).forEach(function(t){var c=(cat[t]||{}).category||'content';if(!groups[c]){groups[c]=[];order.push(c)}groups[c].push(t)});
+    var keys=Object.keys(catCats).filter(function(k){return groups[k]}).concat(order.filter(function(k){return !catCats[k]}));
+    p.innerHTML=keys.map(function(c){return '<div class="lb-pgroup">'+esc(catCats[c]||c)+'</div>'+groups[c].map(function(t){return '<button type="button" data-add="'+t+'" title="'+esc((cat[t]||{}).description||'')+'"><i class="fas '+schema[t].icon+'"></i> '+esc(schema[t].label)+'</button>'}).join('')}).join('');
+  }
   function togglePalette(show){var p=$('lbPalette');p.hidden=show===undefined?!p.hidden:!show}
   function pop(){document.querySelectorAll('#panel-livebuilder .lb-pop').forEach(function(x){x.hidden=true})}
 
@@ -65,6 +95,7 @@
   function notice(){var n=$('lbNotice');if(active){n.style.display='none';return}n.style.display='';n.innerHTML='Das Theme „ElvadoPress Baukasten“ ist noch nicht aktiv. Du kannst hier bauen und die Vorschau nutzen; zum Veröffentlichen <a href="#" data-activate="1">Theme aktivieren</a>.'}
   async function load(){
     try{
+      if(!Object.keys(cat).length)await loadCatalog();
       var d=await cmsApi('wp_bk_get');schema=d.schema||{};layout=d.layout||[];active=!!d.active;hasDraft=!!d.draft;loaded=true;dirty=false;
       if(!sel||find(sel)<0)sel=layout.length?layout[0].id:null;
       palette();draw();notice();state(hasDraft?'Entwurf geladen (noch nicht veröffentlicht)':'');if(!previewUrl)getPreview();else setFrame();
@@ -122,7 +153,18 @@
     if(ac){e.preventDefault();cmsApi('wp_theme_activate',{slug:'elvado-baukasten'}).then(function(){active=true;notice();state('Theme aktiviert');setFrame()}).catch(function(x){state(x.message,true)});return}
   }
   function onInput(e){
-    var el=e.target;if(!el.dataset||el.dataset.k===undefined||!el.closest('#lbFields'))return;var i=find(sel);if(i<0)return;var s=layout[i],k=el.dataset.k;
+    var el=e.target;
+    if(el.dataset&&el.dataset.vis&&el.closest('#lbFields')){
+      var i0=find(sel);if(i0<0)return;var s0=layout[i0],v=s0.visibility=Object.assign({devices:['desktop','tablet','mobile'],audience:'all',from:'',until:''},s0.visibility||{});
+      if(el.dataset.vis==='dev'){var set=v.devices.filter(function(x){return x!==el.dataset.v});if(el.checked)set.push(el.dataset.v);v.devices=['desktop','tablet','mobile'].filter(function(x){return set.indexOf(x)>=0})}
+      else v[el.dataset.vis]=el.dataset.vis==='audience'?el.value:el.value.replace('T',' ');
+      changed();return;
+    }
+    if(el.dataset&&el.dataset.dev&&el.closest('#lbFields')){
+      var i1=find(sel);if(i1<0)return;var s1=layout[i1];s1.responsive=s1.responsive||{};var r=s1.responsive[el.dataset.dev]=s1.responsive[el.dataset.dev]||{};
+      if(el.value==='')delete r[el.dataset.k];else r[el.dataset.k]=el.type==='number'?parseInt(el.value,10):el.value;
+      if(!Object.keys(r).length)delete s1.responsive[el.dataset.dev];changed();return;
+    }if(!el.dataset||el.dataset.k===undefined||!el.closest('#lbFields'))return;var i=find(sel);if(i<0)return;var s=layout[i],k=el.dataset.k;
     var v=el.type==='checkbox'?el.checked:el.type==='number'?parseInt(el.value||'0',10):el.value;
     if(el.dataset.i!==undefined)s.props[k][+el.dataset.i][el.dataset.f]=v;else s.props[k]=v;
     if(el.type==='checkbox'){var sp=el.parentNode.querySelector('span');if(sp)sp.textContent=v?'An':'Aus'}

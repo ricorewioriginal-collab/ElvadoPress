@@ -30,7 +30,7 @@
       </aside>
       <section class="lb-col lb-settings" aria-label="Einstellungen des Bereichs">
         <div class="lb-h"><b id="lbSetTitle">Bereich bearbeiten</b></div>
-        <div class="lb-tabs" role="tablist"><button type="button" class="on" data-lbtab="content">Inhalt</button><button type="button" data-lbtab="design">Design</button></div>
+        <div class="lb-tabs" role="tablist"><button type="button" class="on" data-lbtab="content">Inhalt</button><button type="button" data-lbtab="design">Design</button><button type="button" data-lbtab="visibility">Sichtbarkeit</button></div>
         <div id="lbFields" class="lb-fields"></div>
       </section>
       <section class="lb-col lb-preview" aria-label="Live-Vorschau">

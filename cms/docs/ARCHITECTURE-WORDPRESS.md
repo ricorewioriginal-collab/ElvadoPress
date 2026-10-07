@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 5 (Plugins und Themes, Absturzschutz). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Stand Phase 6 (Komponenten-Registry). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
 
 ## Schichten
 ```
@@ -30,7 +30,7 @@ Core wird bei der Installation von wordpress.org geladen: Version von uns gebild
 Zuerst MySQL/MariaDB (SQLite später). Bestehende WordPress-Tabellen mit gleichem Präfix werden erkannt und nicht überschrieben (Meldung „leere Datenbank nötig“).
 
 ## Phasen
-1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt, dieser Stand)** · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
+1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt)** · **6 Komponenten-Register (dieser Stand)** · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
 Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scripts/test-wp-engine.php`.
 
 ## Phase 3: Inhalte über Dienst und Adapter
@@ -56,3 +56,6 @@ Tests: `scripts/test-wp-engine-media-users.php` (46 Prüfungen ohne Netz, mit `W
 - **API** (`ext_list|search|install|upload|activate|deactivate|delete|safe`, nur Administratoren) und Oberfläche **Plugins → Plugins & Themes (Engine)**.
 Tests: `scripts/test-wp-engine-extensions.php` (57 Prüfungen ohne Netz, mit `WPE_TEST_ZIP`/`WPE_TEST_DB` 21 weitere gegen echtes WordPress inkl. provozierter Abstürze und abgesichertem Modus).
 - Noch offen: Auslieferung der Website über das aktive WordPress-Theme (Phase 7/9); die bisherigen Plugin-/Theme-Panels der Nachbildung bleiben bis zur Migration unverändert.
+
+## Phase 6: Komponenten-Registry
+Siehe `COMPONENTS.md`. Kurz: zentrale Registry (`cms/src/Components/`) mit Schema, Regeln (locked/sortable/droppable/repeatable/slot), Rechten, Sichtbarkeit, responsiven Werten, nativer Darstellung und Erweiterungen (Hook `components_register`); `LayoutStore` mit Entwurf, Veröffentlichen, Revisionen, Rollback, Terminplanung; API `cms/components-api.php`. Das Baukasten-Theme bezieht sein Schema aus der Registry, sein Frontend bleibt unverändert. Noch offen: Preview-Bridge mit Klick-auf-Element (Phase 7), Anbindung von Header/Footer/Navigation der bestehenden Frontends, Migration.

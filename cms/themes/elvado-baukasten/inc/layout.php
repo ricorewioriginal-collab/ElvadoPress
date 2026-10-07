@@ -3,28 +3,14 @@
    Wird vom Theme und von der CMS-Verwaltung (cms/api.php, Aktionen wp_bk_*) gemeinsam genutzt. */
 if(!defined('ABSPATH'))exit;
 
-function elvado_bk_schema(): array {
-    $bg=['k'=>'bg','label'=>'Hintergrund','type'=>'select','options'=>['default'=>'Standard','alt'=>'Fläche (Karte)','accent'=>'Akzentfarbe','dark'=>'Dunkel'],'default'=>'default'];
-    $al=['k'=>'align','label'=>'Ausrichtung','type'=>'select','options'=>['left'=>'Links','center'=>'Zentriert'],'default'=>'left'];
-    return [
-        'hero'=>['label'=>'Hero (Kopfbild)','icon'=>'fa-image','fields'=>[
-            ['k'=>'title','label'=>'Überschrift (leer = Website-Titel)','type'=>'text'],['k'=>'text','label'=>'Text (leer = Untertitel)','type'=>'textarea'],
-            ['k'=>'image','label'=>'Hintergrundbild','type'=>'image'],['k'=>'image_alt','label'=>'Bildbeschreibung (Alt-Text, leer = dekorativ)','type'=>'text'],['k'=>'overlay','label'=>'Bild abdunkeln','type'=>'checkbox','default'=>true],
-            ['k'=>'btn_label','label'=>'Button-Text','type'=>'text','default'=>'Mehr erfahren'],['k'=>'btn_url','label'=>'Button-Ziel','type'=>'url'],
-            ['k'=>'height','label'=>'Mindesthöhe (px)','type'=>'number','min'=>0,'max'=>900,'default'=>0]]],
-        'text'=>['label'=>'Textabschnitt','icon'=>'fa-paragraph','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],['k'=>'body','label'=>'Inhalt (HTML erlaubt)','type'=>'textarea'],$al,$bg]],
-        'features'=>['label'=>'Vorteile / Karten','icon'=>'fa-table-cells-large','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],
-            ['k'=>'items','label'=>'Karten','type'=>'items','max'=>6],['k'=>'columns','label'=>'Spalten','type'=>'select','options'=>['0'=>'Automatisch','2'=>'2','3'=>'3','4'=>'4'],'default'=>'0'],$bg]],
-        'image_text'=>['label'=>'Bild + Text','icon'=>'fa-table-columns','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],['k'=>'text','label'=>'Inhalt (HTML erlaubt)','type'=>'textarea'],
-            ['k'=>'image','label'=>'Bild','type'=>'image'],['k'=>'image_alt','label'=>'Bildbeschreibung (Alt-Text, leer = dekorativ)','type'=>'text'],['k'=>'reverse','label'=>'Bild rechts','type'=>'checkbox'],['k'=>'btn_label','label'=>'Button-Text','type'=>'text'],['k'=>'btn_url','label'=>'Button-Ziel','type'=>'url'],$bg]],
-        'posts'=>['label'=>'Neueste Beiträge','icon'=>'fa-newspaper','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text','default'=>'Neueste Beiträge'],
-            ['k'=>'count','label'=>'Anzahl','type'=>'number','min'=>1,'max'=>12,'default'=>3],['k'=>'category','label'=>'Nur Kategorie (Name/Slug, leer = alle)','type'=>'text'],['k'=>'all_label','label'=>'Button „alle Beiträge“','type'=>'text'],$bg]],
-        'cta'=>['label'=>'Aufruf (Call to Action)','icon'=>'fa-bullhorn','fields'=>[['k'=>'title','label'=>'Überschrift','type'=>'text'],['k'=>'text','label'=>'Text','type'=>'text'],
-            ['k'=>'btn_label','label'=>'Button-Text','type'=>'text'],['k'=>'btn_url','label'=>'Button-Ziel','type'=>'url'],['k'=>'bg','label'=>'Hintergrund','type'=>'select','options'=>$bg['options'],'default'=>'accent']]],
-        'html'=>['label'=>'Eigenes HTML / Shortcodes','icon'=>'fa-code','fields'=>[['k'=>'code','label'=>'HTML oder Shortcodes','type'=>'textarea'],$bg]],
-        'spacer'=>['label'=>'Abstand','icon'=>'fa-arrows-up-down','fields'=>[['k'=>'height','label'=>'Höhe (px)','type'=>'number','min'=>0,'max'=>400,'default'=>40]]],
-    ];
+/** Komponenten-Registry (nur die Kern-Komponenten; unabhängig von Erweiterungen). Das Schema der Abschnitte kommt von dort (eine Quelle für Theme und Verwaltung). */
+function elvado_bk_registry(): \Elvado\Components\Registry {
+    static $r=null;
+    if($r===null){ require_once dirname(__DIR__,3).'/src/autoload.php';$r=new \Elvado\Components\Registry();\Elvado\Components\CoreComponents::register($r); }
+    return $r;
 }
+const ELVADO_BK_TYPES=['hero','text','features','image_text','posts','cta','html','spacer'];
+function elvado_bk_schema(): array { return elvado_bk_registry()->legacySchema(ELVADO_BK_TYPES); }
 function elvado_bk_default_props(string $type): array {
     $s=elvado_bk_schema();$o=[];foreach(($s[$type]['fields']??[]) as $f){ $o[$f['k']]=$f['default']??($f['type']==='checkbox'?false:($f['type']==='items'?[]:($f['type']==='number'?0:''))); }
     if($type==='features')$o['items']=[['title'=>'Schnell','text'=>'Kurze Ladezeiten ohne Ballast.'],['title'=>'Flexibel','text'=>'Alles lässt sich anpassen.'],['title'=>'Eigenständig','text'=>'Deine Inhalte, dein Design.']];
@@ -52,7 +38,11 @@ function elvado_bk_clean_layout($raw): array {
     foreach(is_array($raw)?$raw:[] as $s){
         if(!is_array($s)||count($out)>=40)continue;$type=(string)($s['type']??'');if(!isset($schema[$type]))continue;
         $id=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($s['id']??'')));if($id===''||strlen($id)>24||isset($ids[$id]))$id='s'.substr(md5(uniqid('',true).count($out)),0,8);
-        $ids[$id]=1;$out[]=['id'=>$id,'type'=>$type,'hidden'=>!empty($s['hidden']),'props'=>elvado_bk_clean_props($type,$s['props']??[])];
+        $ids[$id]=1;$o=['id'=>$id,'type'=>$type,'hidden'=>!empty($s['hidden']),'props'=>elvado_bk_clean_props($type,$s['props']??[])];
+        $comp=elvado_bk_registry()->get($type);$lay=new \Elvado\Components\Layout(elvado_bk_registry());
+        $vis=\Elvado\Components\Layout::visibility($s['visibility']??[]);if($vis!==\Elvado\Components\Layout::visibility([]))$o['visibility']=$vis;   // nur wenn von der Vorgabe abweichend (bestehende Layouts bleiben unverändert)
+        $resp=$comp?$lay->responsive($comp,$s['responsive']??[]):[];if($resp!==[])$o['responsive']=$resp;
+        $out[]=$o;
     }
     return $out;
 }
