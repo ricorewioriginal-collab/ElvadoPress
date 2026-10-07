@@ -69,5 +69,8 @@ JS;
     $out=trim((string)shell_exec('node '.escapeshellarg($f).' '.escapeshellarg(realpath(__DIR__.'/../cms/lib/alexa-skill/lambda/index.js')).' 2>&1'));
     t('Skill-Backend: Radio-Sendeplan wird umgerechnet',$out==='OK',$out);
 }
+$api=(string)file_get_contents(__DIR__.'/../cms/api.php');$ui=(string)file_get_contents(__DIR__.'/../cms/assets/alexa-manager.js');
+t('Skill-Icon-Upload: Endpunkt vorhanden und nur für Admins',str_contains($api,"alexa_icon_upload") && preg_match("/alexa_icon_upload'\)\{\s*rrw_auth\(true\)/",$api)===1);
+t('Skill-Icon-Upload: Oberfläche ruft den Endpunkt auf',str_contains($ui,'alexa_icon_upload') && str_contains($ui,'uploadIcon'));
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

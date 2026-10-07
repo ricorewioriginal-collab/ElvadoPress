@@ -669,6 +669,23 @@ if($action==='alexa_get'){
     $rdHas=rrw_alexa_neutral()&&(bool)rrw_alexa_radio_load()['stations'];
     rrw_json(['radio'=>['available'=>$rdHas,'sync'=>rrw_alexa_radio_sync($site),'skipped'=>$rdSkipped,'https'=>str_starts_with($origin,'https://')],'status'=>'ok','config'=>rrw_alexa_clean($site['alexa']??[]),'stations'=>$st,'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>rrw_alexa_catalog()['brand']['invocationName'],'neutral'=>rrw_alexa_neutral(),'app_name'=>rrw_alexa_catalog()['brand']['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
 }
+if($action==='alexa_icon_upload'){
+    rrw_auth(true);
+    if(empty($_FILES['file'])||!is_uploaded_file($_FILES['file']['tmp_name']))rrw_json(['status'=>'error','message'=>'Keine Bilddatei empfangen'],400);
+    $f=$_FILES['file'];if(($f['size']??0)<=0||$f['size']>12582912)rrw_json(['status'=>'error','message'=>'Bilddatei ist leer oder zu groß'],400);
+    $mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+    if(!in_array($mime,['image/png','image/jpeg','image/webp'],true))rrw_json(['status'=>'error','message'=>'Bitte PNG, JPG oder WebP hochladen'],400);
+    $info=@getimagesize($f['tmp_name']);if(!$info||($info[0]??0)<108||($info[1]??0)<108)rrw_json(['status'=>'error','message'=>'Das Skill-Icon muss mindestens 108 × 108 Pixel groß sein'],400);
+    if(abs(($info[0]/$info[1])-1)>0.02)rrw_json(['status'=>'error','message'=>'Das Skill-Icon muss quadratisch sein'],400);
+    $dir=$root.'/assets/img/alexa';if(!is_dir($dir)&&!@mkdir($dir,0755,true))rrw_json(['status'=>'error','message'=>'Alexa-Icon-Ordner ist nicht beschreibbar'],500);
+    $written=[];
+    foreach([108,512] as $size){
+        $dest=$dir.'/icon-'.$size.'.png';
+        if(!rrw_resize_image_file($f['tmp_name'],$mime,$size,$dest,94,'png'))rrw_json(['status'=>'error','message'=>'Icon konnte nicht in '.$size.' × '.$size.' erzeugt werden'],500);
+        @chmod($dest,0644);$written[]='/assets/img/alexa/icon-'.$size.'.png';
+    }
+    rrw_json(['status'=>'ok','files'=>$written,'version'=>time()]);
+}
 if($action==='alexa_token_reset'){ rrw_auth(true);rrw_alexa_token($dataDir,true);rrw_json(['status'=>'ok']); }
 if($action==='alexa_stats_clear'){ rrw_auth(true);rrw_alexa_stats_clear($dataDir);rrw_json(['status'=>'ok']); }
 if($action==='alexa_download'){
