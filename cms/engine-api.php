@@ -23,6 +23,14 @@ if (function_exists('rrw_demo_enabled') && rrw_demo_enabled() && $rrwEngineActio
     if (!function_exists('rrw_demo_engine_enabled') || !rrw_demo_engine_enabled()) {
         rrw_json(['status' => 'error', 'message' => 'In der Demo gesperrt: Die WordPress-Engine lässt sich nur in einer eigenen ElvadoPress-Installation einrichten.'], 403);
     }
+    if (in_array($rrwEngineAction, ['ext_install', 'ext_delete'], true)) {   // nur die freigegebenen, bekannten Pakete aus dem WordPress-Verzeichnis
+        $rrwDK = (string)($_GET['kind'] ?? (rrw_body()['kind'] ?? 'plugin'));
+        $rrwDB = rrw_body();
+        $rrwDS = (string)($rrwDB['slug'] ?? $rrwDB['id'] ?? '');
+        if (!rrw_demo_engine_allowed($rrwDK, preg_replace('#/.*$#', '', $rrwDS))) {
+            rrw_json(['status' => 'error', 'message' => 'In der Demo lassen sich nur ausgewählte, bekannte Plugins und Themes aus dem WordPress-Verzeichnis installieren (die Demo teilt sich den Server mit anderen Websites). Eigene ZIP-Dateien und andere Pakete sind gesperrt.', 'demo' => true], 403);
+        }
+    }
     if (in_array($rrwEngineAction, RRW_DEMO_ENGINE_BLOCKED, true)) {
         rrw_json(['status' => 'error', 'message' => in_array($rrwEngineAction, ['ext_install', 'ext_upload', 'ext_delete'], true)
             ? 'In der Demo gesperrt: Plugins und Themes lassen sich nur in einer eigenen ElvadoPress-Installation installieren (die Demo teilt sich den Server mit anderen Websites). Vorinstallierte lassen sich aktivieren.'

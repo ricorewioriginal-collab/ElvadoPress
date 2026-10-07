@@ -109,3 +109,5 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 11b: REST-API, Systemstatus, Update-Center
 `cms/rest.php` (Version 1, siehe `cms/docs/API.md`), `cms/src/Wp/SystemStatus.php` + `rrw_wpe_facts()`, Aktionen `system_status|updates_overview|updates_check` in `engine-api.php`, Panel „Systemstatus & Updates“ (`panel-sysstatus.php`, `sysstatus.js`; Menü System → Systemstatus und „Updates“ mit Zähler), Tests `test-wp-engine-status.php` (22) und `test-wp-engine-api.php` (44; 56 mit echtem WordPress, inkl. REST-CRUD).
+
+- Demo: Plugin-/Theme-Installation nur für eine Freigabeliste (`RRW_DEMO_ENGINE_ALLOW`, anpassbar in `demo-engine.json`); ZIP-Upload bleibt gesperrt.
