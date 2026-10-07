@@ -61,6 +61,7 @@
       window.dispatchEvent(new CustomEvent('cms:brand-ready',{detail:{id:brandState.cur}}));
     }).catch(function(){});
   }
+  window.CMS_BRANDS_REFRESH=function(){var w=$('epBrand');if(w)w.remove();brandInit()};   /* nach Anlegen/Ändern von Marken: Umschalter neu aufbauen */
   function themeIcon(){
     var b=$('cmsThemeBtn');if(!b)return;var m=document.documentElement.getAttribute('data-admin-theme')||'neon',i=b.querySelector('i');if(i)i.className='fas '+(m==='light'?'fa-sun':'fa-moon');
   }

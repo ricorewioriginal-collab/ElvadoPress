@@ -33,6 +33,11 @@
         <div id="lbList" class="lb-list"></div>
         <button type="button" class="lb-add" id="lbAdd"><i class="fas fa-plus"></i> Bereich hinzufügen</button>
         <div id="lbPalette" class="lb-palette" hidden></div>
+        <div id="lbDet" class="lb-det" hidden>
+          <div class="lb-h" style="margin-top:12px"><b>Erkannte Seitenstruktur</b><span class="lb-detn" id="lbDetN"></span><button type="button" class="lb-ic" id="lbDetScan" aria-label="Seite neu einlesen" title="Seite neu einlesen"><i class="fas fa-rotate"></i></button></div>
+          <div class="hint lb-dethint" id="lbDetHint"></div>
+          <div id="lbDetList" class="lb-detlist" role="list"></div>
+        </div>
       </aside>
       <section class="lb-col lb-settings" aria-label="Einstellungen des Bereichs">
         <div class="lb-h"><b id="lbSetTitle">Bereich bearbeiten</b></div>

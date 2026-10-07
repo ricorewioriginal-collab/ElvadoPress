@@ -299,3 +299,12 @@ html[data-admin-theme="light"] .ep-user-pop,html[data-admin-theme="light"] .ep-u
 @media(max-width:900px){.ep-brand-btn b,.ep-brand-ch{display:none}.ep-brand-btn{padding:0 10px}}
 html[data-admin-theme="light"] .ep-brand-btn{color:#f0f0f1;border-color:rgba(255,255,255,.28)}
 html[data-admin-theme="light"] .ep-brand-menu,html[data-admin-theme="light"] .ep-brand-menu button{--text:#1d2327;--border:#dcdcde}
+/* Erkannte Seitenstruktur im Live Builder */
+.lb-det{margin-top:6px}.lb-detn{margin-left:auto;font-size:.72rem;color:var(--dim);font-weight:600}.lb-dethint{margin:2px 2px 8px;font-size:.74rem;line-height:1.35}
+.lb-detlist{display:flex;flex-direction:column;gap:3px;max-height:340px;overflow:auto;padding-right:2px}
+.lb-detrow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;border:1px solid transparent;background:rgba(255,255,255,.03);cursor:pointer;font-size:.8rem}
+.lb-detrow:hover,.lb-detrow:focus-visible{border-color:var(--accent);outline:none}.lb-detrow.on{background:rgba(47,140,255,.18);border-color:var(--accent)}
+.lb-detname{display:flex;flex-direction:column;min-width:0;flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb-detname small{font-weight:400;color:var(--dim);font-size:.7rem;overflow:hidden;text-overflow:ellipsis}
+.lb-detbtn{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:3px 10px;font:inherit;font-size:.72rem;cursor:pointer;white-space:nowrap}.lb-detbtn:hover{border-color:var(--accent);color:var(--accent)}
+.lb-detok{color:#34d399;font-size:.8rem}
+html[data-admin-theme="light"] .lb-detrow{background:rgba(0,0,0,.03)}

@@ -75,8 +75,15 @@ final class Renderer
         $out = '';
         foreach ($layout as $inst) {
             $c = is_array($inst) ? $this->registry->get((string)($inst['type'] ?? '')) : null;
-            if ($c && $c->bind !== '') {
-                $sel = 'html body ' . $c->bind;   // etwas mehr Gewicht als die Regeln der Website (Themes setzen oft #bereich{…!important})
+            $bind = $c ? $c->bind : '';
+            if ($bind === Component::BIND_ANY) {   // vom Live Builder erkannter Bereich: Selektor der Instanz, streng geprüft
+                $bind = Component::validSelector((string)($inst['props']['selector'] ?? '')) ? (string)$inst['props']['selector'] : '';
+                if ($bind === '') {
+                    $bind = null;
+                }
+            }
+            if ($c && $bind !== null && $bind !== '') {
+                $sel = 'html body ' . $bind;   // etwas mehr Gewicht als die Regeln der Website (Themes setzen oft #bereich{…!important})
                 $v = Layout::visibility($inst['visibility'] ?? []);
                 if (!empty($inst['hidden']) || !empty($inst['missing']) || $v['devices'] === []) {
                     $out .= $sel . '{display:none!important}';
