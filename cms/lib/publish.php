@@ -636,15 +636,14 @@ function rrw_ensure_site_defaults(array $site): array {
     $GLOBALS['RRW_SITE']=$site;
     if(function_exists('rrw_alexa_clean'))$site['alexa']=rrw_alexa_clean($site['alexa']??[]);
     if(!rrw_pack_available()){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';$site['services']=rrw_services_clean(is_array($site['services']??null)?$site['services']:[]); }   // eigene Dienste (eigenständiges CMS)
+    $menusExisted=is_array($site['menus']['top']??null)||is_array($site['menus']['bottom']??null);   // gespeichert (auch leer) = vom Betreiber verwaltet
     $site['menus']=is_array($site['menus']??null)?$site['menus']:[];
     $site['menus']['top']=is_array($site['menus']['top']??null)?$site['menus']['top']:[];
     $site['menus']['bottom']=is_array($site['menus']['bottom']??null)?$site['menus']['bottom']:[];
-    // Favoriten-Menüpunkt (nur mit Paket): einmalig anlegen, solange das Menü noch leer ist – danach frei ausblendbar und löschbar (die Markierung verhindert ein erneutes Anlegen)
-    $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
-    if($ric&&empty($site['_meta']['favorites_menu_seeded'])){
-        $site['_meta']['favorites_menu_seeded']=true;
-        if(!$site['menus']['top'])$site['menus']['top'][]=['id'=>'m-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
-        if(!$site['menus']['bottom'])$site['menus']['bottom'][]=['id'=>'b-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+    // Favoriten-Menüpunkt (nur mit Paket): nur für eine Website ganz ohne gespeicherte Menüs – sonst frei ausblendbar und löschbar
+    if($ric&&!$menusExisted){
+        $site['menus']['top'][]=['id'=>'m-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
+        $site['menus']['bottom'][]=['id'=>'b-favoriten','label'=>'Favoriten','target'=>'action:favoriten','icon'=>'fa-star','parent_id'=>'','enabled'=>true];
     }
     // Partnerseite einmalig anlegen (danach frei bearbeitbar oder löschbar; die Markierung verhindert ein erneutes Anlegen)
     $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
