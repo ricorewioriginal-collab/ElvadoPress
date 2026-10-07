@@ -50,6 +50,7 @@ t('Mobil-Wert als Media-Query', str_contains($css, '@media (max-width:640px){#ma
 t('Ziel-Teilselektor', str_contains($css, '#sec-start .inner{padding:24px;}'));
 t('Keine data-ep-id im CSS', !str_contains($css, 'data-ep-id'));
 t('Vorgaben erzeugen kein CSS (Seite bleibt unverändert)', $rd->boundCss($lay->clean([['id' => 'b1', 'type' => 'demo_header', 'props' => ['sticky' => true]], ['id' => 'b2', 'type' => 'demo_hero', 'props' => []]], ['admin' => true])) === '');
+t('Fehlende Props im gespeicherten Layout = Vorgabe (kein ungewolltes Ausblenden)', $rd->boundCss([['id' => 'z1', 'type' => 'demo_header', 'props' => []]]) === '' && str_contains($rd->boundCss([['id' => 'z1', 'type' => 'demo_header', 'props' => ['bg' => '#111111']]]), '#main-header{background-color:#111111;}') && !str_contains($rd->boundCss([['id' => 'z1', 'type' => 'demo_header', 'props' => ['bg' => '#111111']]]), 'display:none'));
 $hid = $lay->clean([['id' => 'c1', 'type' => 'demo_header', 'hidden' => true, 'props' => []], ['id' => 'c2', 'type' => 'demo_hero', 'props' => [], 'visibility' => ['devices' => ['desktop']]]], ['admin' => true]);
 $hc = $rd->boundCss($hid);
 t('Ausgeblendet = display:none', str_contains($hc, '#main-header{display:none!important}'));

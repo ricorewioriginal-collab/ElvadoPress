@@ -94,6 +94,7 @@ final class Renderer
                         default => '@media (max-width:' . self::BP_MOBILE . 'px){' . $sel . '{display:none!important}}',
                     };
                 }
+                $inst['props'] = array_merge($c->defaults, (array)($inst['props'] ?? []));   // fehlende Werte (älteres Layout, neues Feld) gelten als Vorgabe
                 $out .= $this->css($c, $inst, 'data-ep-id', $sel);
             }
             if (is_array($inst) && !empty($inst['children'])) {
