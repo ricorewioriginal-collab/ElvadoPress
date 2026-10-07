@@ -375,6 +375,8 @@ function rrw_assistant_intents(string $q,array $stations,bool $dir=false): array
     if($has('sendeplan|programm|sendung|show|wann|heute|morgen|nächste|naechste|uhr|moderat|wochenende|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|wochentag|läuft am|laeuft am'))$i[]='schedule';
     if($has('sender|station|netzwerk|welche|alle|liste|genre|empfiehl|empfehl|favorit'))$i[]='stations';
     if($dir&&$has('sender|radio|station|webradio|verzeichnis|genre|stilrichtung|spiel|hör|such|find|empfiehl|empfehl|zeig|musikrichtung|aus (deutschland|österreich|oesterreich|der schweiz|frankreich|italien|spanien|england|usa|amerika|polen|türkei|tuerkei|brasilien|japan|niederlande)'))$i[]='directory';
+    if($has('\balexa\b|\becho\b|skill|sprachassistent|smart ?speaker|sprachsteuerung'))$i[]='alexa';
+    if($has('\bapps?\b|android|windows|iphone|ipad|\bios\b|\bapk\b|f-?droid|play ?store|app ?store|herunterlad|runterlad|downloaden|installier|smartphone|handy'))$i[]='apps';
     if($has('podcast|folge|episode'))$i[]='podcast';
     if($has('news|neuigkeit|event|veranstaltung|konzert|termin|party|festival|csd|release|neu(e|es) (lied|song|album)'))$i[]='news';
     if($has('anmacha|ricorewi|senderwelt|wer seid|wer bist|über euch|ueber euch|was ist (?:anmacha|ricorewi|senderwelt|laut\.?fm)|laut\.fm|team|impressum|datenschutz|\bapp\b'))$i[]='about';
@@ -422,6 +424,41 @@ function rrw_assistant_directory(array $site,string $q,string $dataDir): array {
 }
 
 // ---------------------------------------------------------------- Kontext + Prompt
+/** Apps und Alexa-Skill aus den Einstellungen des CMS: Text für die KI-Antwort und für die Antwort ohne KI (Aufrufe, Varianten, Beispiele). @return array{apps:string,alexa:string} */
+function rrw_assistant_apps_alexa(array $site,string $origin): array {
+    $out=['apps'=>'','alexa'=>''];$neutral=rrw_assistant_neutral();
+    $brands=rrw_assistant_brands($site);$name=trim((string)($brands[0]['name']??''))?:(trim((string)($site['portal']['site_name']??''))?:'unser Radio');
+    $apps=is_array($site['apps']??null)?$site['apps']:[];$pl=[];
+    if(($apps['android_enabled']??true)!==false)$pl[]='Android (APK zum Herunterladen; alternativ über das F-Droid-Repository)';
+    if(($apps['windows_enabled']??true)!==false)$pl[]='Windows (Installer zum Herunterladen)';
+    $pl[]='iPhone/iPad als Web-App (keine Datei: im Safari „Teilen“ → „Zum Home-Bildschirm“; Erinnerungen ab iOS 16.4)';
+    $out['apps']='APPS von '.$name.': '.implode(' · ',$pl).'. Alle Downloads und Hinweise stehen im Portal auf der Seite „Apps“ ('.rtrim($origin,'/').'/#apps). Die Apps bringen '.($neutral?'die Sender, den Player und Favoriten':'Sender, Player, Favoriten, Sendeplan, Podcast, Community sowie News & Social').' mit; Updates kommen über die App selbst.';
+    $al=is_array($site['alexa']??null)?$site['alexa']:[];
+    if(($al['enabled']??true)!==false&&function_exists('rrw_alexa_model')){
+        try{
+            $GLOBALS['RRW_SITE']=$site;$w=[];$m=rrw_alexa_model($site,$w)['interactionModel']['languageModel']??[];$inv=trim((string)($m['invocationName']??''));
+            if($inv!==''){
+                $types=[];foreach((array)($m['types']??[]) as $t)$types[$t['name']??'']=(array)($t['values']??[]);
+                $names=function(array $vals,int $n,int $syn)use(&$names):array{$o=[];foreach(array_slice($vals,0,$n) as $v){$o[]=(string)($v['name']['value']??'');foreach(array_slice((array)($v['name']['synonyms']??[]),0,$syn) as $x)$o[]=(string)$x;}return array_values(array_filter(array_unique($o)));};
+                $sender=$names($types['SENDER_TYP']??[],6,2);$marken=$names($types['MARKE_TYP']??[],6,5);
+                $s0=$sender[0]??'';$m0=$marken[0]??$name;
+                $samples=[];foreach((array)($m['intents']??[]) as $it)$samples[(string)($it['name']??'')]=(array)($it['samples']??[]);
+                $fill=fn(string $t)=>str_replace(['{sender}','{marke}','{tag}'],[$s0,$m0,'heute'],$t);
+                $pick=function(string $intent,int $n)use($samples,$fill):array{$l=array_values(array_unique(array_map($fill,$samples[$intent]??[])));$c=count($l);if($c<=$n)return $l;$o=[];for($k=0;$k<$n;$k++)$o[]=$l[(int)floor($k*$c/$n)];return $o;};   // gleichmäßig über die Liste verteilt (Varianten statt fünfmal „spiele“)
+                $ex=array_merge($pick('PlayStationIntent',5),$pick('PlayBrandIntent',3));
+                $q=array_merge($pick('NowPlayingIntent',3),$pick('CurrentShowIntent',2),$pick('NextShowIntent',2),$pick('ScheduleIntent',2),$pick('ListStationsIntent',2));
+                $lines=['ALEXA-SKILL von '.$name.': Aufrufname „'.$inv.'“. Aufrufen: „Alexa, öffne '.$inv.'“ · „Alexa, starte '.$inv.'“ · „Alexa, starte den Skill '.$inv.'“ · „Alexa, '.$inv.' öffnen“. Direkt mit Wunsch: „Alexa, öffne '.$inv.' und '.($ex[0]??'spiele '.$s0).'“ · „Alexa, frage '.$inv.' '.($q[0]??'was läuft gerade').'“ · „Alexa, sage '.$inv.' '.($ex[0]??'spiele '.$s0).'“.'];
+                if($ex)$lines[]='Radio hören (nach dem Öffnen oder direkt): '.implode(' · ',array_map(fn($x)=>'„'.$x.'“',$ex)).'.';
+                if($q)$lines[]='Fragen im Skill: '.implode(' · ',array_map(fn($x)=>'„'.$x.'“',$q)).'.';
+                if($sender)$lines[]='Sender, die Alexa versteht (mit Schreib- und Sprechvarianten): '.implode(', ',$sender).'.';
+                if($marken)$lines[]='Marken-/Namensvarianten, die Alexa versteht: '.implode(', ',$marken).'.';
+                $lines[]='Steuerung beim Hören: „Alexa, Pause“, „weiter“, „stopp“, „nächster“. Aktivieren: in der Alexa-App unter „Skills & Spiele“ nach „'.$inv.'“ suchen und aktivieren – oder einfach „Alexa, öffne '.$inv.'“ sagen.';
+                $out['alexa']=implode("\n",$lines);
+            }
+        }catch(\Throwable $e){}
+    }
+    return $out;
+}
 function rrw_assistant_build_context(array $site,array $brand,array $cfg,array $intents,string $station,array $favorites,string $dataDir,string $newsFile,string $origin,array $research=[],string $q=''): array {
     $ctx=[];$cards=[];$f=$cfg['features'];$stations=rrw_assistant_stations($site);
     $networkAsked=(bool)array_intersect($intents,['nowplaying','schedule','stations','podcast','news','about','studiomail','voicemail','howto_station']);
@@ -462,6 +499,12 @@ function rrw_assistant_build_context(array $site,array $brand,array $cfg,array $
         $b=rrw_assistant_brands($site);
         $ctx[]='MARKEN/PORTALE: '.implode(' ; ',array_map(fn($x)=>$x['name'].($x['claim']?' – '.$x['claim']:'').($x['domain']?' ('.$x['domain'].')':''),$b)).(rrw_assistant_neutral()?'.':'. AnMaCha ist das Radio- und Podcast-Netzwerk (anmacha.de), RicoReWi Music & Media das Künstlerradio mit eigenen Acts; alle Sender laufen bei laut.fm.');
     }
+    if(array_intersect($intents,['apps','alexa'])){
+        $aa=rrw_assistant_apps_alexa($site,$origin);
+        if(in_array('apps',$intents,true)&&$aa['apps']!=='')$ctx[]=$aa['apps'];
+        if(in_array('alexa',$intents,true)&&$aa['alexa']!=='')$ctx[]=$aa['alexa'];
+        elseif(in_array('apps',$intents,true)&&$aa['alexa']!=='')$ctx[]='Außerdem gibt es einen Alexa-Skill: '.strtok($aa['alexa'],"\n");
+    }
     if(in_array('directory',$intents,true)&&!empty($brand['directory'])){
         $d=rrw_assistant_directory($site,$q,$dataDir);
         if($d['items']){
@@ -478,7 +521,7 @@ function rrw_assistant_system_prompt(array $cfg,array $brand,string $context): s
     $days=['Monday'=>'Montag','Tuesday'=>'Dienstag','Wednesday'=>'Mittwoch','Thursday'=>'Donnerstag','Friday'=>'Freitag','Saturday'=>'Samstag','Sunday'=>'Sonntag'];
     $p="Du bist \"$name\", der KI-Assistent von $site".($neutral?'':' (RicoReWi × AnMaCha Radionetzwerk, Zweitmarke SenderWelt)').". Jetzt ist ".($days[$now->format('l')]??'').', der '.$now->format('d.m.Y, H:i')." Uhr (Europe/Berlin). Antworte auf Deutsch, locker, freundlich und auf den Punkt (meist höchstens 6 Sätze; bei Witzen, Geschichten, Gedichten oder Erklärungen darfst du länger werden).\n";
     $p.="DU BIST EIN VOLLWERTIGER ALLGEMEINER ASSISTENT: Beantworte jede harmlose Frage mit deinem Weltwissen – Personen, Musiker, Rapper, Schauspieler, Podcaster, Podcasts, Filme, Serien, Spotify, YouTube, TikTok, Technik, Wissenschaft, Geschichte, Sport, Alltag, Kochen, Reisen, Witze, Rätsel, Smalltalk. Sage bei Weltwissen NIEMALS \"steht nicht im Kontext\" oder \"dazu habe ich keine Informationen\", nur weil etwas nicht in unserem Netzwerk vorkommt. Ist der Abschnitt RECHERCHE vorhanden, nutze ihn als aktuelle Quelle (Wetter, Schlagzeilen, Wikipedia, Podcast-Suche) und nenne die Quelle kurz. Bist du bei einer Person oder Sache wirklich unsicher, sag das offen und nenne, was du sicher weißt – verweigere aber nie eine harmlose Frage. Bei Medizin, Recht und Geld gib eine kurze Orientierung und verweise auf Fachleute; bei politischen Themen bleib sachlich und neutral.\n";
-    $p.="NUR für Fragen über UNSER Netzwerk (unsere Sender, den Sendeplan, Shows, deren Moderatoren und Gäste, laufende Titel, ".($neutral?'Podcast-Folgen':'Podcast-Folgen von AnMaCha').", News und Events des Magazins) ist der Abschnitt KONTEXT die einzige Quelle: erfinde dort nichts, nenne nur Sendungen, Personen, Uhrzeiten und Termine, die dort wörtlich stehen, und sag klar, wenn dazu nichts vorliegt.\n";
+    $p.="NUR für Fragen über UNSER Netzwerk (unsere Sender, unsere Apps und den Alexa-Skill, den Sendeplan, Shows, deren Moderatoren und Gäste, laufende Titel, ".($neutral?'Podcast-Folgen':'Podcast-Folgen von AnMaCha').", News und Events des Magazins) ist der Abschnitt KONTEXT die einzige Quelle: erfinde dort nichts, nenne nur Sendungen, Personen, Uhrzeiten und Termine, die dort wörtlich stehen, und sag klar, wenn dazu nichts vorliegt.\n";
     $p.="Regeln: Nenne niemals Hörerzahlen, Reichweiten oder Statistiken. Erkläre nicht, wie man einen eigenen laut.fm-Sender erstellt – verweise dafür auf laut.fm selbst. Möchte jemand dem Studio etwas mitteilen, einen Musikwunsch loswerden oder eine Sprachnachricht senden, erkläre, dass er unten auf „Nachricht ans Studio“ bzw. „Sprachnachricht“ tippen kann (landet bei uns in Studiomail). Uhrzeiten gelten für Europe/Berlin. Keine Markdown-Tabellen; einfache Zeilenumbrüche und höchstens **fett** sind erlaubt.\n";
     if(!empty($brand['directory']))$p.="SENDERWELT-RADIOVERZEICHNIS: SenderWelt ist zusätzlich ein Radioverzeichnis mit Sendern von laut.fm (über 15.000) und radio-browser.info (Weltradio). Besucher können oben „Lieblingssender suchen“, im Tab „World Radio“ stöbern, „Überrasch mich“ nutzen, Fremd-Sender als Favorit speichern oder mit der Flagge melden. Steht im KONTEXT ein Abschnitt VERZEICHNIS-TREFFER, empfiehl NUR Sender daraus (Namen genau so, keine erfundenen Sender, keine Hörerzahlen); unter deiner Antwort erscheinen dazu Buttons zum Hören, weise kurz darauf hin. Fremd-Sender gehören den jeweiligen Betreibern: zu deren Programm, Moderatoren oder Inhalten sagst du, dass du das nicht kennst.\n";
     if($cfg['system_prompt']!=='')$p.=$cfg['system_prompt']."\n";
@@ -696,6 +739,7 @@ function rrw_assistant_offline_reply(array $intents,array $cards,string $label,a
         if($c['type']==='schedule'){$fmt=fn($x)=>$x['name'].' ('.sprintf('%02d:00',$x['start']).'–'.sprintf('%02d:00',$x['end']===0?24:$x['end']).' Uhr)';$parts[]='Sendeplan '.$c['label'].': '.($c['now']?'Jetzt: '.$fmt($c['now']).'. ':'').($c['next']?'Als Nächstes: '.implode(', ',array_map($fmt,$c['next'])).'.':'');}
     }
     foreach($cards as $c)if($c['type']==='stations')$parts[]='Das habe ich im Radioverzeichnis gefunden ('.$c['query'].'): '.implode(', ',array_map(fn($x)=>$x['name'],array_slice($c['items'],0,5))).'. Unten kannst du die Sender direkt anhören.';
+    if(array_intersect($intents,['apps','alexa'])){$aa=rrw_assistant_apps_alexa($site,$origin);if(in_array('apps',$intents,true)&&$aa['apps']!=='')$parts[]=$aa['apps'];if(in_array('alexa',$intents,true)&&$aa['alexa']!=='')$parts[]=$aa['alexa'];}
     if(in_array('howto_station',$intents,true))$parts[]='Wie man einen eigenen laut.fm-Sender anlegt, erklärt laut.fm selbst am besten (laut.fm). '.(rrw_assistant_neutral()?'Ich helfe dir gern zu unseren Sendern: Sendeplan, aktueller Titel oder die neuesten News.':'Ich helfe dir gern zu unseren Sendern im RicoReWi × AnMaCha Netzwerk: Sendeplan, aktueller Titel, Podcast oder eine Nachricht ans Studio.');
     if(in_array('stations',$intents,true))$parts[]='Unsere Sender: '.implode(', ',array_map(fn($id)=>rrw_assistant_station_label($id),rrw_assistant_stations($site))).'. Tipp: Unter „Sender“ im Portal kannst du sie direkt starten.';
     if(!rrw_assistant_neutral()&&in_array('podcast',$intents,true)){$p=rrw_assistant_podcast($origin,$dataDir);$parts[]=$p?$p['title'].': Neueste Folge „'.($p['episodes'][0]['title']??'').'“. Alle Folgen findest du im Portal unter Podcast.':'Den AnMaCha-Podcast findest du im Portal unter Podcast.';}
