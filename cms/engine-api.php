@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // Verwaltungs-API der WordPress-Engine (eigener Einstieg, damit echtes WordPress in einem sauberen globalen Gültigkeitsbereich startet und nicht in den Variablen von api.php).
 // Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_analyze, engine_mode, engine_remove;
-// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report.
+// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report; echte Migration (nur mit Bestätigung, protokolliert, zurückbaubar) migration_run, migration_rollback, migration_runs.
 // Rechte: Administratoren alles; Autoren Inhalte/Medien nur eigene (Dienste prüfen), Seiten, Begriffe, Benutzer und Engine nur Administratoren. Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
 // Die Anmeldeprüfung kommt aus api.php (RRW_API_LIB_ONLY); in der Demo sind alle Aktionen außer engine_status gesperrt.
 define('RRW_API_LIB_ONLY', true);
@@ -407,6 +407,49 @@ if (preg_match('/^(nav|widgets|blocks)_/', $rrwEngineAction) === 1) {
         rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
     }
     rrw_json(['status' => 'error', 'message' => 'Unbekannte Aktion'], 404);
+}
+if (in_array($rrwEngineAction, ['migration_runs', 'migration_run', 'migration_rollback'], true)) {
+    // Echte Migration (nur mit ausdrücklicher Bestätigung): legt Inhalte in WordPress an, verändert die bisherigen Daten nie; jeder Lauf ist protokolliert und zurückbaubar.
+    $rrwRuns = new \Elvado\Wp\Migration\RunStore($rrwEngine->stateDir());
+    if ($rrwEngineAction === 'migration_runs') {
+        $rrwRun = isset($_GET['id']) ? $rrwRuns->load((string)$_GET['id']) : null;
+        rrw_json(['status' => 'ok', 'ids' => $rrwRuns->ids(), 'run' => $rrwRun ?? (($rrwRuns->ids()[0] ?? '') !== '' ? $rrwRuns->load($rrwRuns->ids()[0]) : null)]);
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+    }
+    if ($rrwEngineAction === 'migration_run' && (string)($rrwEngineB['confirm'] ?? '') !== 'MIGRIEREN') {
+        rrw_json(['status' => 'error', 'message' => 'Die Migration startet nur mit ausdrücklicher Bestätigung.'], 400);
+    }
+    if ($rrwEngineAction === 'migration_rollback' && empty($rrwEngineB['confirm'])) {
+        rrw_json(['status' => 'error', 'message' => 'Bitte den Rückbau bestätigen.'], 400);
+    }
+    if (!$rrwEngine->isActive()) {
+        rrw_json(['status' => 'error', 'message' => 'Die WordPress-Engine ist nicht aktiv.'], 409);
+    }
+    $GLOBALS['rrw_wpe_engine'] = $rrwEngine;
+    $GLOBALS['rrw_wpe_db'] = $rrwEngineDb;
+    $GLOBALS['rrw_wpe_opts'] = [];
+    rrw_wpe_guard_output();
+    require __DIR__ . '/wp-engine-boot.php';
+    if (!\Elvado\Wp\Bridge::booted()) {
+        rrw_json(['status' => 'error', 'message' => 'WordPress ließ sich nicht starten.'], 500);
+    }
+    rrw_wpe_after_boot($rrwEngine);
+    @set_time_limit(600);
+    $rrwMig = new \Elvado\Wp\Migration\Migrator(__DIR__, __DIR__ . '/data', $rrwEngine->stateDir(), $rrwActor);
+    try {
+        if ($rrwEngineAction === 'migration_run') {
+            $rrwRun = $rrwMig->run();
+            $rrwEngineLog('Migration ausgeführt: ' . $rrwRun['status'] . ' (Lauf ' . $rrwRun['id'] . ')');
+            rrw_json(['status' => 'ok', 'run' => $rrwRun]);
+        }
+        $rrwN = $rrwMig->rollback((string)($rrwEngineB['run'] ?? ''));
+        $rrwEngineLog('Migration zurückgebaut (Lauf ' . (string)($rrwEngineB['run'] ?? '') . ')');
+        rrw_json(['status' => 'ok', 'removed' => $rrwN, 'run' => $rrwRuns->load((string)($rrwEngineB['run'] ?? ''))]);
+    } catch (\RuntimeException | \InvalidArgumentException $e) {
+        rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
+    }
 }
 if ($rrwEngineAction === 'migration_plan' || $rrwEngineAction === 'migration_report') {
     // Trockenlauf: liest ElvadoPress-Daten und (falls aktiv) WordPress nur lesend; schreibt allein den Bericht in den geschützten Zustandsordner.

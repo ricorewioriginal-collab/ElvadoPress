@@ -223,7 +223,7 @@ final class Planner
         return ['sum' => $sum, 'notes' => $notes, 'bytes' => $bytes];
     }
 
-    private function mediaFile(string $url): ?string
+    public function mediaFile(string $url): ?string
     {
         $path = (string)parse_url($url, PHP_URL_PATH);
         $pos = strpos($path, '/media/');
@@ -281,6 +281,9 @@ final class Planner
                     }
                     if (isset($migrated[$label])) {
                         $sum['skip']++;
+                        continue;
+                    }
+                    if ($it['status'] === 'trash') {   // Papierkorb wird nicht übernommen
                         continue;
                     }
                     if ($title === '') {

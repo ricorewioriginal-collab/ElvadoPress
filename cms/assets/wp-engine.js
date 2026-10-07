@@ -1,7 +1,7 @@
 'use strict';
 // Verwaltung der WordPress-Engine (Systemprüfung, Core einspielen, Datenbank, Betriebsart, Systemanalyse). Spricht cms/engine-api.php an.
 window.WpEngine=(()=>{
- const S={st:null,prep:null,ana:null,mig:null,busy:'',msg:null,form:null};
+ const S={st:null,prep:null,ana:null,mig:null,run:null,busy:'',msg:null,form:null};
  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const tok=()=>{try{return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';}catch(e){return '';}};
  const root=()=>document.getElementById('wpeRoot');
@@ -48,7 +48,20 @@ window.WpEngine=(()=>{
   if((r.blockers||[]).length)h+='<p style="margin-top:8px"><b>Blockierend</b></p>'+li(r.blockers,'#e5484d');
   if((r.warnings||[]).length)h+='<p style="margin-top:8px"><b>Hinweise</b></p>'+li(r.warnings,'inherit');
   h+='<details style="margin-top:8px"><summary>Geplante Schritte der echten Migration ('+esc((r.steps||[]).length)+')</summary><ol style="margin:6px 0 0 18px">'+(r.steps||[]).map(x=>'<li><b>'+esc(x.title)+'</b> – '+esc(x.detail)+'</li>').join('')+'</ol></details>';
+  h+=runCard();
   h+='<details style="margin-top:6px"><summary>Risiken</summary><ul style="margin:6px 0 0 18px">'+(r.risks||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></details>';
+  return h;
+ }
+
+ function runCard(){
+  const r=S.mig,x=S.run;let h='';
+  if(r&&r.verdict!=='blocked')h+='<div style="margin-top:12px;padding:10px;border:1px solid #e0a100;border-radius:8px"><b>Echte Migration</b><p class="hint">Legt Benutzer, Medien, Begriffe, Beiträge, Seiten und Menüs in WordPress an. Vorher wird eine Sicherung erstellt. Deine bisherigen Daten und Medien bleiben unverändert; die Website selbst wird <b>nicht</b> umgeschaltet. Der Lauf ist wiederholbar und lässt sich zurückbauen.</p><button class="btn-a" type="button" onclick="WpEngine.migRun()"'+(S.busy?' disabled':'')+'><i class="fas fa-play"></i> Migration ausführen …</button></div>';
+  if(x){
+   const st={done:'abgeschlossen',partial:'teilweise (Zeitbudget) – erneut starten setzt fort',failed:'abgebrochen'}[x.status]||x.status;
+   h+='<div style="margin-top:10px"><b>Letzter Lauf</b> '+esc(x.id)+': '+esc(st)+(x.rolled_back?' · zurückgebaut':'')+'<ul style="margin:6px 0 0 18px">'+(x.steps||[]).map(t=>'<li>'+esc(t.name)+': '+esc(t.status)+(t.detail&&t.detail.created!==undefined?' ('+esc(t.detail.created)+' neu)':'')+'</li>').join('')+'</ul>'
+    +((x.errors||[]).length?'<p class="danger-note">'+esc(x.errors.join(' · '))+'</p>':'')
+    +(x.rolled_back?'':'<button class="btn-g" type="button" onclick="WpEngine.migRollback(\''+esc(x.id)+'\')"'+(S.busy?' disabled':'')+'><i class="fas fa-rotate-left"></i> Lauf zurückbauen</button>')+'</div>';
+  }
   return h;
  }
  function draw(){
@@ -93,7 +106,7 @@ window.WpEngine=(()=>{
  const val=id=>{const e=document.getElementById('wpe'+id);return e?e.value.trim():'';};
  const dbCfg=()=>({host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')});
  function apply(d){if(d.engine){S.st=d;}}
- async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
+ async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;const q=await api('migration_runs');if(q.status==='ok')S.run=q.run;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
  return {
   load,
   prepare:()=>run('Prüfe wordpress.org',async()=>{const d=await api('engine_prepare');S.prep=d;S.msg=d.latest&&!d.latest.ok?{err:true,text:d.latest.message}:{text:'Aktuelle WordPress-Version: '+d.latest.version+'.'};}),
@@ -103,6 +116,8 @@ window.WpEngine=(()=>{
   mode:m=>run(m==='active'?'Starte WordPress zur Prüfung':'Schalte um',async()=>{const d=await api('engine_mode',{mode:m});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   analyze:()=>run('Starte WordPress und zähle',async()=>{const d=await api('engine_analyze');if(d.status==='ok'){S.ana=d;S.msg={text:'Systemanalyse fertig.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
   migPlan:()=>run('Trockenlauf läuft (es wird nichts geändert)',async()=>{const d=await api('migration_plan',{});if(d.status==='ok'){S.mig=d.report;S.msg={text:'Trockenlauf fertig – es wurde nichts geändert.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
+  migRun:()=>{if(!confirm('Die Migration legt Inhalte in WordPress an (mit Sicherung vorher). Deine bisherigen Daten bleiben unverändert. Fortfahren?'))return;if((prompt('Zur Bestätigung MIGRIEREN eintippen')||'')!=='MIGRIEREN')return;run('Migration läuft (Sicherung, dann Übernahme)',async()=>{const d=await api('migration_run',{confirm:'MIGRIEREN'});if(d.status==='ok'){S.run=d.run;S.msg={err:d.run.status==='failed',text:'Lauf '+d.run.status+'.'};try{const m=await api('migration_plan',{});if(m.status==='ok')S.mig=m.report;}catch(e){}}else S.msg={err:true,text:d.message||'Fehler'};});},
+  migRollback:id=>{if(!confirm('Alles entfernen, was dieser Lauf in WordPress angelegt hat? (Bisherige Daten sind nicht betroffen.)'))return;run('Baue zurück',async()=>{const d=await api('migration_rollback',{run:id,confirm:true});if(d.status==='ok'){S.run=d.run;S.msg={text:'Zurückgebaut: '+JSON.stringify(d.removed)};}else S.msg={err:true,text:d.message||'Fehler'};});},
   migDownload:()=>{if(!S.mig)return;const b=new Blob([JSON.stringify(S.mig,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='migration-trockenlauf.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);},
   remove:()=>{if(!confirm('WordPress-Engine wirklich entfernen? Die Datenbank-Tabellen bleiben erhalten.'))return;run('Entferne die Engine',async()=>{const d=await api('engine_remove',{confirm:true});apply(d);S.ana=null;S.msg={err:d.status!=='ok',text:d.message||''};});}
  };

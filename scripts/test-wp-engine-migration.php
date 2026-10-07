@@ -11,6 +11,7 @@ $fail = 0; $n = 0;
 function t(string $name, bool $ok, string $extra = ''): void { global $fail, $n; $n++; if (!$ok) { $fail++; echo "FEHLER: $name $extra\n"; } }
 function rmrf(string $d): void { if (!is_dir($d)) return; foreach (scandir($d) as $f) { if ($f === '.' || $f === '..') continue; $p = "$d/$f"; is_dir($p) && !is_link($p) ? rmrf($p) : @unlink($p); } @rmdir($d); }
 /** Prüfsumme aller Dateien (Pfad + Inhalt), ohne den Zustandsordner der Engine. */
+function throws(callable $f, string $cls = \Throwable::class): bool { try { $f(); } catch (\Throwable $e) { return $e instanceof $cls; } return false; }
 function snap(string $d): string { $h = []; $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($d, FilesystemIterator::SKIP_DOTS)); foreach ($it as $f) { if ($f->isFile() && !str_contains($f->getPathname(), '/.wp-engine/')) { $h[$f->getPathname()] = md5_file($f->getPathname()); } } ksort($h); return md5(json_encode($h)); }
 
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
@@ -82,6 +83,47 @@ if (($argv[1] ?? '') === '--child') {
     t('Echt: Konflikte erkannt (belegt, ueber-uns)', $rep['summary']['posts']['rename'] === 1 && $rep['summary']['pages']['rename'] === 1, json_encode([$rep['summary']['posts'], $rep['summary']['pages']]));
     t('Echt: übernommener Beitrag übersprungen', $rep['summary']['posts']['skip'] === 1);
     t('Echt: vorhandener Benutzer übersprungen, Kategorie wiederverwendet', $rep['summary']['users']['skip'] === 1 && $rep['summary']['terms']['categories']['reuse'] === 1, json_encode([$rep['summary']['users'], $rep['summary']['terms']]));
+    // ───── Echte Migration ─────
+    $admin = new \Elvado\Wp\Actor('admin', 'admin');
+    $state = "$tmp/wp/cms/data/.wp-engine";
+    $mig = new \Elvado\Wp\Migration\Migrator("$tmp/nat/cms", "$tmp/nat/cms/data", $state, $admin);
+    $tabs = static function (): array { global $wpdb; $o = []; foreach (['posts', 'postmeta', 'users', 'usermeta', 'terms', 'term_taxonomy', 'term_relationships'] as $tb) { $o[$tb] = (int)$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->$tb}"); } return $o; };
+    $b4 = $tabs();
+    $nsnap = snap("$tmp/nat");
+    $run = $mig->run();
+    t('Lauf abgeschlossen', $run['status'] === 'done', json_encode($run['errors']) . json_encode(array_column($run['steps'], 'status', 'name')));
+    t('Sicherung zuerst, mit Daten und SQL', $run['steps'][0]['name'] === 'Sicherung' && is_file($run['backup']['dir'] . '/data/news.json') && str_contains((string)file_get_contents($run['backup']['sql']), 'wptest_posts') && !str_contains((string)file_get_contents($run['backup']['sql']), 'GEHEIM-HASH'));
+    t('Native Daten und Medien unverändert', snap("$tmp/nat") === $nsnap);
+    $bySrc = static function (string $k): ?\WP_Post { $q = get_posts(['post_type' => 'any', 'post_status' => 'any', 'meta_key' => '_elvado_source_id', 'meta_value' => $k, 'numberposts' => 1]); return $q[0] ?? null; };
+    $p1 = $bySrc('post:1'); $p2 = $bySrc('post:2'); $p3 = $bySrc('post:3');
+    t('Beiträge übernommen', $p1 && $p2 && $p3 && $p1->post_title === 'Eins' && $p1->post_name === 'eins' && $p1->post_status === 'publish' && $p2->post_status === 'draft', json_encode([$p1 ? $p1->post_name : null]));
+    t('Leerer Titel ersetzt', $p2 && $p2->post_title === '(ohne Titel)');
+    t('Belegte Adresse umbenannt', $p3 && $p3->post_name === 'belegt-2');
+    t('Papierkorb nicht übernommen', $bySrc('post:4') === null);
+    t('Bereits übernommener Beitrag nicht doppelt', count(get_posts(['post_type' => 'post', 'post_status' => 'any', 'meta_key' => '_elvado_source_id', 'meta_value' => 'post:5', 'numberposts' => -1])) === 1);
+    t('Datum und Kategorien', $p1 && substr($p1->post_date, 0, 10) === '2020-01-01' && in_array('Radio', wp_get_post_terms($p1->ID, 'category', ['fields' => 'names']), true) && in_array('Pop', wp_get_post_terms($p1->ID, 'post_tag', ['fields' => 'names']), true));
+    $pg = $bySrc('page:ueber-uns');
+    t('Seite übernommen und umbenannt', $pg && $pg->post_type === 'page' && $pg->post_name === 'ueber-uns-2');
+    $media = get_posts(['post_type' => 'attachment', 'post_status' => 'any', 'meta_key' => '_elvado_migration_run', 'meta_value' => $run['id'], 'numberposts' => -1]);
+    t('Medien: nur gültige Dateien', count($media) === 2 && count(array_filter($run['steps'], fn($x) => $x['name'] === 'Medien' && count($x['detail']['rejected']) === 2)) === 1, json_encode(array_column($media, 'post_title')));
+    t('Medien-Original bleibt in cms/media', is_file("$tmp/nat/cms/media/library/a.png"));
+    t('Ungültiger Menüeintrag ausgelassen, Rest übernommen', count(array_filter($run['steps'], fn($x) => $x['name'] === 'Menüs' && count($x['detail']['dropped']) === 1 && $x['detail']['items'] === 2)) === 1, json_encode(array_column($run['steps'], 'detail', 'name')['Menüs'] ?? null));
+    t('Menü angelegt', in_array('Top Navigation (Desktop)', array_column((new \Elvado\Wp\NavigationService(new \Elvado\Wp\Adapter\WordPressNavigationAdapter(), $admin))->menus(), 'name'), true));
+    t('Neuer Benutzer markiert', count($run['created']['users']) === 1 && get_user_meta($run['created']['users'][0], '_elvado_migration_run', true) === $run['id']);
+    // Wiederholen: keine Dubletten
+    $c1 = $tabs();
+    $run2 = $mig->run();
+    $d = array_column($run2['steps'], 'detail', 'name');
+    t('Wiederholung: nichts doppelt', $run2['status'] === 'done' && $d['Beiträge']['created'] === 0 && $d['Seiten']['created'] === 0 && $d['Medien']['created'] === 0 && $d['Menüs']['created'] === 0, json_encode($d));
+    t('Wiederholung: Tabellen unverändert', $tabs() === $c1, json_encode([$c1, $tabs()]));
+    // Rückbau des ersten Laufs
+    $rb = $mig->rollback($run['id']);
+    t('Rückbau entfernt Beiträge/Seiten, Medien, Begriffe, Benutzer, Menü', $rb['posts'] === 3 + 1 && $rb['media'] === 2 && $rb['terms'] >= 1 && $rb['users'] === 1 && $rb['menus'] === 1, json_encode($rb));
+    t('Nach Rückbau wie vorher (Zeilenzahlen)', $tabs() === $b4, json_encode([$b4, $tabs()]));
+    t('Vorhandene Inhalte bleiben', $bySrc('post:5') !== null && get_page_by_path('belegt', OBJECT, 'post') !== null);
+    t('Zweiter Rückbau abgelehnt', throws(fn() => $mig->rollback($run['id']), RuntimeException::class));
+    t('Ungültige Lauf-Kennung', throws(fn() => $mig->rollback('../x'), RuntimeException::class));
+    // Blockiert ohne Speicher/Engine: Planner-Urteil bleibt maßgeblich
     echo "Kindprozess: {$GLOBALS['n']} Prüfungen, {$GLOBALS['fail']} Fehler\n";
     exit($GLOBALS['fail'] === 0 ? 0 : 1);
 }
@@ -102,7 +144,7 @@ $rep = (new Planner("$tmp/cms", "$tmp/cms/data", $probe, 'active'))->plan();
 t('Dry-Run schreibt nichts (Dateien unverändert)', snap("$tmp/cms") === $before);
 t('Bericht markiert Trockenlauf', $rep['dry_run'] === true && $rep['wrote_anything'] === false);
 t('Beiträge: Summe', $rep['summary']['posts']['total'] === 5 && $rep['summary']['posts']['trash'] === 1 && $rep['summary']['posts']['drafts'] === 1, json_encode($rep['summary']['posts']));
-t('Beiträge: schon übernommen wird übersprungen', $rep['summary']['posts']['skip'] === 1 && $rep['summary']['posts']['create'] === 4);
+t('Beiträge: schon übernommen wird übersprungen', $rep['summary']['posts']['skip'] === 1 && $rep['summary']['posts']['create'] === 3);
 t('Beiträge: belegte Adresse wird umbenannt', $rep['summary']['posts']['rename'] === 1 && in_array('belegt-2', array_map(fn($x) => preg_match('/„(belegt-2)“/u', $x['reason'], $m) ? $m[1] : '', $rep['notes']['posts']), true));
 t('Weiterleitung geplant', in_array(['from' => '/belegt', 'to' => '/belegt-2/'], $rep['redirects_sample'], true), json_encode($rep['redirects_sample']));
 t('Leerer Titel und unbekannter Besitzer gemeldet', $rep['summary']['posts']['empty_title'] === 1 && $rep['summary']['posts']['unknown_owner'] === 1);
