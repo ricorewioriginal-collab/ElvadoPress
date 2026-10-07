@@ -40,6 +40,6 @@ Bereich (`scope`): `home`, `site:<name>` (nur Administratoren), `page:<slug>`, `
 `components_catalog`, `layout_get`, `layout_revisions`, `layout_render` (lesen); `layout_save_draft`, `layout_publish`, `layout_discard`, `layout_rollback` (POST). In der Demo ist Schreiben gesperrt.
 
 ## Baukasten-Theme
-Das Schema der acht Baukasten-Abschnitte kommt jetzt aus der Registry (`elvado_bk_schema()`), das Theme rendert sie unverändert. Neu: Sichtbarkeit je Gerät/Zeit/Zielgruppe und geräteabhängige Höhe/Spalten – nur wenn gesetzt, sonst bleibt die Ausgabe identisch. Der Live Builder zeigt Komponenten nach Kategorien und hat die Reiter Inhalt, Design (mit Tablet/Mobil-Werten) und Sichtbarkeit.
+Das Schema der acht Baukasten-Abschnitte kommt aus der Registry (`elvado_bk_schema()`), das Theme rendert sie unverändert und gibt zusätzlich alle nativen Komponenten (ohne festen Platz wie Header/Footer) sowie Shortcode, Block und Widget-Bereich aus; Layout und Entwurf liegen im `LayoutStore` (Bereich `home`). Neu: Sichtbarkeit je Gerät/Zeit/Zielgruppe und geräteabhängige Höhe/Spalten – nur wenn gesetzt, sonst bleibt die Ausgabe identisch. Der Live Builder zeigt Komponenten nach Kategorien und hat die Reiter Inhalt, Design (mit Tablet/Mobil-Werten) und Sichtbarkeit.
 
 Tests: `scripts/test-components.php`, `scripts/test-baukasten.php`.

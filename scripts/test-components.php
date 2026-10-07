@@ -208,6 +208,13 @@ $again = $lay4->clean($saved, ['admin' => true]);
 t('Plugin abgeschaltet: Werte bleiben erhalten (missing), nichts wird ausgegeben', ($again[0]['missing'] ?? false) === true && $again[0]['props']['items'][0]['name'] === 'X' && (new Renderer($reg))->render($again)['html'] === '');
 t('…und kommen mit dem Plugin zurück', (new Layout($reg2))->clean($again, ['admin' => true])[0]['props']['items'][0]['name'] === 'X' && empty((new Layout($reg2))->clean($again, ['admin' => true])[0]['missing']));
 
+// ───────── 8) Vorschau-Brücke (statische Sicherheitsprüfung des Skripts; Verhalten im Browser geprüft) ─────────
+$pb = (string)file_get_contents(__DIR__ . '/../cms/assets/preview-bridge.js');
+$lbJs = (string)file_get_contents(__DIR__ . '/../cms/assets/live-builder.js');
+t('Brücke: nur Eltern-Fenster und gleiche Herkunft, Schlüssel für Befehle', str_contains($pb, 'e.source!==PARENT||e.origin!==ORIGIN') && str_contains($pb, 'd.token!==token') && str_contains($pb, 'PARENT.postMessage(m,ORIGIN)') && !str_contains($pb, "postMessage(m,'*')") && !str_contains($pb, 'eval('));
+t('Builder: nur der Vorschau-Frame, gleiche Herkunft, Schlüssel; kein „*“ als Ziel', str_contains($lbJs, 'e.source!==f.contentWindow||e.origin!==location.origin') && str_contains($lbJs, 'd.token!==bridge.token') && !str_contains($lbJs, ",'*')") && str_contains($lbJs, 'getRandomValues'));
+$wf = (string)file_get_contents(__DIR__ . '/../cms/wp-front.php');
+t('Brücke wird nur mit gültigem Vorschau-Schlüssel eingebunden', preg_match('/rrw_wp_preview_theme.*preview-bridge\.js/s', $wf) === 1 && substr_count($wf, 'preview-bridge.js') === 1);
 if (getenv("DBG")) { echo $html, "\n", $css, "\n"; }
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
 exit($fail ? 1 : 0);

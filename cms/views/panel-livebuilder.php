@@ -7,13 +7,15 @@
         <button type="button" data-lbmode="structure"><i class="fas fa-list-ul"></i><span>Struktur</span></button>
         <button type="button" data-lbmode="settings"><i class="fas fa-sliders"></i><span>Einstellungen</span></button>
       </div>
-      <span id="lbState" class="lb-state" aria-live="polite"></span>
+      <span id="lbState" class="lb-state" aria-live="polite"></span><span id="lbSched" class="lb-sched" hidden></span>
       <div class="lb-actions">
         <button type="button" class="btn-g" id="lbDraft"><i class="fas fa-floppy-disk"></i> Entwurf speichern</button>
         <button type="button" class="btn-a" id="lbPublish"><i class="fas fa-rocket"></i> Veröffentlichen</button>
         <div class="lb-more"><button type="button" class="btn-g" id="lbMore" aria-haspopup="true" aria-label="Weitere Aktionen"><i class="fas fa-ellipsis-vertical"></i></button>
           <div class="lb-pop" id="lbMorePop" hidden>
             <button type="button" data-lbmore="discard"><i class="fas fa-rotate-left"></i>Entwurf verwerfen</button>
+            <button type="button" data-lbmore="history"><i class="fas fa-clock-rotate-left"></i>Verlauf / Fassung wiederherstellen</button>
+            <button type="button" data-lbmore="schedule"><i class="fas fa-calendar-check"></i>Veröffentlichung planen …</button>
             <button type="button" data-lbmore="reset"><i class="fas fa-eraser"></i>Auf Customizer-Positionen zurücksetzen</button>
             <button type="button" data-lbmore="ai"><i class="fas fa-wand-magic-sparkles"></i>Layout mit KI entwerfen</button>
             <button type="button" data-lbmore="customizer"><i class="fas fa-sliders"></i>Design (Customizer) öffnen</button>
@@ -21,6 +23,8 @@
       </div>
     </div>
     <div id="lbNotice" class="hint" style="display:none;margin:0 0 8px"></div>
+    <div id="lbRegion" class="lb-region" hidden></div>
+    <div id="lbModal" class="lb-modal" hidden></div>
     <div class="lb-grid" data-lbview="edit">
       <aside class="lb-col lb-structure" aria-label="Seitenstruktur">
         <div class="lb-h"><b>Seitenstruktur</b><button type="button" class="lb-ic" id="lbAddTop" aria-label="Bereich hinzufügen"><i class="fas fa-plus"></i></button></div>

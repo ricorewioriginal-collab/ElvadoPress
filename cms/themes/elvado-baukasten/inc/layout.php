@@ -3,14 +3,30 @@
    Wird vom Theme und von der CMS-Verwaltung (cms/api.php, Aktionen wp_bk_*) gemeinsam genutzt. */
 if(!defined('ABSPATH'))exit;
 
-/** Komponenten-Registry (nur die Kern-Komponenten; unabhängig von Erweiterungen). Das Schema der Abschnitte kommt von dort (eine Quelle für Theme und Verwaltung). */
+/** Komponenten-Registry von ElvadoPress (Kern + aktive Erweiterungen). Das Schema der Abschnitte kommt von dort (eine Quelle für Theme und Verwaltung). */
 function elvado_bk_registry(): \Elvado\Components\Registry {
-    static $r=null;
-    if($r===null){ require_once dirname(__DIR__,3).'/src/autoload.php';$r=new \Elvado\Components\Registry();\Elvado\Components\CoreComponents::register($r); }
-    return $r;
+    require_once dirname(__DIR__,3).'/lib/components.php';
+    return rrw_components();
 }
 const ELVADO_BK_TYPES=['hero','text','features','image_text','posts','cta','html','spacer'];
-function elvado_bk_schema(): array { return elvado_bk_registry()->legacySchema(ELVADO_BK_TYPES); }
+/** WordPress-Komponenten, die dieses Theme selbst ausgibt (Shortcode, Block, Widget-Bereich). */
+const ELVADO_BK_WP_TYPES=['widget_area','wp_shortcode','wp_block'];
+/** Alle Komponenten, die das Theme ausgeben kann: die acht eigenen, alle nativen (ohne festen Platz wie Header/Footer) und die WordPress-Komponenten. @return list<string> */
+function elvado_bk_supported(): array {
+    $r=elvado_bk_registry();$feat=function_exists('rrw_components_features')?rrw_components_features(function_exists('rrw_wp_cms_dir')?rrw_wp_cms_dir():null):[];
+    $ids=[];foreach(ELVADO_BK_TYPES as $t)if($r->has($t))$ids[]=$t;
+    foreach($r->all() as $c){ if(in_array($c->id,$ids,true))continue;
+        if($c->feature!==''&&!in_array($c->feature,$feat,true))continue;
+        if(($c->hasRenderer()&&$c->rules['slot']==='')||in_array($c->id,ELVADO_BK_WP_TYPES,true))$ids[]=$c->id; }
+    return $ids;
+}
+function elvado_bk_schema(): array { return elvado_bk_registry()->legacySchema(elvado_bk_supported()); }
+/** Layout-Speicher (Entwurf, Veröffentlichen, Revisionen, Termin): Dateien unter cms/data/layouts, Bereich „home“. */
+function elvado_bk_store(): \Elvado\Components\LayoutStore {
+    require_once dirname(__DIR__,3).'/lib/components.php';
+    return rrw_components_store(function_exists('rrw_wp_cms_dir')?rrw_wp_cms_dir():null);
+}
+function elvado_bk_actor(): \Elvado\Wp\Actor { return $GLOBALS['elvado_bk_actor']??new \Elvado\Wp\Actor('system','admin'); }
 function elvado_bk_default_props(string $type): array {
     $s=elvado_bk_schema();$o=[];foreach(($s[$type]['fields']??[]) as $f){ $o[$f['k']]=$f['default']??($f['type']==='checkbox'?false:($f['type']==='items'?[]:($f['type']==='number'?0:''))); }
     if($type==='features')$o['items']=[['title'=>'Schnell','text'=>'Kurze Ladezeiten ohne Ballast.'],['title'=>'Flexibel','text'=>'Alles lässt sich anpassen.'],['title'=>'Eigenständig','text'=>'Deine Inhalte, dein Design.']];
@@ -32,23 +48,40 @@ function elvado_bk_clean_props(string $type, $raw): array {
     }
     return $out;
 }
-/** Liste von Abschnitten → bereinigte Liste (höchstens 40, IDs eindeutig). */
+/** Liste von Abschnitten → bereinigte Liste (höchstens 120, IDs eindeutig). Die acht Baukasten-Abschnitte bereinigt das Theme mit den WordPress-Funktionen, alle anderen die Registry. */
 function elvado_bk_clean_layout($raw): array {
-    $out=[];$ids=[];$schema=elvado_bk_schema();
+    $out=[];$ids=[];$sup=array_flip(elvado_bk_supported());$bk=array_flip(ELVADO_BK_TYPES);
     foreach(is_array($raw)?$raw:[] as $s){
-        if(!is_array($s)||count($out)>=40)continue;$type=(string)($s['type']??'');if(!isset($schema[$type]))continue;
-        $id=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($s['id']??'')));if($id===''||strlen($id)>24||isset($ids[$id]))$id='s'.substr(md5(uniqid('',true).count($out)),0,8);
-        $ids[$id]=1;$o=['id'=>$id,'type'=>$type,'hidden'=>!empty($s['hidden']),'props'=>elvado_bk_clean_props($type,$s['props']??[])];
-        $comp=elvado_bk_registry()->get($type);$lay=new \Elvado\Components\Layout(elvado_bk_registry());
-        $vis=\Elvado\Components\Layout::visibility($s['visibility']??[]);if($vis!==\Elvado\Components\Layout::visibility([]))$o['visibility']=$vis;   // nur wenn von der Vorgabe abweichend (bestehende Layouts bleiben unverändert)
-        $resp=$comp?$lay->responsive($comp,$s['responsive']??[]):[];if($resp!==[])$o['responsive']=$resp;
-        $out[]=$o;
+        if(!is_array($s)||count($out)>=\Elvado\Components\Layout::MAX_TOTAL)continue;$type=(string)($s['type']??'');if(!isset($sup[$type]))continue;
+        if(isset($bk[$type])){
+            $id=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($s['id']??'')));if($id===''||strlen($id)>24||isset($ids[$id]))$id='s'.substr(md5(uniqid('',true).count($out)),0,8);
+            $ids[$id]=1;$o=['id'=>$id,'type'=>$type,'hidden'=>!empty($s['hidden']),'props'=>elvado_bk_clean_props($type,$s['props']??[])];
+            $comp=elvado_bk_registry()->get($type);$lay=new \Elvado\Components\Layout(elvado_bk_registry());
+            $vis=\Elvado\Components\Layout::visibility($s['visibility']??[]);if($vis!==\Elvado\Components\Layout::visibility([]))$o['visibility']=$vis;   // nur wenn von der Vorgabe abweichend (bestehende Layouts bleiben unverändert)
+            $resp=$comp?$lay->responsive($comp,$s['responsive']??[]):[];if($resp!==[])$o['responsive']=$resp;
+            $out[]=$o;continue;
+        }
+        $one=(new \Elvado\Components\Layout(elvado_bk_registry()))->clean([$s],['admin'=>true,'unfiltered'=>false]);
+        if(!$one||!empty($one[0]['missing']))continue;$o=elvado_bk_prune($one[0],$sup);
+        if(isset($ids[$o['id']]))$o['id']='s'.substr(md5(uniqid('',true).count($out)),0,8);$ids[$o['id']]=1;$out[]=$o;
     }
     return $out;
 }
-/** Gespeichertes Layout; null = nicht gesetzt (dann gelten die Positionen aus dem Customizer). */
-function elvado_bk_saved_layout(): ?array { $l=get_option('elvado_bk_layout',null);return is_array($l)?$l:null; }
-function elvado_bk_save_layout($raw): array { $l=elvado_bk_clean_layout($raw);update_option('elvado_bk_layout',$l,false);return $l; }
+/** Entfernt Kinder, die dieses Theme nicht ausgeben kann. @param array<string,int> $sup */
+function elvado_bk_prune(array $inst,array $sup): array {
+    if(isset($inst['children']))$inst['children']=array_values(array_filter(array_map(fn($c)=>elvado_bk_prune($c,$sup),$inst['children']),fn($c)=>isset($sup[$c['type']??''])&&empty($c['missing'])));
+    return $inst;
+}
+/** Veröffentlichtes Layout; null = nicht gesetzt (dann gelten die Positionen aus dem Customizer). Ältere Installationen (Option elvado_bk_layout) werden weiter gelesen, bis das erste Mal über den Speicher veröffentlicht wird. */
+function elvado_bk_saved_layout(): ?array {
+    $p=elvado_bk_store()->published('home');if($p!==null)return $p;
+    $l=get_option('elvado_bk_layout',null);return is_array($l)?$l:null;
+}
+/** Direkt veröffentlichen (Entwurf + Veröffentlichen in einem Schritt). */
+function elvado_bk_save_layout($raw,string $label=''): array {
+    $l=elvado_bk_clean_layout($raw);$st=elvado_bk_store();$a=elvado_bk_actor();
+    $st->saveDraft('home',$l,$a,'',true);$st->publish('home',$a,$label);return $l;
+}
 /** Layout aus den Customizer-Positionen (Altverhalten, Vorgabe für den Editor). */
 function elvado_bk_layout_from_mods(): array {
     $m='elvado_bk_mod';$out=[];$map=['hero'=>['title'=>'hero_title','text'=>'hero_text','image'=>'hero_image','overlay'=>'hero_overlay','btn_label'=>'hero_btn_label','btn_url'=>'hero_btn_url'],
@@ -64,9 +97,9 @@ function elvado_bk_layout_from_mods(): array {
     return elvado_bk_clean_layout($out)?:[];
 }
 /** Entwurf der Startseite (Live Builder): wird nur in der geprüften Vorschau ausgeliefert, nie auf der öffentlichen Seite. */
-function elvado_bk_draft_layout(): ?array { $l=get_option('elvado_bk_layout_draft',null);return is_array($l)?$l:null; }
-function elvado_bk_save_draft($raw): array { $l=elvado_bk_clean_layout($raw);update_option('elvado_bk_layout_draft',$l,false);return $l; }
-function elvado_bk_discard_draft(): void { delete_option('elvado_bk_layout_draft'); }
+function elvado_bk_draft_layout(): ?array { $d=elvado_bk_store()->get('home')['draft'];return $d!==null?(array)$d['layout']:null; }
+function elvado_bk_save_draft($raw,string $publishAt=''): array { $l=elvado_bk_clean_layout($raw);elvado_bk_store()->saveDraft('home',$l,elvado_bk_actor(),$publishAt,true);return $l; }
+function elvado_bk_discard_draft(): void { elvado_bk_store()->discard('home',elvado_bk_actor()); }
 function elvado_bk_active_layout(): array {
     if((string)($GLOBALS['rrw_wp_preview_theme']??'')==='elvado-baukasten'&&($d=elvado_bk_draft_layout())!==null)return $d;
     $l=elvado_bk_saved_layout();return $l!==null?$l:elvado_bk_layout_from_mods();

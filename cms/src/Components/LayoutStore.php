@@ -94,10 +94,10 @@ final class LayoutStore
     }
 
     /**
-     * Entwurf speichern. @param mixed $raw @param string $publishAt 'Y-m-d H:i' (leer = nicht planen)
+     * Entwurf speichern. @param mixed $raw @param string $publishAt 'Y-m-d H:i' (leer = nicht planen) @param bool $alreadyClean Layout ist schon bereinigt (nur für vertrauenswürdige Aufrufer wie das Theme)
      * @return array{layout:list<array<string,mixed>>,issues:list<array<string,string>>}
      */
-    public function saveDraft(string $scope, mixed $raw, Actor $a, string $publishAt = ''): array
+    public function saveDraft(string $scope, mixed $raw, Actor $a, string $publishAt = '', bool $alreadyClean = false): array
     {
         if (!$this->may($scope, $a)) {
             throw new PermissionException('Dafür fehlt die Berechtigung.');
@@ -111,10 +111,11 @@ final class LayoutStore
             $at = $dt->format('Y-m-d H:i');
         }
         $result = [];
-        $this->mutate($scope, function (array $cur) use ($raw, $a, $at, &$result): array {
+        $this->mutate($scope, function (array $cur) use ($raw, $a, $at, $alreadyClean, &$result): array {
             $layout = new Layout($this->registry);
             $base = $cur['draft']['layout'] ?? $cur['published']['layout'] ?? [];
-            $clean = $layout->clean($raw, ['admin' => $a->isAdmin(), 'unfiltered' => $a->isAdmin()]);
+            // $alreadyClean: der Aufrufer (z. B. ein Theme mit eigener Bereinigung) hat das Layout schon bereinigt – nicht erneut anfassen
+            $clean = $alreadyClean && is_array($raw) ? array_values($raw) : $layout->clean($raw, ['admin' => $a->isAdmin(), 'unfiltered' => $a->isAdmin()]);
             if (!$a->isAdmin()) {
                 $clean = $this->restoreProtected((array)$base, $clean);
             }
@@ -190,6 +191,23 @@ final class LayoutStore
             return $this->doPublish($cur, $a->login, 'Zurück auf Fassung ' . $n);
         });
         return (array)$s['published'];
+    }
+
+    /** Veröffentlichung zurücknehmen (die Website fällt auf ihre Vorgabe zurück); die bisherige Fassung bleibt als Revision erhalten. */
+    public function unpublish(string $scope, Actor $a): void
+    {
+        if (!$this->may($scope, $a)) {
+            throw new PermissionException('Dafür fehlt die Berechtigung.');
+        }
+        $this->mutate($scope, function (array $cur): array {
+            if ($cur['published'] !== null) {
+                $cur['revisions'][] = ['n' => $cur['published']['n'], 'layout' => $cur['published']['layout'], 'at' => $cur['published']['at'], 'by' => $cur['published']['by'], 'label' => (string)($cur['published']['label'] ?? '')];
+                $cur['revisions'] = array_slice($cur['revisions'], -self::MAX_REVISIONS);
+                $cur['published'] = null;
+            }
+            $cur['draft'] = null;
+            return $cur;
+        });
     }
 
     /** @return list<array{n:int,at:string,by:string,label:string,count:int}> neueste zuerst */

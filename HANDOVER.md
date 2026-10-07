@@ -82,3 +82,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 6: Komponenten-Registry
 `cms/src/Components/` (Registry, Component, Sanitizer, Layout, Renderer, CoreComponents, LayoutStore), `cms/lib/components.php`, `cms/components-api.php`; Baukasten-Theme nutzt die Registry für sein Schema + Sichtbarkeit/Responsive; Live Builder mit Katalog-Gruppen und Reiter Sichtbarkeit. Doku `cms/docs/COMPONENTS.md`. Tests `scripts/test-components.php`, `test-baukasten.php`. Produktspezifische Komponenten (Partner, Social Wall, Sender) nur über Erweiterungen/Paket.
+
+## Phase 7: Live Customizer / Preview Bridge
+`cms/assets/preview-bridge.js` (nur mit Vorschau-Schlüssel, via wp-front.php), `live-builder.js` neu (Baum, Brücke, Verlauf, Termin), Baukasten-Theme: Layout im `LayoutStore` (Bereich home), native/WP-Komponenten werden ausgegeben, API `wp_bk_rollback|revisions`, `publish_at`. Doku `cms/docs/LIVE-CUSTOMIZER.md`. Tests: `test-baukasten.php` (67), `test-components.php` (99); Browser: Klick-Auswahl, gefälschte Nachrichten wirkungslos (manuell geprüft).

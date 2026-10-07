@@ -75,7 +75,7 @@ final class Registry
             }
             $fields = [];
             foreach ($c->fields as $f) {
-                $o = ['k' => $f['k'], 'label' => $f['label'], 'type' => (string)($f['legacy_type'] ?? $f['type'])];
+                $o = ['k' => $f['k'], 'label' => $f['label'], 'type' => (string)($f['legacy_type'] ?? ($f['type'] === 'html' ? 'textarea' : $f['type']))];
                 foreach (['options', 'default', 'min', 'max', 'item'] as $key) {
                     if (array_key_exists($key, $f)) {
                         $o[$key] = $f[$key];

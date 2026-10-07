@@ -88,6 +88,15 @@ function elvado_bk_section(array $s,int $n=0): void {
         echo '<div class="bk-spacer" data-bk="'.esc_attr((string)($s['id']??$n)).'" style="height:'.(int)$p['height'].'px" aria-hidden="true"></div>';return;
     }
 }
+/** Ausgabe-Funktionen des Themes für die Registry: die acht eigenen Abschnitte (auch in Containern/Spalten) und die WordPress-Komponenten. @return array<string,callable> */
+function elvado_bk_host_renderers(): array {
+    static $r=null;if($r!==null)return $r;$r=[];
+    foreach(ELVADO_BK_TYPES as $t)$r[$t]=function(array $p,array $inst) use($t):string{ ob_start();elvado_bk_section(['id'=>$inst['id'],'type'=>$t,'props'=>$p],0);return (string)ob_get_clean(); };
+    $r['wp_shortcode']=fn(array $p):string=>preg_match('/^\[[A-Za-z0-9_-]{1,60}( [^\[\]]{0,300})?\]$/',(string)$p['shortcode'])===1?do_shortcode((string)$p['shortcode']):'';
+    $r['wp_block']=fn(array $p):string=>(string)$p['markup']!==''?do_blocks((string)$p['markup']):'';
+    $r['widget_area']=function(array $p):string{ $a=sanitize_key((string)$p['area']);if($a===''||!is_active_sidebar($a))return '';ob_start();dynamic_sidebar($a);return (string)ob_get_clean(); };
+    return $r;
+}
 /** Fügt einem Abschnitt die Klassen für „auf diesem Gerät ausblenden“ hinzu und sammelt die CSS-Regeln geräteabhängiger Werte. */
 function elvado_bk_decorate(string $html,array $s,&$css): string {
     $cls=\Elvado\Components\Layout::hideClasses($s);
@@ -105,7 +114,11 @@ function elvado_bk_render_front(): void {
         if(!empty($s['hidden'])||!\Elvado\Components\Layout::visible($s,['member'=>is_user_logged_in()]))continue;   // ausgeblendet, außerhalb des Zeitfensters oder nicht für diese Zielgruppe
         if($withSide&&!$grid&&!($lead&&($s['type']??'')==='hero')){ $grid=true;$lead=false;echo '<div class="bk-wrap bk-home-grid"><div class="bk-home-main">'; }
         do_action('elvado_bk_before_section',$s);
-        if(isset($s['visibility'])||isset($s['responsive'])){ ob_start();elvado_bk_section($s,$i++);echo elvado_bk_decorate((string)ob_get_clean(),$s,$extraCss);$extra=true; }   // Geräte-Sichtbarkeit und geräteabhängige Werte (nur wenn gesetzt)
+        if(!in_array($s['type']??'',ELVADO_BK_TYPES,true)){   // native Komponenten der Registry und WordPress-Komponenten (Shortcode, Block, Widget-Bereich)
+            $res=(new \Elvado\Components\Renderer(elvado_bk_registry()))->render([$s],['renderers'=>elvado_bk_host_renderers(),'member'=>is_user_logged_in()]);
+            echo $res['html'];$extraCss.=str_replace(\Elvado\Components\Renderer::baseCss(),'',$res['css']);$extra=$extra||$res['html']!=='';$i++;
+        }
+        elseif(isset($s['visibility'])||isset($s['responsive'])){ ob_start();elvado_bk_section($s,$i++);echo elvado_bk_decorate((string)ob_get_clean(),$s,$extraCss);$extra=true; }   // Geräte-Sichtbarkeit und geräteabhängige Werte (nur wenn gesetzt)
         else elvado_bk_section($s,$i++);
         do_action('elvado_bk_after_section',$s);   // Haken für Plugins
     }
@@ -113,7 +126,7 @@ function elvado_bk_render_front(): void {
         if(!$grid)echo '<div class="bk-wrap bk-home-grid"><div class="bk-home-main">';
         echo '</div>';get_sidebar();echo '</div>';
     }
-    if($extra)echo '<style id="bk-responsive">'.\Elvado\Components\Renderer::baseCss().$extraCss.'</style>';
+    if($extra)echo '<style id="bk-responsive">'.\Elvado\Components\Renderer::baseCss().\Elvado\Components\Renderer::defaultCss().$extraCss.'</style>';
     do_action('elvado_bk_after_sections');
 }
 function elvado_bk_is_builder_page(): bool { if(!is_front_page()||is_paged())return false;foreach(elvado_bk_active_layout() as $s)if(empty($s['hidden']))return true;return false; }
