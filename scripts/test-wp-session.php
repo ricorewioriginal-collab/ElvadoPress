@@ -26,7 +26,7 @@ t('Cookie: HttpOnly + SameSite',str_contains($c,'HttpOnly')&&str_contains($c,'Sa
 preg_match('/^'.RRW_WP_SESS_COOKIE.'=([^;]+)/',$c,$m);
 $_COOKIE[RRW_WP_SESS_COOKIE]=$m[1];
 t('Cookie: gültig',rrw_wp_sess_check()!==null);
-$_COOKIE[RRW_WP_SESS_COOKIE]=substr($m[1],0,-2).'00';
+$_COOKIE[RRW_WP_SESS_COOKIE]=substr($m[1],0,-2).(substr($m[1],-2)==='00'?'11':'00');   // garantiert verändert (sonst zufällig gültig)
 t('Cookie: manipuliert abgelehnt',rrw_wp_sess_check()===null);
 $_COOKIE[RRW_WP_SESS_COOKIE]=$m[1];rrw_wp_sess_check();
 $nonce=wp_create_nonce('wp_rest');
