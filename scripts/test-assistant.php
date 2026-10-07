@@ -135,5 +135,31 @@ t('Anbieter ohne Schlüsselpflicht aus der Zentrale sind im Betrieb bereit; die 
     if(!in_array('ollama',$ids,true)||!in_array('groq',$ids,true))throw new RuntimeException('bereit: '.implode(',',$ids));
     if(str_contains(json_encode(rrw_assistant_public([])),'zentral-groq'))throw new RuntimeException('Schlüssel in öffentlicher Sicht');
 });
+// Apps und Alexa-Skill: Absichten, Aufrufe, Varianten
+require_once __DIR__.'/../cms/lib/alexa.php';
+t('Absichten: Alexa-Skill und Apps werden erkannt',function(){
+    $a=rrw_assistant_intents('Wie kann ich euren Alexa Skill aufrufen?',[])['intents'];if(!in_array('alexa',$a,true))throw new RuntimeException('alexa fehlt: '.json_encode($a));
+    foreach(['Gibt es eine App für Android?','Kann ich das auf dem iPhone installieren','Wo kann ich die Windows App herunterladen'] as $q){$b=rrw_assistant_intents($q,[])['intents'];if(!in_array('apps',$b,true))throw new RuntimeException("apps fehlt bei $q: ".json_encode($b));}
+    if(in_array('apps',rrw_assistant_intents('Was läuft gerade?',[])['intents'],true))throw new RuntimeException('apps fälschlich erkannt');
+});
+t('Apps-Text: Plattformen, Web-App für iPhone, Hinweis auf die Apps-Seite; abgeschaltete Plattformen fehlen',function(){
+    $site=['portal'=>['site_name'=>'Test Radio'],'apps'=>['android_enabled'=>true,'windows_enabled'=>false]];$r=rrw_assistant_apps_alexa($site,'https://example.test');
+    foreach(['Android','Web-App','Zum Home-Bildschirm','https://example.test/#apps'] as $x)if(!str_contains($r['apps'],$x))throw new RuntimeException("fehlt: $x");
+    if(str_contains($r['apps'],'Windows'))throw new RuntimeException('abgeschaltetes Windows genannt');
+});
+t('Alexa-Text: Aufrufname und Aufruf-Varianten, Beispiele, Sender- und Namensvarianten',function(){
+    $site=['portal'=>['site_name'=>'Test Radio'],'alexa'=>['enabled'=>true]];if($GLOBALS['neutral'])$site['alexa']+=['invocation'=>'test radio','stations'=>['testradio'=>['name'=>'Test Radio']],'default_station'=>'testradio'];
+    $r=rrw_assistant_apps_alexa($site,'https://example.test')['alexa'];
+    if($r==='')throw new RuntimeException('kein Alexa-Text');
+    foreach(['Aufrufname','Alexa, öffne','Alexa, starte','Alexa, starte den Skill','Radio hören','Alexa-App'] as $x)if(!str_contains($r,$x))throw new RuntimeException("fehlt: $x");
+    if(!preg_match('/Aufrufname „([^“]+)“/u',$r,$m)||!str_contains($r,'Alexa, öffne '.$m[1]))throw new RuntimeException('Aufruf passt nicht zum Aufrufnamen');
+});
+t('Alexa abgeschaltet: kein Alexa-Text',function(){eq(rrw_assistant_apps_alexa(['alexa'=>['enabled'=>false]],'https://example.test')['alexa'],'');});
+t('Antwort ohne KI nennt Apps und Alexa-Aufruf',function(){
+    $site=['portal'=>['site_name'=>'Test Radio'],'alexa'=>['enabled'=>true],'apps'=>[]];if($GLOBALS['neutral'])$site['alexa']+=['invocation'=>'test radio','stations'=>['testradio'=>['name'=>'Test Radio']],'default_station'=>'testradio'];
+    $cfg=rrw_assistant_clean([]);$tmp2=sys_get_temp_dir();
+    $x=rrw_assistant_offline_reply(['apps','alexa'],[],'',$cfg,$site,'https://example.test',$tmp2,$tmp2.'/none.json');
+    if(!str_contains($x,'Android')||!str_contains($x,'Alexa, öffne'))throw new RuntimeException('Antwort unvollständig: '.substr($x,0,200));
+});
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exit($fail?1:0);
