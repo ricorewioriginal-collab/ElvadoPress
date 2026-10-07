@@ -48,7 +48,7 @@ final class Component
             throw new \InvalidArgumentException('Unbekannte Kategorie bei ' . $id);
         }
         $bind = (string)($d['bind'] ?? '');
-        if ($bind !== '' && preg_match('/^[#.][a-z][a-z0-9_-]{0,60}$/i', $bind) !== 1) {
+        if ($bind !== '' && preg_match('/^([#.][a-z][a-z0-9_-]{0,60}|header|footer|nav|main|aside|section|article)$/i', $bind) !== 1) {   // Kennung, Klasse oder ein Gliederungs-Element
             throw new \InvalidArgumentException('Ungültiger Bereichs-Selektor bei ' . $id);
         }
         $renderer = (string)($d['renderer'] ?? ($bind !== '' ? 'bound' : ($render ? 'native' : 'runtime')));

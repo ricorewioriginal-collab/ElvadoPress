@@ -29,6 +29,7 @@ $bound = static fn(Registry $r, string $src = 'pack:demo-pack') => [
 $r = new Registry(); [$h, $hero] = $bound($r);
 t('bind setzt Rendering-Art „bound“', $h->renderer === 'bound' && $h->bind === '#main-header' && $h->toArray()['bind'] === '#main-header');
 t('Ungültiger Selektor wird abgelehnt', throws(fn() => $r->register(['id' => 'bad_sel', 'name' => 'x', 'bind' => 'body > script'], 'pack:demo-pack'), InvalidArgumentException::class) && throws(fn() => $r->register(['id' => 'bad_sel2', 'name' => 'x', 'bind' => '#a{}'], 'pack:demo-pack'), InvalidArgumentException::class));
+t('Gliederungs-Elemente als Selektor erlaubt, andere Tags nicht', $r->register(['id' => 'ok_footer', 'name' => 'F', 'bind' => 'footer'], 'pack:demo-pack')->bind === 'footer' && throws(fn() => $r->register(['id' => 'bad_tag', 'name' => 'x', 'bind' => 'script'], 'pack:demo-pack')) && throws(fn() => $r->register(['id' => 'bad_tag2', 'name' => 'x', 'bind' => 'body'], 'pack:demo-pack')));
 t('„bound“ ohne bind und umgekehrt abgelehnt', throws(fn() => $r->register(['id' => 'bad_b1', 'name' => 'x', 'renderer' => 'bound'], 'pack:demo-pack')) && throws(fn() => $r->register(['id' => 'bad_b2', 'name' => 'x', 'bind' => '#a', 'renderer' => 'runtime'], 'pack:demo-pack')));
 t('Katalog nennt bind und Quelle', (function () use ($r) { foreach ($r->catalog(['admin' => true])['components'] as $c) { if ($c['id'] === 'demo_header') { return $c['bind'] === '#main-header' && $c['source'] === 'pack:demo-pack'; } } return false; })());
 

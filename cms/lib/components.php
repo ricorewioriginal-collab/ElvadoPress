@@ -151,6 +151,10 @@ function rrw_components_inject(string $html, string $scope, array $query = [], ?
     try {
         $tok = (string)($query['rrw_ep_preview'] ?? '');
         $preview = $tok !== '' && rrw_components_preview_ok($tok, $scope, $dataDir);
+        $dir = $dataDir ?? (defined('RRW_DATA_DIR') ? (string)RRW_DATA_DIR : dirname(__DIR__) . '/data');
+        if (!$preview && (!LayoutStore::validScope($scope) || !is_file($dir . '/layouts/' . str_replace(':', '__', $scope) . '.json'))) {
+            return $html;   // nichts gespeichert: die Seite bleibt unberührt (und kostet nichts)
+        }
         $store = rrw_components_store($dataDir);
         $css = '';
         if ($preview) {
