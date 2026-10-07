@@ -48,9 +48,9 @@ try {
         rrw_json(['status' => 'ok']);
     }
     if ($rrwCAction === 'layout_publish') {
-        $p = $rrwCStore->publish($rrwCScope, $rrwCActor, (string)($rrwCBody['label'] ?? ''));
+        $p = $rrwCStore->publish($rrwCScope, $rrwCActor, (string)($rrwCBody['label'] ?? ''), (array)($rrwCBody['changes'] ?? []));
         if (function_exists('rrw_log_activity')) {
-            rrw_log_activity($activityLogFile, $rrwCUser, 'layout', 'Layout veröffentlicht: ' . $rrwCScope . ' (Fassung ' . $p['n'] . ')');
+            rrw_log_activity($activityLogFile, $rrwCUser, 'layout', 'Layout veröffentlicht: ' . $rrwCScope . ' (Fassung ' . $p['n'] . ')' . (($p['changes'] ?? []) ? ' – ' . implode('; ', array_slice($p['changes'], 0, 6)) : ''));
         }
         rrw_json(['status' => 'ok', 'published' => $p]);
     }

@@ -68,3 +68,8 @@ Der Live Builder ändert die **echte Seite**, nicht nur das Theme (Ziel „Websi
 - **Hinweis:** Texte, die das Portal selbst aus der Verwaltung lädt, werden auf der Seite überschrieben; in der Verwaltung bleibt der Originaltext.
 - Test: `scripts/test-page-scan.php`.
 
+
+## Änderungen dokumentieren und rückgängig machen (Live Builder)
+- **Rückgängig/Wiederholen:** Schaltflächen oben bzw. Strg+Z / Strg+Y (bis 60 Schritte); wirkt auf alles, was im Builder geändert wird – Felder, Reihenfolge, Ausblenden, Texte und Verschieben aus der Vorschau.
+- **Änderungsliste:** „Veröffentlichen ▾ → Änderungen anzeigen“ beschreibt in Klartext, was sich gegenüber der veröffentlichten Fassung geändert hat (Bereich, Feld, alt → neu; hinzugefügt/entfernt/ausgeblendet, Reihenfolge, Tablet/Mobil, Sichtbarkeit). Der Builder liest die Beschreibung aus der erkannten Struktur und den Feldern der Komponenten.
+- **Protokoll:** Beim Veröffentlichen wird die Liste (höchstens 40 Zeilen) mit der Fassung gespeichert (`changes` in `LayoutStore`), im Verlauf angezeigt und ins Aktivitätslog geschrieben; die erste Änderung wird als Fassungsname vorgeschlagen. Der native Customizer schreibt seine geänderten Werte ebenfalls ins Aktivitätslog.

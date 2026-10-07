@@ -141,32 +141,45 @@ final class LayoutStore
     }
 
     /** Entwurf veröffentlichen. @return array<string,mixed> der neue veröffentlichte Stand */
-    public function publish(string $scope, Actor $a, string $label = ''): array
+    public function publish(string $scope, Actor $a, string $label = '', array $changes = []): array
     {
         if (!$this->may($scope, $a)) {
             throw new PermissionException('Dafür fehlt die Berechtigung.');
         }
-        $s = $this->mutate($scope, function (array $cur) use ($a, $label): array {
+        $s = $this->mutate($scope, function (array $cur) use ($a, $label, $changes): array {
             if ($cur['draft'] === null) {
                 throw new \RuntimeException('Es gibt keinen Entwurf zum Veröffentlichen.');
             }
-            return $this->doPublish($cur, $a->login, $label);
+            return $this->doPublish($cur, $a->login, $label, $changes);
         });
         return (array)$s['published'];
     }
 
+    /** Änderungsprotokoll der Fassung: höchstens 40 Zeilen à 160 Zeichen, nur Text. @param array<mixed> $changes @return list<string> */
+    public static function cleanChanges(array $changes): array
+    {
+        $out = [];
+        foreach (array_slice($changes, 0, 40) as $c) {
+            $t = trim(preg_replace('/[\x00-\x1f]+/', ' ', strip_tags((string)$c)) ?? '');
+            if ($t !== '') {
+                $out[] = mb_substr($t, 0, 160);
+            }
+        }
+        return $out;
+    }
+
     /** @param array<string,mixed> $cur @return array<string,mixed> */
-    private function doPublish(array $cur, string $by, string $label): array
+    private function doPublish(array $cur, string $by, string $label, array $changes = []): array
     {
         if ($cur['draft'] === null) {
             return $cur;
         }
         if ($cur['published'] !== null) {
-            $cur['revisions'][] = ['n' => $cur['published']['n'], 'layout' => $cur['published']['layout'], 'at' => $cur['published']['at'], 'by' => $cur['published']['by'], 'label' => (string)($cur['published']['label'] ?? '')];
+            $cur['revisions'][] = ['n' => $cur['published']['n'], 'layout' => $cur['published']['layout'], 'at' => $cur['published']['at'], 'by' => $cur['published']['by'], 'label' => (string)($cur['published']['label'] ?? ''), 'changes' => (array)($cur['published']['changes'] ?? [])];
             $cur['revisions'] = array_slice($cur['revisions'], -self::MAX_REVISIONS);
         }
         $cur['n']++;
-        $cur['published'] = ['n' => $cur['n'], 'layout' => $cur['draft']['layout'], 'at' => date('c'), 'by' => $by, 'label' => mb_substr($label, 0, 80)];
+        $cur['published'] = ['n' => $cur['n'], 'layout' => $cur['draft']['layout'], 'at' => date('c'), 'by' => $by, 'label' => mb_substr($label, 0, 80), 'changes' => self::cleanChanges($changes)];
         $cur['draft'] = null;
         return $cur;
     }
@@ -201,7 +214,7 @@ final class LayoutStore
         }
         $this->mutate($scope, function (array $cur): array {
             if ($cur['published'] !== null) {
-                $cur['revisions'][] = ['n' => $cur['published']['n'], 'layout' => $cur['published']['layout'], 'at' => $cur['published']['at'], 'by' => $cur['published']['by'], 'label' => (string)($cur['published']['label'] ?? '')];
+                $cur['revisions'][] = ['n' => $cur['published']['n'], 'layout' => $cur['published']['layout'], 'at' => $cur['published']['at'], 'by' => $cur['published']['by'], 'label' => (string)($cur['published']['label'] ?? ''), 'changes' => (array)($cur['published']['changes'] ?? [])];
                 $cur['revisions'] = array_slice($cur['revisions'], -self::MAX_REVISIONS);
                 $cur['published'] = null;
             }
@@ -216,10 +229,10 @@ final class LayoutStore
         $s = $this->read($scope);
         $out = [];
         if ($s['published'] !== null) {
-            $out[] = ['n' => (int)$s['published']['n'], 'at' => (string)$s['published']['at'], 'by' => (string)$s['published']['by'], 'label' => (string)($s['published']['label'] ?? 'Aktuell'), 'count' => count((array)$s['published']['layout'])];
+            $out[] = ['n' => (int)$s['published']['n'], 'at' => (string)$s['published']['at'], 'by' => (string)$s['published']['by'], 'label' => (string)($s['published']['label'] ?? 'Aktuell'), 'changes' => (array)($s['published']['changes'] ?? []), 'count' => count((array)$s['published']['layout'])];
         }
         foreach (array_reverse($s['revisions']) as $r) {
-            $out[] = ['n' => (int)$r['n'], 'at' => (string)$r['at'], 'by' => (string)$r['by'], 'label' => (string)($r['label'] ?? ''), 'count' => count((array)$r['layout'])];
+            $out[] = ['n' => (int)$r['n'], 'at' => (string)$r['at'], 'by' => (string)$r['by'], 'label' => (string)($r['label'] ?? ''), 'changes' => (array)($r['changes'] ?? []), 'count' => count((array)$r['layout'])];
         }
         return $out;
     }
