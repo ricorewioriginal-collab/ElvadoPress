@@ -109,9 +109,11 @@
     if(f.type==='text')h+='<input class="fc" maxlength="300" value="'+esc(v)+'"'+at+'>';
     else if(f.type==='url')h+='<input class="fc" placeholder="https://… oder /seite" value="'+esc(v)+'"'+at+'>';
     else if(f.type==='textarea')h+='<textarea class="fc" rows="5"'+at+'>'+esc(v)+'</textarea>';
-    else if(f.type==='number')h+='<input class="fc" type="number" min="'+f.min+'" max="'+f.max+'" value="'+esc(v)+'"'+at+'>';
+    else if(f.type==='number'){var un=(f.css&&f.css.unit)||'',rg=(f.max-f.min)<=1000&&f.max>f.min;
+      h+=rg?'<div class="lb-range"><input type="range" min="'+f.min+'" max="'+f.max+'" value="'+esc(v)+'" data-k="'+f.k+'" data-slider="1" aria-label="'+esc(f.label)+'"><div class="lb-num"><input type="number" min="'+f.min+'" max="'+f.max+'" value="'+esc(v)+'"'+at+'>'+(un?'<span>'+esc(un)+'</span>':'')+'</div></div>'
+        :'<input class="fc" type="number" min="'+f.min+'" max="'+f.max+'" value="'+esc(v)+'"'+at+'>'}
     else if(f.type==='color')h+='<div class="lb-color"><input type="color" value="'+(/^#[0-9a-f]{6}$/i.test(v)?esc(v):'#000000')+'" data-colorfor="'+f.k+'" aria-label="Farbe wählen"><input class="fc" placeholder="#rrggbb (leer = Standard)" maxlength="7" value="'+esc(v)+'"'+at+'></div>';
-    else if(f.type==='checkbox')h+='<label class="lb-sw"><input class="switch" type="checkbox"'+(v?' checked':'')+at+'><span>'+(v?'An':'Aus')+'</span></label>';
+    else if(f.type==='checkbox')return '<div class="lb-field lb-row"><label for="'+id+'">'+esc(f.label)+'</label><label class="lb-tg"><input type="checkbox"'+(v?' checked':'')+at+'><i></i></label></div>';
     else if(f.type==='select')h+='<select class="fc"'+at+'>'+Object.keys(f.options).map(function(k){return '<option value="'+esc(k)+'"'+(String(v)===k?' selected':'')+'>'+esc(f.options[k])+'</option>'}).join('')+'</select>';
     else if(f.type==='image')h+='<div class="lb-img">'+(v?'<img src="'+esc(v)+'" alt="">':'')+'<input class="fc" placeholder="Adresse (https://… oder /…)" value="'+esc(v)+'"'+at+'><div class="lb-imgbtn"><button type="button" class="btn-g" data-pick="'+f.k+'">Bild wählen</button>'+(v?'<button type="button" class="btn-g" data-clear="'+f.k+'">Entfernen</button>':'')+'</div></div>';
     else if(f.type==='items'){
@@ -134,7 +136,7 @@
   function visPanel(s){
     var v=Object.assign({devices:['desktop','tablet','mobile'],audience:'all',from:'',until:''},s.visibility||{});
     var dv={desktop:'Desktop',tablet:'Tablet',mobile:'Mobil'};
-    var h='<div class="lb-field"><label>Auf diesen Geräten zeigen</label><div class="lb-devs">'+Object.keys(dv).map(function(k){return '<label class="lb-sw"><input class="switch" type="checkbox" data-vis="dev" data-v="'+k+'"'+(v.devices.indexOf(k)>=0?' checked':'')+'><span>'+dv[k]+'</span></label>'}).join('')+'</div></div>';
+    var h='<div class="lb-field"><label>Auf diesen Geräten zeigen</label><div class="lb-devs">'+Object.keys(dv).map(function(k){return '<div class="lb-row"><label>'+dv[k]+'</label><label class="lb-tg"><input type="checkbox" data-vis="dev" data-v="'+k+'"'+(v.devices.indexOf(k)>=0?' checked':'')+'><i></i></label></div>'}).join('')+'</div></div>';
     h+='<div class="lb-field"><label for="lbvAud">Wer sieht den Bereich?</label><select class="fc" id="lbvAud" data-vis="audience"><option value="all"'+(v.audience==='all'?' selected':'')+'>Alle</option><option value="guests"'+(v.audience==='guests'?' selected':'')+'>Nur Besucher (nicht angemeldet)</option><option value="members"'+(v.audience==='members'?' selected':'')+'>Nur Angemeldete</option></select></div>';
     h+='<div class="lb-field"><label for="lbvFrom">Sichtbar ab</label><input class="fc" type="datetime-local" id="lbvFrom" data-vis="from" value="'+esc((v.from||'').replace(' ','T'))+'"></div>';
     h+='<div class="lb-field"><label for="lbvUntil">Sichtbar bis</label><input class="fc" type="datetime-local" id="lbvUntil" data-vis="until" value="'+esc((v.until||'').replace(' ','T'))+'"></div>';
@@ -144,10 +146,12 @@
     var h=$('lbFields'),t=$('lbSetTitle'),loc=sel?locate(sel):null;if(!h)return;
     if(!loc){t.textContent='Bereich bearbeiten';h.innerHTML='<div class="hint" style="padding:12px">Wähle links oder in der Vorschau einen Bereich, um ihn zu bearbeiten.</div>';return}
     var s=loc.node,sc=schema[s.type]||{label:s.type,fields:[]};t.textContent=sc.label+' bearbeiten';
-    if(tab==='visibility'){h.innerHTML=visPanel(s);return}
-    var fs=(sc.fields||[]).filter(function(f){return tab==='design'?grp(s.type,f.k)==='design':grp(s.type,f.k)!=='design'});
+    var fs=(sc.fields||[]).filter(function(f){var g=grp(s.type,f.k);return tab==='design'?g==='design':tab==='visibility'?g==='behavior':g!=='design'&&g!=='behavior'});
+    var sec='',body=fs.map(function(f){var hd='';if(f.section&&f.section!==sec){sec=f.section;hd='<div class="lb-sec">'+esc(sec)+'</div>'}return hd+field(s,f)}).join('');
+    if(tab==='visibility'){h.innerHTML=body+(body?'<div class="lb-sec">Sichtbarkeit</div>':'')+visPanel(s);return}
     if(!fs.length&&tab==='design'){h.innerHTML='<div class="hint" style="padding:12px">Für diesen Bereich gibt es keine Design-Einstellungen.</div>';return}
-    h.innerHTML=fs.map(function(f){return field(s,f)}).join('');
+    if(!fs.length&&tab==='content'){h.innerHTML='<div class="hint" style="padding:12px">'+(target?'Texte und Inhalte dieses Bereichs pflegst du wie bisher in der jeweiligen Verwaltung. Hier gestaltest du ihn im Reiter „Design“ und steuerst, was angezeigt wird, unter „Verhalten“.':'Dieser Bereich hat keine Inhaltsfelder.')+'</div>';return}
+    h.innerHTML=body;
   }
   function draw(){drawList();drawFields()}
   function palette(){
@@ -272,7 +276,7 @@
     var mo=t.closest('[data-lbmore]');if(mo){pop();var a=mo.dataset.lbmore;if(a==='discard')discard();else if(a==='reset')reset();else if(a==='ai')aiLayout();else if(a==='customizer')customizer();else if(a==='history')modal('history');else if(a==='schedule')modal('schedule');return}
     var mm=t.closest('[data-modal]');if(mm){var k=mm.dataset.modal;if(k==='close')modal('');else if(k==='schedule-ok'){var v=($('lbSchedAt')||{}).value||'';if(!v){state('Bitte einen Zeitpunkt wählen.',true);return}publishAt=v.replace('T',' ');modal('');badge();saveDraft()}else if(k==='schedule-off'){publishAt='';modal('');badge();saveDraft()}return}
     var rb=t.closest('[data-rollback]');if(rb){rollback(+rb.dataset.rollback);return}
-    if(t.closest('#lbMore')){var p=$('lbMorePop'),was=p.hidden;pop();p.hidden=!was;e.stopPropagation();return}
+    if(t.closest('#lbMore')||t.closest('#lbPubMore')){var pp=$(t.closest('#lbPubMore')?'lbPubPop':'lbMorePop'),was=pp.hidden;pop();pp.hidden=!was;e.stopPropagation();return}
     if(t.closest('#lbDraft')){saveDraft();return}
     if(t.closest('#lbPublish')){publish();return}
     if(t.closest('#lbReload')){setFrame();return}
@@ -306,8 +310,10 @@
       if(el.value==='')delete r[el.dataset.k];else r[el.dataset.k]=el.type==='number'?parseInt(el.value,10):el.value;
       if(!Object.keys(r).length)delete s1.responsive[el.dataset.dev];changed();return;
     }
+    if(el.dataset&&el.dataset.slider&&el.closest('#lbFields')){var nb=el.parentNode.querySelector('input[type=number]');if(nb)nb.value=el.value}
+    else if(el.type==='number'&&el.closest&&el.closest('.lb-num')){var rgi=el.closest('.lb-range').querySelector('input[type=range]');if(rgi)rgi.value=el.value}
     if(!el.dataset||el.dataset.k===undefined||!el.closest('#lbFields'))return;var l=locate(sel);if(!l)return;var s=l.node,k=el.dataset.k;
-    var v2=el.type==='checkbox'?el.checked:el.type==='number'?parseInt(el.value||'0',10):el.value;
+    var v2=el.type==='checkbox'?el.checked:(el.type==='number'||el.type==='range')?parseInt(el.value||'0',10):el.value;
     if(el.dataset.i!==undefined)s.props[k][+el.dataset.i][el.dataset.f]=v2;else s.props[k]=v2;
     if(el.type==='checkbox'){var sp=el.parentNode.querySelector('span');if(sp)sp.textContent=v2?'An':'Aus'}
     var sm=document.querySelector('#lbList .lb-item.on .lb-name small');if(sm)sm.textContent=summary(s);
@@ -318,7 +324,7 @@
     document.querySelectorAll('#panel-livebuilder [data-lbmode]').forEach(function(b){b.classList.toggle('on',b.dataset.lbmode===m)});
     var ed=m!=='preview';if(ed!==bridge.edit){bridge.edit=ed;send({type:'mode',edit:ed})}   // „Vorschau“: Links funktionieren, keine Auswahl
   }
-  function device(d){var f=frame();f.dataset.dev=d;document.querySelectorAll('#panel-livebuilder [data-lbdev]').forEach(function(b){b.classList.toggle('on',b.dataset.lbdev===d)})}
+  function device(d){var f=frame();f.dataset.dev=d;try{document.dispatchEvent(new CustomEvent('ep-device',{detail:d}))}catch(e){}document.querySelectorAll('#panel-livebuilder [data-lbdev]').forEach(function(b){b.classList.toggle('on',b.dataset.lbdev===d)})}
   function customizer(){
     var go=function(){if(window.cmsTab)cmsTab('themes',document.querySelector('.tab[data-tab="themes"]'));if(window.DesignHub&&DesignHub.load)DesignHub.load();
       Promise.resolve(window.WpThemes&&WpThemes.load&&WpThemes.load()).then(function(){if(WpThemes.customizeSlug)WpThemes.customizeSlug('elvado-baukasten')}).catch(function(){})};
@@ -361,5 +367,5 @@
     });
     window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
   }
-  window.LiveBuilder={load:function(){bind();load()},publish:publish,saveDraft:saveDraft};
+  window.LiveBuilder={device:function(d){device(d)},load:function(){bind();load()},publish:publish,saveDraft:saveDraft};
 })();

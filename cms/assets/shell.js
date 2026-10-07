@@ -12,3 +12,60 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+/* Kopfleiste und Seitenleiste v2: Suche, Website-Name, Gerätewahl, Profil, „Weitere anzeigen“. Reine Bedienung – nutzt vorhandene Funktionen (CmsSearch, AdminTheme, LiveBuilder, cmsTab). */
+(function(){
+  'use strict';
+  function $(id){return document.getElementById(id)}
+  function once(el,k){if(!el||el.dataset[k])return false;el.dataset[k]='1';return true}
+  function initials(n){n=String(n||'').trim();if(!n)return '?';var p=n.split(/\s+/);return ((p[0]||'').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase()}
+  function syncUser(){
+    var id=$('cmsUserIdentity');if(!id)return;var t=id.textContent||'',parts=t.split(' · '),name=parts[0]||'',role=parts[1]||'';
+    var n=$('epUserName'),r=$('epUserRole'),a=$('epAvatar');if(n)n.textContent=name;if(r)r.textContent=role==='Admin'?'Administrator':role;if(a)a.textContent=initials(name);
+  }
+  function siteName(){
+    var c=window.CMS&&window.CMS.portal&&window.CMS.portal.site_name;var chip=$('epSiteChip');if(chip&&c){var b=chip.querySelector('b');if(b&&b.textContent!==c)b.textContent=c}
+  }
+  function themeIcon(){
+    var b=$('cmsThemeBtn');if(!b)return;var m=document.documentElement.getAttribute('data-admin-theme')||'neon',i=b.querySelector('i');if(i)i.className='fas '+(m==='light'?'fa-sun':'fa-moon');
+  }
+  function devices(){
+    var box=$('epDevs');if(!box||!once(box,'wired'))return;
+    box.addEventListener('click',function(e){var b=e.target.closest('[data-epdev]');if(!b)return;var d=b.dataset.epdev;mark(d);try{localStorage.setItem('ep_device',d)}catch(x){}
+      if(window.LiveBuilder&&LiveBuilder.device)LiveBuilder.device(d);
+      var lb=document.querySelector('.tab[data-tab="livebuilder"]');if(lb&&!document.getElementById('panel-livebuilder').classList.contains('on')&&lb.click)lb.click()});
+    document.addEventListener('ep-device',function(e){mark(e.detail)});
+    function mark(d){box.querySelectorAll('[data-epdev]').forEach(function(x){x.classList.toggle('on',x.dataset.epdev===d)})}
+  }
+  function user(){
+    var u=$('epUser');if(!u||!once(u,'wired'))return;var btn=$('epUserBtn'),pop=$('epUserPop');
+    btn.addEventListener('click',function(e){e.stopPropagation();pop.hidden=!pop.hidden;btn.setAttribute('aria-expanded',String(!pop.hidden))});
+    pop.addEventListener('click',function(e){var g=e.target.closest('[data-epgo]');if(g){pop.hidden=true;var t=document.querySelector('.tab[data-tab="'+g.dataset.epgo+'"]');if(t)t.click()}});
+    document.addEventListener('click',function(){pop.hidden=true});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')pop.hidden=true});
+    var id=$('cmsUserIdentity');if(id&&window.MutationObserver)new MutationObserver(syncUser).observe(id,{childList:true,characterData:true,subtree:true});
+    syncUser();
+  }
+  function search(){var b=$('epTopSearch');if(!b||!once(b,'wired'))return;b.addEventListener('click',function(){if(window.CmsSearch)CmsSearch.open()})}
+  function more(){
+    document.querySelectorAll('.tabs .tab-group').forEach(function(g){
+      if(g.dataset.moreBtn||!g.querySelector('.tab-more'))return;g.dataset.moreBtn='1';
+      var body=g.querySelector('.tab-group-body');if(!body)return;
+      var b=document.createElement('button');b.type='button';b.className='ep-more-btn';b.innerHTML='<i class="fas fa-ellipsis"></i><span>Weitere anzeigen</span>';
+      b.addEventListener('click',function(e){e.stopPropagation();var on=g.classList.toggle('show-more');b.querySelector('span').textContent=on?'Weniger anzeigen':'Weitere anzeigen'});
+      if(g.classList.contains('single'))g.appendChild(b);else body.appendChild(b);
+    });
+  }
+  function keepOpen(){   // aktiver Eintrag in „weiteren“: Gruppe zeigt sie
+    var on=document.querySelector('.tabs .tab.tab-more.on');if(on){var g=on.closest('.tab-group');if(g)g.classList.add('show-more')}
+  }
+  function order(){   // Reihenfolge wie im Entwurf: Website-Name, Website öffnen, Geräte, Design, Benachrichtigungen, Profil
+    var bar=document.querySelector('.cms-navbar-actions'),th=$('cmsThemeMenu'),bell=document.querySelector('.ep-bellwrap');
+    if(bar&&th&&bell&&th.nextElementSibling!==bell)bar.insertBefore(th,bell);
+  }
+  function nolabel(){document.querySelectorAll('.tabs .tab').forEach(function(t){if(!t.textContent.trim())t.classList.add('ep-nolabel')})}
+  function boot(){nolabel();search();user();devices();more();siteName();themeIcon();order();keepOpen()}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  [300,900,2200,5000].forEach(function(ms){setTimeout(boot,ms)});
+  setInterval(function(){siteName();themeIcon();keepOpen()},2500);
+  document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.tabs .tab'))setTimeout(keepOpen,50)});
+})();
