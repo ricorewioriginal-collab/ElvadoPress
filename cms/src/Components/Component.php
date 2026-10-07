@@ -13,6 +13,12 @@ final class Component
     public const GROUPS = ['content' => 'Inhalt', 'design' => 'Design', 'behavior' => 'Verhalten'];
     /** Rendering: native = PHP-Funktion der Registry (überall), theme = vom aktiven Theme gerendert (Baukasten), wp = nur mit WordPress-Laufzeit, runtime = Modul von ElvadoPress (z. B. Formulare), bound = bestehender Bereich der Website (CSS-Selektor in „bind“): die Website rendert weiter selbst, ElvadoPress steuert nur Gestaltung und Sichtbarkeit. */
     public const RENDERERS = ['native', 'theme', 'wp', 'runtime', 'bound'];
+    /** Zulässige Bereichs-Selektoren: Kennung, Klasse oder ein Gliederungs-Element (auch für „*“-Komponenten pro Instanz). */
+    public const BIND_RE = '/^([#.][a-z][a-z0-9_-]{0,60}|header|footer|nav|main|aside|section|article)$/i';
+    /** „bind“ = „*“: der Selektor steht pro Instanz im Feld „selector“ (vom Live Builder erkannte Bereiche). */
+    public const BIND_ANY = '*';
+
+    public static function validSelector(string $s): bool { return preg_match(self::BIND_RE, $s) === 1; }
 
     /** @var list<array<string,mixed>> */
     public readonly array $fields;
@@ -48,7 +54,7 @@ final class Component
             throw new \InvalidArgumentException('Unbekannte Kategorie bei ' . $id);
         }
         $bind = (string)($d['bind'] ?? '');
-        if ($bind !== '' && preg_match('/^([#.][a-z][a-z0-9_-]{0,60}|header|footer|nav|main|aside|section|article)$/i', $bind) !== 1) {   // Kennung, Klasse oder ein Gliederungs-Element
+        if ($bind !== '' && $bind !== self::BIND_ANY && !self::validSelector($bind)) {   // Kennung, Klasse oder ein Gliederungs-Element
             throw new \InvalidArgumentException('Ungültiger Bereichs-Selektor bei ' . $id);
         }
         $renderer = (string)($d['renderer'] ?? ($bind !== '' ? 'bound' : ($render ? 'native' : 'runtime')));

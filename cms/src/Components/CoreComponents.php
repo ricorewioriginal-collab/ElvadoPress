@@ -17,6 +17,7 @@ final class CoreComponents
             $r->register($def, 'core');
         }
         self::native($r);
+        self::detectedArea($r);
         foreach (self::hosted() as $def) {
             $r->register($def, 'core');
         }
@@ -79,6 +80,21 @@ final class CoreComponents
     private static function linkItems(): array
     {
         return ['k' => 'items', 'label' => 'Links', 'type' => 'items', 'max_items' => 12, 'item' => [['k' => 'label', 'label' => 'Text', 'type' => 'text', 'max' => 80], ['k' => 'url', 'label' => 'Ziel', 'type' => 'url']]];
+    }
+
+    /** Generische Komponente für Bereiche, die der Live Builder in der Vorschau erkennt: Gestaltung und Sichtbarkeit über einen Selektor (Kennung, Klasse oder Gliederungs-Element). */
+    private static function detectedArea(Registry $r): void
+    {
+        $r->register(['id' => 'ep_area', 'name' => 'Erkannter Bereich', 'category' => 'advanced', 'icon' => 'object-group', 'bind' => Component::BIND_ANY, 'description' => 'Bereich der Website, den der Live Builder in der Vorschau erkannt hat (nur Gestaltung und Sichtbarkeit).',
+            'rules' => ['repeatable' => true, 'use' => 'admin'], 'fields' => [
+                ['k' => 'selector', 'label' => 'Bereich (Selektor, z. B. #kopf oder .karte)', 'type' => 'text', 'default' => '', 'group' => 'behavior'],
+                ['k' => 'label', 'label' => 'Bezeichnung', 'type' => 'text', 'default' => '', 'group' => 'content'],
+                ['k' => 'bg', 'label' => 'Hintergrundfarbe', 'type' => 'color', 'default' => '', 'group' => 'design', 'section' => 'Farben', 'css' => ['prop' => 'background-color']],
+                ['k' => 'color', 'label' => 'Textfarbe', 'type' => 'color', 'default' => '', 'group' => 'design', 'section' => 'Farben', 'css' => ['prop' => 'color']],
+                ['k' => 'height', 'label' => 'Mindesthöhe (px)', 'type' => 'number', 'min' => 0, 'max' => 1200, 'default' => 0, 'group' => 'design', 'section' => 'Abmessungen', 'responsive' => true, 'css' => ['prop' => 'min-height', 'unit' => 'px', 'skip_zero' => true]],
+                ['k' => 'mt', 'label' => 'Abstand oben (px)', 'type' => 'number', 'min' => 0, 'max' => 300, 'default' => 0, 'group' => 'design', 'section' => 'Abstände', 'responsive' => true, 'css' => ['prop' => 'margin-top', 'unit' => 'px', 'skip_zero' => true]],
+                ['k' => 'mb', 'label' => 'Abstand unten (px)', 'type' => 'number', 'min' => 0, 'max' => 300, 'default' => 0, 'group' => 'design', 'section' => 'Abstände', 'responsive' => true, 'css' => ['prop' => 'margin-bottom', 'unit' => 'px', 'skip_zero' => true]],
+            ]], 'core');
     }
 
     private static function native(Registry $r): void
