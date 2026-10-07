@@ -37,6 +37,12 @@ final class CoreInstaller
         $root = $this->engine->coreRoot();
         $this->engine->protect();
         if (is_dir($root . '/' . $core)) {
+            if ($this->engine->state()['core'] !== $core) {   // gemeinsamer Core (mehrere Websites): diese Engine übernimmt die vorhandene Version
+                $s = $this->engine->state();
+                $prev = $s['core'] !== '' ? array_values(array_unique(array_merge([$s['core']], $s['previous']))) : $s['previous'];
+                $this->engine->save(['core' => $core, 'version' => $version, 'installed_at' => date('c'), 'previous' => array_slice($prev, 0, 1)]);
+                $this->engine->log('WordPress ' . $version . ' übernommen (bereits vorhandener Core)');
+            }
             return ['ok' => true, 'message' => 'Diese Version ist schon eingespielt.', 'core' => $core, 'files' => 0, 'skipped' => 0];
         }
         $zip = new \ZipArchive();
@@ -182,6 +188,14 @@ final class CoreInstaller
     /** Alte Core-Ordner entfernen (behalten: der aktuelle und der letzte). */
     private function prune(string $current, array $keep): void
     {
+        // Der Core-Ordner gehört allen Websites: Versionen, die eine andere Website (cms/sites/*/data/.wp-engine) noch nutzt, bleiben
+        $files = array_merge([dirname($this->engine->stateDir()) . '/.wp-engine/state.json'], glob($this->engine->cmsDir() . '/sites/*/data/.wp-engine/state.json') ?: [], [$this->engine->cmsDir() . '/data/.wp-engine/state.json']);
+        foreach (array_unique($files) as $f) {
+            $d = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+            if (is_array($d)) {
+                $keep = array_merge($keep, [(string)($d['core'] ?? '')], array_map('strval', (array)($d['previous'] ?? [])));
+            }
+        }
         foreach (glob($this->engine->coreRoot() . '/core-*', GLOB_ONLYDIR) ?: [] as $d) {
             $b = basename($d);
             if ($b !== $current && !in_array($b, $keep, true)) {
