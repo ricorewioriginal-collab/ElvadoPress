@@ -16,6 +16,7 @@
 (function(){
   'use strict';
   function $(id){return document.getElementById(id)}
+  function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function once(el,k){if(!el||el.dataset[k])return false;el.dataset[k]='1';return true}
   function initials(n){n=String(n||'').trim();if(!n)return '?';var p=n.split(/\s+/);return ((p[0]||'').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase()}
   function syncUser(){
@@ -23,7 +24,42 @@
     var n=$('epUserName'),r=$('epUserRole'),a=$('epAvatar');if(n)n.textContent=name;if(r)r.textContent=role==='Admin'?'Administrator':role;if(a)a.textContent=initials(name);
   }
   function siteName(){
-    var c=window.CMS&&window.CMS.portal&&window.CMS.portal.site_name;var chip=$('epSiteChip');if(chip&&c){var b=chip.querySelector('b');if(b&&b.textContent!==c)b.textContent=c}
+    var c=window.CMS&&window.CMS.portal&&window.CMS.portal.site_name;var chip=$('epSiteChip');if(chip&&c&&!chip.dataset.brandUrl){var b=chip.querySelector('b');if(b&&b.textContent!==c)b.textContent=c}
+  }
+  /* Marken-Umschalter: bei mehreren Marken/Websites (Domains & Branding) wählt der Header die Marke, die der Verwaltungsbereich bearbeitet (z. B. Live Editor). */
+  var brandState={list:[],cur:''};
+  function brandCur(){return brandState.list.filter(function(b){return b.id===brandState.cur})[0]||null}
+  function brandApply(fire){
+    var b=brandCur();if(!b)return;
+    document.documentElement.dataset.cmsBrand=b.id;window.CMS_BRAND=b.id;
+    var btn=$('epBrandBtn');if(btn){var l=btn.querySelector('b');if(l)l.textContent=b.short_name||b.name}
+    var chip=$('epSiteChip');if(chip){var cb=chip.querySelector('b');if(cb)cb.textContent=b.name;if(b.primary_domain){chip.href='https://'+b.primary_domain+'/';chip.dataset.brandUrl='1'}}
+    var menu=$('epBrandMenu');if(menu)[].forEach.call(menu.querySelectorAll('button'),function(x){x.classList.toggle('on',x.getAttribute('data-brand')===b.id)});
+    if(fire)window.dispatchEvent(new CustomEvent('cms:brand',{detail:{id:b.id,brand:b}}));
+  }
+  function brandSet(id,fire){
+    if(!brandState.list.some(function(b){return b.id===id}))return;brandState.cur=id;try{localStorage.setItem('cms.brand',id)}catch(e){}brandApply(fire);
+  }
+  function brandInit(){
+    var host=document.querySelector('.ep-top .ep-site');if(!host||$('epBrand'))return;
+    fetch('api.php?action=brands_public',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+      var list=(d&&d.brands||[]).filter(function(b){return b.enabled!==false});if(list.length<2||$('epBrand'))return;
+      brandState.list=list;var saved='';try{saved=localStorage.getItem('cms.brand')||''}catch(e){}
+      brandState.cur=list.some(function(b){return b.id===saved})?saved:(d.default||list[0].id);
+      var w=document.createElement('div');w.className='ep-brand';w.id='epBrand';
+      w.innerHTML='<button type="button" class="ep-brand-btn" id="epBrandBtn" aria-haspopup="true" aria-expanded="false" title="Website/Marke wechseln"><i class="fas fa-layer-group"></i><b></b><i class="fas fa-chevron-down ep-brand-ch"></i></button><div class="ep-brand-menu" id="epBrandMenu" role="menu" hidden>'
+        +list.map(function(b){return '<button type="button" role="menuitem" data-brand="'+String(b.id).replace(/[^a-z0-9_-]/gi,'')+'"><i class="fas fa-globe"></i><span><b>'+esc(b.name)+'</b><small>'+esc(b.primary_domain||'')+'</small></span><i class="fas fa-check ep-brand-ok"></i></button>'}).join('')+'</div>';
+      host.parentNode.insertBefore(w,host);brandApply(false);
+      w.addEventListener('click',function(e){
+        var bt=e.target.closest('button');if(!bt)return;var m=$('epBrandMenu');
+        if(bt.id==='epBrandBtn'){m.hidden=!m.hidden;bt.setAttribute('aria-expanded',m.hidden?'false':'true');return}
+        var id=bt.getAttribute('data-brand');if(id){m.hidden=true;$('epBrandBtn').setAttribute('aria-expanded','false');if(id!==brandState.cur)brandSet(id,true)}
+      });
+      document.addEventListener('click',function(e){var m=$('epBrandMenu');if(m&&!m.hidden&&!e.target.closest('#epBrand')){m.hidden=true;$('epBrandBtn').setAttribute('aria-expanded','false')}});
+      document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=$('epBrandMenu');if(m)m.hidden=true}});
+      window.CMS_BRANDS={list:function(){return brandState.list.slice()},current:function(){return brandState.cur},set:function(id){brandSet(id,true)}};
+      window.dispatchEvent(new CustomEvent('cms:brand-ready',{detail:{id:brandState.cur}}));
+    }).catch(function(){});
   }
   function themeIcon(){
     var b=$('cmsThemeBtn');if(!b)return;var m=document.documentElement.getAttribute('data-admin-theme')||'neon',i=b.querySelector('i');if(i)i.className='fas '+(m==='light'?'fa-sun':'fa-moon');
@@ -63,7 +99,7 @@
     if(bar&&th&&bell&&th.nextElementSibling!==bell)bar.insertBefore(th,bell);
   }
   function nolabel(){document.querySelectorAll('.tabs .tab').forEach(function(t){if(!t.textContent.trim())t.classList.add('ep-nolabel')})}
-  function boot(){nolabel();search();user();devices();more();siteName();themeIcon();order();keepOpen()}
+  function boot(){nolabel();search();user();devices();more();siteName();brandInit();themeIcon();order();keepOpen()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   [300,900,2200,5000].forEach(function(ms){setTimeout(boot,ms)});
   setInterval(function(){siteName();themeIcon();keepOpen()},2500);
