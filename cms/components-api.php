@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 // API der Komponenten-Registry und der Layouts. Aktionen: components_catalog, layout_get, layout_save_draft, layout_publish, layout_discard, layout_revisions, layout_rollback, layout_render, layout_preview (Pakete).
-// Angemeldete Personen dürfen lesen; Schreiben nach Rechten (home/site:* nur Administratoren, page:*/post:* auch Autoren, geschützte Komponenten bleiben). In der Demo ist Schreiben gesperrt.
+// Angemeldete Personen dürfen lesen; Schreiben nach Rechten (home/site:* nur Administratoren, page:*/post:* auch Autoren, geschützte Komponenten bleiben). In der Demo ist Schreiben freigegeben (Daten werden zurückgesetzt).
 define('RRW_API_LIB_ONLY', true);
 require __DIR__ . '/api.php';
 require_once __DIR__ . '/lib/components.php';
@@ -14,9 +14,7 @@ $rrwCUser = rrw_auth(false);
 $rrwCActor = Actor::fromAuth($rrwCUser);
 $rrwCBody = $_SERVER['REQUEST_METHOD'] === 'POST' ? rrw_body() : [];
 $rrwCWrite = in_array($rrwCAction, ['layout_save_draft', 'layout_publish', 'layout_discard', 'layout_rollback'], true);
-if ($rrwCWrite && function_exists('rrw_demo_enabled') && rrw_demo_enabled()) {
-    rrw_json(['status' => 'error', 'message' => 'In der Demo gesperrt.'], 403);
-}
+// Demo: Layouts sind freigegeben (reine Daten im Demo-Ordner, werden mit der Demo zurückgesetzt)
 if ($rrwCWrite && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
 }

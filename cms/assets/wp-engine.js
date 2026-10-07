@@ -10,6 +10,7 @@ window.WpEngine=(()=>{
   let d;try{d=await r.json();}catch(e){throw new Error('Unerwartete Antwort des Servers');}
   return d;
  }
+ const DEMO=()=>!!(window.RRW_DEMO&&window.RRW_DEMO.engine);
  const BADGE={ok:['OK','#22a06b'],warn:['Warnung','#e0a100'],fail:['Fehler','#e5484d']};
  function badge(st){const b=BADGE[st]||BADGE.warn;return '<span style="color:#fff;background:'+b[1]+';border-radius:6px;padding:1px 8px;font-size:.74rem;font-weight:700">'+b[0]+'</span>';}
  function reqList(req){
@@ -72,6 +73,13 @@ window.WpEngine=(()=>{
   let h='';
   if(S.msg)h+='<div class="'+(S.msg.err?'danger-note':'hint')+'" style="margin:8px 0;padding:8px 12px;border-radius:8px;'+(S.msg.err?'':'background:rgba(34,160,107,.12)')+'">'+esc(S.msg.text)+'</div>';
   h+='<p><b>Betriebsart:</b> '+esc(mode)+(e.version?' · WordPress '+esc(e.version):'')+'</p>';
+  if(DEMO()){   // Demo: Core, Datenbank und Betriebsart verwaltet die Demo selbst
+   const act=e.mode==='active';
+   h+=step(1,'Demo-Engine',act,'<p>'+(act?'Der <b>echte WordPress-Core '+esc(e.version||'')+'</b> läuft in dieser Demo. Alle Bereiche der Engine (Inhalte, Medien, Benutzer, Plugins &amp; Themes, Menüs, Widgets, Blöcke, Migration, Live Builder) lassen sich ausprobieren. Nach dem Zurücksetzen der Demo richtet sich die Engine selbst neu ein.':'Die Engine wird für die Demo vorbereitet (Core einspielen, Tabellen anlegen) – das dauert beim ersten Mal etwas.')+'</p><p class="hint">Gesperrt bleibt nur, was fremden Programmcode auf den gemeinsamen Server brächte: Plugins/Themes installieren oder hochladen. Vorinstallierte lassen sich aktivieren.</p><div class="ap-add"><button class="btn-a" type="button" onclick="WpEngine.demoSetup()"'+dis+'><i class="fas fa-rotate"></i> '+(act?'Neu einrichten':'Jetzt vorbereiten')+'</button><button class="btn-g" type="button" onclick="WpEngine.analyze()"'+(busy||!act?' disabled':'')+'><i class="fas fa-scale-balanced"></i> Systemanalyse</button></div>'+analysis());
+   h+=step(2,'Migration (Trockenlauf und echter Lauf)',!!S.mig&&S.mig.verdict!=='blocked',migration());
+   if(busy)h+='<p class="hint" style="margin-top:10px"><i class="fas fa-spinner fa-spin"></i> '+esc(busy)+' …</p>';
+   r.innerHTML=h;return;
+  }
   h+=step(1,'Systemprüfung',s.steps.requirements,reqList(s.requirements));
   const core=e.core_present
    ?'<p>WordPress <b>'+esc(e.version)+'</b> ist eingespielt'+(e.installed_at?' ('+esc(e.installed_at.slice(0,10))+')':'')+'.'+(S.prep&&S.prep.update_available?' Neu verfügbar: <b>'+esc(S.prep.latest.version)+'</b>.':'')+'</p>'
@@ -107,6 +115,12 @@ window.WpEngine=(()=>{
  const dbCfg=()=>({host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')});
  function apply(d){if(d.engine){S.st=d;}}
  async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;const q=await api('migration_runs');if(q.status==='ok')S.run=q.run;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
+ async function demoBoot(){
+  if(!DEMO()||window.__epDemoBoot)return;window.__epDemoBoot=1;
+  const tick=async()=>{try{const app=document.getElementById('cmsApp');if(!app||app.style.display==='none')return;const st=await api('engine_status');if(st.status==='ok'&&st.engine&&st.engine.mode!=='active'&&!S.busy&&!window.__epDemoBusy){window.__epDemoBusy=1;try{const d=await api('engine_demo_setup',{});if(d.status==='ok'){apply(d);if(window.cmsToast)cmsToast('Demo-Engine bereit ✓');draw()}}finally{window.__epDemoBusy=0}}}catch(e){window.__epDemoBusy=0}};
+  setTimeout(tick,2500);setInterval(tick,45000);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',demoBoot);else demoBoot();
  return {
   load,
   prepare:()=>run('Prüfe wordpress.org',async()=>{const d=await api('engine_prepare');S.prep=d;S.msg=d.latest&&!d.latest.ok?{err:true,text:d.latest.message}:{text:'Aktuelle WordPress-Version: '+d.latest.version+'.'};}),
@@ -114,6 +128,7 @@ window.WpEngine=(()=>{
   dbTest:()=>run('Teste die Verbindung',async()=>{const d=await api('engine_db_test',{db:dbCfg()});S.msg={err:d.status!=='ok',text:d.message||''};}),
   dbInstall:()=>run('Richte WordPress ein (Tabellen anlegen)',async()=>{const d=await api('engine_db_install',{db:dbCfg()});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   mode:m=>run(m==='active'?'Starte WordPress zur Prüfung':'Schalte um',async()=>{const d=await api('engine_mode',{mode:m});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
+  demoSetup:()=>run('Bereite die Demo-Engine vor (Core, Tabellen)',async()=>{const d=await api('engine_demo_setup',{});if(d.status==='ok'){apply(d);S.msg={text:d.message||'Bereit.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
   analyze:()=>run('Starte WordPress und zähle',async()=>{const d=await api('engine_analyze');if(d.status==='ok'){S.ana=d;S.msg={text:'Systemanalyse fertig.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
   migPlan:()=>run('Trockenlauf läuft (es wird nichts geändert)',async()=>{const d=await api('migration_plan',{});if(d.status==='ok'){S.mig=d.report;S.msg={text:'Trockenlauf fertig – es wurde nichts geändert.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
   migRun:()=>{if(!confirm('Die Migration legt Inhalte in WordPress an (mit Sicherung vorher). Deine bisherigen Daten bleiben unverändert. Fortfahren?'))return;if((prompt('Zur Bestätigung MIGRIEREN eintippen')||'')!=='MIGRIEREN')return;run('Migration läuft (Sicherung, dann Übernahme)',async()=>{const d=await api('migration_run',{confirm:'MIGRIEREN'});if(d.status==='ok'){S.run=d.run;S.msg={err:d.run.status==='failed',text:'Lauf '+d.run.status+'.'};try{const m=await api('migration_plan',{});if(m.status==='ok')S.mig=m.report;}catch(e){}}else S.msg={err:true,text:d.message||'Fehler'};});},

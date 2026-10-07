@@ -103,3 +103,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 11: Tests, Sicherheit, Performance, Dokumentation
 `scripts/test-wp-engine-api.php` (34; 41 mit echtem WordPress): HTTP-Tests gegen `php -S` – 401 ohne Anmeldung, kein Cookie-Login, Autor 403, Methoden/Bestätigungen, Eingabeprüfung, keine Geheimnisse/Pfade in Antworten und Protokollen, Dateirechte, und per Probe: WordPress startet nur, wenn nötig (auch unberechtigte Anfragen bei aktiver Engine starten es nicht; Startzeiten). Doku: `PLUGIN-SYSTEM.md`, `THEME-SYSTEM.md`, Abschnitte „Wer ist wofür zuständig“, „Sicherheit der API“, „Performance“ und Testmatrix in `ARCHITECTURE-WORDPRESS.md`, ehrliche Restliste in `KNOWN_ISSUES.md`.
+
+## Demo mit echtem WordPress
+`cms/lib/demo.php` (`rrw_demo_engine_*`, `RRW_DEMO_ENGINE_BLOCKED`), `engine-api.php` (`engine_demo_setup`, Sperren statt Totalsperre), `components-api.php` (Layouts in der Demo frei), `wp-engine.js` (Demo-Ansicht, Selbstaufbau nach Anmeldung/Zurücksetzen), `make-demo.php --engine=…`, Test `scripts/test-demo-engine.php` (7; 23 mit echtem WordPress). Braucht serverseitig eine eigene leere MySQL/MariaDB-Datenbank und `cms/lib/demo-engine.json`; ohne sie unverändertes Verhalten. Nativ-Plugin-Aktionen (`np_*`) bleiben in der Demo gesperrt.
