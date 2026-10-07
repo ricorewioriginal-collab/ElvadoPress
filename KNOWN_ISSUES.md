@@ -23,3 +23,17 @@
 - **Behoben:** Die Demo (und jede Installation mit aktiven Plugins Elvado AI/SEO) fror beim Öffnen der Verwaltung ein (Endlosschleife im `MutationObserver` der Plugin-Oberflächen). Plugin-Skripte, die den DOM beobachten, müssen eigene Änderungen ausschließen und bündeln (siehe `cms/docs/PLUGIN-ENTWICKLUNG.md`).
 
 - **WordPress-Kompatibilität, noch offen:** Die Verwaltung ist keine WordPress-Verwaltung; Hooks, die nur dort einen Platz haben, werden (noch) nicht ausgelöst: `admin_footer_text`, `in_admin_header`, `plugin_action_links` (Links in der Plugin-Zeile). `admin_notices`/`all_admin_notices` zeigt die Verwaltung seit dem Rahmen oben (`wp-notices.js`); Meldungen erscheinen einmal global, nicht je Seite.
+
+## WordPress-Engine / Umstrukturierung (Stand Phase 11)
+- **Bereich:** `cms/src/Wp/`, `cms/engine-api.php`, Live Builder, Migration
+- **Status:** Engine, Dienste/Adapter, Komponenten-Registry, Live Builder, Migration (Trockenlauf, echter Lauf, Rückbau) und Pakete sind umgesetzt und getestet (auch mit echtem WordPress 7.1.3 + MariaDB). Die Engine ist **standardmäßig aus**.
+- **Noch offen (bewusst nicht als fertig deklariert):**
+  - Die bisherigen Panels (Beiträge, Seiten, Medien, Benutzer, Menüs, Widgets) arbeiten weiter mit den nativen Daten bzw. der Emulation `cms/wp`; das **Umschalten auf die Engine** und danach das **Entfernen der Emulation** (Ziel: nur noch echter Core) steht aus. Die Migration schaltet nicht um; sie wurde in einer Produktivumgebung noch nie ausgeführt.
+  - Eine eigene, stabile REST-API (`/api/pages`, `/api/posts` …) gibt es noch nicht; Clients nutzen die Aktionen von `engine-api.php`/`components-api.php`.
+  - Update Center je Art (ElvadoPress, WordPress, Plugins, Themes, Pakete) und der umfassende Systemstatus aus dem Masterprompt (Abschnitt 25) sind nur in Teilen vorhanden (Systemprüfung und Analyse im Engine-Panel).
+  - Layouts je Seite/Beitrag (`page:*`, `post:*`) haben noch keine Oberfläche; Header/Footer/Navigation bestehender Frontends sind nur über Pakete (gebundene Bereiche) steuerbar.
+  - Widget-Bereiche lassen sich nur mit klassischen Themes sinnvoll testen; Werkzeugleisten-Aktionen der Vorschau-Brücke sind nicht per Klick getestet.
+  - Migration: Inhalte werden als HTML übernommen (kein Umbau in Blöcke), Widgets müssen von Hand eingerichtet werden, Papierkorb wird nicht übernommen.
+  - Verwaltungs-Oberfläche: Zähler-Abzeichen an „Plugins“/„Updates“ und ein Menüpunkt „Automatisierung“ fehlen mangels Funktion.
+- **Nächste Untersuchung:** Panels auf die Engine umstellen (mit Golden-Test in ricorewi-radio), danach die Emulation entfernen.
+

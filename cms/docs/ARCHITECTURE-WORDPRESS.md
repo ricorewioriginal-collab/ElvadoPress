@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 8 (Menüs, Widgets, Blöcke). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Stand Phase 11 (Tests, Sicherheit, Performance, Dokumentation). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
 
 ## Schichten
 ```
@@ -75,3 +75,42 @@ Tests: `scripts/test-wp-engine-nav-widgets-blocks.php` (43 Prüfungen ohne Netz,
 
 ## Phase 10: Pakete / Projekt-Kompatibilität
 Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMPONENTS.md)), Paket-Lader `cms/packs/<paket>/components.php`, Bearbeitungsziele im Live Builder, Vorschau-Schlüssel und `rrw_components_inject()`. Projektspezifische Komponenten (z. B. RicoReWi) liegen ausschließlich im jeweiligen Projekt-Repository; der Kern enthält keine Projektinhalte.
+
+## Phase 11: Wer ist wofür zuständig, wer führt die Daten?
+| Bereich | ElvadoPress | WordPress (Engine aktiv) |
+|---|---|---|
+| Oberfläche, Anmeldung, Rollen (Administrator/Autor), API, Live Builder, Komponenten, Layouts, Migration, Updates, KI, Apps | **ja** | – |
+| Beiträge, Seiten, Kategorien/Schlagwörter, Medien, Menüs, Widgets, Blöcke | Adapter/Dienste, Rechteprüfung | **Datenquelle** (über `WordPressAdapter` und Co.) |
+| WordPress-Plugins/-Themes | Verwaltung, Absturzschutz | **führt sie aus** |
+| Native Plugins, JS-Plugins, Pakete (RicoReWi) | **ja** | – |
+
+**Führende Datenquelle:** solange die Engine nicht aktiv ist oder nicht migriert wurde, führen die bisherigen ElvadoPress-Daten (`cms/data`, `cms/media`). Die Migration kopiert nur (Bestand bleibt unverändert) und schaltet **nicht** um; das Umschalten der bisherigen Verwaltungs-Panels auf die Engine ist ein eigener, noch ausstehender Schritt (siehe `KNOWN_ISSUES.md`). Bestehende Websites ohne Aktivierung bleiben unverändert.
+
+## Sicherheit der API (geprüft durch `scripts/test-wp-engine-api.php`)
+- **Anmeldung:** Sitzungsschlüssel nur im Header `X-AnMaCha-Token` (oder `_tok` im Body/Query) – **nie per Cookie**. Damit gibt es keinen Cookie-Login und somit kein CSRF; fremde Seiten können keine Aktionen mit der Sitzung der Person auslösen.
+- **Rechte:** Administratoren alles; Autoren nur Inhalte/Medien nach Besitz und Lesen von Menüs/Blöcken; alle Engine-, Plugin-, Theme-, Benutzer-, Migrations- und Layout-Aktionen für Websites/Bereiche nur Administratoren (403). Die Dienste prüfen zusätzlich selbst (`Actor::can`, `PermissionException`).
+- **Methoden:** schreibende Aktionen nur per POST (405 sonst); Migration nur mit Bestätigung `MIGRIEREN`, Rückbau mit Bestätigung; Demo-Betrieb sperrt alles außer dem Status.
+- **Eingaben:** Typen/Kennungen/Bereiche werden serverseitig geprüft (4xx mit Meldung, keine Pfade oder Stack-Traces nach außen); Layout-Bereiche nur `home|site:*|page:*|post:*`; Berichts- und Lauf-Kennungen nur im festen Format.
+- **Ausgabe:** Inhalte werden bereinigt (kses ohne Recht auf ungefiltertes HTML), Komponentenwerte typgeprüft (`Sanitizer`), URLs nur harmlose Schemata, CSS-Eigenschaften aus einer Liste; die Oberfläche maskiert Ausgaben.
+- **Dateien/Geheimnisse:** `cms/data/.wp-engine/` 0700, `db.json`/`keys.json`/Berichte/Protokolle 0600; Datenbank-Passwort steht in keiner API-Antwort und in keinem Protokoll; Hochladen nur Bilder/PDF/Audio/Video mit Inhaltsprüfung (kein SVG/PHP).
+- **Updates/Installationen:** Core nur von festen WordPress-Hosts mit SHA-1-Prüfung; Plugins/Themes mit Größen-, Dateityp- und Syntaxprüfung; Wächter + abgesicherter Modus gegen Abstürze.
+
+## Performance
+- **WordPress wird nur gestartet, wenn die Anfrage es braucht.** Öffentliche Seiten, Status, Komponenten-Katalog, Layout-API, native Quellen, Trockenlauf-Bericht und alle **unberechtigten** Anfragen (401/403) starten WordPress nie – auch nicht bei aktiver Engine (Test mit Probe und echtem WordPress).
+- Die Engine hat einen eigenen Einstieg (`engine-api.php`); WordPress läuft dort im globalen Gültigkeitsbereich ohne den Ballast der Verwaltung.
+- Kalter Start von WordPress < 4 s, erneuter < 3 s auf der Testumgebung (gemessen im Test); die Verwaltungs-API ohne WordPress antwortet < 1,5 s.
+- Gebundene Bereiche (Pakete) kosten die öffentliche Seite nichts, solange nichts veröffentlicht ist (Datei-Prüfung vor dem Laden).
+
+## Testmatrix (Masterprompt, Abschnitt 32)
+| Thema | Test |
+|---|---|
+| WordPress-Verbindung, Core, Datenbank, Wächter | `test-wp-engine.php` (+ echtes WordPress) |
+| Adapter, Beiträge, Seiten, Begriffe | `test-wp-engine-content.php` |
+| Medien, Benutzer, Rollen/Rechte | `test-wp-engine-media-users.php` |
+| Plugins, Themes | `test-wp-engine-extensions.php` |
+| Navigation, Widgets, Blöcke | `test-wp-engine-nav-widgets-blocks.php` |
+| Komponenten, Entwurf/Veröffentlichen, Verlauf, Termin, Vorschau | `test-components.php`, `test-baukasten.php`, `test-components-packs.php` |
+| Migration (Trockenlauf, echter Lauf, Rückbau) | `test-wp-engine-migration.php` |
+| API, Sicherheit, Performance | `test-wp-engine-api.php` |
+| Oberfläche (Menü, Kopfleiste, Live Builder) | `test-shell-ui.php` |
+Bestehende Tests laufen unverändert weiter; keiner wurde abgeschwächt.
