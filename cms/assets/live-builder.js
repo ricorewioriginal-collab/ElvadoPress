@@ -19,7 +19,10 @@
   async function loadCatalog(){
     try{var tk=sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
       var r=await fetch('/cms/components-api.php?action=components_catalog',{headers:{'X-AnMaCha-Token':tk}}),d=await r.json();
-      if(d.status==='ok'){cat={};(d.components||[]).forEach(function(c){cat[c.id]=c});catCats=d.categories||{};targets=d.targets||[];targetUi();if(pendingBrand&&targets.length){var pb=pendingBrand;pendingBrand='';setTimeout(function(){applyBrand(pb)},0)}}}catch(e){}
+      if(d.status==='ok'){cat={};(d.components||[]).forEach(function(c){cat[c.id]=c});catCats=d.categories||{};targets=d.targets||[];
+        /* Wird die Website von einem Paket ausgeliefert (z. B. ein eigenes Portal), ist dessen Bereich das Standardziel – nicht die Startseite eines WordPress-Themes. */
+        if(!target&&!pendingBrand){var pk=targets.filter(function(t){return t.brand});if(pk.length)target=pk.filter(function(t){return t.brand===window.CMS_BRAND})[0]||pk[0]}
+        targetUi();if(pendingBrand&&targets.length){var pb=pendingBrand;pendingBrand='';setTimeout(function(){applyBrand(pb)},0)}}}catch(e){}
   }
 
   /* ───────── Bearbeitungsziel (Paket): bestehende Bereiche der Website ───────── */
@@ -75,6 +78,7 @@
     var ord=function(x){var o=((cat[x.type]||{}).data||{}).order;return typeof o==='number'?o:999};
     layout.sort(function(a,b){return ord(a)-ord(b)});   /* Reihenfolge der Website, nicht der Kategorien */
     active=true;hasDraft=!!d.draft;publishAt=(d.draft&&d.draft.publish_at)||'';revisions=d.revisions||[];dirty=false;pubBase=d.published&&Array.isArray(d.published.layout)?JSON.parse(JSON.stringify(d.published.layout)):[];
+    if(!(d.published&&Array.isArray(d.published.layout)))pubBase=layout.filter(function(x){return !/^ep_/.test(x.type)}).map(function(x){return {id:x.id,type:x.type,hidden:false,props:defaults(x.type)}});   /* noch nichts veröffentlicht: Vergleich mit den Vorgaben der Website */
     if(!sel||!locate(sel))sel=layout.length?layout[0].id:null;
     snapReset();palette();draw();notice();badge();state(hasDraft?'Entwurf geladen (noch nicht veröffentlicht)':'');
     if(!previewUrl)getPreview();else setFrame();
