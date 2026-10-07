@@ -47,7 +47,7 @@
   async function act(i,what){
     var p=plugins[i];if(!p)return;
     if(what==='delete'&&!confirm('Plugin „'+p.name+'“ endgültig löschen?'))return;
-    try{var r=await post('wp_plugin_'+what,{file:p.file});plugins=r.plugins||plugins;pmapOk=false;drawInst();if(items.length)drawResults();if(what==='activate')toast('Aktiviert – die Einstellungen des Plugins erscheinen gleich an seiner Karte.');loadMenu()}catch(e){toast(e.message,true);load()}
+    try{var r=await post('wp_plugin_'+what,{file:p.file});plugins=r.plugins||plugins;pmapOk=false;drawInst();window.WpNotices&&WpNotices.refresh();if(items.length)drawResults();if(what==='activate')toast('Aktiviert – die Einstellungen des Plugins erscheinen gleich an seiner Karte.');loadMenu()}catch(e){toast(e.message,true);load()}
   }
   async function post(action,body){
     var r=await fetch('api.php?action='+action+'&_='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':token()},body:JSON.stringify(body||{})}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});

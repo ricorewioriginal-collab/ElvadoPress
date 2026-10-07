@@ -196,6 +196,27 @@ function rrw_wp_admin_doc(string $slug, string $body, bool $full): string {
         .'</head><body class="wp-admin wp-core-ui"><a class="screen-reader-shortcut" href="#wpbody-content" style="position:absolute;left:-9999px">Zum Inhalt springen</a><a class="screen-reader-shortcut" href="#wp-toolbar" style="position:absolute;left:-9999px">Zur Werkzeugleiste</a><div id="adminmenumain" style="display:none"><ul id="adminmenu"></ul></div><div id="wpadminbar" style="display:none"></div>'.($full?'<div id="wpbody-content">'.$body.'</div>':$body).$foot.'</body></html>';
 }
 
+/**
+ * Meldungen der aktiven WordPress-Plugins (admin_notices, all_admin_notices) wie in WordPress oben auf jeder Verwaltungsseite – z. B. der Spruch von „Hello Dolly“.
+ * Liefert ein vollständiges, abgeschottetes Dokument für den Rahmen im CMS (läuft ohne Zugriff auf die Verwaltung); '' = keine Meldungen.
+ */
+function rrw_wp_admin_notices_doc(): string {
+    rrw_wp_admin_init();
+    $GLOBALS['hook_suffix']='index.php';
+    $out='';
+    try{ $out=rrw_wp_admin_capture(function(){ do_action('admin_notices');do_action('all_admin_notices'); }); }
+    catch(RRW_WP_Die $d){ $out=''; }
+    catch(Throwable $e){ rrw_wp_log('Admin-Meldungen: '.$e->getMessage());$out=''; }
+    $out=trim($out);if($out==='')return '';
+    if(strlen($out)>200000)$out=substr($out,0,200000);
+    $doc=rrw_wp_admin_doc('index.php','<div class="wrap" style="margin:0">'.$out.'</div>',true);
+    $style='<style>html,body{margin:0!important;min-width:0!important;overflow:hidden}#wpbody-content{padding:0!important}.wrap{margin:0!important;padding:2px 8px}.wrap::after{content:"";display:block;clear:both}.notice,div.updated,div.error{margin:4px 0!important}</style>';   // heller Grund wie in WordPress (so bleibt der Text auch im dunklen Verwaltungsdesign lesbar); Clearfix, weil Meldungen oft float:right sind
+    // Höhe an das Elternfenster melden (nur bei Änderung), damit der Rahmen im CMS genau so hoch ist wie die Meldungen
+    $js='<script>(function(){var last=0;function h(){var v=Math.ceil(document.documentElement.scrollHeight);if(v&&v!==last){last=v;parent.postMessage({rrwWpNotices:v},"*");}}addEventListener("load",h);setTimeout(h,150);setTimeout(h,800);})();</script>';
+    $doc=str_replace('</head>',$style.'</head>',$doc);
+    return str_replace('</body>',$js.'</body>',$doc);
+}
+
 /** admin-ajax.php: führt wp_ajax_{action} (angemeldet) bzw. wp_ajax_nopriv_{action} (Besucher) aus. @return array{status:int,type:string,text:string} */
 function rrw_wp_ajax(string $method, string $query, string $body, bool $loggedIn): array {
     try{ return rrw_wp_ajax_run($method,$query,$body,$loggedIn); } finally { $GLOBALS['rrw_wp_doing_ajax']=false; }

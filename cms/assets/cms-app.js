@@ -253,6 +253,7 @@ async function cmsHandleLogin(ev){
    sessionStorage.setItem('anmacha_session_token',d.token);
    document.getElementById('cmsLogin').style.display='none';
    await initCms();
+   window.WpNotices&&WpNotices.refresh();   // Meldungen der WordPress-Plugins nach der Anmeldung laden
  }catch(e){ if(msg)msg.textContent=e.message||'Anmeldung fehlgeschlagen'; }
  return false;
 }

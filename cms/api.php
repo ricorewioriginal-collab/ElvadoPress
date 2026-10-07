@@ -1468,10 +1468,11 @@ if(str_starts_with($action,'wp_')){
         try{ $res=rrw_wp_rest_dispatch($method,$path,$q,$raw,$hdr); } finally { while(ob_get_level()>$lv)ob_end_clean(); }
         rrw_json(['status'=>'ok','result'=>['status'=>$res['status'],'type'=>$res['headers']['Content-Type']??'application/json','text'=>$res['body'],'headers'=>array_intersect_key($res['headers'],array_flip(['X-WP-Total','X-WP-TotalPages','Allow']))]]);
     }
-    if(in_array($action,['wp_admin_menu','wp_admin_page','wp_admin_ajax'],true)){
+    if(in_array($action,['wp_admin_menu','wp_admin_page','wp_admin_ajax','wp_admin_notices'],true)){
         require_once __DIR__.'/wp/admin.php';
         $GLOBALS['rrw_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ANMACHA_TOKEN']??''));
         if($action==='wp_admin_menu')rrw_json(['status'=>'ok','groups'=>rrw_wp_admin_menu_tree()]);
+        if($action==='wp_admin_notices'){ $nd=rrw_wp_admin_notices_doc();rrw_json(['status'=>'ok','frame'=>$nd===''?'':rrw_wp_admin_frame_store($nd)]); }   // Meldungen der WordPress-Plugins (z. B. Hello Dolly)
         $lv=ob_get_level();$sent=false;
         // Ein Plugin darf mit exit/die enden: das Ergebnis wird dann aus dem Puffer gebaut.
         register_shutdown_function(function() use($lv,&$sent,$action,$b){
