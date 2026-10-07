@@ -94,6 +94,9 @@ function elvado_bk_host_renderers(): array {
     foreach(ELVADO_BK_TYPES as $t)$r[$t]=function(array $p,array $inst) use($t):string{ ob_start();elvado_bk_section(['id'=>$inst['id'],'type'=>$t,'props'=>$p],0);return (string)ob_get_clean(); };
     $r['wp_shortcode']=fn(array $p):string=>preg_match('/^\[[A-Za-z0-9_-]{1,60}( [^\[\]]{0,300})?\]$/',(string)$p['shortcode'])===1?do_shortcode((string)$p['shortcode']):'';
     $r['wp_block']=fn(array $p):string=>(string)$p['markup']!==''?do_blocks((string)$p['markup']):'';
+    $r['plugin_widget']=function(array $p):string{ global $wp_widget_factory;$base=(string)$p['widget'];
+        foreach((array)($wp_widget_factory->widgets??[]) as $w){ if($w instanceof WP_Widget&&$w->id_base===$base){ ob_start();the_widget(get_class($w),['title'=>(string)$p['title']],['before_widget'=>'<div class="widget">','after_widget'=>'</div>','before_title'=>'<h3 class="widget-title">','after_title'=>'</h3>']);return (string)ob_get_clean(); } }
+        return ''; };
     $r['widget_area']=function(array $p):string{ $a=sanitize_key((string)$p['area']);if($a===''||!is_active_sidebar($a))return '';ob_start();dynamic_sidebar($a);return (string)ob_get_clean(); };
     return $r;
 }

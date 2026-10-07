@@ -9,8 +9,8 @@ function elvado_bk_registry(): \Elvado\Components\Registry {
     return rrw_components();
 }
 const ELVADO_BK_TYPES=['hero','text','features','image_text','posts','cta','html','spacer'];
-/** WordPress-Komponenten, die dieses Theme selbst ausgibt (Shortcode, Block, Widget-Bereich). */
-const ELVADO_BK_WP_TYPES=['widget_area','wp_shortcode','wp_block'];
+/** WordPress-Komponenten, die dieses Theme selbst ausgibt (Shortcode, Block, Widget-Bereich, Plugin-Widget). */
+const ELVADO_BK_WP_TYPES=['widget_area','wp_shortcode','wp_block','plugin_widget'];
 /** Alle Komponenten, die das Theme ausgeben kann: die acht eigenen, alle nativen (ohne festen Platz wie Header/Footer) und die WordPress-Komponenten. @return list<string> */
 function elvado_bk_supported(): array {
     $r=elvado_bk_registry();$feat=function_exists('rrw_components_features')?rrw_components_features(function_exists('rrw_wp_cms_dir')?rrw_wp_cms_dir():null):[];

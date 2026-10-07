@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 7 (Live Customizer mit Preview Bridge). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Stand Phase 8 (Menüs, Widgets, Blöcke). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
 
 ## Schichten
 ```
@@ -30,7 +30,7 @@ Core wird bei der Installation von wordpress.org geladen: Version von uns gebild
 Zuerst MySQL/MariaDB (SQLite später). Bestehende WordPress-Tabellen mit gleichem Präfix werden erkannt und nicht überschrieben (Meldung „leere Datenbank nötig“).
 
 ## Phasen
-1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt)** · **6 Komponenten-Register** · **7 Live-Customizer/Preview Bridge (dieser Stand)** · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
+1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt)** · **6 Komponenten-Register** · **7 Live-Customizer/Preview Bridge** · **8 Navigation/Widgets/Blöcke (dieser Stand)** · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
 Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scripts/test-wp-engine.php`.
 
 ## Phase 3: Inhalte über Dienst und Adapter
@@ -62,3 +62,10 @@ Siehe `COMPONENTS.md`. Kurz: zentrale Registry (`cms/src/Components/`) mit Schem
 
 ## Phase 7: Live Customizer mit Preview Bridge
 Siehe `LIVE-CUSTOMIZER.md`. Kurz: sichere Brücke Builder ↔ Vorschau (Herkunft + Frame + Sitzungsschlüssel), Klick auf Komponenten, Werkzeugleiste, Auswahl in beide Richtungen; Baum mit Verschachtelung; Entwurf/Veröffentlichen/Verlauf/Rollback/Termin über den `LayoutStore`; das Theme gibt jetzt alle nativen und WordPress-Komponenten aus. Noch offen: Header/Footer/Navigation als Komponenten des bestehenden Frontends, Layouts je Seite, Migration.
+
+## Phase 8: Navigation, Widgets, Blöcke
+- **Menüs** (`NavigationService` + `NavigationAdapter`): echte WordPress-Menüs (nav_menu, nav_menu_item). Der ganze Baum wird atomar gespeichert (neu anlegen, ändern, verschieben, fehlende entfernen); Einträge: eigener Link, Seite, Beitrag, Kategorie, Schlagwort (Adresse liefert WordPress), Ziel/rel/Klassen bereinigt, höchstens 4 Ebenen und 200 Einträge; fremde Eintrags-IDs werden als neu behandelt. Orte des Themes zuweisen/lösen; Menüs der bisherigen ElvadoPress-Verwaltung lassen sich als neues Menü übernehmen (`nav_import`).
+- **Widgets** (`WidgetService` + `WidgetAdapter`, `WidgetSchemas`): echte Seitenleisten des Themes, Widget-Typen aus Core und Plugins, Einstellungen je Instanz. Kern-Widgets haben ein Formular-Schema (serverseitig bereinigt), Plugin-Widgets bearbeitet man als begrenztes JSON, das das Widget selbst prüft (`WP_Widget::update`). Anordnen und zwischen Bereichen/Ablage verschieben, nichts doppelt. Die Komponente „Plugin-Widget“ des Live Builders gibt Widgets über `the_widget` aus.
+- **Blöcke** (`BlockService`, `Elvado\Blocks\Converter`): registrierte Block-Typen (Core und Plugins), Block-Markup lesen (`parse_blocks`) und erzeugen (`serialize_blocks`, mit Prüfung von Namen, Tiefe, Anzahl, Größe und – ohne Administratorrecht – kses), Ausgabe wie auf der Website, Prüfung auf unbekannte/dynamische Blöcke. **Fallback:** unbekannte Blöcke bleiben unverändert erhalten. **Umwandlung** ElvadoPress ↔ WordPress: schlichte Blöcke (Absatz, Überschrift, Liste, Zitat, Code, Trennlinie, Abstand, Bild, Spalten, Shortcode, HTML) werden echte Gutenberg-Blöcke; alles mit eigenen Stilen oder ohne Entsprechung wird ein HTML-Block mit dem unveränderten HTML – nichts geht verloren.
+- **API** (`cms/engine-api.php`): `nav_list|get|create|rename|delete|save|assign|import`, `widgets_overview|add|update|move|delete`, `blocks_registry|parse|check|render|serialize|convert`. Ändern nur Administratoren; Block-Werkzeuge und Menü-Lesen auch Autoren. Oberfläche: Website-Bereich → „Menüs, Widgets & Blöcke (Engine)“.
+Tests: `scripts/test-wp-engine-nav-widgets-blocks.php` (43 Prüfungen ohne Netz, mit `WPE_TEST_ZIP`/`WPE_TEST_DB` 46 weitere gegen echtes WordPress).

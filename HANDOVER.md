@@ -85,3 +85,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 7: Live Customizer / Preview Bridge
 `cms/assets/preview-bridge.js` (nur mit Vorschau-Schlüssel, via wp-front.php), `live-builder.js` neu (Baum, Brücke, Verlauf, Termin), Baukasten-Theme: Layout im `LayoutStore` (Bereich home), native/WP-Komponenten werden ausgegeben, API `wp_bk_rollback|revisions`, `publish_at`. Doku `cms/docs/LIVE-CUSTOMIZER.md`. Tests: `test-baukasten.php` (67), `test-components.php` (99); Browser: Klick-Auswahl, gefälschte Nachrichten wirkungslos (manuell geprüft).
+
+## Phase 8: Menüs, Widgets, Blöcke
+`NavigationService/Adapter`, `WidgetService/Adapter/Schemas`, `BlockService`, `cms/src/Blocks/Converter.php` (ep↔wp), API `nav_*|widgets_*|blocks_*`, Panel „Menüs, Widgets & Blöcke (Engine)“ (`wp-engine-content.js`), Theme: Komponente „Plugin-Widget“. Test `scripts/test-wp-engine-nav-widgets-blocks.php`. Bisherige Menü-/Widget-Panels unverändert bis zur Migration.

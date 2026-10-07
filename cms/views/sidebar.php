@@ -38,6 +38,7 @@
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-paintbrush"></i><span>Design</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="themes" onclick="cmsTab('themes',this);window.DesignHub?.load()"><i class="fas fa-brush"></i>Themes</button>
+          <button class="tab" data-tab="enginecontent" onclick="cmsTab('enginecontent',this);window.WpEC?.load()"><i class="fab fa-wordpress"></i>Menüs, Widgets &amp; Blöcke (Engine)</button>
           <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Menüs</button>
           <button class="tab" data-tab="widgets" onclick="cmsTab('widgets',this)"><i class="fas fa-puzzle-piece"></i>Widgets</button>
           <button class="tab" data-tab="branding" onclick="cmsTab('branding',this)"><i class="fas fa-palette"></i>Branding</button>
