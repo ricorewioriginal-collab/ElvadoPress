@@ -110,6 +110,18 @@ t('Entwurf neben Veröffentlichtem: Besucher sehen die veröffentlichte Fassung,
 t('Ohne </head>/</body> wird trotzdem eingefügt', str_contains(rrw_components_inject('<div id="main-header"></div>', 'site:demo', [], $d), '<style id="ep-bound-css">'));
 t('Nur Administratoren speichern Layouts des Bereichs', throws(fn() => $store->saveDraft('site:demo', [], new Actor('autor1', 'autor')), \Elvado\Wp\PermissionException::class));
 
+// ───────── 5b) Ansicht wählen (css.variants) ─────────
+$rv = new Registry();
+$vc = $rv->register(['id' => 'demo_grid', 'name' => 'Raster', 'category' => 'content', 'bind' => '#grid-area', 'fields' => [
+    ['k' => 'view', 'label' => 'Ansicht', 'type' => 'select', 'options' => ['' => 'Standard', 'list' => 'Liste'], 'default' => '', 'group' => 'design',
+        'css' => ['variants' => ['list' => [[' .card', 'flex-direction:row;gap:4px'], [' .card', 'x{y:1}']]]]],
+]], 'pack:demo-pack');
+$rend = new \Elvado\Components\Renderer($rv);
+$cssV = $rend->css($vc, ['id' => 'g1', 'props' => ['view' => 'list']], 'data-ep-id', '#grid-area');
+t('Variante: Regeln der gewählten Ansicht, gebunden mit !important', str_contains($cssV, '#grid-area .card{flex-direction:row!important;gap:4px!important;}'));
+t('Variante: ungültige Deklaration wird verworfen', !str_contains($cssV, 'x{y'));
+t('Variante: Standard und unbekannter Wert erzeugen keine Regeln', $rend->css($vc, ['id' => 'g1', 'props' => ['view' => '']], 'data-ep-id', '#grid-area') === '' && $rend->css($vc, ['id' => 'g1', 'props' => ['view' => 'evil']], 'data-ep-id', '#grid-area') === '');
+
 // ───────── 6) Verdrahtung ─────────
 $api = (string)file_get_contents(__DIR__ . '/../cms/components-api.php');
 t('API: Vorschau-Aktion nur für Administratoren und Ziele', str_contains($api, "'layout_preview'") && str_contains($api, '!$rrwCActor->isAdmin()'));

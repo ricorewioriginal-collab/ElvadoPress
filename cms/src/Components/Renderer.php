@@ -158,6 +158,20 @@ final class Renderer
         $dev = ['tablet' => '', 'mobile' => ''];
         foreach ($c->fields as $f) {
             $m = $f['css'] ?? null;
+            if (is_array($m) && isset($m['variants']) && is_array($m['variants'])) {   // Ansicht wählen: je Auswahlwert feste Regeln (aus der Registry, nicht aus Nutzereingaben)
+                $v = (string)($inst['props'][$f['k']] ?? '');
+                foreach ((array)($m['variants'][$v] ?? []) as $rule) {
+                    $t = (string)($rule[0] ?? '');
+                    $d = (string)($rule[1] ?? '');
+                    if (preg_match('/^[ .#a-z0-9_>:()*+~-]{0,80}$/i', $t) === 1 && preg_match('/^([a-z-]{3,40}:[#a-z0-9 %.,()\/-]{1,80};?){1,8}$/i', $d) === 1) {
+                        if ($selector !== null) {   // gebundene Bereiche: die Website setzt ihre Regeln oft später
+                            $d = implode('', array_map(fn($x) => $x . '!important;', array_filter(array_map('trim', explode(';', $d)))));
+                        }
+                        $base .= $sel . $t . '{' . $d . '}';
+                    }
+                }
+                continue;
+            }
             if (is_array($m) && isset($m['hide'])) {   // Schalter: blendet einen Teil des Bereichs aus (when: off = bei „aus“, on = bei „an“)
                 $on = !empty($inst['props'][$f['k']]);
                 if (preg_match('/^[ .#a-z0-9_>-]{1,60}$/i', (string)$m['hide']) === 1 && (($m['when'] ?? 'off') === 'off' ? !$on : $on)) {
