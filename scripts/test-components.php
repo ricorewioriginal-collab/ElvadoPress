@@ -225,6 +225,7 @@ t('Höchstens 40 Protokollzeilen je Fassung', count($store->revisions('home')[0]
 $apiSrc = (string)file_get_contents(__DIR__ . '/../cms/api.php'); $lbSrc = (string)file_get_contents(__DIR__ . '/../cms/assets/live-builder.js');
 t('Protokoll: Veröffentlichen (Startseite, Bereiche) und Customizer schreiben die Änderungen ins Aktivitätslog', str_contains($apiSrc, "(array)(\$b['changes']??[])") && str_contains($apiSrc, "'Customizer „'") && str_contains((string)file_get_contents(__DIR__ . '/../cms/components-api.php'), "implode('; ', array_slice(\$p['changes']"));
 t('Live Builder: Rückgängig/Wiederholen (Strg+Z/Y), Änderungsliste und Protokoll im Verlauf', str_contains($lbSrc, 'function histGo') && str_contains($lbSrc, 'function describe') && str_contains($lbSrc, "kind==='changes'") && str_contains($lbSrc, 'lb-chg') && str_contains((string)file_get_contents(__DIR__ . '/../cms/views/panel-livebuilder.php'), 'id="lbUndo"'));
+t('Live Builder: Paket-Bereich ist das Standardziel; Änderungsliste vergleicht ohne Veröffentlichung mit den Vorgaben', str_contains($lbSrc, 'ist dessen Bereich das Standardziel') && str_contains($lbSrc, 'Vergleich mit den Vorgaben der Website'));
 if (getenv("DBG")) { echo $html, "\n", $css, "\n"; }
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
 exit($fail ? 1 : 0);
