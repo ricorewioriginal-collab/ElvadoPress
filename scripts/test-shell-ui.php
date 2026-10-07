@@ -31,6 +31,9 @@ t('Website: Live Builder, Seiten, Beiträge, Kategorien, Kommentare zuerst', cou
 t('Weitere Einträge vorhanden (nichts ging verloren)', substr_count($side, 'tab-more') >= 8 && str_contains($side, 'Schlagwörter') && str_contains($side, 'Feeds') && str_contains($side, 'Alle Inhalte') && str_contains($side, 'Datei hinzufügen'));
 t('Design: Themes, Customizer, Navigation, Widgets, Header & Footer', preg_match('/Themes.*Customizer.*Navigation.*Widgets.*Header &amp; Footer/s', $side) === 1);
 
+$appb = substr($side, (int)strpos($side, '<span>App Builder</span>'), 2500);
+t('App Builder: Alexa-Skill ist immer sichtbar (nicht an das Paket gebunden) und steht neben Apps', preg_match('/<button class="tab" data-tab="alexa"[^>]*>.*?Alexa-Skill/s', $appb) === 1 && strpos($appb, 'data-tab="apps"') < strpos($appb, 'data-tab="alexa"'));
+
 // Kopfleiste
 $app = (string)file_get_contents("$cms/assets/cms-app.js");
 foreach (['epTopSearch' => 'Suche', 'epSiteChip' => 'Website-Name', 'epDevs' => 'Gerätewahl', 'cmsNotifBadge' => 'Benachrichtigungen', 'epUser' => 'Profil', 'cmsUserIdentity' => 'Identität (für bestehende Skripte)', 'cmsLogout()' => 'Abmelden', 'toggleNotifications()' => 'Glocke'] as $k => $what) {
