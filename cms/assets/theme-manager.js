@@ -134,8 +134,10 @@ window.ThemeManager=(()=>{
  let previewBrand='';
  function previewBrandSelect(){
   const sel=document.getElementById('themePreviewBrand');if(!sel)return;
-  const items=(window.CMS?.brands?.items||[]).filter(b=>b.enabled!==false),def=window.CMS?.brands?.default||'ricorewi-radio';
-  if(!previewBrand)previewBrand=def;
+  let items=(window.CMS?.brands?.items||[]).filter(b=>b.enabled!==false);
+  if(!items.length&&window.CMS_BRANDS)items=window.CMS_BRANDS.list();   // Markenliste des Kopf-Umschalters, falls die Verwaltung die Marken (noch) nicht geladen hat
+  const def=window.CMS?.brands?.default||(items[0]&&items[0].id)||'';
+  if(!previewBrand)previewBrand=(window.CMS_BRAND&&items.some(b=>b.id===window.CMS_BRAND))?window.CMS_BRAND:def;   // die im Kopf gewählte Marke
   sel.innerHTML=items.map(b=>'<option value="'+b.id+'" '+(b.id===previewBrand?'selected':'')+'>'+String(b.name||b.id).replace(/</g,'&lt;')+'</option>').join('')||'<option value="">Standard</option>';
  }
 
@@ -177,7 +179,12 @@ window.ThemeManager=(()=>{
   const b=(window.CMS?.brands?.items||[]).find(x=>x.id===previewBrand);
   document.getElementById('themePreviewUrl').textContent=(b?.primary_domain||((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'ricorewi-radio.de':location.hostname))+' · '+editing.name+(b?' · '+b.name:'');
  }
- function brand(id){previewBrand=id;reloadPreviewFrame();}
+ function brand(id){previewBrand=id;reloadPreviewFrame();if(window.CMS_BRANDS&&window.CMS_BRANDS.current()!==id)window.CMS_BRANDS.set(id);}   // Vorschau-Auswahl und Kopf bleiben gleich
+ window.addEventListener('cms:brand',e=>{   // Markenwechsel im Kopf: Vorschau des geöffneten Customizers folgt
+  const id=e.detail&&e.detail.id;if(!id||!editing||id===previewBrand)return;
+  const sel=document.getElementById('themePreviewBrand');if(sel&&![...sel.options].some(o=>o.value===id))return;
+  previewBrand=id;if(sel)sel.value=id;reloadPreviewFrame();
+ });
  function change(key,value,unit=''){
   if(!draft)return;draft.settings=draft.settings||{};draft.settings[key]=value;
   document.querySelectorAll('[data-value-for="'+CSS.escape(key)+'"]').forEach(x=>x.textContent=value+unit);

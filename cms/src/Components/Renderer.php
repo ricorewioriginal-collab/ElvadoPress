@@ -76,6 +76,9 @@ final class Renderer
         foreach ($layout as $inst) {
             $c = is_array($inst) ? $this->registry->get((string)($inst['type'] ?? '')) : null;
             $bind = $c ? $c->bind : '';
+            if ($c && in_array($c->id, ['ep_text', 'ep_order'], true)) {   // wirken über Skript (overrides), nicht über CSS
+                continue;
+            }
             if ($bind === Component::BIND_ANY) {   // vom Live Builder erkannter Bereich: Selektor der Instanz, streng geprüft
                 $bind = Component::validSelector((string)($inst['props']['selector'] ?? '')) ? (string)$inst['props']['selector'] : '';
                 if ($bind === '') {
@@ -106,6 +109,42 @@ final class Renderer
             }
             if (is_array($inst) && !empty($inst['children'])) {
                 $out .= $this->boundCss((array)$inst['children'], $ctx);
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Inhalts-Änderungen am echten Seiten-HTML aus dem Layout (themeunabhängig): Texte (ep_text) und Reihenfolge (ep_order).
+     * Nur geprüfte Pfad-Selektoren; Texte sind reiner Text (nie HTML). Ausgeblendete Instanzen entfallen.
+     * @param list<array<string,mixed>> $layout @return array{texts:list<array{s:string,k:int,t:string}>,order:list<array{c:string,o:list<string>}>}
+     */
+    public function overrides(array $layout): array
+    {
+        $out = ['texts' => [], 'order' => []];
+        foreach ($layout as $inst) {
+            if (!is_array($inst) || !empty($inst['hidden']) || !empty($inst['missing'])) {
+                continue;
+            }
+            $p = (array)($inst['props'] ?? []);
+            if (($inst['type'] ?? '') === 'ep_text' && Component::validPath((string)($p['selector'] ?? '')) && count($out['texts']) < 300) {
+                $out['texts'][] = ['s' => (string)$p['selector'], 'k' => max(0, min(200, (int)($p['node'] ?? 0))), 't' => mb_substr((string)($p['text'] ?? ''), 0, 4000)];
+            } elseif (($inst['type'] ?? '') === 'ep_order' && Component::validPath((string)($p['container'] ?? '')) && count($out['order']) < 60) {
+                $o = [];
+                foreach ((array)($p['items'] ?? []) as $it) {
+                    $q = is_array($it) ? (string)($it['selector'] ?? '') : (string)$it;
+                    if (Component::validPath($q) || Component::validSelector($q)) {
+                        $o[] = $q;
+                    }
+                }
+                if (count($o) >= 2) {
+                    $out['order'][] = ['c' => (string)$p['container'], 'o' => array_slice($o, 0, 40)];
+                }
+            }
+            if (!empty($inst['children'])) {
+                $c = $this->overrides((array)$inst['children']);
+                $out['texts'] = array_merge($out['texts'], $c['texts']);
+                $out['order'] = array_merge($out['order'], $c['order']);
             }
         }
         return $out;

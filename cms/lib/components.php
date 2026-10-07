@@ -100,7 +100,11 @@ function rrw_components_features(?string $dataDir = null): array
 function rrw_components_targets(): array
 {
     rrw_components();
-    return array_values((array)($GLOBALS['rrw_components_targets'] ?? []));
+    $t = array_values((array)($GLOBALS['rrw_components_targets'] ?? []));
+    if ($t === []) {   // ohne Paket-Ziel (eigenständiges CMS): die Website selbst, unabhängig vom Theme
+        $t[] = ['id' => 'website', 'label' => 'Website (alle Themes)', 'scope' => 'site:website', 'preview' => '/', 'source' => 'core', 'brand' => ''];
+    }
+    return $t;
 }
 
 function rrw_components_target_for_scope(string $scope): ?array
@@ -145,6 +149,23 @@ function rrw_components_preview_ok(string $token, string $scope, ?string $dataDi
 }
 
 /**
+ * Festes Skript, das die Inhalts-Änderungen anwendet: Texte (nur Textknoten, nie HTML) und Reihenfolge (Elemente werden nur innerhalb ihres Containers an die Plätze der gelisteten Elemente gesetzt).
+ * Wendet nach Änderungen der Seite erneut an (Seiten, die ihre Inhalte per Skript nachladen). Fehler bleiben still.
+ */
+function rrw_components_overrides_js(): string
+{
+    return '(function(){try{var d=JSON.parse(document.getElementById("ep-overrides-data").textContent),busy=false,t=null,BAD={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,SELECT:1,IFRAME:1,OBJECT:1};'
+        . 'function q(s,r){try{return(r||document).querySelector(s)}catch(e){return null}}'
+        . 'function txt(){(d.texts||[]).forEach(function(x){var el=q(x.s);if(!el||BAD[el.tagName])return;var n=el.childNodes[x.k];if(n&&n.nodeType===3&&n.nodeValue!==x.t)n.nodeValue=x.t})}'
+        . 'function ord(){(d.order||[]).forEach(function(o){var c=q(o.c);if(!c)return;var els=[];o.o.forEach(function(s){var e=q(s);if(e&&e.parentNode===c&&els.indexOf(e)<0)els.push(e)});if(els.length<2)return;'
+        . 'var cur=[].filter.call(c.children,function(k){return els.indexOf(k)>=0}),same=true;for(var i=0;i<els.length;i++)if(cur[i]!==els[i]){same=false;break}if(same)return;'
+        . 'var ph=cur.map(function(k){var m=document.createComment("ep");c.insertBefore(m,k);return m});cur.forEach(function(k){c.removeChild(k)});els.forEach(function(e,i){c.insertBefore(e,ph[i])});ph.forEach(function(m){c.removeChild(m)})})}'
+        . 'function run(){if(busy)return;busy=true;try{txt();ord()}catch(e){}busy=false}'
+        . 'run();if(window.MutationObserver)new MutationObserver(function(){clearTimeout(t);t=setTimeout(run,60)}).observe(document.documentElement,{childList:true,subtree:true});'
+        . '}catch(e){}})();';
+}
+
+/**
  * Für Seiten, die ihr HTML selbst ausliefern: setzt die veröffentlichte Gestaltung gebundener Bereiche als <style> ein.
  * Mit gültigem Vorschau-Schlüssel (?rrw_ep_preview=…, nur im Live Builder) gilt der Entwurf, die Seite wird nicht indexiert und die Vorschau-Brücke geladen.
  * Ohne Layout und ohne Schlüssel bleibt $html bytegleich. Fehler lassen $html unverändert.
@@ -172,12 +193,18 @@ function rrw_components_inject(string $html, string $scope, array $query = [], ?
         }
         $head = $css !== '' ? '<style id="ep-bound-css">' . $css . '</style>' : '';
         $tail = '';
+        // Inhalts-Änderungen (Texte, Reihenfolge) am echten Seiten-HTML: Daten als JSON (ohne Möglichkeit, das Skript zu verlassen) + kleines festes Skript
+        $ov = $lay !== [] ? (new \Elvado\Components\Renderer(rrw_components()))->overrides((array)$lay) : ['texts' => [], 'order' => []];
+        if ($ov['texts'] !== [] || $ov['order'] !== []) {
+            $tail .= '<script id="ep-overrides-data" type="application/json">' . json_encode($ov, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>'
+                . '<script id="ep-overrides">' . rrw_components_overrides_js() . '</script>';
+        }
         if ($preview) {
             if (!headers_sent()) {
                 header('X-Robots-Tag: noindex, nofollow');
                 header('Cache-Control: no-store');
             }
-            $tail = '<script src="/cms/assets/preview-bridge.js?v=1" defer></script>';
+            $tail .= '<script src="/cms/assets/preview-bridge.js?v=2" defer></script>';
         }
         if ($head === '' && $tail === '') {
             return $html;

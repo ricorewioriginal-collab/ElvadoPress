@@ -100,7 +100,7 @@ $store = rrw_components_store($d); $admin = new Actor('a', 'admin');
 $store->saveDraft('site:demo', [['id' => 'h1', 'type' => 'demo_header', 'props' => ['bg' => '#abcdef']]], $admin);
 t('Nur Entwurf: öffentliche Seite bleibt unverändert', rrw_components_inject($page, 'site:demo', [], $d) === $page);
 $pv = rrw_components_inject($page, 'site:demo', ['rrw_ep_preview' => rrw_components_preview_token('site:demo', 900, $d)], $d);
-t('Vorschau (gültiger Schlüssel): Entwurf als <style> im Kopf + Brücke vor </body>', str_contains($pv, '<style id="ep-bound-css">html body #main-header{background-color:#abcdef!important;}</style></head>') && str_contains($pv, '<script src="/cms/assets/preview-bridge.js?v=1" defer></script></body>'), $pv);
+t('Vorschau (gültiger Schlüssel): Entwurf als <style> im Kopf + Brücke vor </body>', str_contains($pv, '<style id="ep-bound-css">html body #main-header{background-color:#abcdef!important;}</style></head>') && str_contains($pv, '<script src="/cms/assets/preview-bridge.js?v=2" defer></script></body>'), $pv);
 t('Vorschau mit falschem Schlüssel: wie öffentlich', rrw_components_inject($page, 'site:demo', ['rrw_ep_preview' => '1.' . str_repeat('a', 64)], $d) === $page);
 $store->publish('site:demo', $admin);
 $pub = rrw_components_inject($page, 'site:demo', [], $d);

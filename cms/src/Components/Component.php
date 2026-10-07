@@ -18,6 +18,9 @@ final class Component
     /** „bind“ = „*“: der Selektor steht pro Instanz im Feld „selector“ (vom Live Builder erkannte Bereiche). */
     public const BIND_ANY = '*';
 
+    /** Pfad-Selektor für Inhalts-Änderungen am echten Seiten-HTML: Start „#kennung“ oder „body“, danach bis zu 8 Schritte „ > tag:nth-of-type(n)“ oder „ > .klasse“. Keine anderen Zeichen. */
+    public const PATH_RE = '/^(#[a-z][a-z0-9_-]{0,60}|body)((?: > (?:[a-z][a-z0-9]{0,9}(?::nth-of-type\\([0-9]{1,3}\\))?|\\.[a-z][a-z0-9_-]{0,40})){0,8})$/i';
+    public static function validPath(string $s): bool { return strlen($s) <= 400 && preg_match(self::PATH_RE, $s) === 1; }
     public static function validSelector(string $s): bool { return preg_match(self::BIND_RE, $s) === 1; }
 
     /** @var list<array<string,mixed>> */

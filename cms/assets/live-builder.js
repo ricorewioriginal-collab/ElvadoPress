@@ -19,7 +19,7 @@
   async function loadCatalog(){
     try{var tk=sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
       var r=await fetch('/cms/components-api.php?action=components_catalog',{headers:{'X-AnMaCha-Token':tk}}),d=await r.json();
-      if(d.status==='ok'){cat={};(d.components||[]).forEach(function(c){cat[c.id]=c});catCats=d.categories||{};targets=d.targets||[];targetUi()}}catch(e){}
+      if(d.status==='ok'){cat={};(d.components||[]).forEach(function(c){cat[c.id]=c});catCats=d.categories||{};targets=d.targets||[];targetUi();if(pendingBrand&&targets.length){var pb=pendingBrand;pendingBrand='';setTimeout(function(){applyBrand(pb)},0)}}}catch(e){}
   }
 
   /* ───────── Bearbeitungsziel (Paket): bestehende Bereiche der Website ───────── */
@@ -37,27 +37,40 @@
     ['lbAdd','lbAddTop'].forEach(function(i){var b=$(i);if(b)b.hidden=!!target});
     ['reset','ai','customizer'].forEach(function(k){var b=document.querySelector('#lbMorePop [data-lbmore="'+k+'"]');if(b)b.hidden=!!target});
   }
-  function switchTarget(id){
-    if(dirty&&!confirm('Ungespeicherte Änderungen verwerfen?')){targetUi();return}
+  function switchTarget(id,force){
+    if(!force&&dirty&&!confirm('Ungespeicherte Änderungen verwerfen?')){targetUi();return}
     target=targets.filter(function(t){return t.id===id})[0]||null;previewUrl='';sel=null;layout=[];targetUi();regionNote('');load();
   }
-  window.addEventListener('cms:brand',function(e){
-    var id=e.detail&&e.detail.id;if(!id||!targets.length)return;
+  /* Markenwechsel im Kopf: das Bearbeitungsziel der Marke wird gewählt. Ungespeicherte Änderungen werden vorher als Entwurf gesichert (kein Verwerfen, kein Dialog);
+     kommt der Wechsel, bevor die Ziele geladen sind, wird er danach nachgeholt. */
+  var pendingBrand='',brandBusy=false;
+  function applyBrand(id){
     var t=targets.filter(function(x){return x.brand===id})[0];
-    if(t){if(!target||target.id!==t.id)switchTarget(t.id)}else if(target&&target.brand&&target.brand!==id)switchTarget('');else targetUi();
+    var next=t?t.id:((target&&target.brand&&target.brand!==id)?'':null);
+    if(next===null){targetUi();return}
+    if((target?target.id:'')===next){targetUi();return}
+    brandBusy=true;
+    Promise.resolve(dirty?saveDraft():0).catch(function(){}).then(function(){brandBusy=false;if(window.CMS_BRAND&&window.CMS_BRAND!==id)return;switchTarget(next,true)});
+  }
+  window.addEventListener('cms:brand',function(e){
+    var id=e.detail&&e.detail.id;if(!id)return;
+    if(!targets.length){pendingBrand=id;return}
+    applyBrand(id);
   });
   function targetSchema(){
-    schema={};Object.keys(cat).forEach(function(k){var c=cat[k];if(c.bind&&(c.source===target.source||k==='ep_area'))schema[k]={label:c.name,icon:'fa-'+c.icon,fields:c.fields}});
+    schema={};Object.keys(cat).forEach(function(k){var c=cat[k];if(c.bind&&(c.source===target.source||/^ep_/.test(k)))schema[k]={label:c.name,icon:'fa-'+c.icon,fields:c.fields}});
   }
   function targetDefaults(){
-    return Object.keys(schema).filter(function(t){return t!=='ep_area'}).map(function(t){return {id:uid(),type:t,hidden:false,props:defaults(t)}});
+    return Object.keys(schema).filter(function(t){return !/^ep_/.test(t)}).map(function(t){return {id:uid(),type:t,hidden:false,props:defaults(t)}});
   }
+  var loadSeq=0;
   async function loadTarget(){
-    targetSchema();
-    var d=await capi('layout_get'),src=d.draft||d.published;
+    targetSchema();var seq=++loadSeq,tgt0=target;
+    var d=await capi('layout_get');if(seq!==loadSeq||tgt0!==target)return;   /* inzwischen anderes Ziel gewählt: späte Antwort verwerfen */
+    var src=d.draft||d.published;
     layout=src&&Array.isArray(src.layout)?src.layout:[];
     var have={};layout.forEach(function(x){have[x.type]=1});
-    Object.keys(schema).forEach(function(t){if(!have[t]&&t!=='ep_area')layout.push({id:uid(),type:t,hidden:false,props:defaults(t)})});   // neue Bereiche des Pakets ergänzen
+    Object.keys(schema).forEach(function(t){if(!have[t]&&!/^ep_/.test(t))layout.push({id:uid(),type:t,hidden:false,props:defaults(t)})});   // neue Bereiche des Pakets ergänzen
     layout=layout.filter(function(x){return schema[x.type]});
     var ord=function(x){var o=((cat[x.type]||{}).data||{}).order;return typeof o==='number'?o:999};
     layout.sort(function(a,b){return ord(a)-ord(b)});   /* Reihenfolge der Website, nicht der Kategorien */
@@ -90,7 +103,7 @@
   function changed(){dirty=true;state(publishAt?'Ungespeicherte Änderungen (Veröffentlichung geplant)':'Ungespeicherte Änderungen');clearTimeout(timer);timer=setTimeout(saveDraft,900)}
 
   function itemHtml(s,depth,i,len){
-    var sc=schema[s.type]||{label:s.type,icon:'fa-square'},fixed=rules(s.type).locked;if(s.type==='ep_area')sc={label:(s.props&&s.props.label)||sc.label,icon:sc.icon};
+    var sc=schema[s.type]||{label:s.type,icon:'fa-square'},fixed=rules(s.type).locked;if(s.type==='ep_area')sc={label:(s.props&&s.props.label)||sc.label,icon:sc.icon};else if(s.type==='ep_text')sc={label:'Text: '+String((s.props&&s.props.orig)||(s.props&&s.props.text)||'').replace(/\s+/g,' ').slice(0,32),icon:sc.icon};else if(s.type==='ep_order')sc={label:'Reihenfolge: '+String((s.props&&s.props.container)||'').slice(-28),icon:sc.icon};
     return '<div class="lb-item'+(s.id===sel?' on':'')+(s.hidden?' off':'')+'" style="margin-left:'+(depth*14)+'px" draggable="'+(fixed?'false':'true')+'" data-id="'+s.id+'" tabindex="0" role="button" aria-label="'+esc(sc.label)+' bearbeiten">'
       +'<span class="lb-grip" title="Ziehen zum Sortieren"><i class="fas fa-grip-vertical"></i></span><i class="fas '+sc.icon+' lb-ico"></i>'
       +'<span class="lb-name">'+esc(sc.label)+'<small>'+esc(summary(s))+'</small></span>'
@@ -208,6 +221,31 @@
     detected=(Array.isArray(nodes)?nodes:[]).slice(0,90).filter(function(n){return n&&typeof n.s==='string'&&SELRE.test(n.s)}).map(function(n){return {s:n.s,t:String(n.t||'').slice(0,12),l:String(n.l||n.s).slice(0,60),d:Math.max(0,Math.min(4,+n.d||0)),p:String(n.p||''),y:+n.y||0,h:+n.h||0}});
     drawDetected();
   }
+
+  /* ───────── Inhalte direkt ändern (Vorschau meldet Textänderungen und Verschiebungen) ───────── */
+  var PATHRE=/^(#[a-z][a-z0-9_-]{0,60}|body)((?: > (?:[a-z][a-z0-9]{0,9}(?::nth-of-type\([0-9]{1,3}\))?|\.[a-z][a-z0-9_-]{0,40})){0,8})$/i;
+  function findInst(fn){var hit=null;(function w(l){l.forEach(function(x){if(!hit&&fn(x))hit=x;if(x.children)w(x.children)})})(layout);return hit}
+  function onTextEdit(d){
+    if(!target||!cat.ep_text){state('Texte lassen sich hier nur in einem Bearbeitungsziel der Website ändern.',true);return}
+    var s=String(d.s||''),k=Math.max(0,Math.min(200,+d.k||0)),t=String(d.t==null?'':d.t).slice(0,4000),o=String(d.o==null?'':d.o).slice(0,4000);
+    if(!PATHRE.test(s))return;
+    var hit=findInst(function(x){return x.type==='ep_text'&&x.props&&x.props.selector===s&&(+x.props.node||0)===k});
+    if(hit){
+      if(t===String(hit.props.orig||'')){var loc=locate(hit.id);if(loc)loc.list.splice(loc.idx,1);hit=null;state('Text zurückgesetzt (Entwurf)')}
+      else{hit.props.text=t;state('Text geändert (Entwurf)')}
+    }else{
+      hit={id:uid(),type:'ep_text',hidden:false,props:defaults('ep_text')};hit.props.selector=s;hit.props.node=k;hit.props.text=t;hit.props.orig=o.slice(0,300);layout.push(hit);state('Text geändert (Entwurf)');
+    }
+    if(hit)sel=hit.id;changed();draw();
+  }
+  function onReorder(d){
+    if(!target||!cat.ep_order){return}
+    var c=String(d.c||''),items=(Array.isArray(d.items)?d.items:[]).map(String).filter(function(x){return SELRE.test(x)||PATHRE.test(x)}).slice(0,40);
+    if(!PATHRE.test(c)||items.length<2)return;
+    var hit=findInst(function(x){return x.type==='ep_order'&&x.props&&x.props.container===c});
+    if(!hit){hit={id:uid(),type:'ep_order',hidden:false,props:defaults('ep_order')};hit.props.container=c;layout.push(hit)}
+    hit.props.items=items.map(function(x){return {selector:x}});sel=hit.id;state('Reihenfolge geändert (Entwurf)');changed();draw();
+  }
   function init(){var f=frame();if(!f||!f.contentWindow)return;f.contentWindow.postMessage({ep:1,type:'init',token:bridge.token,edit:bridge.edit,regions:bridgeRegions(),labels:typeLabels(),selected:sel||'',scroll:bridge.scroll},location.origin)}
   function onMessage(e){
     var f=frame();if(!f||e.source!==f.contentWindow||e.origin!==location.origin)return;
@@ -216,6 +254,9 @@
     if(d.token!==bridge.token)return;
     if(d.type==='scroll'){bridge.scroll=Math.max(0,Math.min(1e6,+d.y||0));return}
     if(d.type==='structure'){onDetected(d.nodes);return}
+    if(d.type==='text-edit'){onTextEdit(d);return}
+    if(d.type==='reorder'){onReorder(d);return}
+    if(d.type==='notice'){state(String(d.msg||'').slice(0,200),true);return}
     if(d.type==='select'){
       var id=String(d.id||'');
       if(d.kind==='detected'){var cv=SELRE.test(id)?coveredBy(id):null;detSel=SELRE.test(id)?id:'';if(cv){sel=cv.id;draw()}drawDetected();return}
@@ -232,7 +273,7 @@
   async function getPreview(){var tgt=target;   /* späte Antwort für ein inzwischen gewechseltes Ziel verwerfen */
     if(tgt){try{var pd=await capi('layout_preview');if(tgt===target){previewUrl=pd.url;setFrame()}}catch(e){state(e.message||'Vorschau nicht verfügbar',true)}return}
     try{var d=await cmsApi('wp_theme_preview',{slug:'elvado-baukasten'});if(d.url&&tgt===target){previewUrl=d.url;setFrame()}}catch(e){state(e.message||'Vorschau nicht verfügbar',true)}}
-  function notice(){var n=$('lbNotice');if(target){n.style.display='';n.innerHTML='Hier gestaltest du die <b>bestehenden Bereiche</b> deiner Website (Abstände, Farben, Höhe, Sichtbarkeit). Die Website rendert weiter selbst – ihre Texte und Inhalte pflegst du wie bisher in den jeweiligen Verwaltungsbereichen.';return}if(active){n.style.display='none';return}n.style.display='';n.innerHTML='Das Theme „ElvadoPress Baukasten“ ist noch nicht aktiv. Du kannst hier bauen und die Vorschau nutzen; zum Veröffentlichen <a href="#" data-activate="1">Theme aktivieren</a>.'}
+  function notice(){var n=$('lbNotice');if(target){n.style.display='';n.innerHTML='Hier gestaltest du die <b>bestehenden Bereiche</b> deiner Website (Abstände, Farben, Höhe, Sichtbarkeit). <b>Doppelklick auf einen Text</b> in der Vorschau ändert ihn, <b>⠿ in der Werkzeugleiste</b> verschiebt einen markierten Bereich (Ziehen). Jede Änderung ist ein eigenes Element (Entwurf, Veröffentlichen, Verlauf) und funktioniert mit jedem Theme. Geänderte Texte überschreiben die Texte aus der Verwaltung nur auf der Seite.';return}if(active){n.style.display='none';return}n.style.display='';n.innerHTML='Das Theme „ElvadoPress Baukasten“ ist noch nicht aktiv. Du kannst hier bauen und die Vorschau nutzen; zum Veröffentlichen <a href="#" data-activate="1">Theme aktivieren</a>.'}
   function badge(){var b=$('lbSched');if(!b)return;b.hidden=!publishAt;b.textContent=publishAt?'Geplant: '+publishAt.replace('T',' '):''}
 
   async function load(){

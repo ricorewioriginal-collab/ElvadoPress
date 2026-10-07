@@ -146,9 +146,16 @@
     var box=$('themeCustomizerControls');box.oninput=czOnInput;box.onchange=czOnInput;box.onclick=czOnClick;
     sh.querySelector('.theme-customizer-side').onclick=czSideClick;
     sh.style.display='grid';document.body.style.overflow='hidden';
-    $('themeCustomizerFrame').src=cz.url;
+    $('themeCustomizerFrame').src=czBrandUrl(cz.url);
     if(cz.pending)czSchedule();
   }
+  /* Marke der Vorschau (Kopf-Umschalter): Adresse des WordPress-Customizers um die gewählte Marke ergänzen */
+  function czBrandUrl(u){
+    try{var b=window.CMS_BRAND||'',def=(window.CMS&&CMS.brands&&CMS.brands.default)||'';var x=new URL(u,location.origin);x.searchParams.delete('rrw_brand');if(b&&b!==def)x.searchParams.set('rrw_brand',b);return x.pathname+x.search+x.hash}catch(e){return u}
+  }
+  window.addEventListener('cms:brand',function(){
+    try{if(!(window.WpThemes&&WpThemes.czActive&&WpThemes.czActive())||!cz||!cz.url)return;var f=$('themeCustomizerFrame');if(f)f.src=czBrandUrl(cz.url)}catch(e){}
+  });
   function czCtl(c){
     if(c.type==='note')return '<div class="hint cz-note">'+esc(c.label)+'</div>';
     if(c.type==='go')return '<button type="button" class="btn-g cz-go" data-czgo="'+esc(c.to)+'"><i class="fas fa-arrow-up-right-from-square"></i> '+esc(c.label)+'</button>';
