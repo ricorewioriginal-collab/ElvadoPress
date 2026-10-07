@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 // Verwaltungs-API der WordPress-Engine (eigener Einstieg, damit echtes WordPress in einem sauberen globalen Gültigkeitsbereich startet und nicht in den Variablen von api.php).
-// Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_analyze, engine_mode, engine_remove;
+// Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_db_unify, engine_analyze, engine_mode, engine_remove;
 // Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report; echte Migration (nur mit Bestätigung, protokolliert, zurückbaubar) migration_run, migration_rollback, migration_runs; Demo: engine_demo_setup; Systemstatus system_status, updates_overview, updates_check.
 // Rechte: Administratoren alles; Autoren Inhalte/Medien nur eigene (Dienste prüfen), Seiten, Begriffe, Benutzer und Engine nur Administratoren. Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
 // Die Anmeldeprüfung kommt aus api.php (RRW_API_LIB_ONLY); in der Demo sind alle Aktionen außer engine_status gesperrt.
@@ -113,11 +113,26 @@ if ($rrwEngineAction === 'engine_core') {
     rrw_json(['status' => $r['ok'] ? 'ok' : 'error'] + $r + rrw_wpe_status($rrwEngine, $rrwEngineDb), $r['ok'] ? 200 : 422);
 }
 if ($rrwEngineAction === 'engine_db_test') {
-    $t = $rrwEngineDb->test((array)($rrwEngineB['db'] ?? []));
+    // Eine Datenbank für alles: ist die gemeinsame Datenbank (System → Datenbank) eingerichtet, zählt von der Anfrage nur das Präfix
+    $c = $rrwEngineDb->withShared((array)($rrwEngineB['db'] ?? []));
+    $t = $rrwEngineDb->test($c);
+    if ($t['ok'] && ($pc = $rrwEngineDb->prefixConflict((string)($c['prefix'] ?? '')))) {
+        $t = ['ok' => false, 'message' => $pc] + $t;
+    }
     rrw_json(['status' => $t['ok'] ? 'ok' : 'error'] + $t, $t['ok'] ? 200 : 422);
 }
+if ($rrwEngineAction === 'engine_db_unify') {   // eigene Verbindung einer älteren Engine-Einrichtung → gemeinsame Datenbank des CMS
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+    }
+    $u = $rrwEngineDb->unify();
+    if ($u['ok']) {
+        $rrwEngineLog('Datenbank-Verbindung der Engine mit der gemeinsamen Datenbank zusammengeführt');
+    }
+    rrw_json(['status' => $u['ok'] ? 'ok' : 'error', 'message' => $u['message']] + rrw_wpe_status($rrwEngine, $rrwEngineDb), $u['ok'] ? 200 : 422);
+}
 if ($rrwEngineAction === 'engine_db_install') {
-    $pre = rrw_wpe_pre_install($rrwEngine, $rrwEngineDb, (array)($rrwEngineB['db'] ?? []));
+    $pre = rrw_wpe_pre_install($rrwEngine, $rrwEngineDb, $rrwEngineDb->withShared((array)($rrwEngineB['db'] ?? [])));
     if (!$pre['ok']) {
         rrw_json(['status' => 'error', 'message' => $pre['message']], 422);
     }

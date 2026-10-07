@@ -58,3 +58,13 @@ Pakete (z. B. ein Projekt-Paket mit eigenem Portal) können ihre **bestehenden**
 - Die generische Komponente **`ep_area`** („Erkannter Bereich“, `bind` = `*`) trägt den Selektor pro Instanz (`props.selector`, streng geprüft mit `Component::validSelector`) und bietet Farben, Mindesthöhe, Abstände und Sichtbarkeit (ausblenden, Zeitplan, Geräte). Ohne Änderung entsteht kein CSS.
 - **Live Builder:** Die Liste „Erkannte Seitenstruktur“ zeigt die Bereiche mit Einrückung; Hover markiert in der Vorschau, „Gestalten“ nimmt einen Bereich als `ep_area` in die Seitenstruktur auf (nur bei Bearbeitungszielen von Paketen). **Customizer:** der Abschnitt „Seitenstruktur (live erkannt)“ zeigt dieselbe Liste (Hover/Klick markiert), „Einstellungen“ springt zum passenden Abschnitt des Themes.
 - Test: `scripts/test-page-scan.php` (Server-Teil immer, Browser-Teil mit Playwright/Chromium).
+
+## Inhalte direkt ändern (themeunabhängig)
+Der Live Builder ändert die **echte Seite**, nicht nur das Theme (Ziel „Website (alle Themes)“, bei Paketen das Ziel der Marke):
+- **Text ändern:** Doppelklick auf einen Text in der Vorschau öffnet ein Eingabefeld direkt am Text (Enter übernimmt, Esc bricht ab). Die Änderung ist ein eigenes Element **`ep_text`** (Pfad-Selektor, Nr. der Textstelle, Text, Originaltext) mit Entwurf, Veröffentlichen und Verlauf. Es wird nur der Textknoten ersetzt – nie HTML; Unterelemente (z. B. `<em>`) bleiben. Erneut den Originaltext eingeben setzt die Änderung zurück.
+- **Verschieben:** Ein markierter erkannter Bereich lässt sich über den Griff **⠿** der Werkzeugleiste innerhalb seines Containers ziehen. Gespeichert wird **`ep_order`** (Container + Reihenfolge der Geschwister mit stabilem Selektor: Kennung oder eindeutige Klasse). Bereiche ohne eindeutige Kennung lassen sich nicht verschieben (die Vorschau meldet das).
+- **Anwendung:** Die ausgelieferte Seite bekommt die geprüften Daten als JSON (`<script type="application/json" id="ep-overrides-data">`, alle Sonderzeichen maskiert) und ein festes kleines Skript (`id="ep-overrides"`), das Texte und Reihenfolge anwendet und nach Änderungen der Seite (Inhalte, die per Skript nachgeladen werden) erneut anwendet. Ohne gespeicherte Änderungen bleibt die Seite byte-gleich.
+- **Pfad-Selektoren** (`Component::validPath`): Start `#kennung` oder `body`, danach bis zu 8 Schritte ` > tag:nth-of-type(n)` oder ` > .klasse`; keine anderen Zeichen. Positionspfade ändern sich, wenn sich die Seite ändert – dann trifft die Änderung ggf. nicht mehr; sie lässt sich im Builder löschen.
+- **Hinweis:** Texte, die das Portal selbst aus der Verwaltung lädt, werden auf der Seite überschrieben; in der Verwaltung bleibt der Originaltext.
+- Test: `scripts/test-page-scan.php`.
+

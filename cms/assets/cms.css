@@ -46,7 +46,7 @@
 .theme-customizer-heading h2{font-size:1.15rem;margin:3px 0 12px}
 .theme-customizer-controls{flex:1;overflow:auto;padding-bottom:20px}
 .customizer-section{border-bottom:1px solid var(--border)}
-.customizer-section>button{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:transparent;color:#f3f4fa;padding:14px 16px;font-weight:800;text-align:left;cursor:pointer}
+.customizer-section>button{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;background:transparent;color:var(--text,#f3f4fa);padding:14px 16px;font-weight:800;text-align:left;cursor:pointer}
 .customizer-section>button:hover{background:rgba(255,255,255,.035)}
 .customizer-section-body{padding:0 16px 15px;display:grid;gap:12px}
 .customizer-section.closed .customizer-section-body{display:none}
@@ -245,10 +245,10 @@
 .cz-theme-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border)}
 .cz-theme-row small{display:block;color:var(--muted);font-size:.7rem}
 .cz-theme-row b{font-size:.95rem}
-.cz-list button{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;border-bottom:1px solid var(--border);background:transparent;color:#f3f4fa;padding:15px 16px;font-weight:700;text-align:left;cursor:pointer}
+.cz-list button{width:100%;display:flex;align-items:center;justify-content:space-between;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text,#f3f4fa);padding:15px 16px;font-weight:700;text-align:left;cursor:pointer}
 .cz-list button:hover{background:rgba(255,255,255,.04)}
 .cz-list button i{color:var(--muted);font-size:.8rem}
-.cz-back{width:100%;display:flex;align-items:center;gap:12px;border:0;border-bottom:1px solid var(--border);background:#16161e;color:#f3f4fa;padding:12px 16px;text-align:left;cursor:pointer}
+.cz-back{width:100%;display:flex;align-items:center;gap:12px;border:0;border-bottom:1px solid var(--border);background:var(--surface2,#16161e);color:var(--text,#f3f4fa);padding:12px 16px;text-align:left;cursor:pointer}
 .cz-back:hover{background:rgba(255,255,255,.04)}
 .cz-back small{display:block;color:var(--muted);font-size:.7rem;font-weight:500}
 .cz-back b{font-size:1rem}

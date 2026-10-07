@@ -13,9 +13,9 @@
   var root=host.attachShadow({mode:'closed'});
   root.innerHTML='<style>.b{position:fixed;pointer-events:none;box-sizing:border-box;display:none;border-radius:2px}.h{border:2px dashed rgba(47,156,255,.85);background:rgba(47,156,255,.07)}.s{border:2px solid #2f9cff;box-shadow:0 0 0 9999px rgba(0,0,0,0)}'
     +'.t{position:fixed;display:none;pointer-events:auto;font:600 12px/1 system-ui,sans-serif;background:#1a6fe0;color:#fff;border-radius:6px 6px 0 0;padding:0;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.35)}'
-    +'.t span{display:inline-block;padding:7px 10px}.t button{all:unset;cursor:pointer;padding:7px 9px;font:700 12px/1 system-ui,sans-serif}.t button:hover,.t button:focus-visible{background:rgba(255,255,255,.22)}.t button.d:hover{background:#d13b4b}</style>'
-    +'<div class="b h" id="h"></div><div class="b s" id="s"></div><div class="t" id="t" role="toolbar" aria-label="Komponente bearbeiten"><span id="l"></span><button data-op="up" title="Nach oben" aria-label="Nach oben">↑</button><button data-op="down" title="Nach unten" aria-label="Nach unten">↓</button><button data-op="dup" title="Duplizieren" aria-label="Duplizieren">⧉</button><button data-op="hide" title="Ausblenden" aria-label="Ausblenden">Aus</button><button class="d" data-op="del" title="Löschen" aria-label="Löschen">✕</button></div>';
-  var H=root.getElementById('h'),S=root.getElementById('s'),T=root.getElementById('t'),L=root.getElementById('l');
+    +'.t span{display:inline-block;padding:7px 10px}.t button{all:unset;cursor:pointer;padding:7px 9px;font:700 12px/1 system-ui,sans-serif}.t button:hover,.t button:focus-visible{background:rgba(255,255,255,.22)}.t button.d:hover{background:#d13b4b}.e{position:fixed;display:none;pointer-events:auto;background:#0b1020;border:2px solid #2f9cff;border-radius:8px;box-shadow:0 12px 36px rgba(0,0,0,.5);padding:6px}.e textarea{display:block;box-sizing:border-box;width:100%;min-height:64px;resize:vertical;background:#101830;color:#fff;border:1px solid #2a3a66;border-radius:6px;padding:8px;font:14px/1.4 system-ui,sans-serif}.e small{display:block;color:#9fb4e6;font:11px system-ui,sans-serif;margin-top:4px}.e .r{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}.e button{all:unset;cursor:pointer;padding:5px 10px;border-radius:6px;font:600 12px system-ui,sans-serif;background:#1a6fe0;color:#fff}.e button.c{background:#2a3350}.ln{position:fixed;height:4px;background:#34d399;border-radius:2px;display:none;pointer-events:none;box-shadow:0 0 8px #34d399}.t button.g{cursor:grab;letter-spacing:-2px}</style>'
+    +'<div class="b h" id="h"></div><div class="b s" id="s"></div><div class="t" id="t" role="toolbar" aria-label="Komponente bearbeiten"><span id="l"></span><button class="g" data-op="drag" title="Ziehen zum Verschieben" aria-label="Verschieben">⠿</button><button data-op="up" title="Nach oben" aria-label="Nach oben">↑</button><button data-op="down" title="Nach unten" aria-label="Nach unten">↓</button><button data-op="dup" title="Duplizieren" aria-label="Duplizieren">⧉</button><button data-op="hide" title="Ausblenden" aria-label="Ausblenden">Aus</button><button class="d" data-op="del" title="Löschen" aria-label="Löschen">✕</button></div><div class="e" id="e" role="dialog" aria-label="Text ändern"><textarea id="et" maxlength="4000"></textarea><small>Enter = übernehmen · Umschalt+Enter = neue Zeile · Esc = abbrechen</small><div class="r"><button class="c" id="ec">Abbrechen</button><button id="eo">Übernehmen</button></div></div><div class="ln" id="ln"></div>';
+  var H=root.getElementById('h'),S=root.getElementById('s'),T=root.getElementById('t'),L=root.getElementById('l'),E=root.getElementById('e'),ET=root.getElementById('et'),LN=root.getElementById('ln');
   function mount(){if(!host.parentNode)(document.body||document.documentElement).appendChild(host)}
 
   function info(el){
@@ -42,7 +42,7 @@
     box(H,hoverEl&&hoverEl!==selEl?hoverEl:null);box(S,selEl);
     if(selEl&&edit){   /* Werkzeugleiste nur im Bearbeiten-Modus */
       var r=selEl.getBoundingClientRect(),i=info(selEl);T.style.display='block';
-      L.textContent=i?i.label:'';var isSec=i&&i.kind==='section';[].forEach.call(T.querySelectorAll('button'),function(b){b.style.display=isSec?'':'none'});
+      L.textContent=i?i.label:'';var isSec=i&&i.kind==='section',canMove=i&&i.kind==='detected';[].forEach.call(T.querySelectorAll('button'),function(b){b.style.display=b.getAttribute('data-op')==='drag'?(canMove?'':'none'):(isSec?'':'none')});
       var tw=T.offsetWidth,x=Math.min(Math.max(4,r.left),Math.max(4,window.innerWidth-tw-4)),y=r.top-T.offsetHeight;if(y<0)y=Math.min(r.top+4,window.innerHeight-T.offsetHeight-4);
       T.style.left=x+'px';T.style.top=y+'px';
     }else T.style.display='none';
@@ -111,6 +111,87 @@
   try{new MutationObserver(function(){if(token)scheduleScan()}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden']})}catch(e){}
   window.addEventListener('load',function(){if(token)scheduleScan()});
 
+
+  /* ───────── Inhalte direkt ändern: Text per Doppelklick, Reihenfolge per Ziehen (themeunabhängig) ─────────
+     Änderungen werden sofort in der Vorschau angezeigt und dem Builder gemeldet; er speichert sie als Elemente der Seite (Entwurf, Veröffentlichen, Verlauf). */
+  var BADTAG={SCRIPT:1,STYLE:1,TEXTAREA:1,INPUT:1,SELECT:1,IFRAME:1,OBJECT:1,NOSCRIPT:1,TEMPLATE:1,SVG:1};
+  var PATH_RE=/^(#[a-z][a-z0-9_-]{0,60}|body)((?: > (?:[a-z][a-z0-9]{0,9}(?::nth-of-type\([0-9]{1,3}\))?|\.[a-z][a-z0-9_-]{0,40})){0,8})$/i;
+  function nthOfType(el){var n=1,p=el;while((p=p.previousElementSibling))if(p.tagName===el.tagName)n++;return n}
+  /* Pfad zu einem Element: ab dem nächsten Vorfahren mit eindeutiger Kennung (sonst body), Schritt für Schritt „tag:nth-of-type(n)“; prüft, dass er das Element wirklich trifft */
+  function pathFor(el){
+    var segs=[],cur=el,top='body';
+    while(cur&&cur!==document.body&&cur!==document.documentElement){
+      if(cur.id&&/^[a-z][a-z0-9_-]{0,60}$/i.test(cur.id)&&!/^(rrw-|ep-|cms-|wp-)/i.test(cur.id)&&!/[a-f0-9]{10,}/i.test(cur.id)&&uniq('#'+cur.id)){top='#'+cur.id;break}
+      segs.unshift(cur.tagName.toLowerCase()+':nth-of-type('+nthOfType(cur)+')');cur=cur.parentElement;
+    }
+    if(segs.length>8)return '';
+    var p=top+(segs.length?' > '+segs.join(' > '):'');
+    if(!PATH_RE.test(p)||p.length>400)return '';
+    try{return document.querySelector(p)===el?p:''}catch(e){return ''}
+  }
+  function textNodeAt(x,y){
+    var n=null;
+    try{if(document.caretPositionFromPoint){var p=document.caretPositionFromPoint(x,y);if(p&&p.offsetNode&&p.offsetNode.nodeType===3)n=p.offsetNode}
+    else if(document.caretRangeFromPoint){var r=document.caretRangeFromPoint(x,y);if(r&&r.startContainer&&r.startContainer.nodeType===3)n=r.startContainer}}catch(e){}
+    if(!n||!n.parentElement||BADTAG[n.parentElement.tagName]||host.contains(n.parentElement))return null;
+    return (n.nodeValue||'').trim()?n:null;
+  }
+  var editNode=null,editOrig='';
+  function closeEdit(){editNode=null;E.style.display='none'}
+  function openEdit(n,x,y){
+    var par=n.parentElement,k=[].indexOf.call(par.childNodes,n),sel=pathFor(par);
+    if(!sel||k<0){post({type:'notice',msg:'Dieser Text liegt zu tief verschachtelt und lässt sich nicht sicher ansprechen.'});return}
+    editNode=n;editOrig=n.nodeValue;ET.value=n.nodeValue;
+    var rg=document.createRange();rg.selectNodeContents(n);var r=rg.getBoundingClientRect();
+    var w=Math.min(Math.max(300,r.width+24),Math.min(560,window.innerWidth-16));
+    E.style.width=w+'px';E.style.display='block';E.style.left=Math.max(8,Math.min(window.innerWidth-w-8,r.left-6))+'px';E.style.top=Math.max(8,Math.min(window.innerHeight-170,r.bottom+8))+'px';
+    E.dataset.sel=sel;E.dataset.k=String(k);ET.focus();ET.select();
+  }
+  function commitEdit(){
+    if(!editNode)return;var t=ET.value,sel=E.dataset.sel,k=+E.dataset.k,n=editNode,orig=editOrig;closeEdit();
+    if(t===orig)return;
+    n.nodeValue=t;post({type:'text-edit',s:sel,k:k,t:t,o:orig});draw();
+  }
+  ET.addEventListener('keydown',function(e){e.stopPropagation();if(e.key==='Escape'){e.preventDefault();closeEdit()}else if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();commitEdit()}});
+  root.getElementById('eo').addEventListener('click',commitEdit);root.getElementById('ec').addEventListener('click',closeEdit);
+  document.addEventListener('dblclick',function(e){
+    if(!token||!edit||(e.target&&host.contains(e.target)))return;
+    var n=textNodeAt(e.clientX,e.clientY);if(!n)return;e.preventDefault();e.stopPropagation();openEdit(n,e.clientX,e.clientY);
+  },true);
+
+  /* Ziehen: ausgewähltes Element (Bereich) innerhalb seines Containers verschieben. Gemeldet werden nur Geschwister mit stabilem Selektor (Kennung oder eindeutige Klasse),
+     denn Positionspfade ändern sich beim Verschieben. */
+  var drag=null;
+  function stableSel(el){var s=selFor(el);return s&&SEL_RE.test(s)&&s!=='main'?s:''}
+  function siblingTarget(x,y,el){
+    var hit=document.elementFromPoint(x,y);if(!hit||host.contains(hit))return null;
+    while(hit&&hit.parentElement!==el.parentElement)hit=hit.parentElement;
+    return hit&&hit!==el?hit:null;
+  }
+  function dragStart(e){
+    var si=selEl?info(selEl):null;if(!selEl||!edit||!si||si.kind!=='detected')return;var par=selEl.parentElement;if(!par)return;
+    var sibs=[].filter.call(par.children,function(c){return c!==host&&!BADTAG[c.tagName]});
+    if(sibs.length<2)return;
+    drag={el:selEl,par:par,tgt:null,after:false};e.preventDefault();
+    window.addEventListener('pointermove',dragMove,true);window.addEventListener('pointerup',dragEnd,true);
+  }
+  function dragMove(e){
+    if(!drag)return;var t=siblingTarget(e.clientX,e.clientY,drag.el);drag.tgt=t;
+    if(!t){LN.style.display='none';return}
+    var r=t.getBoundingClientRect();drag.after=e.clientY>r.top+r.height/2;
+    LN.style.display='block';LN.style.left=r.left+'px';LN.style.width=r.width+'px';LN.style.top=(drag.after?r.bottom-2:r.top-2)+'px';
+  }
+  function dragEnd(){
+    window.removeEventListener('pointermove',dragMove,true);window.removeEventListener('pointerup',dragEnd,true);LN.style.display='none';
+    var d=drag;drag=null;if(!d||!d.tgt)return;
+    d.par.insertBefore(d.el,d.after?d.tgt.nextSibling:d.tgt);
+    var items=[].map.call(d.par.children,stableSel).filter(Boolean),c=pathFor(d.par);
+    if(!c||items.length<2){post({type:'notice',msg:'Die neue Reihenfolge lässt sich hier nicht sicher speichern (Bereiche ohne eindeutige Kennung).'});return}
+    if(!stableSel(d.el)){post({type:'notice',msg:'Dieser Bereich hat keine eindeutige Kennung und kann nicht verschoben werden.'});return}
+    post({type:'reorder',c:c,items:items});draw();
+  }
+  T.addEventListener('pointerdown',function(e){var b=e.target.closest&&e.target.closest('button[data-op="drag"]');if(b)dragStart(e)});
+
   /* Anklicken und Hervorheben (nur im Bearbeiten-Modus; Links/Formulare werden dabei nicht ausgeführt) */
   document.addEventListener('mouseover',function(e){if(!token||!edit)return;var i=info(e.target);var n=i?i.el:null;if(n!==hoverEl){hoverEl=n;draw()}},true);
   document.addEventListener('mouseleave',function(){hoverEl=null;draw()},true);
@@ -123,7 +204,7 @@
   },true);
   document.addEventListener('submit',function(e){if(token&&edit)e.preventDefault()},true);
   document.addEventListener('keydown',function(e){if(token&&e.key==='Escape'&&selEl){choose(null,true);post({type:'select',id:'',kind:'section'})}});
-  T.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button[data-op]');if(b&&selected)post({type:'action',op:b.getAttribute('data-op'),id:selected})});
+  T.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('button[data-op]');if(b&&b.getAttribute('data-op')!=='drag'&&selected)post({type:'action',op:b.getAttribute('data-op'),id:selected})});
   window.addEventListener('scroll',function(){draw();var now=Date.now();if(now-scrollT>200){scrollT=now;lastY=window.pageYOffset;post({type:'scroll',y:lastY})}},{passive:true});
   window.addEventListener('resize',draw);
   window.addEventListener('beforeunload',function(){post({type:'scroll',y:window.pageYOffset})});

@@ -26,6 +26,33 @@
   function siteName(){
     var c=window.CMS&&window.CMS.portal&&window.CMS.portal.site_name;var chip=$('epSiteChip');if(chip&&c&&!chip.dataset.brandUrl){var b=chip.querySelector('b');if(b&&b.textContent!==c)b.textContent=c}
   }
+  /* Website-Umschalter: bei mehreren Websites (Verwaltung → Websites) wählt der Kopf, welche Website verwaltet wird (Kopf „X-EP-Site“ in allen Anfragen, siehe cms-app.js). */
+  var siteState={list:[],main:'Hauptwebsite',cur:''},siteTok='';
+  function siteCur(){try{return localStorage.getItem('ep.site')||''}catch(e){return ''}}
+  function siteLabel(id){if(!id)return siteState.main;var s=siteState.list.filter(function(x){return x.id===id})[0];return s?s.name:id}
+  function siteBuild(){
+    var old=$('epSite');if(old)old.remove();
+    if(!siteState.list.length)return;
+    var host=document.querySelector('.ep-top .ep-brand')||document.querySelector('.ep-top .ep-site');if(!host)return;
+    var cur=siteCur();if(cur&&!siteState.list.some(function(x){return x.id===cur&&x.enabled!==false})){cur='';try{localStorage.removeItem('ep.site')}catch(e){}}
+    var w=document.createElement('div');w.className='ep-brand ep-sitesw'+(cur?' is-sub':'');w.id='epSite';
+    var items=[{id:'',name:siteState.main}].concat(siteState.list.filter(function(x){return x.enabled!==false}));
+    w.innerHTML='<button type="button" class="ep-brand-btn" id="epSiteBtn" aria-haspopup="true" aria-expanded="false" title="Website wechseln"><i class="fas fa-layer-group"></i><b>'+esc(siteLabel(cur))+'</b><i class="fas fa-chevron-down ep-brand-ch"></i></button><div class="ep-brand-menu" id="epSiteMenu" role="menu" hidden>'
+      +items.map(function(x){return '<button type="button" role="menuitem" data-site="'+esc(x.id)+'" class="'+(x.id===cur?'on':'')+'"><i class="fas '+(x.id?'fa-globe':'fa-house')+'"></i><span><b>'+esc(x.name)+'</b><small>'+(x.id?esc((x.domains||[]).join(', ')||'keine Domain'):'Hauptwebsite')+'</small></span><i class="fas fa-check ep-brand-ok"></i></button>'}).join('')+'</div>';
+    host.parentNode.insertBefore(w,host);
+    w.addEventListener('click',function(e){var bt=e.target.closest('button');if(!bt)return;var m=$('epSiteMenu');
+      if(bt.id==='epSiteBtn'){m.hidden=!m.hidden;bt.setAttribute('aria-expanded',m.hidden?'false':'true');return}
+      var id=bt.getAttribute('data-site');if(id!==null&&id!==cur){try{if(id)localStorage.setItem('ep.site',id);else localStorage.removeItem('ep.site')}catch(x){}location.reload()}else m.hidden=true});
+    document.addEventListener('click',function(e){var m=$('epSiteMenu');if(m&&!m.hidden&&!e.target.closest('#epSite')){m.hidden=true}});
+  }
+  function siteInit(){
+    if($('epSite')||!document.querySelector('.ep-top'))return;
+    var tok='';try{tok=(window.cmsToken&&cmsToken())||''}catch(e){}if(!tok||tok===siteTok)return;siteTok=tok;   /* je Anmeldung einmal fragen */
+    fetch('api.php?action=sites_list',{headers:{'X-AnMaCha-Token':tok},cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+      if(!d||d.status!=='ok'||!(d.sites||[]).length)return;siteState.list=d.sites;siteState.main=(d.main&&d.main.name)||'Hauptwebsite';siteBuild();
+    }).catch(function(){});
+  }
+  window.CMS_SITES_REFRESH=function(){var o=$('epSite');if(o)o.remove();siteTok='';siteInit()};
   /* Marken-Umschalter: bei mehreren Marken/Websites (Domains & Branding) wählt der Header die Marke, die der Verwaltungsbereich bearbeitet (z. B. Live Editor). */
   var brandState={list:[],cur:''};
   function brandCur(){return brandState.list.filter(function(b){return b.id===brandState.cur})[0]||null}
@@ -100,9 +127,9 @@
     if(bar&&th&&bell&&th.nextElementSibling!==bell)bar.insertBefore(th,bell);
   }
   function nolabel(){document.querySelectorAll('.tabs .tab').forEach(function(t){if(!t.textContent.trim())t.classList.add('ep-nolabel')})}
-  function boot(){nolabel();search();user();devices();more();siteName();brandInit();themeIcon();order();keepOpen()}
+  function boot(){nolabel();search();user();devices();more();siteName();brandInit();siteInit();themeIcon();order();keepOpen()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   [300,900,2200,5000].forEach(function(ms){setTimeout(boot,ms)});
-  setInterval(function(){siteName();themeIcon();keepOpen()},2500);
+  setInterval(function(){siteName();siteInit();themeIcon();keepOpen()},2500);
   document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.tabs .tab'))setTimeout(keepOpen,50)});
 })();

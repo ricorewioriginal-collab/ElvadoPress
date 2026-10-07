@@ -36,3 +36,5 @@
   - Verwaltungs-Oberfläche: Zähler-Abzeichen an „Plugins“/„Updates“ und ein Menüpunkt „Automatisierung“ fehlen mangels Funktion.
 - **Nächste Untersuchung:** Panels auf die Engine umstellen (mit Golden-Test in ricorewi-radio), danach die Emulation entfernen.
 
+## Mehrere eigenständige Websites (Multisite)
+- Grundlage steht (`cms/lib/sites.php`, `scripts/test-sites.php`, `cms/docs/MULTISITE.md`), ist aber noch **nicht eingebunden**: Auslieferung, Verwaltung (Website-Umschalter, Bereich „Websites“), WordPress-Emulation und -Engine je Website folgen in Stufen (siehe Dokument). Bis dahin ändert sich am Betrieb nichts.

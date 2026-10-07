@@ -18,6 +18,7 @@ final class CoreComponents
         }
         self::native($r);
         self::detectedArea($r);
+        self::contentEdits($r);
         foreach (self::hosted() as $def) {
             $r->register($def, 'core');
         }
@@ -80,6 +81,23 @@ final class CoreComponents
     private static function linkItems(): array
     {
         return ['k' => 'items', 'label' => 'Links', 'type' => 'items', 'max_items' => 12, 'item' => [['k' => 'label', 'label' => 'Text', 'type' => 'text', 'max' => 80], ['k' => 'url', 'label' => 'Ziel', 'type' => 'url']]];
+    }
+
+    /** Inhalts-Änderungen am echten Seiten-HTML (themeunabhängig): geänderter Text und geänderte Reihenfolge. Wirken über ein kleines Skript der Seite (siehe Renderer::overrides). */
+    private static function contentEdits(Registry $r): void
+    {
+        $r->register(['id' => 'ep_text', 'name' => 'Geänderter Text', 'category' => 'advanced', 'icon' => 'pen', 'bind' => Component::BIND_ANY, 'description' => 'Text, der in der Vorschau direkt geändert wurde (nur Text, kein HTML).',
+            'rules' => ['repeatable' => true, 'use' => 'admin'], 'fields' => [
+                ['k' => 'text', 'label' => 'Text', 'type' => 'textarea', 'max' => 4000, 'default' => '', 'group' => 'content'],
+                ['k' => 'orig', 'label' => 'Ursprünglicher Text', 'type' => 'text', 'default' => '', 'group' => 'behavior'],
+                ['k' => 'selector', 'label' => 'Element (Pfad)', 'type' => 'text', 'default' => '', 'group' => 'behavior'],
+                ['k' => 'node', 'label' => 'Textstelle im Element (Nr.)', 'type' => 'number', 'min' => 0, 'max' => 200, 'default' => 0, 'group' => 'behavior'],
+            ]], 'core');
+        $r->register(['id' => 'ep_order', 'name' => 'Geänderte Reihenfolge', 'category' => 'advanced', 'icon' => 'arrows-up-down', 'bind' => Component::BIND_ANY, 'description' => 'Reihenfolge von Bereichen innerhalb eines Containers (per Drag and Drop geändert).',
+            'rules' => ['repeatable' => true, 'use' => 'admin'], 'fields' => [
+                ['k' => 'container', 'label' => 'Container (Pfad)', 'type' => 'text', 'default' => '', 'group' => 'behavior'],
+                ['k' => 'items', 'label' => 'Reihenfolge', 'type' => 'items', 'max_items' => 40, 'item' => [['k' => 'selector', 'label' => 'Bereich', 'type' => 'text', 'max' => 400]], 'group' => 'behavior'],
+            ]], 'core');
     }
 
     /** Generische Komponente für Bereiche, die der Live Builder in der Vorschau erkennt: Gestaltung und Sichtbarkeit über einen Selektor (Kennung, Klasse oder Gliederungs-Element). */

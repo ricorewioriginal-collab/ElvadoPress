@@ -24,7 +24,10 @@ require_once $cmsDir.'/wp/load.php';
 /* Vorschau: signierter, 15 Minuten gültiger Schlüssel (?rrw_wp_preview=<theme>.<ablauf>.<signatur>) → Cookie */
 $preview='';
 if(($_GET['rrw_wp_preview']??'')==='off'){ setcookie('rrw_wp_preview','',['expires'=>1,'path'=>'/']);setcookie('rrw_wp_draft','',['expires'=>1,'path'=>'/']);header('Location: /');http_response_code(302);exit; }
-$tok=(string)($_GET['rrw_wp_preview']??$_COOKIE['rrw_wp_preview']??'');
+// Live-Builder-Vorschau der Website (signierter Schlüssel): zeigt immer das aktive Theme, auch wenn noch ein Cookie einer Theme-Vorschau besteht
+$epPv=false;
+if(isset($_GET['rrw_ep_preview'])&&is_string($_GET['rrw_ep_preview'])){ try{ require_once $cmsDir.'/lib/components.php';$epPv=rrw_components_preview_ok($_GET['rrw_ep_preview'],'site:website',$cmsDir.'/data'); }catch(Throwable $e){} }
+$tok=$epPv?(string)($_GET['rrw_wp_preview']??''):(string)($_GET['rrw_wp_preview']??$_COOKIE['rrw_wp_preview']??'');
 if($tok!==''&&preg_match('/^([a-z0-9_-]{1,80})\.(\d{9,11})\.([a-f0-9]{64})$/',$tok,$m)&&(int)$m[2]>time()&&hash_equals(hash_hmac('sha256',$m[1].'|'.$m[2],wp_salt('preview')),$m[3])){
     $preview=$m[1];
     if(isset($_GET['rrw_wp_preview']))setcookie('rrw_wp_preview',$tok,['expires'=>(int)$m[2],'path'=>'/','httponly'=>true,'samesite'=>'Lax']);
@@ -102,5 +105,9 @@ if($preview===''&&$r['status']===200&&is_string($body)&&stripos((string)($r['hea
 if($liveCz&&$r['status']===200&&is_string($body)&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).rrw_wpc_live_script().substr($body,$p);
 if($sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).'<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:7px 12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">Sandbox – nicht öffentlich <a href="/?rrw_sbx=off" style="color:#fff;text-decoration:underline">Sandbox verlassen</a></div>'.substr($body,$p);
 if($preview===''&&!$sbx&&is_string($body)&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false)$body=rrw_np_filter('front_output',$body,(int)$r['status']);   // Plugins: SEO, Leistung, Statistik, Sicherheits-Header
+// Live Builder (themeunabhängig): veröffentlichte Gestaltung, geänderte Texte und Reihenfolge der Bereich „Website“ (site:website); nur wenn etwas gespeichert ist oder eine signierte Vorschau läuft
+if(!$sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&(isset($_GET['rrw_ep_preview'])||is_file($cmsDir.'/data/layouts/site__website.json'))){
+    try{ require_once $cmsDir.'/lib/components.php';$body=rrw_components_inject($body,'site:website',$_GET,$cmsDir.'/data'); }catch(Throwable $e){}
+}
 rrw_np_do('front_response',(int)$r['status'],$reqPath,(string)($r['headers']['Content-Type']??'text/html'));
 echo $body;

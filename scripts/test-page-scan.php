@@ -26,6 +26,36 @@ t('Geräte: Bereich nur am Desktop sichtbar blendet Tablet/Mobil aus', str_conta
 $cat = $reg->catalog(['admin' => true]);
 t('Katalog nennt ep_area nur Administratoren', in_array('ep_area', array_column($cat['components'], 'id'), true) && !in_array('ep_area', array_column($reg->catalog(['admin' => false])['components'], 'id'), true));
 
+// 1b) Inhalts-Änderungen: Pfad-Selektoren, Texte, Reihenfolge (Server)
+foreach (['#sec-start > h1:nth-of-type(1)', 'body > div:nth-of-type(2) > .hero', '#a', 'body'] as $ok) { t('Pfad gültig: ' . $ok, Component::validPath($ok)); }
+foreach (['div > a', '#a > h1; x', '#a b', 'body > ' . str_repeat('div > ', 9) . 'p', '#a > h1:nth-of-type(x)', "#a > p'", '#a > p{x}', '', '#a > '. str_repeat('x', 12)] as $bad) { t('Pfad abgelehnt: ' . json_encode($bad), !Component::validPath($bad)); }
+$mkT = fn(array $props, array $extra = []) => array_merge(['id' => 't' . substr(md5(json_encode($props)), 0, 6), 'type' => 'ep_text', 'props' => $props], $extra);
+$ovl = $rd->overrides($lay->clean([
+    $mkT(['selector' => '#hero > h1:nth-of-type(1)', 'node' => 2, 'text' => 'Neuer Titel']),
+    $mkT(['selector' => 'div > a', 'text' => 'ungültig']),
+    $mkT(['selector' => '#x > p:nth-of-type(1)', 'text' => 'ausgeblendet'], ['hidden' => true]),
+    ['id' => 'o1', 'type' => 'ep_order', 'props' => ['container' => '#liste', 'items' => [['selector' => '#c'], ['selector' => '#a'], ['selector' => 'div > x'], ['selector' => '.b']]]],
+    ['id' => 'o2', 'type' => 'ep_order', 'props' => ['container' => '#leer', 'items' => [['selector' => '#a']]]],
+], ['admin' => true]));
+t('Inhalts-Änderungen: nur geprüfte Texte (nicht ausgeblendet, nicht ungültig)', count($ovl['texts']) === 1 && $ovl['texts'][0] === ['s' => '#hero > h1:nth-of-type(1)', 'k' => 2, 't' => 'Neuer Titel'], json_encode($ovl['texts']));
+t('Inhalts-Änderungen: Reihenfolge mit gültigen Einträgen, mindestens zwei', count($ovl['order']) === 1 && $ovl['order'][0]['c'] === '#liste' && $ovl['order'][0]['o'] === ['#c', '#a', '.b'], json_encode($ovl['order']));
+t('Inhalts-Änderungen erzeugen kein CSS und keine Fehler ohne Instanzen', $rd->boundCss($lay->clean([$mkT(['selector' => '#a > p:nth-of-type(1)', 'text' => 'x'])], ['admin' => true])) === '' && $rd->overrides([]) === ['texts' => [], 'order' => []]);
+t('Katalog: ep_text und ep_order nur für Administratoren', in_array('ep_text', array_column($cat['components'], 'id'), true) && in_array('ep_order', array_column($cat['components'], 'id'), true) && !in_array('ep_text', array_column($reg->catalog(['admin' => false])['components'], 'id'), true));
+// Auslieferung: Daten sicher eingebettet (kein Ausbrechen aus dem Skript-Element), Skript fest, ohne Änderungen byte-gleich
+$td = sys_get_temp_dir() . '/ep-ov-' . bin2hex(random_bytes(4)); mkdir($td . '/layouts', 0775, true);
+define('RRW_DATA_DIR', $td);
+$store = rrw_components_store($td); $adm = Elvado\Wp\Actor::fromAuth(['role' => 'admin', 'username' => 'a']);
+$evil = '</script><img src=x onerror=alert(1)> & "q" \'x\'';
+$store->saveDraft('site:website', $lay->clean([$mkT(['selector' => '#hero > h1:nth-of-type(1)', 'node' => 0, 'text' => $evil, 'orig' => 'Alt'])], ['admin' => true]), $adm); $store->publish('site:website', $adm);
+$html = '<!doctype html><html><head><title>x</title></head><body><div id="hero"><h1>Alt</h1></div></body></html>';
+$outH = rrw_components_inject($html, 'site:website', [], $td);
+preg_match('~<script id="ep-overrides-data" type="application/json">(.*?)</script>~s', $outH, $mm);
+t('Auslieferung: Daten-Element vorhanden, Text enthält kein rohes </script>, < > & \' " sind maskiert', isset($mm[1]) && !str_contains($mm[1], '<') && !str_contains($mm[1], '>') && !str_contains($mm[1], '&') && json_decode($mm[1], true)['texts'][0]['t'] === '& "q" \'x\'' && !str_contains(strtolower($mm[1]), 'script') && !str_contains(strtolower($mm[1]), 'onerror'), $mm[1] ?? '');
+t('Auslieferung: festes Skript eingebettet, Seite sonst unverändert', str_contains($outH, '<script id="ep-overrides">') && str_contains($outH, '<div id="hero"><h1>Alt</h1></div>') && substr_count($outH, '<script') === 2);
+$store->saveDraft('site:website', [], $adm); $store->publish('site:website', $adm);
+t('Ohne Änderungen: Seite bleibt byte-gleich', rrw_components_inject($html, 'site:website', [], $td) === $html);
+system('rm -rf ' . escapeshellarg($td));
+
 // 2) Anbindung (statisch)
 $br = (string)file_get_contents($root . '/cms/assets/preview-bridge.js');
 $lb = (string)file_get_contents($root . '/cms/assets/live-builder.js');
@@ -33,7 +63,7 @@ $tm = (string)file_get_contents($root . '/cms/assets/theme-manager.js');
 t('Brücke: Scanner meldet „structure“, reagiert auf Änderungen der Seite', str_contains($br, "type:'structure'") && str_contains($br, 'MutationObserver') && str_contains($br, 'function scan()'));
 t('Brücke: Selektoren werden vor jeder Nutzung geprüft', substr_count($br, 'SEL_RE.test') >= 4);
 t('Brücke: Nachrichten nur vom Eltern-Fenster mit Sitzungsschlüssel', str_contains($br, 'e.source!==PARENT||e.origin!==ORIGIN') && str_contains($br, 'd.token!==token'));
-t('Live Builder: erkannte Struktur, „Gestalten“ legt ep_area an, Zielliste ohne automatische ep_area', str_contains($lb, 'function addDetected') && str_contains($lb, "type:'ep_area'") && str_contains($lb, "t!=='ep_area'") && str_contains($lb, "d.type==='structure'"));
+t('Live Builder: erkannte Struktur, „Gestalten“ legt ep_area an, Zielliste ohne automatische ep_area', str_contains($lb, 'function addDetected') && str_contains($lb, "type:'ep_area'") && str_contains($lb, '!/^ep_/.test(t)') && str_contains($lb, "d.type==='structure'"));
 t('Customizer: Struktur live, Hervorheben/Auswählen, Zuordnung zu Abschnitten', str_contains($tm, 'Seitenstruktur (live erkannt)') && str_contains($tm, 'czSectionFor') && str_contains($tm, "edit:false") && str_contains($tm, 'preview-bridge.js'));
 t('Panel enthält die Liste der erkannten Struktur', str_contains((string)file_get_contents($root . '/cms/views/panel-livebuilder.php'), 'id="lbDetList"'));
 
@@ -68,5 +98,17 @@ if ($pw !== '1' || $chrome === null) {
         t('Scanner: alle gemeldeten Selektoren sind gültig', $allOk);
     }
     system('rm -rf ' . escapeshellarg($tmp));
+    // Skript der Inhalts-Änderungen im Browser: Text (nur Textknoten), Reihenfolge, nie HTML
+    $tmp2 = sys_get_temp_dir() . '/ep-ovjs-' . getmypid(); mkdir($tmp2, 0755, true);
+    $data = json_encode(['texts' => [['s' => '#t', 'k' => 0, 't' => '<img src=x onerror="window.__x=1"> Neu '], ['s' => '#t > em:nth-of-type(1)', 'k' => 0, 't' => 'Erde']], 'order' => [['c' => '#c', 'o' => ['#d', '#b', '#a']]]], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    file_put_contents($tmp2 . '/index.html', '<!doctype html><body><div id="c"><div id="a">A</div><p id="mitte">M</p><div id="b">B</div><div id="d">D</div></div><h1 id="t">Hallo <em>Welt</em></h1><script id="ep-overrides-data" type="application/json">' . $data . '</script><script>' . rrw_components_overrides_js() . '</script></body>');
+    file_put_contents($tmp2 . '/run.js', 'const {chromium}=require("playwright");(async()=>{const b=await chromium.launch({executablePath:process.argv[3],args:["--no-sandbox"]});const p=await b.newPage();await p.goto("http://127.0.0.1:"+process.argv[2]+"/index.html");await p.waitForTimeout(400);console.log(JSON.stringify(await p.evaluate(()=>({h1:document.getElementById("t").innerHTML,order:[...document.getElementById("c").children].map(x=>x.id),x:window.__x||0,imgs:document.querySelectorAll("img").length}))));await b.close()})();');
+    $port2 = 22000 + random_int(0, 9000);
+    $proc2 = proc_open(['php', '-S', '127.0.0.1:' . $port2, '-t', $tmp2], [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes2); usleep(700000);
+    $o2 = json_decode(trim((string)shell_exec('cd ' . escapeshellarg($tmp2) . ' && NODE_PATH=' . escapeshellarg((string)getenv('NODE_PATH')) . ' node run.js ' . $port2 . ' ' . escapeshellarg($chrome) . ' 2>&1')), true);
+    if (is_resource($proc2)) { proc_terminate($proc2); }
+    t('Skript: Text ersetzt nur den Textknoten (kein HTML, Elemente bleiben), zweite Textstelle im Unterelement', is_array($o2) && str_contains($o2['h1'], '&lt;img') && str_contains($o2['h1'], '<em>Erde</em>') && $o2['imgs'] === 0 && $o2['x'] === 0, json_encode($o2));
+    t('Skript: Reihenfolge nur innerhalb des Containers, nicht gelistete Elemente behalten ihren Platz', is_array($o2) && $o2['order'] === ['d', 'mitte', 'b', 'a'], json_encode($o2));
+    system('rm -rf ' . escapeshellarg($tmp2));
 }
 echo $fail ? "$fail von $n fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n"; exit($fail ? 1 : 0);

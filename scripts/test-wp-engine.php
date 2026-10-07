@@ -121,7 +121,7 @@ t('Ohne Datei kein Ergebnis', $db->get() === null && $db->redacted() === null);
 $db->save($ok);
 t('Passwort wird gespeichert, aber nicht ausgegeben', $db->get()['pass'] === 'p"a$s' && !array_key_exists('pass', $db->redacted()) && $db->redacted()['has_password'] === true);
 t('db.json nur für den Eigentümer', (fileperms($e->stateDir() . '/db.json') & 0777) === 0600);
-try { $db->save(array_merge($ok, ['name' => 'x y'])); t('Ungültiges Speichern wirft', false); } catch (RuntimeException) { t('Ungültiges Speichern wirft', true); }
+try { $db->save(array_merge($ok, ['prefix' => 'WP'])); t('Ungültiges Speichern wirft', false); } catch (RuntimeException) { t('Ungültiges Speichern wirft', true); }
 $k1 = $db->keys(); $k2 = $db->keys();
 t('Schlüssel: 8 Stück, stabil, lang genug', count($k1) === 8 && $k1 === $k2 && strlen($k1['AUTH_KEY']) >= 64 && count(array_unique($k1)) === 8);
 t('keys.json nur für den Eigentümer', (fileperms($e->stateDir() . '/keys.json') & 0777) === 0600);

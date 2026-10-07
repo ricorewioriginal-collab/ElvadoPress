@@ -5,9 +5,10 @@ header('Cache-Control: no-store');
 
 $root = dirname(__DIR__);
 if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';rrw_demo_boot(); }   // Demo-Betrieb (nur mit cms/lib/demo.json)
-$dataDir = __DIR__ . '/data';
-$genDir = __DIR__ . '/generated';
-$mediaDir = __DIR__ . '/media';
+require_once __DIR__.'/lib/sites.php';rrw_sites_request_context();   // mehrere Websites: Kontext per Domain bzw. Verwaltungs-Kopf (ohne weitere Websites: nichts)
+$dataDir = rrw_site_dir('data');
+$genDir = rrw_site_dir('generated');
+$mediaDir = rrw_site_dir('media');
 $siteFile = $dataDir . '/site.json';
 $newsFile = $dataDir . '/news.json';
 $commentsFile = $dataDir . '/comments.json';
@@ -315,7 +316,7 @@ function rrw_upload(string $bucket,int $max=12582912): string {
     $mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$map=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif','image/svg+xml'=>'svg','image/x-icon'=>'ico','image/vnd.microsoft.icon'=>'ico','application/octet-stream'=>'ico'];
     if(!isset($map[$mime]))rrw_json(['status'=>'error','message'=>'Nicht unterstütztes Bildformat'],400);
     if($mime==='image/svg+xml'&&preg_match('/<(script|foreignObject)\b|on[a-z]+\s*=|javascript:/i',(string)file_get_contents($f['tmp_name'])))rrw_json(['status'=>'error','message'=>'Unsicheres SVG'],400);
-    $dir=__DIR__.'/media/'.$bucket;if(!is_dir($dir))@mkdir($dir,0755,true);$name=date('Ymd_His').'_'.bin2hex(random_bytes(5)).'.'.$map[$mime];if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$name))rrw_json(['status'=>'error','message'=>'Upload fehlgeschlagen'],500);@chmod($dir.'/'.$name,0644);return '/cms/media/'.$bucket.'/'.$name;
+    $dir=rrw_site_dir('media').'/'.$bucket;if(!is_dir($dir))@mkdir($dir,0755,true);$name=date('Ymd_His').'_'.bin2hex(random_bytes(5)).'.'.$map[$mime];if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$name))rrw_json(['status'=>'error','message'=>'Upload fehlgeschlagen'],500);@chmod($dir.'/'.$name,0644);return '/cms/media/'.$bucket.'/'.$name;
 }
 require_once __DIR__.'/lib/media.php';
 // Bibliothek-Upload (HTTP): Prüfungen und Ablage liegen in cms/lib/media.php (rrw_media_library_store), hier nur die Antwort-Hülle.
@@ -679,7 +680,7 @@ if($action==='alexa_icon_upload'){
     if(abs(($info[0]/$info[1])-1)>0.02)rrw_json(['status'=>'error','message'=>'Das Skill-Icon muss quadratisch sein'],400);
 
     // Dauerhaftes Original im CMS ablegen. Die öffentliche Website bekommt nur die daraus erzeugten Größen.
-    $store=__DIR__.'/media/alexa';if(!is_dir($store)&&!@mkdir($store,0755,true))rrw_json(['status'=>'error','message'=>'CMS-Medienordner für Alexa ist nicht beschreibbar'],500);
+    $store=rrw_site_dir('media').'/alexa';if(!is_dir($store)&&!@mkdir($store,0755,true))rrw_json(['status'=>'error','message'=>'CMS-Medienordner für Alexa ist nicht beschreibbar'],500);
     $original=$store.'/skill-icon-original.'.($mime==='image/jpeg'?'jpg':($mime==='image/webp'?'webp':'png'));
     foreach(glob($store.'/skill-icon-original.*')?:[] as $oldFile)@unlink($oldFile);
     if(!@copy($f['tmp_name'],$original)||!is_file($original)||filesize($original)<1)rrw_json(['status'=>'error','message'=>'Das Original konnte nicht dauerhaft gespeichert werden'],500);
@@ -779,6 +780,7 @@ if($action==='public')rrw_json(['status'=>'ok','config'=>rrw_site_public($site),
 if($action==='import_legacy'){
     rrw_auth(true);$tok=rrw_token();
     if(rrw_standalone())rrw_json(['status'=>'error','message'=>rrw_standalone_notice('Die Altdaten-Übernahme')],409);
+    if(rrw_site_current()!=='')rrw_json(['status'=>'error','message'=>'Die Altdaten-Übernahme gilt nur für die Hauptwebsite.'],409);
     try{
         $legacySettings=rrw_control_center_json('radio_cms_legacy_settings_export',$tok);
         $legacyNews=rrw_control_center_json('radio_cms_legacy_news_export',$tok);
@@ -1039,6 +1041,26 @@ if($action==='branding_upload'){
     rrw_publish($site,$siteFile,$genDir,$root);
     rrw_json(['status'=>'ok','url'=>$sync['url'],'branding'=>$site['branding'],'branding_media'=>$site['branding_media'],'updated_files'=>$sync['files'],'warnings'=>array_values(array_merge($result['warnings']??[],$sync['warnings']??[]))]);
 }
+// ───────── Websites (mehrere eigenständige Homepages): nur Administratoren; die Liste liegt immer in der Hauptwebsite ─────────
+if($action==='sites_list'){
+    $au=rrw_auth(false);if(empty($au['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren'],403);
+    $main=rrw_read_json(rrw_sites_base().'/data/site.json',[]);
+    rrw_json(['status'=>'ok','current'=>rrw_site_current(),'main'=>['name'=>(string)($main['portal']['site_name']??'Hauptwebsite')],'sites'=>rrw_sites_registry(true)]);
+}
+if($action==='sites_create'){
+    $au=rrw_auth(false);if(empty($au['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren'],403);
+    $b=rrw_body();
+    try{$r=rrw_site_create($b);}catch(InvalidArgumentException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],400);}catch(RuntimeException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
+    rrw_log_activity($activityLogFile,$au,'site_create','Website „'.$r['site']['id'].'“ angelegt'.(!empty($b['copy_from'])?' (Kopie von '.rrw_site_id_clean((string)$b['copy_from']).')':''));
+    rrw_json(['status'=>'ok','site'=>$r['site'],'copied'=>$r['copied'],'sites'=>rrw_sites_registry(true)]);
+}
+if($action==='sites_update'){
+    $au=rrw_auth(false);if(empty($au['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren'],403);
+    $b=rrw_body();
+    try{$s=rrw_site_update((string)($b['id']??''),$b);}catch(InvalidArgumentException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],400);}catch(RuntimeException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
+    rrw_log_activity($activityLogFile,$au,'site_update','Website „'.$s['id'].'“ geändert');
+    rrw_json(['status'=>'ok','site'=>$s,'sites'=>rrw_sites_registry(true)]);
+}
 if($action==='brand_create'){   // Neue Marke (optional als Kopie): nur Administratoren
     $au=rrw_auth(false);if(empty($au['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Administratoren dürfen Marken anlegen'],403);
     $b=rrw_body();rrw_site_lock($dataDir);$site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));
@@ -1099,7 +1121,7 @@ if($action==='media_library_delete'){
     foreach((array)($site['branding_media']??[]) as $kind=>$ref){
         if((string)($ref['path']??'')===$rel)rrw_json(['status'=>'error','message'=>'Medium wird noch als '.$kind.' verwendet. Erst im Branding ein anderes Medium zuweisen.'],409);
     }
-    $target=__DIR__.'/media/'.$rel;
+    $target=rrw_site_dir('media').'/'.$rel;
     if(is_dir($target)){foreach(glob($target.'/*')?:[] as $x)if(is_file($x))@unlink($x);if(!@rmdir($target))rrw_json(['status'=>'error','message'=>'Mediengruppe konnte nicht gelöscht werden'],500);}
     elseif(is_file($target)){if(!@unlink($target))rrw_json(['status'=>'error','message'=>'Datei konnte nicht gelöscht werden'],500);}
     else rrw_json(['status'=>'error','message'=>'Medium nicht gefunden'],404);
@@ -1760,7 +1782,13 @@ if($action==='database_test'){
 }
 if($action==='database_drivers'){rrw_auth(true);$o=[];foreach(rrw_db_drivers() as $k=>$d)$o[]=['id'=>$k,'label'=>$d['label'],'available'=>$d['ext']===''||extension_loaded($d['ext']),'port'=>$d['port']];rrw_json(['status'=>'ok','drivers'=>$o]);}
 if($action==='database_config_save'){
-    rrw_auth(true);$b=rrw_body();try{rrw_db_write_config((array)($b['database']??[]));$site['storage']=rrw_clean_section('storage',(array)($b['storage']??[]));rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','database'=>rrw_db_status(),'storage'=>$site['storage']]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
+    rrw_auth(true);$b=rrw_body();
+    // Eine Datenbank für CMS und WordPress-Kern: das Präfix der WordPress-Schicht darf nicht das Präfix der Engine sein
+    try{ $dbIn=(array)($b['database']??[]);$ep=@json_decode((string)@file_get_contents($dataDir.'/.wp-engine/db.json'),true);
+        if(in_array((string)($dbIn['driver']??''),['mysql','mariadb'],true)&&is_array($ep)&&strcasecmp((string)($ep['prefix']??'-'),trim((string)($dbIn['prefix']??'wp_')))===0)
+            rrw_json(['status'=>'error','message'=>'Das Tabellenpräfix „'.trim((string)($dbIn['prefix']??'')).'“ nutzt schon der WordPress-Kern in dieser Datenbank. Bitte ein anderes wählen (z. B. wpl_).'],400);
+    }catch(Throwable $e){}
+    try{rrw_db_write_config((array)($b['database']??[]));$site['storage']=rrw_clean_section('storage',(array)($b['storage']??[]));rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','database'=>rrw_db_status(),'storage'=>$site['storage']]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
 }
 if($action==='database_push'){
     rrw_auth(true);try{$x=rrw_db_push($site,rrw_read_json($newsFile,[]));try{ require_once __DIR__.'/src/autoload.php';$cdb=\Elvado\Database\DatabaseConnection::fromCmsSettings($dataDir);$cdb->migrateCore();$x['core_posts']=(new \Elvado\Repository\PostRepository($cdb))->mirror(rrw_read_json($newsFile,[])); }catch(Throwable $e){}rrw_json(['status'=>'ok','synced'=>$x,'database'=>rrw_db_status()]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
@@ -2117,7 +2145,7 @@ if(count($newsPurged)!==count($news)){
     rrw_log_activity($activityLogFile,null,'news_trash_auto_purge','Papierkorb automatisch geleert (Beiträge älter als 30 Tage)');
 }
 $newsViews=rrw_read_json($newsViewsFile,[]);
-if(empty($news) && in_array($action,['news_list','news_get','news_public'],true)) {
+if(empty($news) && rrw_site_current()==='' && in_array($action,['news_list','news_get','news_public'],true)) {   // Control-Center-Import nur für die Hauptwebsite
     $tok=rrw_token();
     if($tok!=='') {
         try {
@@ -2136,7 +2164,7 @@ if($action==='news_public'){
     // bevor er im Control Center final veröffentlicht wurde (Zeitpunkt des allerersten Imports lag
     // vor der Veröffentlichung dort). Ohne diesen erweiterten Trigger bliebe so ein Eintrag dauerhaft
     // hängen, weil die reine "$news ist leer"-Prüfung danach nie wieder zutrifft.
-    if(!rrw_standalone()&&!array_filter($news,'rrw_news_is_live')){
+    if(!rrw_standalone()&&rrw_site_current()===''&&!array_filter($news,'rrw_news_is_live')){   // Legacy-Import nur für die Hauptwebsite
         $legacy=rrw_fetch_legacy_news_local();
         if(!is_array($legacy)){
             $legacyRemote=rrw_fetch_json_url('https://www.ricorewi-radio.de/control/cron.php?action=news_public_legacy_fallback&_='.time());

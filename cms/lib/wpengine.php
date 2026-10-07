@@ -27,7 +27,7 @@ function rrw_wpe_status(Engine $e, DbConfig $db): array
     $native = new NativeAdapter($e->cmsDir(), dirname($e->stateDir()));
     return [
         'engine' => ['mode' => $s['mode'], 'version' => $s['version'], 'installed_at' => $s['installed_at'], 'previous' => $s['previous'], 'core_present' => $e->corePath() !== null, 'safe' => $e->safe(), 'incident' => $e->incident(), 'guard' => ($g = $e->guard()) ? ['kind' => $g['kind'], 'id' => $g['id']] : null],
-        'db' => ['configured' => $db->redacted(), 'ready' => !empty($s['db']['ready']), 'server' => (string)($s['db']['server'] ?? ''), 'checked_at' => (string)($s['db']['checked_at'] ?? '')],
+        'db' => ['configured' => $db->redacted(), 'overview' => $db->overview(), 'ready' => !empty($s['db']['ready']), 'server' => (string)($s['db']['server'] ?? ''), 'checked_at' => (string)($s['db']['checked_at'] ?? '')],
         'requirements' => $req,
         'native' => ['name' => $native->name(), 'counts' => $native->counts()],
         'steps' => ['requirements' => $req['ok'], 'core' => $e->corePath() !== null, 'database' => !empty($s['db']['ready']), 'active' => $s['mode'] === 'active'],
@@ -101,6 +101,9 @@ function rrw_wpe_pre_install(Engine $e, DbConfig $db, array $cfg): array
     $t = $db->test($cfg);
     if (!$t['ok']) {
         return ['ok' => false, 'message' => $t['message'], 'prefix' => '', 'server' => ''];
+    }
+    if ($c = $db->prefixConflict((string)($cfg['prefix'] ?? ''))) {
+        return ['ok' => false, 'message' => $c, 'prefix' => '', 'server' => ''];
     }
     if ($t['needs_empty']) {
         return ['ok' => false, 'message' => 'In dieser Datenbank gibt es mit diesem Präfix bereits WordPress-Tabellen. Bitte ein anderes Präfix oder eine leere Datenbank verwenden – vorhandene Daten werden nie überschrieben.', 'prefix' => '', 'server' => ''];

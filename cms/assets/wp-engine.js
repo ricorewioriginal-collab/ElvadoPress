@@ -87,13 +87,28 @@ window.WpEngine=(()=>{
   h+=step(2,'WordPress-Core',s.steps.core,core+'<div class="ap-add" style="margin-top:8px"><button class="btn-g" type="button" onclick="WpEngine.prepare()"'+dis+'><i class="fas fa-magnifying-glass"></i> Aktuelle Version prüfen</button>'
    +(e.core_present?'':'<button class="btn-a" type="button" onclick="WpEngine.core()"'+(busy||!s.steps.requirements?' disabled':'')+'><i class="fas fa-download"></i> '+(lat?'WordPress '+esc(lat.version)+' ':'WordPress ')+'herunterladen und einspielen</button>')+'</div>'
    +(lat?'<p class="hint" style="margin-top:6px">Aktuelle Version bei wordpress.org: '+esc(lat.version)+' (verlangt PHP ≥ '+esc(lat.php)+', MySQL ≥ '+esc(lat.mysql)+').</p>':''));
-  const db=Object.assign({host:'localhost',name:'',user:'',pass:'',prefix:'wp_'},s.db.configured||{},S.form||{});
+  const ov=s.db.overview||{shared:false,legacy:false,default_prefix:'wpk_',suggest_prefix:'wpk_',cms_prefix:''};
+  const db=Object.assign({host:'localhost',name:'',user:'',pass:'',prefix:ov.suggest_prefix||'wpk_'},s.db.configured||{},S.form||{});
   const f=(id,label,val,type)=>'<label class="news-lbl">'+label+'</label><input class="fc" id="wpe'+id+'" type="'+(type||'text')+'" value="'+esc(val)+'" autocomplete="off">';
-  const dbForm=s.db.ready
-   ?'<p>Datenbank <b>'+esc(db.name)+'</b> auf '+esc(db.host)+' · Präfix <code>'+esc(db.prefix)+'</code> · '+esc(s.db.server)+'.</p>'
-   :'<p class="hint">Eine <b>leere</b> MySQL-/MariaDB-Datenbank (beim Hoster anlegen). Vorhandene Daten werden nie überschrieben. Das Passwort wird nur geschützt auf dem Server gespeichert.</p><div style="display:grid;gap:6px;max-width:420px">'
-     +f('Host','Datenbank-Server',db.host)+f('Name','Datenbankname',db.name)+f('User','Benutzer',db.user)+f('Pass','Passwort',db.pass||'','password')+f('Prefix','Tabellenpräfix',db.prefix)+'</div>'
-     +'<div class="ap-add" style="margin-top:8px"><button class="btn-g" type="button" onclick="WpEngine.dbTest()"'+dis+'><i class="fas fa-plug"></i> Verbindung testen</button><button class="btn-a" type="button" onclick="WpEngine.dbInstall()"'+(busy||!e.core_present?' disabled':'')+'><i class="fas fa-database"></i> WordPress einrichten</button></div>';
+  const btns='<div class="ap-add" style="margin-top:8px"><button class="btn-g" type="button" onclick="WpEngine.dbTest()"'+dis+'><i class="fas fa-plug"></i> Verbindung testen</button><button class="btn-a" type="button" onclick="WpEngine.dbInstall()"'+(busy||!e.core_present?' disabled':'')+'><i class="fas fa-database"></i> WordPress einrichten</button></div>';
+  const goDb='<a href="#" onclick="cmsTab(\'database\',document.querySelector(\'.tab[data-tab=database]\'));window.SystemManager&&SystemManager.loadDatabase&&SystemManager.loadDatabase();return false">System → Datenbank</a>';
+  let dbForm;
+  if(s.db.ready){
+    dbForm='<p>Datenbank <b>'+esc(db.name)+'</b> auf '+esc(db.host)+' · Präfix <code>'+esc(db.prefix)+'</code> · '+esc(s.db.server)+'.</p>'
+      +(ov.shared?'<p class="hint">Gemeinsame Datenbank: CMS und WordPress-Kern nutzen dieselbe Verbindung ('+goDb+'); WordPress hat eigene Tabellen mit dem Präfix <code>'+esc(db.prefix)+'</code>.</p>'
+      :'<p class="hint">Diese Verbindung wird noch getrennt von den Datenbank-Einstellungen des CMS gespeichert. <button class="btn-g" type="button" onclick="WpEngine.dbUnify()"'+dis+'><i class="fas fa-link"></i> Gemeinsame Datenbank verwenden</button></p>');
+  }else if(ov.shared){
+    dbForm='<p><b>Gemeinsame Datenbank</b> <code>'+esc(db.name)+'</code> auf '+esc(db.host)+' – dieselbe Verbindung wie das CMS ('+goDb+'). Es wird nichts überschrieben: WordPress legt eigene Tabellen mit eigenem Präfix an.</p>'
+      +'<div style="display:grid;gap:6px;max-width:420px">'+f('Prefix','Tabellenpräfix für WordPress',db.prefix)+'</div>'
+      +'<p class="hint" style="margin-top:4px">Das Präfix <code>'+esc(ov.cms_prefix||'wp_')+'</code> nutzt die WordPress-Schicht des CMS – wähle ein anderes (Vorschlag: <code>'+esc(ov.default_prefix||'wpk_')+'</code>).</p>'+btns;
+  }else if(ov.legacy){
+    dbForm='<p>Datenbank <b>'+esc(db.name)+'</b> auf '+esc(db.host)+' · Präfix <code>'+esc(db.prefix)+'</code> (eigene Verbindung der Engine).</p>'
+      +'<p class="hint">Es gibt nur <b>eine</b> Datenbank für CMS und WordPress. Diese Verbindung wird dazu in die Datenbank-Einstellungen des CMS übernommen ('+goDb+'); die Tabellen und das Präfix bleiben unverändert.</p>'
+      +'<div class="ap-add" style="margin-top:8px"><button class="btn-a" type="button" onclick="WpEngine.dbUnify()"'+dis+'><i class="fas fa-link"></i> Gemeinsame Datenbank verwenden</button></div>'+btns;
+  }else{
+    dbForm='<p class="hint">Eine <b>leere</b> MySQL-/MariaDB-Datenbank (beim Hoster anlegen). Vorhandene Daten werden nie überschrieben. Die Verbindung gilt für das ganze CMS und lässt sich später unter '+goDb+' ändern; das Passwort wird nur geschützt auf dem Server gespeichert.</p><div style="display:grid;gap:6px;max-width:420px">'
+     +f('Host','Datenbank-Server',db.host)+f('Name','Datenbankname',db.name)+f('User','Benutzer',db.user)+f('Pass','Passwort',db.pass||'','password')+f('Prefix','Tabellenpräfix für WordPress',db.prefix)+'</div>'+btns;
+  }
   h+=step(3,'Datenbank',s.steps.database,dbForm);
   const act=e.mode==='active'
    ?'<button class="btn-g" type="button" onclick="WpEngine.mode(\'installed\')"'+dis+'>Deaktivieren</button>'
@@ -112,7 +127,7 @@ window.WpEngine=(()=>{
   S.busy='';draw();
  }
  const val=id=>{const e=document.getElementById('wpe'+id);return e?e.value.trim():'';};
- const dbCfg=()=>({host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')});
+ const dbCfg=()=>document.getElementById('wpeHost')?{host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')}:{prefix:val('Prefix')};   // mit gemeinsamer Datenbank zählt nur das Präfix
  function apply(d){if(d.engine){S.st=d;}}
  async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;const q=await api('migration_runs');if(q.status==='ok')S.run=q.run;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
  async function demoBoot(){
@@ -125,6 +140,13 @@ window.WpEngine=(()=>{
   load,
   prepare:()=>run('Prüfe wordpress.org',async()=>{const d=await api('engine_prepare');S.prep=d;S.msg=d.latest&&!d.latest.ok?{err:true,text:d.latest.message}:{text:'Aktuelle WordPress-Version: '+d.latest.version+'.'};}),
   core:()=>run('Lade und prüfe WordPress (das dauert einen Moment)',async()=>{const d=await api('engine_core',{version:(S.prep&&S.prep.latest&&S.prep.latest.version)||''});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
+  dbInfo:async(target)=>{const el=document.getElementById(target);if(!el)return;
+   try{const d=await api('engine_status');if(d.status!=='ok'){el.textContent='';return}
+    const c=d.db.configured,ov=d.db.overview||{};
+    if(!d.engine.core_present&&!c){el.innerHTML='<i class="fas fa-circle-info"></i> WordPress-Kern: noch nicht eingerichtet. Beim Einrichten (Website → WordPress-Engine) wird <b>diese</b> Datenbank mit eigenem Tabellenpräfix genutzt.';return}
+    el.innerHTML='<i class="fas fa-circle-info"></i> WordPress-Kern: '+(d.db.ready?'nutzt diese Datenbank':(ov.shared?'bereit, nutzt diese Datenbank':'noch nicht eingerichtet'))+(c?' · Tabellenpräfix <code>'+esc(c.prefix)+'</code>':'')+(ov.legacy?' · <b>eigene, getrennte Verbindung</b> (in Website → WordPress-Engine zusammenführen)':'')+(ov.cms_prefix?' · WordPress-Schicht des CMS: <code>'+esc(ov.cms_prefix)+'</code>':'')+'. Die beiden Präfixe müssen verschieden sein.';
+   }catch(e){el.textContent=''}},
+  dbUnify:()=>{if(!confirm('Die Verbindung der WordPress-Engine wird zur gemeinsamen Datenbank des CMS (System → Datenbank). Die WordPress-Schicht des CMS nutzt diese Datenbank dann ebenfalls, mit eigenem Tabellenpräfix. Fortfahren?'))return;run('Führe die Datenbank zusammen',async()=>{const d=await api('engine_db_unify',{});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};})},
   dbTest:()=>run('Teste die Verbindung',async()=>{const d=await api('engine_db_test',{db:dbCfg()});S.msg={err:d.status!=='ok',text:d.message||''};}),
   dbInstall:()=>run('Richte WordPress ein (Tabellen anlegen)',async()=>{const d=await api('engine_db_install',{db:dbCfg()});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   mode:m=>run(m==='active'?'Starte WordPress zur Prüfung':'Schalte um',async()=>{const d=await api('engine_mode',{mode:m});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),

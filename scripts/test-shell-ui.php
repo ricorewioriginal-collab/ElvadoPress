@@ -58,5 +58,10 @@ t('Systemstatus-Panel vorhanden und im Menü (System, Updates)', is_file("$cms/v
 $shJs=(string)file_get_contents(__DIR__.'/../cms/assets/shell.js');$lbJs=(string)file_get_contents(__DIR__.'/../cms/assets/live-builder.js');
 t('Marken-Umschalter: nur bei mehreren Marken, Auswahl gemerkt, Ereignis cms:brand',str_contains($shJs,'brands_public')&&str_contains($shJs,'list.length<2')&&str_contains($shJs,"localStorage.setItem('cms.brand'")&&str_contains($shJs,"new CustomEvent('cms:brand'"));
 t('Live Editor: Ziele je Marke und Wechsel bei cms:brand',str_contains($lbJs,"addEventListener('cms:brand'")&&str_contains($lbJs,'t.brand===cb'));
+$cssAll = (string)file_get_contents(__DIR__ . '/../cms/assets/cms.css');
+$tmJs = (string)file_get_contents(__DIR__ . '/../cms/assets/theme-manager.js'); $wtJs = (string)file_get_contents(__DIR__ . '/../cms/assets/wpthemes-manager.js');
+t('Customizer: Abschnittsliste folgt der Textfarbe des Designs (lesbar auch im hellen Design)', preg_match('/\.cz-list button\{[^}]*color:var\(--text/', $cssAll) === 1 && preg_match('/\.cz-back\{[^}]*color:var\(--text/', $cssAll) === 1 && preg_match('/\.cz-list button\{[^}]*color:#f3f4fa/', $cssAll) === 0);
+t('Markenwechsel: Customizer und WordPress-Customizer folgen dem Kopf-Umschalter', str_contains($tmJs, "addEventListener('cms:brand'") && str_contains($tmJs, 'CMS_BRANDS.set(id)') && str_contains($wtJs, "addEventListener('cms:brand'") && str_contains($wtJs, 'czBrandUrl'));
+t('Markenwechsel: Live Builder sichert Entwurf statt zu verwerfen, holt verfrühte Wechsel nach, verwirft späte Antworten', str_contains($lbJs, 'pendingBrand') && str_contains($lbJs, 'function applyBrand') && str_contains($lbJs, 'saveDraft():0') && str_contains($lbJs, 'loadSeq'));
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
 exit($fail ? 1 : 0);
