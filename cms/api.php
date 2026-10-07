@@ -402,11 +402,12 @@ function rrw_import_plugin_zip(string $zipPath): array {
     if(!is_file($dir.'/plugin.json'))rrw_write_atomic($dir.'/plugin.json',json_encode($m,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
     $zip->close();return ['id'=>$id,'manifest'=>$m];
 }
-function rrw_theme_catalog(array $site): array {
-    $base=__DIR__.'/themes';$active=(string)($site['theme']['active']??'ricorewi-neon');$out=[];
+function rrw_theme_catalog(array $site,bool $withHidden=false): array {
+    $base=__DIR__.'/themes';$active=(string)($site['theme']['active']??rrw_default_theme_id());$out=[];
     foreach(glob($base.'/*',GLOB_ONLYDIR)?:[] as $dir){
         $file=$dir.'/theme.json';if(!is_file($file))continue;$m=json_decode((string)file_get_contents($file),true);if(!is_array($m))continue;
         $id=rrw_theme_id((string)($m['id']??basename($dir)));if($id==='')continue;
+        if($id!==$active&&in_array($id,(array)($site['theme_hidden']??[]),true)&&!$withHidden)continue;   // ausgeblendet (mitgelieferte Themes lassen sich nicht aus dem Code löschen)
         $shot='';foreach(['screenshot.webp','screenshot.png','screenshot.jpg','screenshot.jpeg'] as $sn)if(is_file($dir.'/'.$sn)){$shot='/cms/themes/'.$id.'/'.$sn;break;}
         $css=is_file($dir.'/theme.css')?'/cms/themes/'.$id.'/theme.css':'';
         $out[]=[
@@ -420,7 +421,7 @@ function rrw_theme_catalog(array $site): array {
             'defaults'=>is_array($m['defaults']??null)?$m['defaults']:[],
             'layout'=>rrw_theme_layout_clean($m['layout']??[]),
             'widget_areas'=>is_array($m['widget_areas']??null)?rrw_clean_section('widget_areas',$m['widget_areas']):[],
-            'stylesheet'=>$css,'screenshot'=>$shot,'active'=>$id===$active
+            'stylesheet'=>$css,'screenshot'=>$shot,'active'=>$id===$active,'default'=>$id===rrw_default_theme_id(),'hidden'=>in_array($id,(array)($site['theme_hidden']??[]),true)
         ];
     }
     usort($out,fn($a,$b)=>($b['active']<=>$a['active'])?:strcasecmp($a['name'],$b['name']));return $out;
@@ -469,7 +470,7 @@ function rrw_import_theme_zip(string $zipPath): array {
             $base=strtolower(basename($nameIn));if(in_array($base,['screenshot.png','screenshot.jpg','screenshot.jpeg','screenshot.webp'],true)){$screenshot=['name'=>$base,'data'=>$zip->getFromIndex($i)];break;}
         }
     }
-    if($id==='ricorewi-neon'){$zip->close();throw new RuntimeException('Das Standardtheme kann nicht überschrieben werden');}
+    if($id===rrw_default_theme_id()){$zip->close();throw new RuntimeException('Das Standardtheme kann nicht überschrieben werden');}
     $dir=__DIR__.'/themes/'.$id;if(is_dir($dir)){foreach(glob($dir.'/*')?:[] as $x)if(is_file($x))@unlink($x);}else @mkdir($dir,0755,true);
     // Safe static assets only. No PHP/JS/templates/plugins are extracted.
     $allowedAssets=['png','jpg','jpeg','webp','gif','svg','ico'];
@@ -490,6 +491,7 @@ function rrw_import_theme_zip(string $zipPath): array {
     if(empty($m['compatibility']))$m['compatibility']=!empty($m['wordpress'])?(!empty($m['bootstrap'])?'wordpress+bootstrap':'wordpress-css'):(!empty($m['bootstrap'])?'bootstrap-css':'native');
     rrw_write_atomic($dir.'/theme.json',json_encode($m,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
     rrw_write_atomic($dir.'/theme.css',(string)$styleCss);
+    @file_put_contents($dir.'/.uploaded',gmdate('c'));   // Marke: über das CMS hochgeladen (lässt sich löschen; Themes aus dem Code werden nur ausgeblendet)
     if($screenshot&&is_string($screenshot['data']))rrw_write_atomic($dir.'/'.$screenshot['name'],$screenshot['data']);
     return ['id'=>$id,'wordpress'=>!empty($m['wordpress'])];
 }
@@ -1379,7 +1381,7 @@ if(str_starts_with($action,'wp_')){
         $fail('Unbekannte Aktion',404);
     }
     if(!empty($_GET['sandbox'])){   // Theme-Verwaltung in der Sandbox statt auf der Live-Seite
-        if(!in_array($action,['wp_themes','wp_theme_search','wp_theme_install','wp_theme_upload','wp_theme_activate','wp_theme_deactivate','wp_theme_delete','wp_theme_preview','wp_theme_customize','wp_theme_customize_draft','wp_theme_customize_save','wp_theme_customize_changeset'],true))rrw_json(['status'=>'error','message'=>'Diese Aktion gibt es in der Sandbox nicht.'],400);
+        if(!in_array($action,['wp_themes','wp_theme_search','wp_theme_install','wp_theme_upload','wp_theme_activate','wp_theme_deactivate','wp_theme_delete','wp_theme_unhide','wp_theme_preview','wp_theme_customize','wp_theme_customize_draft','wp_theme_customize_save','wp_theme_customize_changeset'],true))rrw_json(['status'=>'error','message'=>'Diese Aktion gibt es in der Sandbox nicht.'],400);
         if(!rrw_sbx_exists())rrw_json(['status'=>'error','message'=>'Es gibt noch keine Sandbox.'],404);
         rrw_sbx_enter();
     }
@@ -1566,7 +1568,7 @@ if(str_starts_with($action,'wp_')){
         rrw_json(['status'=>'ok']+array_diff_key($res,['ok'=>1]));
     }
     /* ── WordPress-Themes (PHP) ── */
-    $wpThemes=function(){ $front=is_file(RRW_WP_DATA.'/front-on');$act=$front?(string)get_option('stylesheet',''):'';$l=rrw_wpi_list_themes();foreach($l as &$t)$t['active']=$t['slug']===$act;unset($t);return ['themes'=>$l,'front'=>$front,'active'=>$act]; };
+    $wpThemes=function(){ $front=is_file(RRW_WP_DATA.'/front-on');$act=$front?(string)get_option('stylesheet',''):'';$l=rrw_wpi_list_themes();$hid=array_values(array_filter((array)($GLOBALS['site']['wp_themes_hidden']??[]),'is_string'));$hl=[];foreach($l as &$t){$t['active']=$t['slug']===$act;$t['hidden']=in_array($t['slug'],$hid,true)&&!$t['active'];}unset($t);foreach($l as $t)if($t['hidden'])$hl[]=['slug'=>$t['slug'],'name'=>$t['name']];$l=array_values(array_filter($l,fn($t)=>!$t['hidden']));return ['themes'=>$l,'front'=>$front,'active'=>$act,'hidden_themes'=>$hl]; };
     if($action==='wp_reading'||$action==='wp_reading_save'){
         require_once __DIR__.'/wp/links-api.php';
         if($action==='wp_reading')rrw_json(['status'=>'ok']+rrw_wpl_reading_get());
@@ -1608,6 +1610,10 @@ if(str_starts_with($action,'wp_')){
         rrw_log_activity($activityLogFile,$wpUser,'wp_theme_install','WordPress-Theme „'.$res['slug'].'“ installiert');
         rrw_json(['status'=>'ok','slug'=>$res['slug']]+$wpThemes());
     }
+    if($action==='wp_theme_unhide'){
+        $b0=rrw_body();$sl=preg_replace('/[^a-z0-9_-]/','',(string)($b0['slug']??''));$GLOBALS['site']['wp_themes_hidden']=array_values(array_diff((array)($GLOBALS['site']['wp_themes_hidden']??[]),[$sl]));$site=$GLOBALS['site'];rrw_publish($site,$siteFile,$genDir,$root);
+        rrw_json(['status'=>'ok']+$wpThemes());
+    }
     if(in_array($action,['wp_theme_activate','wp_theme_delete','wp_theme_preview'],true)){
         $slug=(string)($b['slug']??'');if(!preg_match('/^[a-z0-9_-]{1,80}$/',$slug))rrw_json(['status'=>'error','message'=>'Ungültiges Theme'],400);
         $known=array_column(rrw_wpi_list_themes(),null,'slug');if(!isset($known[$slug]))rrw_json(['status'=>'error','message'=>'Theme nicht gefunden'],404);
@@ -1619,7 +1625,13 @@ if(str_starts_with($action,'wp_')){
             if(!empty($known[$slug]['error']))rrw_json(['status'=>'error','message'=>$known[$slug]['error']],422);
             rrw_json(['status'=>'ok','url'=>'/?'.(defined('RRW_WP_SANDBOX')?'rrw_sbx='.rawurlencode((string)rrw_sbx_meta()['token']).'&':'').'rrw_wp_preview='.rawurlencode(rrw_wpi_preview_token($slug)),'expires_in'=>900]);
         }
-        if(!empty($known[$slug]['bundled']))rrw_json(['status'=>'error','message'=>'Das mitgelieferte Standard-Theme kann nicht gelöscht werden.'],422);
+        if(!empty($known[$slug]['bundled'])){   // Themes aus dem Code: nicht löschbar (kämen beim Deploy zurück) – ausblenden; das Standard-Theme bleibt als Rückfallebene
+            if($slug==='rrw-classic')rrw_json(['status'=>'error','message'=>'Das Standard-Theme ist die Rückfallebene und kann nicht entfernt werden.'],422);
+            $cur0=$wpThemes();if($cur0['active']===$slug)rrw_json(['status'=>'error','message'=>'Das aktive Theme kann nicht entfernt werden. Erst ein anderes aktivieren.'],409);
+            foreach($known as $o)if($o['parent']===$slug&&$o['slug']!==$slug&&$cur0['active']===$o['slug'])rrw_json(['status'=>'error','message'=>'Das aktive Theme „'.$o['name'].'“ benötigt dieses Eltern-Theme.'],409);
+            $GLOBALS['site']['wp_themes_hidden']=array_values(array_unique(array_merge((array)($GLOBALS['site']['wp_themes_hidden']??[]),[$slug])));$site=$GLOBALS['site'];rrw_publish($site,$siteFile,$genDir,$root);
+            rrw_log_activity($activityLogFile,$wpUser,'wp_theme_delete','WordPress-Theme „'.$slug.'“ ausgeblendet');rrw_json(['status'=>'ok','hidden'=>true]+$wpThemes());
+        }
         if(defined('RRW_WP_SANDBOX')&&($known[$slug]['origin']??'')!=='sandbox')rrw_json(['status'=>'error','message'=>'Dieses Theme gehört zur Live-Seite und lässt sich in der Sandbox nicht löschen.'],422);
         $cur=$wpThemes();if($cur['active']===$slug||(string)get_option('template','')===$slug&&$cur['front'])rrw_json(['status'=>'error','message'=>'Das aktive Theme (oder dessen Eltern-Theme) kann nicht gelöscht werden. Erst ein anderes aktivieren.'],409);
         foreach($known as $o)if($o['parent']===$slug&&$o['slug']!==$slug)rrw_json(['status'=>'error','message'=>'Das Theme „'.$o['name'].'“ benötigt dieses Eltern-Theme.'],409);
@@ -1798,7 +1810,7 @@ if($action==='database_pull'){
     try{$x=rrw_db_pull();if(!empty($x['site'])){$site=rrw_ensure_site_defaults($x['site']);rrw_publish($site,$siteFile,$genDir,$root);}if(isset($x['news']))rrw_write_atomic($newsFile,json_encode($x['news'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");rrw_json(['status'=>'ok','config'=>$site,'news_count'=>count($x['news']??[])]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
 }
 if($action==='content_scan'){rrw_auth(false);rrw_json(['status'=>'ok','pages'=>rrw_content_scan()]);}
-if($action==='content_pull'){rrw_auth(false);$x=rrw_content_pull($site);if($x['imported']){$site=rrw_ensure_site_defaults($x['site']);rrw_publish($site,$siteFile,$genDir,$root);}rrw_json(['status'=>'ok','imported'=>$x['imported'],'baseline'=>$x['baseline']]);}
+if($action==='content_pull'){rrw_auth(false);$x=rrw_content_pull($site);if($x['imported']){$site=rrw_ensure_site_defaults($x['site']);rrw_publish($site,$siteFile,$genDir,$root);}rrw_json(['status'=>'ok','imported'=>$x['imported'],'baseline'=>$x['baseline'],'errors'=>$x['errors']??[]]);}
 if($action==='content_sync'){rrw_auth(false);rrw_json(['status'=>'ok','files'=>rrw_content_sync_from_site($site)]);}
 if($action==='content_import'){
     rrw_auth(false);$b=rrw_body();$slug=trim((string)($b['slug']??''));
@@ -1812,7 +1824,7 @@ if($action==='api_docs'){
       'write_sections'=>['portal','pages','menus','widgets','widget_areas','widget_inactive','branding','social','apps','legal','feed_sources','rss','theme','plugins','seo','storage','backup','brands','assistant','alexa'],
       'plugin_hooks'=>['portal:ready','page:rendered','cms:config-applied','plugin:loaded']]);
 }
-if($action==='themes_list'){rrw_auth(false);$state=$site['theme']??['active'=>'ricorewi-neon','variant'=>'default','settings'=>[]];$modsSaved=array_keys(is_array($state['mods']??null)?$state['mods']:[]);unset($state['mods']);rrw_json(['status'=>'ok','themes'=>rrw_theme_catalog($site),'active'=>$site['theme']['active']??'ricorewi-neon','theme_state'=>$state,'mods_saved'=>$modsSaved]);}
+if($action==='themes_list'){rrw_auth(false);$state=$site['theme']??['active'=>'ricorewi-neon','variant'=>'default','settings'=>[]];$modsSaved=array_keys(is_array($state['mods']??null)?$state['mods']:[]);unset($state['mods']);rrw_json(['status'=>'ok','themes'=>rrw_theme_catalog($site),'hidden_themes'=>array_values(array_map(fn($t)=>['id'=>$t['id'],'name'=>$t['name']],array_filter(rrw_theme_catalog($site,true),fn($t)=>$t['hidden']))),'active'=>$site['theme']['active']??rrw_default_theme_id(),'theme_state'=>$state,'mods_saved'=>$modsSaved]);}
 if($action==='theme_upload'){
     rrw_auth(false);if(empty($_FILES['file'])||!is_uploaded_file($_FILES['file']['tmp_name']))rrw_json(['status'=>'error','message'=>'Keine ZIP-Datei'],400);
     if((int)($_FILES['file']['size']??0)>20971520)rrw_json(['status'=>'error','message'=>'Theme-ZIP ist größer als 20 MB'],400);
@@ -1879,11 +1891,18 @@ if($action==='theme_reset_areas'){
     rrw_log_activity($activityLogFile,null,'theme_reset_areas','Widget-Anordnung auf den Standard des Themes „'.$found['name'].'“ zurückgesetzt');
     rrw_json(['status'=>'ok','widget_areas'=>$site['widget_areas']]);
 }
-if($action==='theme_delete'){
-    rrw_auth(false);$b=rrw_body();$id=rrw_theme_id((string)($b['id']??''));if($id==='ricorewi-neon')rrw_json(['status'=>'error','message'=>'Standardtheme ist geschützt'],400);
-    if(($site['theme']['active']??'ricorewi-neon')===$id)rrw_json(['status'=>'error','message'=>'Aktives Theme kann nicht gelöscht werden'],400);
-    $dir=__DIR__.'/themes/'.$id;if(!is_dir($dir))rrw_json(['status'=>'error','message'=>'Theme nicht gefunden'],404);
-    foreach(glob($dir.'/*')?:[] as $x)if(is_file($x))@unlink($x);@rmdir($dir);rrw_json(['status'=>'ok']);
+if($action==='theme_delete'||$action==='theme_unhide'){
+    rrw_auth(false);$b=rrw_body();$id=rrw_theme_id((string)($b['id']??''));$hid=array_values(array_filter((array)($site['theme_hidden']??[]),'is_string'));
+    if($action==='theme_unhide'){$site['theme_hidden']=array_values(array_diff($hid,[$id]));rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok']);}
+    if($id===rrw_default_theme_id())rrw_json(['status'=>'error','message'=>'Das Standard-Theme ist die Rückfallebene und kann nicht entfernt werden.'],400);
+    if(($site['theme']['active']??rrw_default_theme_id())===$id)rrw_json(['status'=>'error','message'=>'Das aktive Theme kann nicht entfernt werden. Erst ein anderes aktivieren.'],400);
+    $dir=__DIR__.'/themes/'.$id;if(!is_dir($dir)||!is_file($dir.'/theme.json'))rrw_json(['status'=>'error','message'=>'Theme nicht gefunden'],404);
+    if(!is_file($dir.'/.uploaded')){   // Themes aus dem Code (Git/Deploy): ausblenden statt löschen – sonst kämen sie beim nächsten Deploy zurück
+        $site['theme_hidden']=array_values(array_unique(array_merge($hid,[$id])));rrw_publish($site,$siteFile,$genDir,$root);
+        rrw_json(['status'=>'ok','hidden'=>true,'message'=>'Theme ausgeblendet (die Dateien liegen im Code und bleiben erhalten; unter „Ausgeblendete Themes“ lässt es sich zurückholen).']);
+    }
+    $rm=function(string $d)use(&$rm):void{foreach(scandir($d)?:[] as $x){if($x==='.'||$x==='..')continue;$f=$d.'/'.$x;if(is_link($f)||is_file($f))@unlink($f);elseif(is_dir($f))$rm($f);}@rmdir($d);};$rm($dir);
+    rrw_json(['status'=>'ok','hidden'=>false]);
 }
 if($action==='architecture'){rrw_auth(false);rrw_json(['status'=>'ok','components'=>[['id'=>'portal','name'=>rrw_pack_available()?'RicoReWi Radioportal':'Website','type'=>'Frontend','path'=>'/'],['id'=>'cms','name'=>rrw_product_title(),'type'=>'Datei-CMS','path'=>'/cms/'],['id'=>'storage','name'=>'CMS-Dateispeicher','type'=>'JSON','path'=>'/cms/data/site.json'],['id'=>'generated','name'=>'Generierte Seiten & SEO','type'=>'HTML/CSS','path'=>'/cms/generated/'],['id'=>'control-center','name'=>rrw_product_control_center().(rrw_standalone()?' (ausgeschaltet)':' (optional)'),'type'=>'Zugriff & Rechte','path'=>'/control/'],['id'=>'local-auth','name'=>'Lokaler CMS-Zugang','type'=>'Zugriff & Rechte','path'=>'/cms/data/local-auth.local.php']],'core_stations'=>rrw_pack_available()?($site['core_network']['stations']??[]):[],'updated_at'=>date(DATE_ATOM)]);}
 // Community (Mitglieder; optional, standardmäßig aus): öffentliche Konto-Funktionen und Verwaltung im CMS

@@ -1,6 +1,6 @@
 'use strict';
 window.ThemeManager=(()=>{
- let themes=[], themeState={active:'ricorewi-neon',variant:'default',settings:{}}, editing=null, draft=null;
+ let hiddenThemes=[], themes=[], themeState={active:'ricorewi-neon',variant:'default',settings:{}}, editing=null, draft=null;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const token=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
  async function api(action,body){
@@ -58,7 +58,8 @@ window.ThemeManager=(()=>{
  function activeName(){const t=themes.find(x=>x.active);return t?t.name:null;}
  function render(){
   const h=document.getElementById('themeGrid');if(!h)return;
-  h.innerHTML=themes.map((t,i)=>'<article class="theme-card '+(t.active?'active':'')+'"><div class="theme-shot">'+(t.screenshot?'<img src="'+esc(t.screenshot)+'?v='+Date.now()+'" alt="">':'<div class="theme-placeholder"><i class="fas fa-brush"></i><span>'+esc(t.name)+'</span></div>')+'</div><div class="theme-copy"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(t.name)+'</b>'+(t.active?'<span class="theme-active">AKTIV</span>':'')+'</div><div class="hint">'+esc(t.description||'')+'</div><div class="hint" style="margin-top:4px;color:var(--dim)"><i class="fas fa-table-columns" style="margin-right:4px"></i>'+esc(layoutSummary(t))+(modsSaved.includes(t.id)&&!t.active?' · <i class="fas fa-floppy-disk"></i> eigene Anpassungen gespeichert':'')+'</div><div class="hint" style="margin-top:4px">'+esc(t.license||'Free Theme')+' · '+(t.compatibility==='wordpress+bootstrap'?'WordPress + Bootstrap':t.wordpress?'WordPress-Kompatibilität':t.bootstrap?'Bootstrap-Kompatibilität':((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'RicoReWi CMS Theme':RRW_P.name+' Theme'))+'</div><div class="theme-actions"><button class="btn-g" onclick="ThemeManager.customize('+i+')"><i class="fas fa-sliders"></i> Live anpassen</button>'+(t.active?'':'<button class="btn-a" onclick="ThemeManager.activate('+i+')"><i class="fas fa-check"></i> Aktivieren</button>')+(t.builtin?'':'<button class="btn-d" onclick="ThemeManager.remove('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div></article>').join('')||'<div class="empty">Keine Themes vorhanden.</div>';
+  const hb=document.getElementById('themeHidden');if(hb){hb.hidden=!hiddenThemes.length;hb.innerHTML=hiddenThemes.length?'<b>Ausgeblendete Themes</b> <span class="hint">(liegen im Code)</span>'+hiddenThemes.map(function(x){return '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span>'+esc(x.name)+'</span><button type="button" class="btn-g" onclick="ThemeManager.unhide(\''+esc(x.id)+'\')">Zurückholen</button></div>'}).join(''):''}
+  h.innerHTML=themes.map((t,i)=>'<article class="theme-card '+(t.active?'active':'')+'"><div class="theme-shot">'+(t.screenshot?'<img src="'+esc(t.screenshot)+'?v='+Date.now()+'" alt="">':'<div class="theme-placeholder"><i class="fas fa-brush"></i><span>'+esc(t.name)+'</span></div>')+'</div><div class="theme-copy"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(t.name)+'</b>'+(t.active?'<span class="theme-active">AKTIV</span>':'')+'</div><div class="hint">'+esc(t.description||'')+'</div><div class="hint" style="margin-top:4px;color:var(--dim)"><i class="fas fa-table-columns" style="margin-right:4px"></i>'+esc(layoutSummary(t))+(modsSaved.includes(t.id)&&!t.active?' · <i class="fas fa-floppy-disk"></i> eigene Anpassungen gespeichert':'')+'</div><div class="hint" style="margin-top:4px">'+esc(t.license||'Free Theme')+' · '+(t.compatibility==='wordpress+bootstrap'?'WordPress + Bootstrap':t.wordpress?'WordPress-Kompatibilität':t.bootstrap?'Bootstrap-Kompatibilität':((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'RicoReWi CMS Theme':RRW_P.name+' Theme'))+'</div><div class="theme-actions"><button class="btn-g" onclick="ThemeManager.customize('+i+')"><i class="fas fa-sliders"></i> Live anpassen</button>'+(t.active?'':'<button class="btn-a" onclick="ThemeManager.activate('+i+')"><i class="fas fa-check"></i> Aktivieren</button>')+(t.active||t.default?'':'<button class="btn-d" title="'+(t.builtin?'Ausblenden (liegt im Code)':'Löschen')+'" onclick="ThemeManager.remove('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div></article>').join('')||'<div class="empty">Keine Themes vorhanden.</div>';
   if(window.DesignHub)DesignHub.refresh();
  }
  function mergedDraft(t){
@@ -226,13 +227,15 @@ window.ThemeManager=(()=>{
   try{const d=await api('theme_activate',{id:t.id});themeState=d.theme||{active:t.id,variant:'default',settings:{}};window.cmsToast?.('Theme aktiviert ✓');await load(true);window.cmsReload?.();}catch(e){window.cmsToast?.(e.message,true)}
  }
  async function remove(i){
-  const t=themes[i];if(!t||t.active||t.builtin)return;if(!confirm('Theme „'+t.name+'“ wirklich löschen?'))return;
-  try{await api('theme_delete',{id:t.id});window.cmsToast?.('Theme gelöscht');await load(true)}catch(e){window.cmsToast?.(e.message,true)}
+  const t=themes[i];if(!t||t.active||t.default)return;
+  if(!confirm(t.builtin?'Theme „'+t.name+'“ ausblenden? Es liegt im Code und kann jederzeit unter „Ausgeblendete Themes“ zurückgeholt werden.':'Theme „'+t.name+'“ wirklich löschen?'))return;
+  try{const d=await api('theme_delete',{id:t.id});window.cmsToast?.(d.hidden?'Theme ausgeblendet':'Theme gelöscht');await load(true)}catch(e){window.cmsToast?.(e.message,true)}
  }
+ async function unhide(id){try{await api('theme_unhide',{id});window.cmsToast?.('Theme wieder eingeblendet');await load(true)}catch(e){window.cmsToast?.(e.message,true)}}
  async function load(force=false){
   bind();
-  try{const d=await api('themes_list');themes=d.themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'ricorewi-neon',variant:'default',settings:{}};render()}
+  try{const d=await api('themes_list');themes=d.themes||[];hiddenThemes=d.hidden_themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'ricorewi-neon',variant:'default',settings:{}};render()}
   catch(e){const h=document.getElementById('themeGrid');if(h)h.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
- return {hl:czHl,pick:czPick,openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
+ return {hl:czHl,pick:czPick,openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,unhide,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
 })();

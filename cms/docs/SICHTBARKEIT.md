@@ -19,7 +19,7 @@ Seiten und Beiträge dürfen als **Dateien im Repository** gepflegt werden – s
 - `cms/content/posts/<slug>/post.md` – Beitrag (Front Matter `title`, `status: published|draft` – Vorgabe `draft` –, `category`, `tags`, `excerpt`, `published_at`).
 - Übernahme beim Veröffentlichen, beim Neuaufbau im Deploy (`cms/rebuild.php`) und über `api.php?action=content_pull`. Danach den **Sichtbarkeits-Check** ausführen.
 
-**Nicht** über Git ändern: `cms/data/*.json` (Einstellungen, Menüs, Widgets, Beitragsliste) – der Code-Deploy schützt `cms/data/`, und der Rückkanal Live-CMS → GitHub überschreibt solche Änderungen wieder. Menüs und Einstellungen über die Verwaltung bzw. authentifizierte API (`save_section`) ändern.
+Menüs, Widgets, Theme und Plugins steuern `cms/content/config/*.json` (siehe CONTENT.md). **Nicht** direkt über Git ändern: `cms/data/*.json` – der Code-Deploy schützt `cms/data/`, und der Rückkanal Live-CMS → GitHub überschreibt solche Änderungen wieder. Weitere Einstellungen über die Verwaltung bzw. authentifizierte API (`save_section`) ändern.
 
 ## Warum Änderungen „automatisch zurückgesetzt“ werden konnten
 - Der Spiegel Website → `page.md` (bei jedem Veröffentlichen und im Deploy-Neuaufbau) überschrieb Dateien aus Git. Jetzt schreibt er keine Datei, die sich seit dem letzten Abgleich von außen geändert hat; sie wird stattdessen vorher übernommen (Manifest `cms/data/content-sync.json`). Beim allerersten Lauf wird nur der Ist-Stand gemerkt.
