@@ -64,3 +64,6 @@ Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokum
 - Nicht das gesamte Repository erneut analysieren.
 - `cms/docs/` enthält bereits umfangreiche Fach-Doku; keine parallelen Dokumentationen anlegen.
 - Keine RicoReWi-spezifischen Inhalte in ElvadoPress einführen; Sync-/Bestandsschutzregeln in `CLAUDE.md` beachten.
+
+## Phase 2: WordPress-Engine (Fundament)
+Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, Bridge, Adapter), `cms/engine-api.php`, `cms/wp-engine-boot.php`, `cms/lib/wpengine.php`, Panel „WordPress-Engine“ (System). Standard: aus. Test: `scripts/test-wp-engine.php`. Doku: `cms/docs/ARCHITECTURE-WORDPRESS.md`, `WORDPRESS-BRIDGE.md`. Offen: Phasen 3–11 (Inhalte über Adapter, Plugins/Themes, Live-Customizer, Migration, RicoReWi-Paket).

@@ -529,6 +529,7 @@ function rrw_site_lock(string $dataDir): void {
     @flock($h,LOCK_EX); // wird beim Ende der Anfrage freigegeben
 }
 rrw_ensure_dirs();
+if(defined('RRW_API_LIB_ONLY'))return;   // nur Hilfsfunktionen und Anmeldeprüfung laden, ohne Aktionen auszuführen (eigener Einstieg cms/engine-api.php für die WordPress-Engine)
 $action=(string)($_GET['action']??'public');
 // Native Plugins: bei Verwaltungsaktionen für Plugins werden sie nicht vorab geladen (Installieren/Aktualisieren prüft sie selbst); sonst laden die aktiven Plugins hier ihre Erweiterungspunkte
 if(!in_array($action,['np_list','np_plan','np_install','np_activate','np_deactivate','np_update','np_uninstall','np_settings_save','np_settings_get','np_enable_recommended'],true)){ rrw_np_boot(); }
