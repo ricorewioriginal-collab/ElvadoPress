@@ -21,3 +21,5 @@
 - **Sync nach ricorewi-radio:** Dateien unter `cms/` werden mitsynchronisiert; mit dem RicoReWi-Paket (`rrw_pack_available()`) ist Installer-/Upgrade-Aktivierung der Essentials ausgeschaltet. Der Test `test-install-modes.php` braucht lokale Ports und einen echten PHP-Server.
 
 - **Behoben:** Die Demo (und jede Installation mit aktiven Plugins Elvado AI/SEO) fror beim Öffnen der Verwaltung ein (Endlosschleife im `MutationObserver` der Plugin-Oberflächen). Plugin-Skripte, die den DOM beobachten, müssen eigene Änderungen ausschließen und bündeln (siehe `cms/docs/PLUGIN-ENTWICKLUNG.md`).
+
+- **WordPress-Kompatibilität, noch offen:** Die Verwaltung ist keine WordPress-Verwaltung; Hooks, die nur dort einen Platz haben, werden (noch) nicht ausgelöst: `admin_footer_text`, `in_admin_header`, `plugin_action_links` (Links in der Plugin-Zeile). `admin_notices`/`all_admin_notices` zeigt die Verwaltung seit dem Rahmen oben (`wp-notices.js`); Meldungen erscheinen einmal global, nicht je Seite.

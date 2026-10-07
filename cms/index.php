@@ -35,6 +35,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <body>
 <div id="navbarContainer"></div>
 <main class="cms">
+  <div id="wpNotices" style="display:none"></div>
   <div id="cmsDenied" class="card access-denied" style="display:none">
     <i class="fas fa-lock"></i><h2>Kein Zugriff</h2>
     <p>Du hast keine Berechtigung für diese Verwaltung. Melde dich mit einem berechtigten ElvadoPress-Benutzerkonto an.</p>
@@ -178,7 +179,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/forms-manager.js?v=1"></script>
 <script src="assets/polls-manager.js?v=1"></script>
 <script src="assets/community-manager.js?v=1"></script>
-<script src="assets/wpplugins-manager.js?v=3"></script>
+<script src="assets/wpplugins-manager.js?v=4"></script>
 <script src="assets/wpthemes-manager.js?v=10"></script>
 <script src="assets/wp-links.js?v=2"></script>
 <script src="assets/wp-settings.js?v=2"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
@@ -186,7 +187,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/design-hub.js?v=3"></script>
 <script src="assets/pages-manager.js?v=1"></script>
 <script src="assets/header-builder.js?v=1"></script>
-<script src="assets/cms-app.js?v=45"></script>
+<script src="assets/wp-notices.js?v=1"></script><script src="assets/cms-app.js?v=46"></script>
 <?php /* Erweiterungen aktiver offizieller Plugins für die ganze Verwaltung (z. B. SEO-Vorschau im Editor) */ try{ if(is_file(__DIR__.'/data/.plugins/state.json')){ require_once __DIR__.'/lib/nplugins.php';foreach(rrw_np()->globalAdminScripts() as $__s)echo '<script src="'.htmlspecialchars($__s,ENT_QUOTES).'" defer></script>'."\n"; } }catch(Throwable $__e){} ?>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
