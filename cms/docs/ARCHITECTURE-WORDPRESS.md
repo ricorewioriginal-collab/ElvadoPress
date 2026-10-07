@@ -98,7 +98,7 @@ Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMP
 ## Performance
 - **WordPress wird nur gestartet, wenn die Anfrage es braucht.** Öffentliche Seiten, Status, Komponenten-Katalog, Layout-API, native Quellen, Trockenlauf-Bericht und alle **unberechtigten** Anfragen (401/403) starten WordPress nie – auch nicht bei aktiver Engine (Test mit Probe und echtem WordPress).
 - Die Engine hat einen eigenen Einstieg (`engine-api.php`); WordPress läuft dort im globalen Gültigkeitsbereich ohne den Ballast der Verwaltung.
-- Kalter Start von WordPress < 4 s, erneuter < 3 s auf der Testumgebung (gemessen im Test); die Verwaltungs-API ohne WordPress antwortet < 1,5 s.
+- Kalter Start von WordPress < 4 s, erneuter < 3 s auf der Testumgebung (gemessen im Test); die Verwaltungs-API ohne WordPress antwortet < 2,5 s (bester von zwei Aufrufen).
 - Gebundene Bereiche (Pakete) kosten die öffentliche Seite nichts, solange nichts veröffentlicht ist (Datei-Prüfung vor dem Laden).
 
 ## Testmatrix (Masterprompt, Abschnitt 32)
