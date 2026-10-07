@@ -8,5 +8,6 @@ if (!\Elvado\Wp\Bridge::booted()) {
     $table_prefix = $__wpe['prefix'];
     require $__wpe['settings'];
     \Elvado\Wp\Bridge::restore($__wpe['snapshot']);
+    \Elvado\Wp\Bridge::done($GLOBALS['rrw_wpe_engine']);
     unset($__wpe);
 }

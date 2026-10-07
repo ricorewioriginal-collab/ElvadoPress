@@ -76,3 +76,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 4: Medien, Benutzer, Rechte
 `Actor`/`Roles`/`PermissionException`, `MediaService`+`MediaAdapter` (Native lesend, WordPress), `UserService`+`UserAdapter` (Spiegel der lokalen Benutzer), API `media_*`/`user_*`; Besitzerregeln im `ContentService`. Test `scripts/test-wp-engine-media-users.php`. Bestehende Panels weiter unverändert (Umstellung mit der Migration, Phase 9).
+
+## Phase 5: Plugins und Themes (echt) + Absturzschutz
+`ExtensionSource/Installer/Service`, `WordPressExtensionAdapter`, Wächter/Probelauf/abgesicherter Modus in `Engine`/`Bridge`, `cms/src/Wp/mu/elvado-engine.php`, API `ext_*`, Panel „Plugins & Themes (Engine)“ (`wp-extensions.js`). Test `scripts/test-wp-engine-extensions.php`. Bisherige Plugin-/Theme-Panels (Nachbildung) unverändert bis zur Migration.

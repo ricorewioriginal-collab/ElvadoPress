@@ -27,7 +27,7 @@ final class Engine
     /** WordPress-Inhalte (Plugins, Themes, Uploads) bleiben im vorhandenen Ordner cms/wp-content. */
     public function contentDir(): string { return rtrim($this->cmsDir, '/') . '/wp-content'; }
 
-    /** @return array{schema:int,mode:string,version:string,core:string,installed_at:string,previous:list<string>,db:array<string,mixed>} */
+    /** @return array{schema:int,mode:string,version:string,core:string,installed_at:string,previous:list<string>,db:array<string,mixed>,safe:bool,incident:?array} */
     public function state(): array
     {
         $raw = is_file($this->stateDir . '/state.json') ? json_decode((string)@file_get_contents($this->stateDir . '/state.json'), true) : null;
@@ -46,6 +46,8 @@ final class Engine
             'installed_at' => (string)($raw['installed_at'] ?? ''),
             'previous' => array_values(array_filter(array_map('strval', (array)($raw['previous'] ?? [])), fn($c) => preg_match('/^core-\d+\.\d+(\.\d+)?$/', $c) === 1)),
             'db' => is_array($raw['db'] ?? null) ? $raw['db'] : [],
+            'safe' => !empty($raw['safe']),
+            'incident' => is_array($raw['incident'] ?? null) ? $raw['incident'] : null,
         ];
     }
 
@@ -89,6 +91,50 @@ final class Engine
         $this->save(['mode' => $mode]);
         $this->log('Betriebsart: ' . $mode);
         return ['ok' => true, 'message' => ''];
+    }
+
+    // ───────── Absturzschutz ─────────
+    // Vor einer riskanten Änderung (Plugin aktivieren, Theme wechseln) wird ein „Wächter“ geschrieben. Der nächste Start von WordPress ist ein Probelauf:
+    // gelingt er, wird der Wächter gelöscht; stürzt er ab, startet der Folgelauf im abgesicherten Modus und die Änderung wird rückgängig gemacht (Bridge::recover).
+
+    /** @return array{kind:string,id:string,previous:array<string,string>,probing:bool,at:string}|null */
+    public function guard(): ?array
+    {
+        $f = $this->stateDir . '/guard.json';
+        $g = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+        if (!is_array($g) || !in_array($g['kind'] ?? '', ['plugin', 'theme'], true)) {
+            return null;
+        }
+        return ['kind' => (string)$g['kind'], 'id' => (string)($g['id'] ?? ''), 'previous' => array_map('strval', (array)($g['previous'] ?? [])), 'probing' => !empty($g['probing']), 'at' => (string)($g['at'] ?? '')];
+    }
+
+    /** @param array<string,string> $previous */
+    public function guardSet(string $kind, string $id, array $previous = [], bool $probing = false): void
+    {
+        $this->protect();
+        $tmp = $this->stateDir . '/guard.json.' . bin2hex(random_bytes(4)) . '.tmp';
+        if (@file_put_contents($tmp, json_encode(['kind' => $kind, 'id' => $id, 'previous' => $previous, 'probing' => $probing, 'at' => date('c')]), LOCK_EX) === false || !@rename($tmp, $this->stateDir . '/guard.json')) {
+            @unlink($tmp);
+            throw new \RuntimeException('Der Absturzschutz konnte nicht vorbereitet werden.');
+        }
+    }
+
+    public function guardClear(): void { @unlink($this->stateDir . '/guard.json'); }
+
+    /** Abgesicherter Modus: WordPress startet ohne Plugins und ohne Theme-Funktionen (Verwaltung bleibt erreichbar). */
+    public function safe(): bool { return !empty($this->state()['safe']); }
+
+    public function setSafe(bool $on): void
+    {
+        $this->save(['safe' => $on]);
+        $this->log('Abgesicherter Modus: ' . ($on ? 'an' : 'aus'));
+    }
+
+    /** Letzter automatisch behobener Absturz (für die Anzeige). @return array{when:string,what:string}|null */
+    public function incident(): ?array
+    {
+        $i = $this->state()['incident'] ?? null;
+        return is_array($i) && isset($i['what']) ? ['when' => (string)($i['when'] ?? ''), 'what' => (string)$i['what']] : null;
     }
 
     /** Ordner und Schutzdateien anlegen (Webzugriff gesperrt). */

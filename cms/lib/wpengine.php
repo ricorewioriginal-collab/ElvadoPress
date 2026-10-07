@@ -26,7 +26,7 @@ function rrw_wpe_status(Engine $e, DbConfig $db): array
     $req = Requirements::check($e);
     $native = new NativeAdapter($e->cmsDir(), dirname($e->stateDir()));
     return [
-        'engine' => ['mode' => $s['mode'], 'version' => $s['version'], 'installed_at' => $s['installed_at'], 'previous' => $s['previous'], 'core_present' => $e->corePath() !== null],
+        'engine' => ['mode' => $s['mode'], 'version' => $s['version'], 'installed_at' => $s['installed_at'], 'previous' => $s['previous'], 'core_present' => $e->corePath() !== null, 'safe' => $e->safe(), 'incident' => $e->incident(), 'guard' => ($g = $e->guard()) ? ['kind' => $g['kind'], 'id' => $g['id']] : null],
         'db' => ['configured' => $db->redacted(), 'ready' => !empty($s['db']['ready']), 'server' => (string)($s['db']['server'] ?? ''), 'checked_at' => (string)($s['db']['checked_at'] ?? '')],
         'requirements' => $req,
         'native' => ['name' => $native->name(), 'counts' => $native->counts()],
@@ -114,10 +114,30 @@ function rrw_wpe_remove(Engine $e): array
 /** Antworten, die WordPress selbst beendet (z. B. Datenbankfehler als HTML), als JSON ausgeben. */
 function rrw_wpe_guard_output(): void
 {
+    // Schwerer Fehler (z. B. in einem Plugin): sauberer JSON-Fehler statt leerer oder HTML-Seite; der nächste Aufruf startet abgesichert (Bridge::onShutdown/recover)
+    register_shutdown_function(static function (): void {
+        $err = error_get_last();
+        if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR], true)) {
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
+            if (!headers_sent()) {
+                http_response_code(500);
+                header('Content-Type: application/json; charset=utf-8');
+            }
+            echo json_encode(['status' => 'error', 'crashed' => true, 'message' => 'WordPress ist abgestürzt (ein Plugin oder Theme hat einen schweren Fehler ausgelöst). ElvadoPress deaktiviert den Verursacher beim nächsten Aufruf automatisch – bitte die Aktion danach wiederholen.', 'detail' => mb_substr(basename((string)$err['file']) . ': ' . (string)$err['message'], 0, 200)], JSON_UNESCAPED_UNICODE);
+        }
+    });
     ob_start(static function (string $buf): string {
         if ($buf === '' || json_decode($buf) !== null) {
             return $buf;
         }
         return json_encode(['status' => 'error', 'message' => 'WordPress hat die Anfrage mit einer eigenen Seite beendet (z. B. Datenbankfehler).', 'detail' => mb_substr(trim((string)preg_replace('/\s+/', ' ', strip_tags($buf))), 0, 200)], JSON_UNESCAPED_UNICODE);
     });
+}
+
+/** Nach dem Start von WordPress: ein zuvor abgestürzter Plugin-/Theme-Wechsel wird rückgängig gemacht. @return array{when:string,what:string}|null */
+function rrw_wpe_after_boot(Engine $e): ?array
+{
+    return \Elvado\Wp\Bridge::recovering() ? \Elvado\Wp\Bridge::recover($e) : null;
 }

@@ -10,6 +10,105 @@ namespace Elvado\Wp;
 
 final class Bridge
 {
+    /** @var resource|null */
+    private static $lock = null;
+    private static bool $probe = false;
+    private static bool $booting = false;
+    /** @var array<string,mixed>|null */
+    private static ?array $recover = null;
+
+    /** Nach dem Start: Probelauf bestanden → Wächter löschen, Sperre lösen. */
+    public static function done(Engine $e): void
+    {
+        if (self::$probe) {
+            $e->guardClear();
+            self::$probe = false;
+        }
+        self::$booting = false;
+        if (self::$lock) {
+            @flock(self::$lock, LOCK_UN);
+            @fclose(self::$lock);
+            self::$lock = null;
+        }
+    }
+
+    /**
+     * Schwerer Fehler (fatal) während des Starts: Liegt die Datei in einem Plugin oder Theme, wird ein Wächter im Probelauf-Zustand geschrieben –
+     * der nächste Start ist abgesichert und deaktiviert den Verursacher (Plugin/Theme), auch wenn kein Wechsel vorausging (Update, geänderte Datei, Umgebung).
+     */
+    public static function onShutdown(Engine $e): void
+    {
+        if (!self::$booting) {
+            return;
+        }
+        $err = error_get_last();
+        if (!$err || !in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR], true)) {
+            return;
+        }
+        $file = str_replace('\\', '/', (string)$err['file']);
+        $content = str_replace('\\', '/', rtrim($e->contentDir(), '/'));
+        if (str_starts_with($file, $content . '/plugins/') && preg_match('~/plugins/([^/]+)~', $file, $m)) {
+            $kind = 'plugin';
+        } elseif (str_starts_with($file, $content . '/themes/') && preg_match('~/themes/([^/]+)~', $file, $m)) {
+            $kind = 'theme';
+        } else {
+            return;
+        }
+        try {
+            $g = $e->guard();
+            if ($g === null) {
+                $e->guardSet($kind, $m[1], [], true);
+            } elseif (!$g['probing']) {
+                $e->guardSet($g['kind'], $g['id'], $g['previous'], true);
+            }
+            $e->log('Absturz beim Start in ' . $kind . ' „' . $m[1] . '“: ' . mb_substr((string)$err['message'], 0, 160));
+        } catch (\Throwable) {
+        }
+    }
+
+    /** War der letzte Start abgestürzt? Dann ist dieser Lauf abgesichert; recover() macht die Änderung rückgängig. */
+    public static function recovering(): bool { return self::$recover !== null; }
+
+    /**
+     * Macht die abgestürzte Änderung rückgängig (Plugin deaktivieren bzw. früheres Theme setzen) und löscht den Wächter. Nur nach einem Start im abgesicherten Modus.
+     * @return array{when:string,what:string}|null
+     */
+    public static function recover(Engine $e): ?array
+    {
+        $g = self::$recover;
+        if ($g === null || !self::booted()) {
+            return null;
+        }
+        // Im abgesicherten Modus sind die Optionen gesperrt – für das Rückgängigmachen kurz freigeben (die Sperre bleibt danach aus; der Lauf endet ohnehin mit der Anfrage)
+        foreach (['active_plugins' => '__return_empty_array', 'template' => 'elvado_engine_safe_theme', 'stylesheet' => 'elvado_engine_safe_theme'] as $opt => $cb) {
+            remove_filter('pre_option_' . $opt, $cb);
+        }
+        if ($g['kind'] === 'plugin') {
+            $act = array_values(array_filter((array)get_option('active_plugins', []), static fn($p) => (string)$p !== $g['id'] && !str_starts_with((string)$p, $g['id'] . '/')));
+            update_option('active_plugins', $act);
+            $what = 'Das Plugin „' . $g['id'] . '“ hat WordPress zum Absturz gebracht und wurde deaktiviert.';
+        } else {
+            $prev = $g['previous'];
+            if (!empty($prev['stylesheet']) && is_dir(get_theme_root() . '/' . $prev['stylesheet'])) {
+                update_option('template', $prev['template'] ?? $prev['stylesheet']);
+                update_option('stylesheet', $prev['stylesheet']);
+                $what = 'Das Theme „' . $g['id'] . '“ hat WordPress zum Absturz gebracht; das vorherige Theme ist wieder aktiv.';
+            } else {
+                $what = 'Das Theme „' . $g['id'] . '“ hat WordPress zum Absturz gebracht; es gab kein früheres Theme – WordPress läuft im abgesicherten Modus.';
+                $e->save(['safe' => true]);
+            }
+        }
+        foreach (['active_plugins', 'template', 'stylesheet'] as $opt) {   // danach wieder abgesichert weiterlaufen
+            add_filter('pre_option_' . $opt, $opt === 'active_plugins' ? '__return_empty_array' : 'elvado_engine_safe_theme');
+        }
+        $e->guardClear();
+        $inc = ['when' => date('c'), 'what' => $what];
+        $e->save(['incident' => $inc]);
+        $e->log('Absturzschutz: ' . $what);
+        self::$recover = null;
+        return $inc;
+    }
+
     /** @return bool Läuft echtes WordPress bereits in dieser Anfrage? */
     public static function booted(): bool
     {
@@ -32,6 +131,32 @@ final class Bridge
         }
         $site = rtrim((string)($opts['site_url'] ?? self::siteUrl()), '/');
         $content = $e->contentDir();
+        // Absturzschutz: offener Wächter ⇒ Probelauf (unter Sperre, damit gleichzeitige Anfragen nicht fälschlich eingreifen); schon im Probelauf abgestürzt ⇒ abgesicherter Modus + Rückgängig
+        self::$recover = null;
+        self::$booting = true;
+        register_shutdown_function([self::class, 'onShutdown'], $e);
+        $safe = $e->safe();
+        $g = $e->guard();
+        if ($g !== null && empty($opts['installing'])) {
+            $e->protect();
+            self::$lock = @fopen($e->stateDir() . '/probe.lock', 'c');
+            if (self::$lock) {
+                @flock(self::$lock, LOCK_EX);
+                $g = $e->guard();   // inzwischen von einer anderen Anfrage bereinigt?
+            }
+            if ($g !== null && $g['probing']) {
+                $safe = true;
+                self::$recover = $g;
+            } elseif ($g !== null) {
+                $e->guardSet($g['kind'], $g['id'], $g['previous'], true);
+                self::$probe = true;
+            }
+            if (self::$probe !== true && self::$lock) {
+                @flock(self::$lock, LOCK_UN);
+                @fclose(self::$lock);
+                self::$lock = null;
+            }
+        }
         $def = static function (string $n, mixed $v): void {
             if (!defined($n)) {
                 define($n, $v);
@@ -42,7 +167,10 @@ final class Bridge
         $def('WP_CONTENT_URL', $site . '/cms/wp-content');
         $def('WP_PLUGIN_DIR', $content . '/plugins');
         $def('WP_PLUGIN_URL', $site . '/cms/wp-content/plugins');
-        $def('WPMU_PLUGIN_DIR', $content . '/mu-plugins');
+        $def('WPMU_PLUGIN_DIR', dirname(__DIR__) . '/Wp/mu');   // eigene Engine-Schicht; lädt danach die mu-plugins aus wp-content
+        $def('WPMU_PLUGIN_URL', $site . '/cms/src/Wp/mu');
+        $def('ELVADO_USER_MU_DIR', $content . '/mu-plugins');
+        $def('ELVADO_ENGINE_SAFE', $safe);
         $def('WP_HOME', $site);
         $def('WP_SITEURL', $site);
         $def('DB_NAME', $cfg['name']);

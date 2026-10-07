@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // Verwaltungs-API der WordPress-Engine (eigener Einstieg, damit echtes WordPress in einem sauberen globalen Gültigkeitsbereich startet und nicht in den Variablen von api.php).
 // Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_analyze, engine_mode, engine_remove;
-// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync.
+// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe.
 // Rechte: Administratoren alles; Autoren Inhalte/Medien nur eigene (Dienste prüfen), Seiten, Begriffe, Benutzer und Engine nur Administratoren. Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
 // Die Anmeldeprüfung kommt aus api.php (RRW_API_LIB_ONLY); in der Demo sind alle Aktionen außer engine_status gesperrt.
 define('RRW_API_LIB_ONLY', true);
@@ -83,6 +83,7 @@ if ($rrwEngineAction === 'engine_analyze' || ($rrwEngineAction === 'engine_mode'
     if (!\Elvado\Wp\Bridge::booted()) {
         rrw_json(['status' => 'error', 'message' => 'WordPress ließ sich nicht starten.'], 500);
     }
+    rrw_wpe_after_boot($rrwEngine);
     $wp = new \Elvado\Wp\Adapter\WordPressAdapter();
     if ($rrwEngineAction === 'engine_mode') {
         $m = $rrwEngine->setMode('active');
@@ -108,6 +109,7 @@ if (preg_match('/^(content|term|media|user)_/', $rrwEngineAction) === 1) {
         if (!\Elvado\Wp\Bridge::booted()) {
             rrw_json(['status' => 'error', 'message' => 'WordPress ließ sich nicht starten.'], 500);
         }
+        rrw_wpe_after_boot($rrwEngine);
         $rrwAdapter = new \Elvado\Wp\Adapter\WordPressAdapter();
     } elseif ($rrwSource === 'native') {
         $rrwAdapter = new \Elvado\Wp\Adapter\NativeAdapter(__DIR__, __DIR__ . '/data');
@@ -211,6 +213,83 @@ if (preg_match('/^(content|term|media|user)_/', $rrwEngineAction) === 1) {
     } catch (\RuntimeException $e) {
         rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
     }
+}
+if (str_starts_with($rrwEngineAction, 'ext_')) {
+    try {
+        if ($rrwEngineAction === 'ext_safe') {
+            (new \Elvado\Wp\ExtensionService(new class implements \Elvado\Wp\Adapter\ExtensionAdapter {
+                public function plugins(): array { return []; }
+                public function themes(): array { return []; }
+                public function activatePlugin(string $id): void {}
+                public function deactivatePlugin(string $id): void {}
+                public function uninstallPlugin(string $id): void {}
+                public function activeTheme(): array { return ['template' => '', 'stylesheet' => '']; }
+                public function switchTheme(string $slug): void {}
+            }, new \Elvado\Wp\ExtensionInstaller($rrwEngine), $rrwEngine, $rrwActor))->setSafe(!empty($rrwEngineB['on']));
+            rrw_json(['status' => 'ok'] + rrw_wpe_status($rrwEngine, $rrwEngineDb));
+        }
+        if (!$rrwEngine->isActive()) {
+            rrw_json(['status' => 'error', 'message' => 'Die WordPress-Engine ist nicht aktiv.'], 409);
+        }
+        $GLOBALS['rrw_wpe_engine'] = $rrwEngine;
+        $GLOBALS['rrw_wpe_db'] = $rrwEngineDb;
+        $GLOBALS['rrw_wpe_opts'] = [];
+        rrw_wpe_guard_output();
+        require __DIR__ . '/wp-engine-boot.php';
+        if (!\Elvado\Wp\Bridge::booted()) {
+            rrw_json(['status' => 'error', 'message' => 'WordPress ließ sich nicht starten.'], 500);
+        }
+        $rrwIncident = rrw_wpe_after_boot($rrwEngine) ?? $rrwEngine->incident();
+        $rrwExt = new \Elvado\Wp\ExtensionService(new \Elvado\Wp\Adapter\WordPressExtensionAdapter(), new \Elvado\Wp\ExtensionInstaller($rrwEngine), $rrwEngine, $rrwActor);
+        $rrwKind = (string)($_GET['kind'] ?? $rrwEngineB['kind'] ?? 'plugin');
+        $rrwSafe = ['safe_mode' => $rrwEngine->safe(), 'incident' => $rrwIncident];
+        if ($rrwEngineAction === 'ext_list') {
+            rrw_json(['status' => 'ok', 'kind' => $rrwKind, 'items' => $rrwExt->list($rrwKind)] + $rrwSafe);
+        }
+        if ($rrwEngineAction === 'ext_search') {
+            $rrwR = $rrwExt->search($rrwKind, (string)($_GET['q'] ?? ''), (int)($_GET['page'] ?? 1));
+            rrw_json(['status' => $rrwR['ok'] ? 'ok' : 'error'] + $rrwR, $rrwR['ok'] ? 200 : 502);
+        }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+        }
+        @set_time_limit(300);
+        if ($rrwEngineAction === 'ext_install') {
+            $rrwR = $rrwExt->installFromDirectory($rrwKind, (string)($rrwEngineB['slug'] ?? ''), !empty($rrwEngineB['update']));
+            $rrwEngineLog(($rrwKind === 'plugin' ? 'Plugin' : 'Theme') . ' installiert: ' . $rrwR['slug'] . ' ' . $rrwR['version']);
+            rrw_json(['status' => 'ok', 'result' => $rrwR, 'items' => $rrwExt->list($rrwKind)] + $rrwSafe);
+        }
+        if ($rrwEngineAction === 'ext_upload') {
+            $rrwF = $_FILES['file'] ?? null;
+            if (!is_array($rrwF) || ($rrwF['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string)$rrwF['tmp_name'])) {
+                rrw_json(['status' => 'error', 'message' => 'Der Upload ist fehlgeschlagen (Datei fehlt oder ist zu groß).'], 422);
+            }
+            $rrwR = $rrwExt->installUpload((string)($_POST['kind'] ?? $rrwKind), (string)$rrwF['tmp_name'], !empty($_POST['update']));
+            $rrwEngineLog(($rrwKind === 'plugin' ? 'Plugin' : 'Theme') . ' hochgeladen: ' . $rrwR['slug'] . ' ' . $rrwR['version']);
+            rrw_json(['status' => 'ok', 'result' => $rrwR, 'items' => $rrwExt->list((string)($_POST['kind'] ?? $rrwKind))] + $rrwSafe);
+        }
+        $rrwId = (string)($rrwEngineB['id'] ?? '');
+        if ($rrwEngineAction === 'ext_activate') {
+            $rrwExt->activate($rrwKind, $rrwId);
+            $rrwEngineLog(($rrwKind === 'plugin' ? 'Plugin aktiviert: ' : 'Theme aktiviert: ') . $rrwId);
+            rrw_json(['status' => 'ok', 'items' => $rrwExt->list($rrwKind)] + $rrwSafe);
+        }
+        if ($rrwEngineAction === 'ext_deactivate') {
+            $rrwExt->deactivate($rrwId);
+            $rrwEngineLog('Plugin deaktiviert: ' . $rrwId);
+            rrw_json(['status' => 'ok', 'items' => $rrwExt->list('plugin')] + $rrwSafe);
+        }
+        if ($rrwEngineAction === 'ext_delete') {
+            $rrwExt->delete($rrwKind, $rrwId, !empty($rrwEngineB['purge']));
+            $rrwEngineLog(($rrwKind === 'plugin' ? 'Plugin entfernt: ' : 'Theme entfernt: ') . $rrwId);
+            rrw_json(['status' => 'ok', 'items' => $rrwExt->list($rrwKind)] + $rrwSafe);
+        }
+    } catch (\Elvado\Wp\PermissionException $e) {
+        rrw_json(['status' => 'error', 'message' => $e->getMessage()], 403);
+    } catch (\InvalidArgumentException | \RuntimeException $e) {
+        rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
+    }
+    rrw_json(['status' => 'error', 'message' => 'Unbekannte Aktion'], 404);
 }
 if ($rrwEngineAction === 'engine_mode') {
     $mode = (string)($rrwEngineB['mode'] ?? '');

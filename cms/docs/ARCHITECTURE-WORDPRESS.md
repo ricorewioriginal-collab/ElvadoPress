@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 4 (Medien, Benutzer, Rechte). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Stand Phase 5 (Plugins und Themes, Absturzschutz). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
 
 ## Schichten
 ```
@@ -30,7 +30,7 @@ Core wird bei der Installation von wordpress.org geladen: Version von uns gebild
 Zuerst MySQL/MariaDB (SQLite später). Bestehende WordPress-Tabellen mit gleichem Präfix werden erkannt und nicht überschrieben (Meldung „leere Datenbank nötig“).
 
 ## Phasen
-1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte (dieser Stand)** · 5 Plugins/Themes (echt) · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
+1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt, dieser Stand)** · 6 Komponenten-Register · 7 Live-Customizer · 8 Navigation/Widgets/Blöcke · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
 Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scripts/test-wp-engine.php`.
 
 ## Phase 3: Inhalte über Dienst und Adapter
@@ -47,3 +47,12 @@ Tests: `scripts/test-wp-engine-content.php` (Eingabeprüfung, NativeAdapter; mit
 - **Benutzer** (`UserService` + `UserAdapter`): Anmeldung und Rechte bleiben bei ElvadoPress (lokale Benutzer). Die WordPress-Benutzer sind ein **Spiegel** (Autorenschaft, Kompatibilität); `user_sync` legt fehlende an und aktualisiert Name/E-Mail/Rolle, löscht nie und überträgt nie Passwörter (WordPress-Benutzer erhalten ein zufälliges, unbenutztes Passwort).
 - **API** (`cms/engine-api.php`): `media_list|get|upload|update|delete`, `user_list`, `user_sync` (Quelle `?source=native|wordpress` wie bei Inhalten). Angemeldete Personen dürfen Inhalte und Medien nach ihren Rechten, alles andere nur Administratoren.
 Tests: `scripts/test-wp-engine-media-users.php` (46 Prüfungen ohne Netz, mit `WPE_TEST_ZIP`/`WPE_TEST_DB` 26 weitere gegen echtes WordPress).
+
+## Phase 5: Plugins und Themes (echt) mit Absturzschutz
+- **Installation** (`ExtensionSource`, `ExtensionInstaller`, `ExtensionService`): aus dem offiziellen Verzeichnis (wordpress.org, nur feste Hosts über HTTPS; Slug und Version werden validiert, die Download-Adresse wird selbst gebaut) oder als ZIP. wordpress.org veröffentlicht für Plugins/Themes **keine Prüfsummen** – Schutz sind TLS, die Strukturprüfung (ein Hauptordner, keine Pfade nach außen, keine Verknüpfungen, Dateityp-Liste, Größen- und Dateilimits, versteckte Dateien werden nicht übernommen, Kopfzeile „Plugin Name“/„Theme Name“, PHP-Syntaxprüfung jeder PHP-Datei) und die SHA-256 im Protokoll. Atomar; eine vorhandene Fassung wird beim Update/Entfernen im Zustandsordner gesichert (die letzte je Eintrag). Ein Plugin/Theme ist Code, der mit den Rechten von ElvadoPress läuft: Installieren, Aktivieren und Entfernen nur für Administratoren.
+- **Zustand** (`WordPressExtensionAdapter`): echte WordPress-Funktionen (get_plugins, activate_plugin mit WordPress-Sandbox und Aktivierungs-Hook, deactivate/uninstall_plugin, wp_get_themes, switch_theme). Das aktive Theme (und dessen Eltern-Theme) lässt sich nicht löschen.
+- **Absturzschutz:** Vor Aktivieren/Theme-Wechsel wird ein Wächter geschrieben (`guard.json`). Der nächste Start von WordPress ist ein **Probelauf** unter Dateisperre (gleichzeitige Anfragen greifen nicht fälschlich ein); gelingt er, wird der Wächter gelöscht. Stürzt er ab, startet der Folgelauf **abgesichert** (keine Plugins, kein Theme) und macht die Änderung rückgängig (Plugin deaktiviert, früheres Theme gesetzt) – der Vorfall wird gemeldet. Ein schwerer Fehler **in einem Plugin/Theme beim Start** wird auch ohne vorherigen Wechsel erkannt (Shutdown-Handler: Datei unter `plugins/<x>` bzw. `themes/<x>`) und führt zum gleichen automatischen Abschalten des Verursachers. Der API-Aufruf antwortet bei einem Absturz mit sauberem JSON-Fehler (`crashed:true`). Zusätzlich gibt es einen **abgesicherten Modus** zum Ein-/Ausschalten.
+- **Engine-Schicht** (`cms/src/Wp/mu/elvado-engine.php`, immer zuerst geladen): setzt den abgesicherten Modus um, lädt danach die Must-Use-Plugins aus `cms/wp-content/mu-plugins` und unterbindet Hintergrund-Updateabfragen.
+- **API** (`ext_list|search|install|upload|activate|deactivate|delete|safe`, nur Administratoren) und Oberfläche **Plugins → Plugins & Themes (Engine)**.
+Tests: `scripts/test-wp-engine-extensions.php` (57 Prüfungen ohne Netz, mit `WPE_TEST_ZIP`/`WPE_TEST_DB` 21 weitere gegen echtes WordPress inkl. provozierter Abstürze und abgesichertem Modus).
+- Noch offen: Auslieferung der Website über das aktive WordPress-Theme (Phase 7/9); die bisherigen Plugin-/Theme-Panels der Nachbildung bleiben bis zur Migration unverändert.
