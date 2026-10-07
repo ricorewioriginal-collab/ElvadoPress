@@ -1798,6 +1798,7 @@ if($action==='database_pull'){
     try{$x=rrw_db_pull();if(!empty($x['site'])){$site=rrw_ensure_site_defaults($x['site']);rrw_publish($site,$siteFile,$genDir,$root);}if(isset($x['news']))rrw_write_atomic($newsFile,json_encode($x['news'],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");rrw_json(['status'=>'ok','config'=>$site,'news_count'=>count($x['news']??[])]);}catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],500);}
 }
 if($action==='content_scan'){rrw_auth(false);rrw_json(['status'=>'ok','pages'=>rrw_content_scan()]);}
+if($action==='content_pull'){rrw_auth(false);$x=rrw_content_pull($site);if($x['imported']){$site=rrw_ensure_site_defaults($x['site']);rrw_publish($site,$siteFile,$genDir,$root);}rrw_json(['status'=>'ok','imported'=>$x['imported'],'baseline'=>$x['baseline']]);}
 if($action==='content_sync'){rrw_auth(false);rrw_json(['status'=>'ok','files'=>rrw_content_sync_from_site($site)]);}
 if($action==='content_import'){
     rrw_auth(false);$b=rrw_body();$slug=trim((string)($b['slug']??''));
