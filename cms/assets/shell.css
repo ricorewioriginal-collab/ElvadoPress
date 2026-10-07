@@ -286,3 +286,16 @@ html[data-admin-theme="light"] .tabs,html[data-admin-theme="light"] .navbar-cust
 html[data-admin-theme="light"] .tabs .tab-group-title,html[data-admin-theme="light"] .tabs .tab-group.single .tab{color:#f0f0f1}
 html[data-admin-theme="light"] .ep-site,html[data-admin-theme="light"] .ep-user-btn,html[data-admin-theme="light"] .ep-user-txt b{color:#f0f0f1}
 html[data-admin-theme="light"] .ep-user-pop,html[data-admin-theme="light"] .ep-user-pop button{--text:#1d2327;--border:#dcdcde}
+/* Marken-Umschalter im Header (nur bei mehreren Marken) */
+.ep-brand{position:relative;display:inline-flex}
+.ep-brand-btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 11px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.04);color:var(--text);font:inherit;font-size:.84rem;cursor:pointer;white-space:nowrap}
+.ep-brand-btn:hover{border-color:var(--accent)}.ep-brand-btn>i:first-child{color:var(--accent)}.ep-brand-btn b{font-weight:700;max-width:150px;overflow:hidden;text-overflow:ellipsis}.ep-brand-ch{font-size:.65rem;color:var(--dim)}
+.ep-brand-menu{position:absolute;left:0;top:calc(100% + 8px);min-width:230px;padding:6px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;box-shadow:0 22px 52px rgba(0,0,0,.45);z-index:1500}
+.ep-brand-menu[hidden]{display:none}
+.ep-brand-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:.84rem;text-align:left;cursor:pointer}
+.ep-brand-menu button:hover{background:rgba(47,140,255,.16)}.ep-brand-menu button>i:first-child{width:16px;color:var(--accent)}
+.ep-brand-menu span{display:flex;flex-direction:column;flex:1;min-width:0}.ep-brand-menu small{color:var(--dim);font-size:.72rem}
+.ep-brand-ok{visibility:hidden;color:var(--accent)}.ep-brand-menu button.on .ep-brand-ok{visibility:visible}
+@media(max-width:900px){.ep-brand-btn b,.ep-brand-ch{display:none}.ep-brand-btn{padding:0 10px}}
+html[data-admin-theme="light"] .ep-brand-btn{color:#f0f0f1;border-color:rgba(255,255,255,.28)}
+html[data-admin-theme="light"] .ep-brand-menu,html[data-admin-theme="light"] .ep-brand-menu button{--text:#1d2327;--border:#dcdcde}

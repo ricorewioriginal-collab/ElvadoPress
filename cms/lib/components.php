@@ -53,6 +53,7 @@ function rrw_components_packs(Registry $r, ?string $packsDir = null): void
                     $GLOBALS['rrw_components_targets'][(string)$t['id']] = [
                         'id' => (string)$t['id'], 'label' => mb_substr((string)($t['label'] ?? $t['id']), 0, 60), 'scope' => (string)$t['scope'],
                         'preview' => str_starts_with((string)($t['preview'] ?? '/'), '/') && !str_starts_with((string)($t['preview'] ?? '/'), '//') ? (string)($t['preview'] ?? '/') : '/', 'source' => 'pack:' . $pack,
+                        'brand' => preg_match('/^[a-z0-9_-]{1,40}$/', (string)($t['brand'] ?? '')) === 1 ? (string)$t['brand'] : '',
                     ];
                 }
             }
