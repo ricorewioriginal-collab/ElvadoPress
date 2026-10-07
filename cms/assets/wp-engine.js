@@ -1,7 +1,7 @@
 'use strict';
 // Verwaltung der WordPress-Engine (Systemprüfung, Core einspielen, Datenbank, Betriebsart, Systemanalyse). Spricht cms/engine-api.php an.
 window.WpEngine=(()=>{
- const S={st:null,prep:null,ana:null,busy:'',msg:null,form:null};
+ const S={st:null,prep:null,ana:null,mig:null,busy:'',msg:null,form:null};
  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const tok=()=>{try{return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';}catch(e){return '';}};
  const root=()=>document.getElementById('wpeRoot');
@@ -27,6 +27,29 @@ window.WpEngine=(()=>{
   const rows=Object.keys(L).map(k=>'<tr><td>'+L[k]+'</td><td style="text-align:right">'+esc(a.native.counts[k])+'</td><td style="text-align:right">'+esc(a.wordpress.counts[k])+'</td></tr>').join('');
   return '<div style="margin-top:10px"><table class="tbl" style="width:100%;max-width:520px"><thead><tr><th style="text-align:left">Bestand</th><th style="text-align:right">ElvadoPress</th><th style="text-align:right">WordPress</th></tr></thead><tbody>'+rows+'</tbody></table>'
    +'<p class="hint" style="margin-top:6px">WordPress '+esc(a.wordpress.info.version)+' · PHP '+esc(a.wordpress.info.php)+' · Start in '+esc(a.boot_ms)+' ms · Theme: '+esc(a.wordpress.info.theme)+' · aktive WordPress-Plugins: '+esc(a.wordpress.info.plugins.length)+'</p></div>';
+ }
+
+ const VERD={ready:['Bereit','#22a06b'],ready_with_warnings:['Bereit mit Hinweisen','#e0a100'],blocked:['Blockiert','#e5484d']};
+ const SUMLBL={posts:'Beiträge',pages:'Seiten',media:'Medien',users:'Benutzer'};
+ function migration(){
+  const r=S.mig;const dis=S.busy?' disabled':'';
+  let h='<p class="hint">Der <b>Trockenlauf</b> prüft, was bei einer Übernahme in WordPress passieren würde, und erstellt einen Bericht. Er <b>schreibt nichts</b> in WordPress und verändert weder Inhalte noch Einstellungen deiner Website – gespeichert wird nur der Bericht. Die echte Migration startet erst nach deiner ausdrücklichen Freigabe.</p>'
+   +'<div class="ap-add"><button class="btn-a" type="button" onclick="WpEngine.migPlan()"'+dis+'><i class="fas fa-clipboard-check"></i> Trockenlauf starten</button>'
+   +(r?'<button class="btn-g" type="button" onclick="WpEngine.migDownload()"><i class="fas fa-download"></i> Bericht (JSON)</button>':'')+'</div>';
+  if(!r)return h;
+  const v=VERD[r.verdict]||VERD.blocked;
+  h+='<p style="margin-top:10px"><span style="color:#fff;background:'+v[1]+';border-radius:6px;padding:2px 10px;font-weight:700">'+esc(v[0])+'</span> <span class="hint">Bericht vom '+esc(String(r.generated_at||'').replace('T',' ').slice(0,16))+' · es wurde nichts geändert</span></p>';
+  const t=r.summary||{};
+  const rows=Object.keys(SUMLBL).filter(k=>t[k]).map(k=>{const x=t[k];return '<tr><td>'+SUMLBL[k]+'</td><td style="text-align:right">'+esc(x.total)+'</td><td style="text-align:right">'+esc(x.create||0)+'</td><td style="text-align:right">'+esc(x.skip||0)+'</td><td style="text-align:right">'+esc((x.rename||0)+(x.rejected||0)+(x.missing||0))+'</td></tr>';}).join('');
+  h+='<table class="tbl" style="width:100%;max-width:560px;margin-top:6px"><thead><tr><th style="text-align:left">Bestand</th><th style="text-align:right">Gesamt</th><th style="text-align:right">Neu anlegen</th><th style="text-align:right">Überspringen</th><th style="text-align:right">Umbenannt/abgelehnt/fehlt</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  const c=r.content||{};
+  h+='<p class="hint" style="margin-top:6px">Blöcke: '+esc(c.blocks_converted)+' umgewandelt, '+esc(c.blocks_fallback)+' als HTML-Block erhalten · Medienverweise: '+esc(c.media_refs)+' ('+esc(c.media_refs_broken)+' defekt) · Menüs: '+esc((t.menus||{}).menus)+' mit '+esc((t.menus||{}).items)+' Einträgen · Widgets zum manuellen Einrichten: '+esc((t.widgets||{}).manual)+'</p>';
+  const li=(a,col)=>a.length?'<ul style="margin:6px 0 0 18px">'+a.map(i=>'<li style="color:'+col+'"><b>'+esc(i.area)+':</b> '+esc(i.message)+'</li>').join('')+'</ul>':'';
+  if((r.blockers||[]).length)h+='<p style="margin-top:8px"><b>Blockierend</b></p>'+li(r.blockers,'#e5484d');
+  if((r.warnings||[]).length)h+='<p style="margin-top:8px"><b>Hinweise</b></p>'+li(r.warnings,'inherit');
+  h+='<details style="margin-top:8px"><summary>Geplante Schritte der echten Migration ('+esc((r.steps||[]).length)+')</summary><ol style="margin:6px 0 0 18px">'+(r.steps||[]).map(x=>'<li><b>'+esc(x.title)+'</b> – '+esc(x.detail)+'</li>').join('')+'</ol></details>';
+  h+='<details style="margin-top:6px"><summary>Risiken</summary><ul style="margin:6px 0 0 18px">'+(r.risks||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></details>';
+  return h;
  }
  function draw(){
   const r=root();if(!r)return;const s=S.st;if(!s){r.innerHTML='<p class="hint">Lade …</p>';return;}
@@ -56,6 +79,7 @@ window.WpEngine=(()=>{
    :'<button class="btn-a" type="button" onclick="WpEngine.mode(\'active\')"'+(busy||e.mode==='off'||!s.db.ready?' disabled':'')+'><i class="fas fa-power-off"></i> Aktivieren</button>';
   h+=step(4,'Betrieb und Systemanalyse',s.steps.active,'<p class="hint">Aktivieren startet WordPress einmal zur Prüfung und merkt sich die Betriebsart. Dieser Schritt verändert die Website nicht; Inhalte und Funktionen werden in späteren Schritten schrittweise übernommen.</p>'
    +'<div class="ap-add">'+act+'<button class="btn-g" type="button" onclick="WpEngine.analyze()"'+(busy||e.mode==='off'||!s.db.ready?' disabled':'')+'><i class="fas fa-scale-balanced"></i> Systemanalyse (ElvadoPress ↔ WordPress)</button></div>'+analysis());
+  h+=step(5,'Migration (Trockenlauf)',!!S.mig&&S.mig.verdict!=='blocked',migration());
   if(e.core_present)h+='<details style="margin-top:12px"><summary>Engine entfernen</summary><p class="hint">Entfernt WordPress-Dateien, Zugangsdaten und Zustand. Die Datenbank-Tabellen und deine Website bleiben unverändert.</p><button class="btn-g" type="button" onclick="WpEngine.remove()"'+dis+'><i class="fas fa-trash"></i> WordPress-Engine entfernen</button></details>';
   if(busy)h+='<p class="hint" style="margin-top:10px"><i class="fas fa-spinner fa-spin"></i> '+esc(busy)+' …</p>';
   r.innerHTML=h;
@@ -69,7 +93,7 @@ window.WpEngine=(()=>{
  const val=id=>{const e=document.getElementById('wpe'+id);return e?e.value.trim():'';};
  const dbCfg=()=>({host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')});
  function apply(d){if(d.engine){S.st=d;}}
- async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}}catch(e){S.msg={err:true,text:e.message};}draw();}
+ async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
  return {
   load,
   prepare:()=>run('Prüfe wordpress.org',async()=>{const d=await api('engine_prepare');S.prep=d;S.msg=d.latest&&!d.latest.ok?{err:true,text:d.latest.message}:{text:'Aktuelle WordPress-Version: '+d.latest.version+'.'};}),
@@ -78,6 +102,8 @@ window.WpEngine=(()=>{
   dbInstall:()=>run('Richte WordPress ein (Tabellen anlegen)',async()=>{const d=await api('engine_db_install',{db:dbCfg()});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   mode:m=>run(m==='active'?'Starte WordPress zur Prüfung':'Schalte um',async()=>{const d=await api('engine_mode',{mode:m});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   analyze:()=>run('Starte WordPress und zähle',async()=>{const d=await api('engine_analyze');if(d.status==='ok'){S.ana=d;S.msg={text:'Systemanalyse fertig.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
+  migPlan:()=>run('Trockenlauf läuft (es wird nichts geändert)',async()=>{const d=await api('migration_plan',{});if(d.status==='ok'){S.mig=d.report;S.msg={text:'Trockenlauf fertig – es wurde nichts geändert.'};}else S.msg={err:true,text:d.message||'Fehler'};}),
+  migDownload:()=>{if(!S.mig)return;const b=new Blob([JSON.stringify(S.mig,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='migration-trockenlauf.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);},
   remove:()=>{if(!confirm('WordPress-Engine wirklich entfernen? Die Datenbank-Tabellen bleiben erhalten.'))return;run('Entferne die Engine',async()=>{const d=await api('engine_remove',{confirm:true});apply(d);S.ana=null;S.msg={err:d.status!=='ok',text:d.message||''};});}
  };
 })();

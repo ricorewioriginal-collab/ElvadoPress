@@ -88,3 +88,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 8: Menüs, Widgets, Blöcke
 `NavigationService/Adapter`, `WidgetService/Adapter/Schemas`, `BlockService`, `cms/src/Blocks/Converter.php` (ep↔wp), API `nav_*|widgets_*|blocks_*`, Panel „Menüs, Widgets & Blöcke (Engine)“ (`wp-engine-content.js`), Theme: Komponente „Plugin-Widget“. Test `scripts/test-wp-engine-nav-widgets-blocks.php`. Bisherige Menü-/Widget-Panels unverändert bis zur Migration.
+
+## Phase 9: Migration – nur Trockenlauf
+`cms/src/Wp/Migration/` (Planner, ReportStore, TargetProbe/NullProbe/WordPressProbe), API `migration_plan|migration_report` (Admin, nicht Demo), Karte „Migration (Trockenlauf)“ im Panel WordPress-Engine, Test `scripts/test-wp-engine-migration.php` (28 + 3 mit echtem WordPress), Doku `cms/docs/MIGRATION.md`. Der Trockenlauf schreibt nichts außer dem Bericht (`cms/data/.wp-engine/migration/`). **Echte Migration ist nicht gebaut** – erst nach ausdrücklicher Freigabe; danach: Panels auf Engine umstellen, Emulation `cms/wp` entfernen (Golden-Test in ricorewi-radio), Sync erst nach Freigabe der PRs.
