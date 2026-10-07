@@ -5,44 +5,45 @@
         <input id="cmsNavSearch" type="text" placeholder="Bereich suchen…" oninput="cmsFilterNav(this.value)" autocomplete="off">
       </div>
       <div id="cmsNavEmpty" class="hint" style="display:none;padding:8px 9px">Keine Treffer.</div>
-      <div class="tab-group">
+      <div class="tab-group single dash">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-gauge-high"></i><span>Dashboard</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
-          <button class="tab on" data-tab="overview" onclick="cmsTab('overview',this)"><i class="fas fa-house"></i>Startseite</button>
-          <button class="tab" data-tab="plugins-upd" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('inst');setTimeout(()=>document.getElementById('wpUpd')?.scrollIntoView({block:'center'}),300)"><i class="fas fa-arrows-rotate"></i>Aktualisierungen</button>
+          <button class="tab on" data-tab="overview" onclick="cmsTab('overview',this)"><i class="fas fa-house"></i>Dashboard</button>
+
         </div>
       </div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-globe"></i><span>Website</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="livebuilder" onclick="cmsTab('livebuilder',this);window.LiveBuilder?.load()"><i class="fas fa-wand-magic-sparkles"></i>Live Builder</button>
-          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this)"><i class="fas fa-file-lines"></i>Alle Seiten</button>
-          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this);cmsAddPage()"><i class="fas fa-file-circle-plus"></i>Erstellen</button>
-          <button class="tab" data-tab="news" onclick="cmsTab('news',this)"><i class="fas fa-newspaper"></i>Alle Beiträge</button>
-          <button class="tab" data-tab="news" onclick="cmsTab('news',this);setTimeout(()=>window.NewsMagazine?.newArticle(),350)"><i class="fas fa-pen"></i>Erstellen</button>
+          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this)"><i class="fas fa-file-lines"></i>Seiten</button>
+          <button class="tab" data-tab="news" onclick="cmsTab('news',this)"><i class="fas fa-newspaper"></i>Beiträge</button>
           <button class="tab" data-tab="news" onclick="cmsTab('news',this);setTimeout(()=>document.getElementById('newsCategoryChips')?.scrollIntoView({behavior:'smooth',block:'center'}),250)"><i class="fas fa-folder-tree"></i>Kategorien</button>
-          <button class="tab" data-tab="tags" onclick="cmsTab('tags',this);window.TagsManager?.load()"><i class="fas fa-tags"></i>Schlagwörter</button>
-          <button class="tab" data-tab="feeds" onclick="cmsTab('feeds',this)"><i class="fas fa-rss"></i>Feeds &amp; RSS</button>
           <button class="tab" data-tab="comments" onclick="cmsTab('comments',this)"><i class="fas fa-comments"></i>Kommentare</button>
-          <button class="tab" data-tab="contents" onclick="cmsTab('contents',this);window.ContentsManager?.load()"><i class="fas fa-layer-group"></i>Alle Inhalte</button>
+          <button class="tab tab-more" data-tab="pages" onclick="cmsTab('pages',this);cmsAddPage()"><i class="fas fa-file-circle-plus"></i>Seite erstellen</button>
+          <button class="tab tab-more" data-tab="news" onclick="cmsTab('news',this);setTimeout(()=>window.NewsMagazine?.newArticle(),350)"><i class="fas fa-pen"></i>Beitrag erstellen</button>
+          <button class="tab tab-more" data-tab="tags" onclick="cmsTab('tags',this);window.TagsManager?.load()"><i class="fas fa-tags"></i>Schlagwörter</button>
+          <button class="tab tab-more" data-tab="feeds" onclick="cmsTab('feeds',this)"><i class="fas fa-rss"></i>Feeds &amp; RSS</button>
+          <button class="tab tab-more" data-tab="contents" onclick="cmsTab('contents',this);window.ContentsManager?.load()"><i class="fas fa-layer-group"></i>Alle Inhalte</button>
         </div>
       </div>
-      <div class="tab-group">
+      <div class="tab-group single">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-photo-film"></i><span>Medien</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="media" onclick="cmsTab('media',this);window.MediaHub?.load()"><i class="fas fa-photo-film"></i>Mediathek</button>
-          <button class="tab" data-tab="media" onclick="cmsTab('media',this);window.MediaHub?.load();document.getElementById('mediaHubUpload')?.click()"><i class="fas fa-upload"></i>Datei hinzufügen</button>
+          <button class="tab tab-more" data-tab="media" onclick="cmsTab('media',this);window.MediaHub?.load();document.getElementById('mediaHubUpload')?.click()"><i class="fas fa-upload"></i>Datei hinzufügen</button>
         </div>
       </div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-paintbrush"></i><span>Design</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="themes" onclick="cmsTab('themes',this);window.DesignHub?.load()"><i class="fas fa-brush"></i>Themes</button>
-          <button class="tab" data-tab="enginecontent" onclick="cmsTab('enginecontent',this);window.WpEC?.load()"><i class="fab fa-wordpress"></i>Menüs, Widgets &amp; Blöcke (Engine)</button>
-          <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Menüs</button>
+          <button class="tab" data-tab="themes" onclick="cmsTab('themes',this);window.DesignHub?.load();Promise.resolve(window.WpThemes&&WpThemes.load&&WpThemes.load()).then(function(){if(window.WpThemes&&WpThemes.customizeSlug)WpThemes.customizeSlug('elvado-baukasten')}).catch(function(){})"><i class="fas fa-sliders"></i>Customizer</button>
+          <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Navigation</button>
           <button class="tab" data-tab="widgets" onclick="cmsTab('widgets',this)"><i class="fas fa-puzzle-piece"></i>Widgets</button>
-          <button class="tab" data-tab="branding" onclick="cmsTab('branding',this)"><i class="fas fa-palette"></i>Branding</button>
-          <button class="tab" data-tab="headerbuilder" onclick="cmsTab('headerbuilder',this);window.HeaderBuilder?.render()"><i class="fas fa-grip"></i>Header-Builder</button>
+          <button class="tab" data-tab="headerbuilder" onclick="cmsTab('headerbuilder',this);window.HeaderBuilder?.render()"><i class="fas fa-grip"></i>Header &amp; Footer</button>
+          <button class="tab tab-more" data-tab="enginecontent" onclick="cmsTab('enginecontent',this);window.WpEC?.load()"><i class="fab fa-wordpress"></i>Menüs, Widgets &amp; Blöcke (Engine)</button>
+          <button class="tab tab-more" data-tab="branding" onclick="cmsTab('branding',this)"><i class="fas fa-palette"></i>Branding</button>
         </div>
       </div>
       <div class="tab-group">
@@ -78,15 +79,15 @@
         </div>
       </div>
       <div class="tab-group-sep" aria-hidden="true"></div>
-      <div class="tab-group single">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI</span><i class="fas fa-chevron-down tg-chev"></i></div>
+      <div class="tab-group single ai">
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>AI Studio</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
-          <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>KI</button>
+          <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>AI Studio</button>
           <button class="tab" hidden data-pack-app="ricorewi-radio" data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()" aria-hidden="true" tabindex="-1"></button><!-- erreichbar über die Unterreiter im Menü „KI“; Markierung für die Paketlogik -->
         </div>
       </div>
       <div class="tab-group">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-mobile-screen-button"></i><span>Apps &amp; Kanäle</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-mobile-screen-button"></i><span>App Builder</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="apps" onclick="cmsTab('apps',this);window.AppsManager?.render?.()"><i class="fas fa-mobile-screen"></i>Apps</button>
           <button class="tab" data-pack-app="ricorewi-radio" data-tab="alexa" onclick="cmsTab('alexa',this);window.AlexaManager?.render()"><i class="fab fa-amazon"></i>Alexa-Skill</button>
@@ -95,7 +96,7 @@
         </div>
       </div>
       <div class="tab-group single" data-feature="radio" hidden>
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-radio"></i><span>Radio</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-radio"></i><span>Radio &amp; Streaming</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="radio" onclick="cmsTab('radio',this);window.RadioAdmin?.load()"><i class="fas fa-tower-broadcast"></i>Sender &amp; Sendeplan</button>
         </div>
@@ -116,6 +117,10 @@
           <button class="tab" data-pack="ricorewi-radio" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
         </div>
       </div>
+      <div class="tab-group single sys-single"><div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-rotate"></i><span>Updates</span></div><div class="tab-group-body">
+          <button class="tab" data-tab="plugins-upd" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('inst');setTimeout(()=>document.getElementById('wpUpd')?.scrollIntoView({block:'center'}),300)"><i class="fas fa-arrows-rotate"></i>Updates<span class="ep-badge" id="epUpdBadge" hidden></span></button>
+          <button class="tab" data-tab="eplugins" onclick="cmsTab('eplugins',this);window.ElvadoPlugins?.load()"><i class="fas fa-store"></i>ElvadoPress Store</button>
+        </div></div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-screwdriver-wrench"></i><span>System</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
@@ -129,5 +134,6 @@
           <button class="tab" data-tab="system" hidden onclick="cmsTab('system',this);window.StandaloneManager?.load();window.UpdateManager?.load()"><i class="fas fa-sliders"></i>Betriebsart &amp; Produktname</button>
         </div>
       </div>
+
           <button type="button" id="cmsFoldBtn" class="cms-fold-btn" title="Menü einklappen"><i class="fas fa-circle-chevron-left"></i><span>Menü einklappen</span></button>
     </div>

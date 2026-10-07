@@ -94,3 +94,9 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 10: Paket-Kompatibilität (neutraler Teil)
 `bind`/„bound“-Komponenten (`Component`, `Renderer::boundCss`), Paket-Lader/Ziele/Vorschau-Schlüssel/`rrw_components_inject` in `cms/lib/components.php`, API `layout_preview`, Live-Builder-Ziel-Auswahl, Test `scripts/test-components-packs.php` (37), Doku in `COMPONENTS.md`. Projektspezifische Pakete (RicoReWi) entstehen nur im Projekt-Repo unter `cms/packs/<paket>/`.
+
+## Verwaltungsoberfläche v2 (Angleichung an den Entwurf)
+- Seitenleiste über die ganze Höhe mit Marke oben (`#cmsApp>.tabs`, fest), Kopfleiste mit Suche (öffnet die Strg+K-Suche), Website-Name mit „Live“, „Website öffnen“, Gerätewahl (steuert den Live Builder), Design-Schalter, Benachrichtigungen und Profil (`cms-app.js`, `shell.js`, `shell.css`). Statusleiste nur noch bei Meldungen.
+- Menü: Dashboard, Website (Live Builder, Seiten, Beiträge, Kategorien, Kommentare; weitere Einträge über „Weitere anzeigen“ bzw. Suche), Medien, Design (Themes, Customizer, Navigation, Widgets, Header & Footer), Plugins, Benutzer, Werkzeuge, AI Studio, App Builder, Einstellungen, Updates, ElvadoPress Store, System. Nichts entfernt – Zusatzpunkte tragen `tab-more`.
+- Live Builder: Reiter Inhalt/Design/Verhalten, Schalterzeilen, Regler mit Zahlenfeld und Einheit, Abschnittsüberschriften (`section` am Feld), geteilter „Veröffentlichen“-Knopf, Symbolkacheln im Baum.
+- Test: `scripts/test-shell-ui.php` (24). Bewusst nicht erfunden: Zähler-Abzeichen an Plugins/Updates und der Menüpunkt „Automatisierung“ (es gibt dafür keine Funktion).

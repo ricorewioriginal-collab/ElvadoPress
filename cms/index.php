@@ -29,7 +29,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <link rel="stylesheet" href="assets/cms.css?v=44">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
-<link rel="stylesheet" href="assets/shell.css?v=1">
+<link rel="stylesheet" href="assets/shell.css?v=2">
 <script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
 
 </head>
@@ -177,7 +177,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>
-<script src="assets/home-builder.js?v=4"></script><script src="assets/live-builder.js?v=1"></script>
+<script src="assets/home-builder.js?v=4"></script><script src="assets/live-builder.js?v=2"></script>
 <script src="assets/radio-manager.js?v=1"></script>
 <script src="assets/theme-config.js?v=1"></script>
 <script src="assets/ai-lovable-admin.js?v=1"></script>
@@ -197,6 +197,6 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <?php /* Erweiterungen aktiver offizieller Plugins für die ganze Verwaltung (z. B. SEO-Vorschau im Editor) */ try{ if(is_file(__DIR__.'/data/.plugins/state.json')){ require_once __DIR__.'/lib/nplugins.php';foreach(rrw_np()->globalAdminScripts() as $__s)echo '<script src="'.htmlspecialchars($__s,ENT_QUOTES).'" defer></script>'."\n"; } }catch(Throwable $__e){} ?>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
-<script src="assets/shell.js?v=1"></script>
+<script src="assets/shell.js?v=2"></script>
 </body>
 </html>
