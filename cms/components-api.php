@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-// API der Komponenten-Registry und der Layouts. Aktionen: components_catalog, layout_get, layout_save_draft, layout_publish, layout_discard, layout_revisions, layout_rollback, layout_render.
+// API der Komponenten-Registry und der Layouts. Aktionen: components_catalog, layout_get, layout_save_draft, layout_publish, layout_discard, layout_revisions, layout_rollback, layout_render, layout_preview (Pakete).
 // Angemeldete Personen dürfen lesen; Schreiben nach Rechten (home/site:* nur Administratoren, page:*/post:* auch Autoren, geschützte Komponenten bleiben). In der Demo ist Schreiben gesperrt.
 define('RRW_API_LIB_ONLY', true);
 require __DIR__ . '/api.php';
@@ -25,7 +25,14 @@ $rrwCStore = rrw_components_store();
 $rrwCScope = (string)($_GET['scope'] ?? $rrwCBody['scope'] ?? 'home');
 try {
     if ($rrwCAction === 'components_catalog') {
-        rrw_json(['status' => 'ok'] + $rrwCReg->catalog(['admin' => $rrwCActor->isAdmin(), 'features' => rrw_components_features()]));
+        rrw_json(['status' => 'ok', 'targets' => $rrwCActor->isAdmin() ? rrw_components_targets() : []] + $rrwCReg->catalog(['admin' => $rrwCActor->isAdmin(), 'features' => rrw_components_features()]));
+    }
+    if ($rrwCAction === 'layout_preview') {   // Vorschau-Adresse eines Bearbeitungsziels (Paket): signierter, kurzlebiger Schlüssel
+        $t = rrw_components_target_for_scope($rrwCScope);
+        if ($t === null || !$rrwCActor->isAdmin()) {
+            throw new PermissionException('Für diesen Bereich gibt es keine Vorschau.');
+        }
+        rrw_json(['status' => 'ok', 'url' => $t['preview'] . (str_contains($t['preview'], '?') ? '&' : '?') . 'rrw_ep_preview=' . rrw_components_preview_token($rrwCScope), 'expires_in' => 900]);
     }
     if ($rrwCAction === 'layout_get') {
         $s = $rrwCStore->get($rrwCScope);

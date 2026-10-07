@@ -7,6 +7,7 @@
         <button type="button" data-lbmode="structure"><i class="fas fa-list-ul"></i><span>Struktur</span></button>
         <button type="button" data-lbmode="settings"><i class="fas fa-sliders"></i><span>Einstellungen</span></button>
       </div>
+      <select id="lbTarget" class="fc lb-target" aria-label="Bearbeiten" hidden></select>
       <span id="lbState" class="lb-state" aria-live="polite"></span><span id="lbSched" class="lb-sched" hidden></span>
       <div class="lb-actions">
         <button type="button" class="btn-g" id="lbDraft"><i class="fas fa-floppy-disk"></i> Entwurf speichern</button>

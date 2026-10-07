@@ -91,3 +91,6 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Phase 9: Migration – nur Trockenlauf
 `cms/src/Wp/Migration/` (Planner, ReportStore, TargetProbe/NullProbe/WordPressProbe), API `migration_plan|migration_report` (Admin, nicht Demo), Karte „Migration (Trockenlauf)“ im Panel WordPress-Engine, Test `scripts/test-wp-engine-migration.php` (28 + 3 mit echtem WordPress), Doku `cms/docs/MIGRATION.md`. Der Trockenlauf schreibt nichts außer dem Bericht (`cms/data/.wp-engine/migration/`). **Phase 9b echte Migration**: `Migrator`, `Backup`, `RunStore`, `ValidNavigation`, API `migration_run|rollback|runs` (Bestätigung `MIGRIEREN`), UI im Engine-Panel; schaltet NICHT um, wiederholbar, zurückbaubar; in Produktion nie ausgeführt. Danach: Panels auf Engine umstellen, Emulation `cms/wp` entfernen (Golden-Test in ricorewi-radio), Sync erst nach Freigabe der PRs.
+
+## Phase 10: Paket-Kompatibilität (neutraler Teil)
+`bind`/„bound“-Komponenten (`Component`, `Renderer::boundCss`), Paket-Lader/Ziele/Vorschau-Schlüssel/`rrw_components_inject` in `cms/lib/components.php`, API `layout_preview`, Live-Builder-Ziel-Auswahl, Test `scripts/test-components-packs.php` (37), Doku in `COMPONENTS.md`. Projektspezifische Pakete (RicoReWi) entstehen nur im Projekt-Repo unter `cms/packs/<paket>/`.

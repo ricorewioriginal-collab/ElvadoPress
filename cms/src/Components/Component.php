@@ -11,8 +11,8 @@ final class Component
         'widgets' => 'Widgets & WordPress', 'radio' => 'Radio', 'advanced' => 'Erweitert', 'extension' => 'Erweiterungen',
     ];
     public const GROUPS = ['content' => 'Inhalt', 'design' => 'Design', 'behavior' => 'Verhalten'];
-    /** Rendering: native = PHP-Funktion der Registry (überall), theme = vom aktiven Theme gerendert (Baukasten), wp = nur mit WordPress-Laufzeit, runtime = Modul von ElvadoPress (z. B. Formulare). */
-    public const RENDERERS = ['native', 'theme', 'wp', 'runtime'];
+    /** Rendering: native = PHP-Funktion der Registry (überall), theme = vom aktiven Theme gerendert (Baukasten), wp = nur mit WordPress-Laufzeit, runtime = Modul von ElvadoPress (z. B. Formulare), bound = bestehender Bereich der Website (CSS-Selektor in „bind“): die Website rendert weiter selbst, ElvadoPress steuert nur Gestaltung und Sichtbarkeit. */
+    public const RENDERERS = ['native', 'theme', 'wp', 'runtime', 'bound'];
 
     /** @var list<array<string,mixed>> */
     public readonly array $fields;
@@ -26,7 +26,7 @@ final class Component
     private function __construct(
         public readonly string $id, public readonly string $name, public readonly string $category, public readonly string $icon, public readonly string $description,
         public readonly string $renderer, array $fields, public readonly array $rules, public readonly array $data, public readonly array $preview,
-        public readonly string $source, public readonly string $feature, private readonly mixed $render
+        public readonly string $source, public readonly string $feature, private readonly mixed $render, public readonly string $bind = ''
     ) {
         $this->fields = $fields;
         $def = [];
@@ -47,7 +47,14 @@ final class Component
         if (!isset(self::CATEGORIES[$cat])) {
             throw new \InvalidArgumentException('Unbekannte Kategorie bei ' . $id);
         }
-        $renderer = (string)($d['renderer'] ?? ($render ? 'native' : 'runtime'));
+        $bind = (string)($d['bind'] ?? '');
+        if ($bind !== '' && preg_match('/^[#.][a-z][a-z0-9_-]{0,60}$/i', $bind) !== 1) {
+            throw new \InvalidArgumentException('Ungültiger Bereichs-Selektor bei ' . $id);
+        }
+        $renderer = (string)($d['renderer'] ?? ($bind !== '' ? 'bound' : ($render ? 'native' : 'runtime')));
+        if (($renderer === 'bound') !== ($bind !== '')) {
+            throw new \InvalidArgumentException('„bound“ und „bind“ gehören zusammen bei ' . $id);
+        }
         if (!in_array($renderer, self::RENDERERS, true)) {
             throw new \InvalidArgumentException('Unbekannte Rendering-Art bei ' . $id);
         }
@@ -74,7 +81,7 @@ final class Component
         $preview = (array)($d['preview'] ?? []) + ['selector' => '[data-ep-id="{id}"]'];
         return new self(
             $id, mb_substr((string)($d['name'] ?? $id), 0, 60), $cat, preg_match('/^[a-z0-9-]{1,40}$/', (string)($d['icon'] ?? '')) === 1 ? (string)$d['icon'] : 'cube',
-            mb_substr((string)($d['description'] ?? ''), 0, 200), $renderer, $fields, $rules, $data, $preview, $source, (string)($d['feature'] ?? ''), $render
+            mb_substr((string)($d['description'] ?? ''), 0, 200), $renderer, $fields, $rules, $data, $preview, $source, (string)($d['feature'] ?? ''), $render, $bind
         );
     }
 
@@ -123,7 +130,7 @@ final class Component
         return [
             'id' => $this->id, 'name' => $this->name, 'category' => $this->category, 'icon' => $this->icon, 'description' => $this->description, 'renderer' => $this->renderer,
             'fields' => $this->fields, 'defaults' => $this->defaults, 'rules' => $this->rules, 'data' => $this->data, 'preview' => $this->preview, 'source' => $this->source, 'feature' => $this->feature,
-            'native_render' => $this->render !== null,
+            'native_render' => $this->render !== null, 'bind' => $this->bind,
         ];
     }
 }

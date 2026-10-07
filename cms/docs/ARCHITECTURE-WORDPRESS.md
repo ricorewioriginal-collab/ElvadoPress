@@ -72,3 +72,6 @@ Tests: `scripts/test-wp-engine-nav-widgets-blocks.php` (43 Prüfungen ohne Netz,
 
 ## Phase 9: Migration (nur Trockenlauf)
 `cms/src/Wp/Migration/` (`Planner`, `ReportStore`, `TargetProbe` mit `NullProbe`/`WordPressProbe`), API `migration_plan|migration_report`, Karte im Engine-Panel. Der Trockenlauf liest nur und schreibt allein den Bericht; die echte Migration folgt erst nach ausdrücklicher Freigabe. Details: [MIGRATION.md](MIGRATION.md).
+
+## Phase 10: Pakete / Projekt-Kompatibilität
+Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMPONENTS.md)), Paket-Lader `cms/packs/<paket>/components.php`, Bearbeitungsziele im Live Builder, Vorschau-Schlüssel und `rrw_components_inject()`. Projektspezifische Komponenten (z. B. RicoReWi) liegen ausschließlich im jeweiligen Projekt-Repository; der Kern enthält keine Projektinhalte.

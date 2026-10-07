@@ -37,7 +37,7 @@ final class Renderer
                 continue;
             }
             $c = $this->registry->get((string)$inst['type']);
-            if (!$c) {
+            if (!$c || $c->bind !== '') {   // Bereiche der bestehenden Website rendert die Website selbst (siehe boundCss)
                 continue;
             }
             $inst['children_html'] = isset($inst['children']) ? $this->list((array)$inst['children'], $ctx, $css) : '';
@@ -65,14 +65,59 @@ final class Renderer
         return $out;
     }
 
-    /** CSS-Regeln einer Instanz aus den Feldern mit „css“-Zuordnung (Grundwert, dann Tablet/Mobil). */
-    public function css(Component $c, array $inst, string $attr = 'data-ep-id'): string
+    /**
+     * CSS für Komponenten, die an bestehende Bereiche der Website gebunden sind („bind“): Gestaltung aus den Feldern, Ausblenden bei „versteckt“, Zeitplan oder Gerät.
+     * Die Website behält ihr eigenes HTML; ohne Instanz im Layout entsteht kein CSS (Ausgabe bleibt unverändert).
+     * @param list<array<string,mixed>> $layout bereinigtes Layout @param array{now?:int} $ctx
+     */
+    public function boundCss(array $layout, array $ctx = []): string
     {
-        $sel = '[' . (in_array($attr, ['data-ep-id', 'data-bk'], true) ? $attr : 'data-ep-id') . '="' . preg_replace('/[^a-z0-9_-]/', '', (string)$inst['id']) . '"]';
+        $out = '';
+        foreach ($layout as $inst) {
+            $c = is_array($inst) ? $this->registry->get((string)($inst['type'] ?? '')) : null;
+            if ($c && $c->bind !== '') {
+                $sel = $c->bind;
+                $v = Layout::visibility($inst['visibility'] ?? []);
+                if (!empty($inst['hidden']) || !empty($inst['missing']) || $v['devices'] === []) {
+                    $out .= $sel . '{display:none!important}';
+                    continue;
+                }
+                $now = (int)($ctx['now'] ?? time());
+                if (($v['from'] !== '' && $now < strtotime($v['from'] . ':00')) || ($v['until'] !== '' && $now >= strtotime($v['until'] . ':00'))) {
+                    $out .= $sel . '{display:none!important}';
+                    continue;
+                }
+                foreach (array_diff(Layout::DEVICES, $v['devices']) as $d) {
+                    $out .= match ($d) {
+                        'desktop' => '@media (min-width:' . (self::BP_TABLET + 1) . 'px){' . $sel . '{display:none!important}}',
+                        'tablet' => '@media (min-width:' . (self::BP_MOBILE + 1) . 'px) and (max-width:' . self::BP_TABLET . 'px){' . $sel . '{display:none!important}}',
+                        default => '@media (max-width:' . self::BP_MOBILE . 'px){' . $sel . '{display:none!important}}',
+                    };
+                }
+                $out .= $this->css($c, $inst, 'data-ep-id', $sel);
+            }
+            if (is_array($inst) && !empty($inst['children'])) {
+                $out .= $this->boundCss((array)$inst['children'], $ctx);
+            }
+        }
+        return $out;
+    }
+
+    /** CSS-Regeln einer Instanz aus den Feldern mit „css“-Zuordnung (Grundwert, dann Tablet/Mobil). */
+    public function css(Component $c, array $inst, string $attr = 'data-ep-id', ?string $selector = null): string
+    {
+        $sel = $selector ?? '[' . (in_array($attr, ['data-ep-id', 'data-bk'], true) ? $attr : 'data-ep-id') . '="' . preg_replace('/[^a-z0-9_-]/', '', (string)$inst['id']) . '"]';
         $base = '';
         $dev = ['tablet' => '', 'mobile' => ''];
         foreach ($c->fields as $f) {
             $m = $f['css'] ?? null;
+            if (is_array($m) && isset($m['hide'])) {   // Schalter: blendet einen Teil des Bereichs aus (when: off = bei „aus“, on = bei „an“)
+                $on = !empty($inst['props'][$f['k']]);
+                if (preg_match('/^[ .#a-z0-9_>-]{1,60}$/i', (string)$m['hide']) === 1 && (($m['when'] ?? 'off') === 'off' ? !$on : $on)) {
+                    $base .= $sel . ' ' . $m['hide'] . '{display:none!important}';
+                }
+                continue;
+            }
             if (!is_array($m) || !in_array($m['prop'] ?? '', self::CSS_PROPS, true)) {
                 continue;
             }
