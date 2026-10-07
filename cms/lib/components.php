@@ -46,12 +46,15 @@ function rrw_components_packs(Registry $r, ?string $packsDir = null): void
             if (is_callable($fn)) {
                 $fn($r, 'pack:' . $pack);
             }
-            $t = is_array($def) && is_array($def['target'] ?? null) ? $def['target'] : null;
-            if ($t !== null && preg_match('/^[a-z0-9_-]{1,40}$/', (string)($t['id'] ?? '')) === 1 && LayoutStore::validScope((string)($t['scope'] ?? ''))) {
-                $GLOBALS['rrw_components_targets'][(string)$t['id']] = [
-                    'id' => (string)$t['id'], 'label' => mb_substr((string)($t['label'] ?? $t['id']), 0, 60), 'scope' => (string)$t['scope'],
-                    'preview' => str_starts_with((string)($t['preview'] ?? '/'), '/') && !str_starts_with((string)($t['preview'] ?? '/'), '//') ? (string)($t['preview'] ?? '/') : '/', 'source' => 'pack:' . $pack,
-                ];
+            // Ein Paket kann ein Ziel („target“) oder mehrere („targets“, z. B. je Marke) anbieten.
+            $list = is_array($def) ? (is_array($def['targets'] ?? null) ? array_values($def['targets']) : (is_array($def['target'] ?? null) ? [$def['target']] : [])) : [];
+            foreach ($list as $t) {
+                if (is_array($t) && preg_match('/^[a-z0-9_-]{1,40}$/', (string)($t['id'] ?? '')) === 1 && LayoutStore::validScope((string)($t['scope'] ?? ''))) {
+                    $GLOBALS['rrw_components_targets'][(string)$t['id']] = [
+                        'id' => (string)$t['id'], 'label' => mb_substr((string)($t['label'] ?? $t['id']), 0, 60), 'scope' => (string)$t['scope'],
+                        'preview' => str_starts_with((string)($t['preview'] ?? '/'), '/') && !str_starts_with((string)($t['preview'] ?? '/'), '//') ? (string)($t['preview'] ?? '/') : '/', 'source' => 'pack:' . $pack,
+                    ];
+                }
             }
         } catch (\Throwable $e) {
             error_log('[ElvadoPress] Paket-Komponenten ' . $pack . ': ' . $e->getMessage());
