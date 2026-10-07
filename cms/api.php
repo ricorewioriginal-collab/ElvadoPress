@@ -677,14 +677,29 @@ if($action==='alexa_icon_upload'){
     if(!in_array($mime,['image/png','image/jpeg','image/webp'],true))rrw_json(['status'=>'error','message'=>'Bitte PNG, JPG oder WebP hochladen'],400);
     $info=@getimagesize($f['tmp_name']);if(!$info||($info[0]??0)<108||($info[1]??0)<108)rrw_json(['status'=>'error','message'=>'Das Skill-Icon muss mindestens 108 × 108 Pixel groß sein'],400);
     if(abs(($info[0]/$info[1])-1)>0.02)rrw_json(['status'=>'error','message'=>'Das Skill-Icon muss quadratisch sein'],400);
-    $dir=$root.'/assets/img/alexa';if(!is_dir($dir)&&!@mkdir($dir,0755,true))rrw_json(['status'=>'error','message'=>'Alexa-Icon-Ordner ist nicht beschreibbar'],500);
-    $written=[];
+
+    // Dauerhaftes Original im CMS ablegen. Die öffentliche Website bekommt nur die daraus erzeugten Größen.
+    $store=__DIR__.'/media/alexa';if(!is_dir($store)&&!@mkdir($store,0755,true))rrw_json(['status'=>'error','message'=>'CMS-Medienordner für Alexa ist nicht beschreibbar'],500);
+    $original=$store.'/skill-icon-original.'.($mime==='image/jpeg'?'jpg':($mime==='image/webp'?'webp':'png'));
+    foreach(glob($store.'/skill-icon-original.*')?:[] as $oldFile)@unlink($oldFile);
+    if(!@copy($f['tmp_name'],$original)||!is_file($original)||filesize($original)<1)rrw_json(['status'=>'error','message'=>'Das Original konnte nicht dauerhaft gespeichert werden'],500);
+    @chmod($original,0644);
+
+    $dir=$root.'/assets/img/alexa';if(!is_dir($dir)&&!@mkdir($dir,0755,true))rrw_json(['status'=>'error','message'=>'Öffentlicher Alexa-Icon-Ordner ist nicht beschreibbar'],500);
+    $written=[];$checks=[];
     foreach([108,512] as $size){
-        $dest=$dir.'/icon-'.$size.'.png';
-        if(!rrw_resize_image_file($f['tmp_name'],$mime,$size,$dest,94,'png'))rrw_json(['status'=>'error','message'=>'Icon konnte nicht in '.$size.' × '.$size.' erzeugt werden'],500);
-        @chmod($dest,0644);$written[]='/assets/img/alexa/icon-'.$size.'.png';
+        $dest=$dir.'/icon-'.$size.'.png';$tmp=$dir.'/.icon-'.$size.'.'.bin2hex(random_bytes(4)).'.tmp.png';
+        if(!rrw_resize_image_file($original,$mime,$size,$tmp,94,'png')||!is_file($tmp))rrw_json(['status'=>'error','message'=>'Icon konnte nicht in '.$size.' × '.$size.' erzeugt werden'],500);
+        $dim=@getimagesize($tmp);
+        if(!$dim||($dim[0]??0)!==$size||($dim[1]??0)!==$size){@unlink($tmp);rrw_json(['status'=>'error','message'=>'Erzeugtes '.$size.'-px-Icon hat eine falsche Größe'],500);}
+        // Erst nach erfolgreicher Erzeugung atomar ersetzen.
+        if(!@rename($tmp,$dest)){if(!@copy($tmp,$dest)){@unlink($tmp);rrw_json(['status'=>'error','message'=>'Icon '.$size.' px konnte nicht veröffentlicht werden. Schreibrechte prüfen.'],500);}@unlink($tmp);}
+        clearstatcache(true,$dest);@chmod($dest,0644);
+        if(!is_file($dest)||filesize($dest)<1)rrw_json(['status'=>'error','message'=>'Icon '.$size.' px wurde nach dem Schreiben nicht gefunden'],500);
+        $hash=hash_file('sha256',$dest);$written[]='/assets/img/alexa/icon-'.$size.'.png';$checks[(string)$size]=['bytes'=>filesize($dest),'sha256'=>$hash];
     }
-    rrw_json(['status'=>'ok','files'=>$written,'version'=>time()]);
+    clearstatcache(true,$original);
+    rrw_json(['status'=>'ok','files'=>$written,'checks'=>$checks,'original'=>['bytes'=>filesize($original),'sha256'=>hash_file('sha256',$original)],'version'=>time()]);
 }
 if($action==='alexa_token_reset'){ rrw_auth(true);rrw_alexa_token($dataDir,true);rrw_json(['status'=>'ok']); }
 if($action==='alexa_stats_clear'){ rrw_auth(true);rrw_alexa_stats_clear($dataDir);rrw_json(['status'=>'ok']); }
