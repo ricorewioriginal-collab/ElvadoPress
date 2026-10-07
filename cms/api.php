@@ -2106,6 +2106,10 @@ if($action==='privacy_comments_delete'){
     rrw_json(['status'=>'ok','removed'=>$removed]);
 }
 // Seiten: Versionen (die letzten 10 Fassungen je Seite)
+if($action==='visibility_report'){
+    rrw_auth(false);require_once __DIR__.'/lib/visibility.php';$vn=rrw_read_json($newsFile,[]);
+    rrw_json(['status'=>'ok']+rrw_visibility_report(is_array($site)?$site:[],is_array($vn)?$vn:[]));
+}
 if($action==='pages_revisions'){
     rrw_auth(false);$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($_GET['id']??''));
     $list=rrw_tools_read(rrw_page_revisions_file($dataDir),['pages'=>[]])['pages'][$id]??[];

@@ -323,3 +323,6 @@ html[data-admin-theme="light"] .lb-detrow{background:rgba(0,0,0,.03)}
 
 /* Live Builder: Änderungsliste, Rückgängig/Wiederholen */
 .lb-chg{margin:8px 0 0;padding-left:18px;font-size:.84rem;line-height:1.45}.lb-chg li{margin:2px 0}.lb-hist{padding-left:10px;padding-right:10px}.lb-hist:disabled{opacity:.4;cursor:default}
+
+/* Sichtbarkeits-Check */
+.vis-box{margin:0 0 14px}.vis-list{margin:6px 0 0;padding-left:18px;font-size:.88rem;line-height:1.45}.vis-list li{margin:6px 0}
