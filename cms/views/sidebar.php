@@ -39,20 +39,19 @@
         <div class="tab-group-body">
           <button class="tab" data-tab="themes" onclick="cmsTab('themes',this);window.DesignHub?.load()"><i class="fas fa-brush"></i>Themes</button>
           <button class="tab" data-tab="themes" onclick="cmsTab('themes',this);window.DesignHub?.load();Promise.resolve(window.WpThemes&&WpThemes.load&&WpThemes.load()).then(function(){if(window.WpThemes&&WpThemes.customizeSlug)WpThemes.customizeSlug('elvado-baukasten')}).catch(function(){})"><i class="fas fa-sliders"></i>Customizer</button>
-          <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Navigation</button>
+          <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Menüs &amp; Navigation</button>
           <button class="tab" data-tab="widgets" onclick="cmsTab('widgets',this)"><i class="fas fa-puzzle-piece"></i>Widgets</button>
-          <button class="tab" data-tab="headerbuilder" onclick="cmsTab('headerbuilder',this);window.HeaderBuilder?.render()"><i class="fas fa-grip"></i>Header &amp; Footer</button>
-          <button class="tab tab-more" data-tab="enginecontent" onclick="cmsTab('enginecontent',this);window.WpEC?.load()"><i class="fab fa-wordpress"></i>Menüs, Widgets &amp; Blöcke (Engine)</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab" data-tab="headerbuilder" onclick="cmsTab('headerbuilder',this);window.HeaderBuilder?.render()"><i class="fas fa-grip"></i>Header &amp; Footer</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab tab-more" data-tab="enginecontent" onclick="cmsTab('enginecontent',this);window.WpEC?.load()"><i class="fab fa-wordpress"></i>Menüs, Widgets &amp; Blöcke (Engine)</button>
           <button class="tab tab-more" data-tab="branding" onclick="cmsTab('branding',this)"><i class="fas fa-palette"></i>Branding</button>
         </div>
       </div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-plug"></i><span>Plugins</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
-          <button class="tab" data-tab="extensions" onclick="cmsTab('extensions',this);window.WpExt?.load()"><i class="fab fa-wordpress"></i>Plugins &amp; Themes (Engine)</button>
-          <button class="tab" data-tab="eplugins" onclick="cmsTab('eplugins',this);window.ElvadoPlugins?.load()"><i class="fas fa-puzzle-piece"></i>ElvadoPress-Plugins</button>
-          <button class="tab" data-tab="plugins" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('inst')"><i class="fas fa-plug"></i>WordPress-Plugins</button>
-          <button class="tab" data-tab="plugins" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('new')"><i class="fas fa-plus"></i>Plugin hinzufügen</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab" data-tab="extensions" onclick="cmsTab('extensions',this);window.WpExt?.load()"><i class="fab fa-wordpress"></i>Plugins &amp; Themes (Engine)</button>
+          <button class="tab" data-tab="eplugins" onclick="cmsTab('eplugins',this);window.ElvadoPlugins?.load()"><i class="fas fa-puzzle-piece"></i>Plugins</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab" data-tab="plugins" onclick="cmsTab('plugins',this);window.PluginManager?.load();window.WpPlugins?.load();window.WpPlugins?.tab('inst')"><i class="fas fa-plug"></i>WordPress-Plugins</button>
         </div>
       </div>
       <div class="tab-group">
@@ -68,9 +67,9 @@
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-toolbox"></i><span>Werkzeuge</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="wptools" onclick="cmsTab('wptools',this)"><i class="fas fa-screwdriver-wrench"></i>Verfügbare Werkzeuge</button>
-          <button class="tab" data-tab="wptools" onclick="cmsTab('wptools',this);document.getElementById('wptImport')?.scrollIntoView({block:'center'})"><i class="fas fa-file-import"></i>Daten importieren</button>
-          <button class="tab" data-tab="wptools" onclick="cmsTab('wptools',this);document.getElementById('wptExport')?.scrollIntoView({block:'center'})"><i class="fas fa-file-export"></i>Daten exportieren</button>
-          <button class="tab" data-tab="wptools" onclick="cmsTab('wptools',this);WpTools.health()"><i class="fas fa-heart-pulse"></i>Website-Zustand</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab" data-tab="wptools" onclick="cmsTab('wptools',this);document.getElementById('wptImport')?.scrollIntoView({block:'center'})"><i class="fas fa-file-import"></i>Daten importieren</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab" data-tab="wptools" onclick="cmsTab('wptools',this);document.getElementById('wptExport')?.scrollIntoView({block:'center'})"><i class="fas fa-file-export"></i>Daten exportieren</button>
+          <button hidden aria-hidden="true" tabindex="-1" class="tab" data-tab="wptools" onclick="cmsTab('wptools',this);WpTools.health()"><i class="fas fa-heart-pulse"></i>Website-Zustand</button>
           <button class="tab" data-tab="maintenance" onclick="cmsTab('maintenance',this);window.ToolsManager?.loadMaint()"><i class="fas fa-person-digging"></i>Wartungsmodus</button>
           <button class="tab" data-tab="redirects" onclick="cmsTab('redirects',this);window.ToolsManager?.loadRules()"><i class="fas fa-route"></i>Weiterleitungen &amp; 404</button>
           <button class="tab" data-tab="privacy" onclick="cmsTab('privacy',this);window.ToolsManager?.loadPrivacy()"><i class="fas fa-user-shield"></i>Datenschutz</button>
@@ -120,7 +119,6 @@
       </div>
       <div class="tab-group single sys-single"><div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-rotate"></i><span>Updates</span></div><div class="tab-group-body">
           <button class="tab" data-tab="sysstatus" onclick="cmsTab('sysstatus',this);window.SysStatus?.load('updates')"><i class="fas fa-rotate"></i>Updates<span class="ep-badge" id="epUpdBadge" hidden></span></button>
-          <button class="tab" data-tab="eplugins" onclick="cmsTab('eplugins',this);window.ElvadoPlugins?.load()"><i class="fas fa-store"></i>ElvadoPress Store</button>
         </div></div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-screwdriver-wrench"></i><span>System</span><i class="fas fa-chevron-down tg-chev"></i></div>

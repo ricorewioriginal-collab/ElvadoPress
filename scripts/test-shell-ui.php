@@ -22,7 +22,7 @@ $titles = array_map(fn($x) => html_entity_decode($x), $g[1]);
 $want = ['Dashboard', 'Website', 'Medien', 'Design', 'Plugins', 'Benutzer', 'Werkzeuge', 'AI Studio', 'App Builder'];
 $pos = -1; $okOrder = true; foreach ($want as $w) { $p = array_search($w, $titles, true); if ($p === false || $p <= $pos) { $okOrder = false; } else { $pos = $p; } }
 t('Hauptpunkte in der Reihenfolge des Entwurfs', $okOrder, json_encode($titles));
-t('Updates und Store als eigene Einträge vor „System“', strpos($side, 'ElvadoPress Store') !== false && strpos($side, 'ElvadoPress Store') < strpos($side, '<span>System</span>') && strpos($side, '>Updates') !== false);
+t('Updates als eigener Eintrag vor „System“; Plugins/Menüs je ein Eintrag mit Reitern (shell.js), Unterbereiche bleiben erreichbar', strpos($side, '>Updates') !== false && strpos($side, '>Updates') < strpos($side, '<span>System</span>') && substr_count($side, 'Plugins</button>') >= 1 && preg_match('/hidden[^>]*class="tab" data-tab="extensions"/', $side) === 1 && preg_match('/hidden[^>]*class="tab" data-tab="headerbuilder"/', $side) === 1 && str_contains((string)file_get_contents("$cms/assets/shell.js"), 'function subtabs'));
 // Website-Gruppe: erst die fünf Hauptpunkte, der Rest „weitere“
 $web = substr($side, (int)strpos($side, '<span>Website</span>'), 6000);
 $first = array_slice(preg_split('/<button/', $web), 1, 5);

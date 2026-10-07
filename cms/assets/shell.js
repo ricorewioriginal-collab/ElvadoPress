@@ -127,7 +127,33 @@
     if(bar&&th&&bell&&th.nextElementSibling!==bell)bar.insertBefore(th,bell);
   }
   function nolabel(){document.querySelectorAll('.tabs .tab').forEach(function(t){if(!t.textContent.trim())t.classList.add('ep-nolabel')})}
-  function boot(){nolabel();search();user();devices();more();siteName();brandInit();siteInit();themeIcon();order();keepOpen()}
+  /* Zusammengehörige Bereiche (z. B. ElvadoPress-/WordPress-Plugins, Navigation/Header/Engine-Menüs) erscheinen als ein Eintrag in der Seitenleiste mit Reitern oben im Bereich – egal ob WordPress oder ElvadoPress. */
+  var GROUPS=[
+    {primary:'eplugins',members:[['eplugins','ElvadoPress-Plugins'],['extensions','WordPress: Plugins & Themes (Engine)'],['plugins','WordPress-Plugins (Nachbildung)']]},
+    {primary:'menus',members:[['menus','Navigation'],['headerbuilder','Header & Footer'],['enginecontent','WordPress: Menüs, Widgets & Blöcke (Engine)']]}
+  ];
+  function subtabs(){
+    GROUPS.forEach(function(g){
+      g.members.forEach(function(m){
+        var panel=$('panel-'+m[0]);if(!panel||panel.querySelector(':scope > .ep-subtabs'))return;
+        var bar=document.createElement('div');bar.className='ep-subtabs';bar.setAttribute('role','tablist');
+        g.members.forEach(function(x){
+          if(!document.querySelector('.tabs .tab[data-tab="'+x[0]+'"]'))return;
+          var b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.className='ep-subtab'+(x[0]===m[0]?' on':'');b.textContent=x[1];b.setAttribute('data-subtab',x[0]);
+          b.addEventListener('click',function(){
+            var btn=document.querySelector('.tabs .tab[data-tab="'+x[0]+'"]');if(!btn)return;
+            btn.click();
+            var prim=document.querySelector('.tabs .tab[data-tab="'+g.primary+'"]:not([hidden])');
+            document.querySelectorAll('.tabs .tab.on').forEach(function(t){if(t!==btn&&t!==prim)t.classList.remove('on')});
+            if(prim)prim.classList.add('on');
+          });
+          bar.appendChild(b);
+        });
+        if(bar.children.length>1)panel.insertBefore(bar,panel.firstChild);
+      });
+    });
+  }
+  function boot(){nolabel();subtabs();search();user();devices();more();siteName();brandInit();siteInit();themeIcon();order();keepOpen()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   [300,900,2200,5000].forEach(function(ms){setTimeout(boot,ms)});
   setInterval(function(){siteName();siteInit();themeIcon();keepOpen()},2500);
