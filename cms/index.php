@@ -165,7 +165,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/news-editor.js?v=19"></script>
 <script src="assets/stock-media.js?v=2"></script>
 <script src="assets/media-manager.js?v=8"></script>
-<script src="assets/theme-manager.js?v=9"></script>
+<script src="assets/theme-manager.js?v=10"></script>
 <script src="assets/brands-manager.js?v=5"></script>
 <script src="assets/directory-manager.js?v=2"></script><script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=9"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=9"></script>

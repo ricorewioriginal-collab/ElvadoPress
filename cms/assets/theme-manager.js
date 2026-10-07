@@ -99,12 +99,14 @@ window.ThemeManager=(()=>{
   czGroups=[];
   if(variants.length)czGroups.push({title:'Varianten',html:'<div class="theme-variants">'+variants.map(v=>'<button class="theme-variant '+(draft.variant===v.id?'on':'')+'" onclick="ThemeManager.variant(\''+esc(v.id)+'\')">'+esc(v.name||v.id)+'</button>').join('')+'</div>'});
   groupedControls(editing).forEach(([name,controls])=>czGroups.push({title:name,html:controls.map(renderControl).join('')}));
+  czGroups.push({title:'Seitenstruktur (live erkannt)',live:true,count:czDet.length,html:czStructHtml});
+  if(czGroups.length===1&&czGroups[0].live)czGroups.unshift({title:'Theme',html:'<div class="empty">Dieses importierte CSS-Theme besitzt noch keine eigenen Customizer-Regler. Es kann trotzdem live angesehen und aktiviert werden.</div>'});
   if(!czGroups.length){h.innerHTML='<div class="empty">Dieses importierte CSS-Theme besitzt noch keine eigenen Customizer-Regler. Es kann trotzdem live angesehen und aktiviert werden.</div>';return}
   if(czSec<0||czSec>=czGroups.length){
-    h.innerHTML='<div class="cz-list">'+czGroups.map((g,i)=>'<button type="button" onclick="ThemeManager.openSection('+i+')"><span>'+esc(g.title)+'</span><i class="fas fa-chevron-right"></i></button>').join('')+'</div>';
+    h.innerHTML='<div class="cz-list">'+czGroups.map((g,i)=>'<button type="button" onclick="ThemeManager.openSection('+i+')"><span>'+esc(g.title)+(g.live&&g.count?' <small style="opacity:.6">· '+g.count+'</small>':'')+'</span><i class="fas fa-chevron-right"></i></button>').join('')+'</div>';
   }else{
     const g=czGroups[czSec];
-    h.innerHTML='<button type="button" class="cz-back" onclick="ThemeManager.openSection(-1)"><i class="fas fa-chevron-left"></i><span><small>Du passt gerade an</small><b>'+esc(g.title)+'</b></span></button><div class="cz-pane">'+g.html+'</div>';
+    h.innerHTML='<button type="button" class="cz-back" onclick="ThemeManager.openSection(-1)"><i class="fas fa-chevron-left"></i><span><small>Du passt gerade an</small><b>'+esc(g.title)+'</b></span></button><div class="cz-pane">'+(typeof g.html==='function'?g.html():g.html)+'</div>';
   }
  }
  function openSection(i){czSec=i;renderCustomizer();const h=document.getElementById('themeCustomizerControls');if(h)h.scrollTop=0}
@@ -136,9 +138,41 @@ window.ThemeManager=(()=>{
   if(!previewBrand)previewBrand=def;
   sel.innerHTML=items.map(b=>'<option value="'+b.id+'" '+(b.id===previewBrand?'selected':'')+'>'+String(b.name||b.id).replace(/</g,'&lt;')+'</option>').join('')||'<option value="">Standard</option>';
  }
+
+ /* ───────── Seitenstruktur live erkennen (Vorschau-Rahmen, gleiche Herkunft) ─────────
+    Die Vorschau-Brücke wird in den Rahmen geladen (nur Auslesen/Hervorheben, keine Klick-Übernahme, damit „Klick in Vorschau öffnet Bereich“ unverändert bleibt). */
+ let czDet=[],czTok='',czSel='';
+ const SELRE=/^([#.][a-z][a-z0-9_-]{0,60}|header|footer|nav|main|aside|section|article)$/i;
+ const czFrame=()=>document.getElementById('themeCustomizerFrame');
+ function czPost(m){const f=czFrame();if(!f?.contentWindow||!czTok)return;m.ep=1;m.token=czTok;try{f.contentWindow.postMessage(m,location.origin)}catch(e){}}
+ function czAttach(){
+  const f=czFrame();czDet=[];czSel='';czTok=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
+  try{const d=f.contentDocument;if(!d||!d.body||d.getElementById('epBridgeScript'))return;const sc=d.createElement('script');sc.id='epBridgeScript';sc.src='/cms/assets/preview-bridge.js?v=2';d.body.appendChild(sc)}catch(e){}
+ }
+ window.addEventListener('message',e=>{
+  const f=czFrame();if(!f||e.source!==f.contentWindow||e.origin!==location.origin||!editing)return;
+  const d=e.data;if(!d||d.ep!==1||typeof d.type!=='string')return;
+  if(d.type==='hello'){czPost({type:'init',edit:false,regions:[],labels:{},selected:'',scroll:0,token:czTok});return}
+  if(d.token!==czTok)return;
+  if(d.type==='structure'){czDet=(Array.isArray(d.nodes)?d.nodes:[]).slice(0,90).filter(n=>n&&typeof n.s==='string'&&SELRE.test(n.s)).map(n=>({s:n.s,t:String(n.t||'').slice(0,12),l:String(n.l||n.s).slice(0,60),d:Math.max(0,Math.min(4,+n.d||0)),h:+n.h||0}));
+   const g=czGroups.find(x=>x.live);if(g)g.count=czDet.length;if(czSec>=0&&czGroups[czSec]?.live)renderCustomizer();else if(czSec<0)renderCustomizer();}
+ });
+ // Zuordnung erkannter Bereiche zu Abschnitten des Customizers (Kopf, Fuß, Seitenleiste, Start …)
+ const CZ_MAP=[[/header|kopf|nav/i,/header|kopf|navigation|men/i],[/footer|fuss|fuß/i,/footer|fu[sß]/i],[/sidebar|aside/i,/sidebar|seitenleiste|widget/i],[/hero|start/i,/hero|start/i],[/card|grid|news/i,/karte|news|beitr|card/i]];
+ function czSectionFor(n){const key=n.s+' '+n.t;for(const [a,b] of CZ_MAP){if(a.test(key)){const i=czGroups.findIndex(g=>!g.live&&b.test(g.title));if(i>=0)return i}}return -1}
+ function czStructHtml(){
+  if(!czDet.length)return '<div class="hint">Die Seitenstruktur wird aus der Vorschau gelesen, sobald sie geladen ist …</div>';
+  return '<div class="hint lb-dethint">Live aus der Vorschau gelesen. Klick markiert den Bereich in der Vorschau; „Einstellungen“ öffnet den passenden Abschnitt des Themes.</div><div class="lb-detlist" role="list">'+czDet.map((n,i)=>{
+   const sec=czSectionFor(n);
+   return '<div class="lb-detrow'+(n.s===czSel?' on':'')+'" role="listitem" tabindex="0" data-czd="'+i+'" onmouseover="ThemeManager.hl('+i+')" onmouseleave="ThemeManager.hl(-1)" onclick="ThemeManager.pick('+i+')" style="margin-left:'+(Math.min(4,n.d)*12)+'px"><span class="lb-detname">'+esc(n.l)+'<small>'+esc(n.s)+' · '+n.h+' px</small></span>'+(sec>=0?'<button type="button" class="lb-detbtn" onclick="event.stopPropagation();ThemeManager.openSection('+sec+')">Einstellungen</button>':'')+'</div>';
+  }).join('')+'</div>';
+ }
+ function czHl(i){czPost({type:'hl',sel:i>=0&&czDet[i]?czDet[i].s:''})}
+ function czPick(i){const n=czDet[i];if(!n)return;czSel=n.s;czPost({type:'select',id:n.s,scroll:true});const g=czGroups.findIndex(x=>x.live);if(czSec===g)renderCustomizer()}
  function reloadPreviewFrame(){
   if(!editing)return;
   const f=document.getElementById('themeCustomizerFrame');
+  f.onload=czAttach;
   f.src='/?cms_theme_customize=1&cms_theme_preview='+encodeURIComponent(editing.id)+(previewBrand?'&rrw_brand='+encodeURIComponent(previewBrand):'')+'&t='+Date.now();
   const b=(window.CMS?.brands?.items||[]).find(x=>x.id===previewBrand);
   document.getElementById('themePreviewUrl').textContent=(b?.primary_domain||((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'ricorewi-radio.de':location.hostname))+' · '+editing.name+(b?' · '+b.name:'');
@@ -193,5 +227,5 @@ window.ThemeManager=(()=>{
   try{const d=await api('themes_list');themes=d.themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'ricorewi-neon',variant:'default',settings:{}};render()}
   catch(e){const h=document.getElementById('themeGrid');if(h)h.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
- return {openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
+ return {hl:czHl,pick:czPick,openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};
 })();
