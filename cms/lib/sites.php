@@ -253,3 +253,83 @@ function rrw_site_create(array $in): array
     rrw_sites_save($items);
     return ['site' => $site, 'copied' => $copied];
 }
+
+/**
+ * Website-Kontext einer Anfrage festlegen (am Anfang von cms/api.php, vor jeder Nutzung der Ordner):
+ * – ohne Registry nichts zu tun (eine Dateiabfrage),
+ * – Verwaltung: Kopf „X-EP-Site: <kennung>“ (oder „main“) gilt nur zusammen mit einer gültigen Administrator-Sitzung (lokal); nie aus Cookies,
+ * – sonst die Website der aufgerufenen Domain.
+ * Für weitere Websites zeigt auch der Medien-Ordner der Bibliothek (RRW_MEDIA_DIR) auf die eigene Website.
+ */
+function rrw_sites_request_context(): void
+{
+    if (!is_file(rrw_sites_registry_file())) {
+        return;
+    }
+    $hdr = (string)($_SERVER['HTTP_X_EP_SITE'] ?? '');
+    if ($hdr !== '' && PHP_SAPI !== 'cli') {
+        $tok = trim((string)($_SERVER['HTTP_X_ANMACHA_TOKEN'] ?? ''));
+        if (str_starts_with($tok, 'local_') && is_file(__DIR__ . '/auth.php')) {
+            require_once __DIR__ . '/auth.php';
+            $u = function_exists('rrw_local_session_validate') ? rrw_local_session_validate($tok) : null;
+            if ($u !== null && ($u['role'] ?? '') === 'admin') {
+                rrw_site_use($hdr === 'main' ? '' : $hdr);
+            }
+        }
+    }
+    $id = rrw_site_current();
+    if ($id !== '' && !defined('RRW_MEDIA_DIR')) {
+        define('RRW_MEDIA_DIR', rrw_site_dir('media', $id));
+    }
+}
+
+/**
+ * Website ändern (Name, Domains, aktiv). Domains dürfen keiner anderen Website gehören.
+ * @param array{name?:string,domains?:list<string>,enabled?:bool} $in
+ * @return array<string,mixed> die geänderte Website
+ * @throws InvalidArgumentException
+ */
+function rrw_site_update(string $id, array $in): array
+{
+    $id = rrw_site_id_clean($id);
+    $items = rrw_sites_registry(true);
+    $idx = null;
+    foreach ($items as $i => $s) {
+        if ($s['id'] === $id) {
+            $idx = $i;
+        }
+    }
+    if ($idx === null) {
+        throw new InvalidArgumentException('Die Website „' . $id . '“ gibt es nicht.');
+    }
+    if (array_key_exists('name', $in)) {
+        $nm = mb_substr(trim((string)$in['name']), 0, 80);
+        $items[$idx]['name'] = $nm !== '' ? $nm : $id;
+    }
+    if (array_key_exists('domains', $in)) {
+        $dom = [];
+        foreach ((array)$in['domains'] as $d) {
+            $d = trim((string)$d);
+            if ($d === '') {
+                continue;
+            }
+            $c = rrw_site_domain_clean($d);
+            if ($c === '') {
+                throw new InvalidArgumentException('Die Domain „' . $d . '“ ist ungültig (Beispiel: meine-seite.de).');
+            }
+            if (!in_array($c, $dom, true)) {
+                $dom[] = $c;
+            }
+        }
+        $items[$idx]['domains'] = $dom;
+    }
+    if (array_key_exists('enabled', $in)) {
+        $items[$idx]['enabled'] = !empty($in['enabled']);
+    }
+    $cf = rrw_sites_domain_conflicts($items);
+    if ($cf) {
+        throw new InvalidArgumentException('Jede Domain darf nur zu einer Website gehören: ' . implode('; ', array_map(fn($c) => $c['domain'] . ' → ' . implode(' und ', array_map(fn($i) => '„' . $i . '“', $c['sites'])), $cf)) . '.');
+    }
+    rrw_sites_save($items);
+    return $items[$idx];
+}

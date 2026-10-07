@@ -114,7 +114,8 @@
           <button class="tab" data-pack="ricorewi-radio" data-tab="portal" onclick="cmsTab('portal',this)"><i class="fas fa-sliders"></i>Website-Inhalte</button>
           <button class="tab" data-tab="seo" onclick="cmsTab('seo',this);window.SystemManager?.loadSeo()"><i class="fas fa-magnifying-glass-chart"></i>SEO &amp; Suche</button>
           <button class="tab" data-tab="legal" onclick="cmsTab('legal',this)"><i class="fas fa-scale-balanced"></i>Rechtliches</button>
-          <button class="tab" data-pack="ricorewi-radio" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
+          <button class="tab" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
+          <button class="tab" data-tab="sites" onclick="cmsTab('sites',this);window.SitesManager?.load()"><i class="fas fa-layer-group"></i>Websites</button>
         </div>
       </div>
       <div class="tab-group single sys-single"><div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-rotate"></i><span>Updates</span></div><div class="tab-group-body">

@@ -29,7 +29,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <link rel="stylesheet" href="assets/cms.css?v=44">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
-<link rel="stylesheet" href="assets/shell.css?v=4">
+<link rel="stylesheet" href="assets/shell.css?v=5">
 <script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
 
 </head>
@@ -112,6 +112,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
     <?php require __DIR__.'/views/panel-portal.php'; ?>
 
     <?php require __DIR__.'/views/panel-brands.php'; ?>
+    <?php require __DIR__.'/views/panel-sites.php'; ?>
     <?php require __DIR__.'/views/panel-directory.php'; ?>
 
     <?php require __DIR__.'/views/panel-social.php'; ?>
@@ -166,7 +167,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/stock-media.js?v=2"></script>
 <script src="assets/media-manager.js?v=8"></script>
 <script src="assets/theme-manager.js?v=10"></script>
-<script src="assets/brands-manager.js?v=5"></script>
+<script src="assets/brands-manager.js?v=5"></script><script src="assets/sites-manager.js?v=1"></script>
 <script src="assets/directory-manager.js?v=2"></script><script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=9"></script><script src="assets/app-builder.js?v=4"></script><script src="assets/apps-manager.js?v=9"></script>
 <script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=7"></script>
@@ -198,7 +199,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <?php /* Erweiterungen aktiver offizieller Plugins für die ganze Verwaltung (z. B. SEO-Vorschau im Editor) */ try{ if(is_file(__DIR__.'/data/.plugins/state.json')){ require_once __DIR__.'/lib/nplugins.php';foreach(rrw_np()->globalAdminScripts() as $__s)echo '<script src="'.htmlspecialchars($__s,ENT_QUOTES).'" defer></script>'."\n"; } }catch(Throwable $__e){} ?>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>
-<script src="assets/shell.js?v=4"></script>
+<script src="assets/shell.js?v=5"></script>
 <?php foreach(glob(__DIR__.'/packs/*/admin.js')?:[] as $pf){ $pk=basename(dirname($pf)); if(preg_match('/^[a-z0-9-]{1,40}$/',$pk)&&rrw_pack_available($pk)): ?><script src="packs/<?=$pk?>/admin.js?v=<?=(int)@filemtime($pf)?>"></script><?php endif; } ?>
 </body>
 </html>
