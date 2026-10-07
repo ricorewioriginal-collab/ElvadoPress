@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // Verwaltungs-API der WordPress-Engine (eigener Einstieg, damit echtes WordPress in einem sauberen globalen Gültigkeitsbereich startet und nicht in den Variablen von api.php).
 // Aktionen: engine_status, engine_prepare, engine_core, engine_db_test, engine_db_install, engine_analyze, engine_mode, engine_remove;
-// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report; echte Migration (nur mit Bestätigung, protokolliert, zurückbaubar) migration_run, migration_rollback, migration_runs; Demo: engine_demo_setup.
+// Inhalte über den Dienst/Adapter: content_list, content_get, content_save, content_delete, term_list, term_save, term_delete; Medien media_list|get|upload|update|delete; Benutzer user_list, user_sync; Plugins/Themes ext_list|search|install|upload|activate|deactivate|delete|safe; Menüs nav_list|get|create|rename|delete|save|assign|import; Widgets widgets_overview|add|update|move|delete; Blöcke blocks_registry|parse|check|render|serialize|convert; Migration (nur Trockenlauf, schreibt nichts außer dem Bericht) migration_plan, migration_report; echte Migration (nur mit Bestätigung, protokolliert, zurückbaubar) migration_run, migration_rollback, migration_runs; Demo: engine_demo_setup; Systemstatus system_status, updates_overview, updates_check.
 // Rechte: Administratoren alles; Autoren Inhalte/Medien nur eigene (Dienste prüfen), Seiten, Begriffe, Benutzer und Engine nur Administratoren. Quelle: ?source=native (nur lesen) oder wordpress (Standard, wenn die Engine aktiv ist).
 // Die Anmeldeprüfung kommt aus api.php (RRW_API_LIB_ONLY); in der Demo sind alle Aktionen außer engine_status gesperrt.
 define('RRW_API_LIB_ONLY', true);
@@ -22,6 +22,14 @@ if (function_exists('rrw_demo_enabled') && rrw_demo_enabled() && $rrwEngineActio
     // Demo: ohne demo-engine.json gesperrt; mit ihr läuft die Engine (echter Core, alle Funktionen) – gesperrt bleiben nur Aufbau von Hand und fremder Programmcode (Plugin-/Theme-Installation, -Upload, -Löschen)
     if (!function_exists('rrw_demo_engine_enabled') || !rrw_demo_engine_enabled()) {
         rrw_json(['status' => 'error', 'message' => 'In der Demo gesperrt: Die WordPress-Engine lässt sich nur in einer eigenen ElvadoPress-Installation einrichten.'], 403);
+    }
+    if (in_array($rrwEngineAction, ['ext_install', 'ext_delete'], true)) {   // nur die freigegebenen, bekannten Pakete aus dem WordPress-Verzeichnis
+        $rrwDK = (string)($_GET['kind'] ?? (rrw_body()['kind'] ?? 'plugin'));
+        $rrwDB = rrw_body();
+        $rrwDS = (string)($rrwDB['slug'] ?? $rrwDB['id'] ?? '');
+        if (!rrw_demo_engine_allowed($rrwDK, preg_replace('#/.*$#', '', $rrwDS))) {
+            rrw_json(['status' => 'error', 'message' => 'In der Demo lassen sich nur ausgewählte, bekannte Plugins und Themes aus dem WordPress-Verzeichnis installieren (die Demo teilt sich den Server mit anderen Websites). Eigene ZIP-Dateien und andere Pakete sind gesperrt.', 'demo' => true], 403);
+        }
     }
     if (in_array($rrwEngineAction, RRW_DEMO_ENGINE_BLOCKED, true)) {
         rrw_json(['status' => 'error', 'message' => in_array($rrwEngineAction, ['ext_install', 'ext_upload', 'ext_delete'], true)
@@ -467,6 +475,95 @@ if (preg_match('/^(nav|widgets|blocks)_/', $rrwEngineAction) === 1) {
         rrw_json(['status' => 'error', 'message' => $e->getMessage()], 422);
     }
     rrw_json(['status' => 'error', 'message' => 'Unbekannte Aktion'], 404);
+}
+if (in_array($rrwEngineAction, ['system_status', 'updates_overview', 'updates_check'], true)) {
+    // Systemstatus und Update-Übersicht (nur Administratoren). system_status/updates_overview starten WordPress nie; updates_check fragt die Quellen ab (Netz) und startet WordPress nur für dessen Plugin-/Theme-Updates.
+    $rrwFacts = static function () use ($rrwEngine, $rrwEngineDb): array {
+        $f = rrw_wpe_facts($rrwEngine, $rrwEngineDb, __DIR__ . '/data', __DIR__);
+        try {
+            $u = \Elvado\Update\UpdateService::forCms(__DIR__, __DIR__ . '/data')->status();
+            $f['cms_update'] = ['available' => !empty($u['update_available']), 'latest' => (string)($u['latest']['version'] ?? ''), 'checked_at' => (string)($u['checked_at'] ?? '')];
+        } catch (\Throwable $e) {
+            $f['cms_update'] = [];
+        }
+        try {
+            $rows = function_exists('rrw_np') ? rrw_np()->rows() : [];
+            $avail = array_filter($rows, fn($r) => ($r['status'] ?? '') !== 'planned');
+            $inst = array_filter($avail, fn($r) => in_array($r['status'], ['installed', 'active'], true));
+            $f['plugins'] = ['native_total' => count($inst), 'native_active' => count(array_filter($inst, fn($r) => $r['status'] === 'active')), 'native_unverified' => count(array_filter($inst, fn($r) => empty($r['official']))), 'wp_active' => null];
+            $f['native_updates'] = array_values(array_map(fn($r) => ['name' => (string)$r['name'], 'installed' => (string)$r['version'], 'latest' => (string)$r['available_version']], array_filter($inst, fn($r) => !empty($r['update_available']))));
+        } catch (\Throwable $e) {
+            $f['plugins'] = [];
+        }
+        try {
+            $site = rrw_read_json(__DIR__ . '/data/site.json', []);
+            $f['theme'] = (string)($site['theme']['active'] ?? '');
+            $cfg = \Elvado\Ai\AiGatewayConfig::load(__DIR__ . '/data', $site);
+            $f['ai_providers'] = count((new \Elvado\Ai\AiGatewayService($cfg))->usableProviders());
+        } catch (\Throwable $e) {
+        }
+        $f['app_builder'] = is_dir(dirname(__DIR__) . '/app-template') || is_file(__DIR__ . '/lib/appbuild.php');
+        return $f;
+    };
+    if ($rrwEngineAction !== 'updates_check') {
+        $f = $rrwFacts();
+        rrw_json(['status' => 'ok', 'generated_at' => date('c')] + ($rrwEngineAction === 'system_status' ? ['system' => \Elvado\Wp\SystemStatus::build($f)] : ['updates' => \Elvado\Wp\SystemStatus::updates($f)]));
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        rrw_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+    }
+    @set_time_limit(120);
+    $rrwCacheFile = $rrwEngine->stateDir() . '/updates.json';
+    $rrwCache = is_file($rrwCacheFile) ? (json_decode((string)@file_get_contents($rrwCacheFile), true) ?: []) : [];
+    $rrwErr = [];
+    $l = \Elvado\Wp\CoreSource::latest();
+    if ($l['ok']) {
+        $rrwCache['core'] = ['version' => $l['version'], 'php' => $l['php'], 'mysql' => $l['mysql']];
+    } else {
+        $rrwErr[] = 'WordPress: ' . $l['message'];
+    }
+    try {
+        \Elvado\Update\UpdateService::forCms(__DIR__, __DIR__ . '/data')->check();
+    } catch (\Throwable $e) {
+        $rrwErr[] = 'ElvadoPress: ' . mb_substr($e->getMessage(), 0, 160);
+    }
+    $rrwCache['checked_at'] = date('c');
+    if ($rrwEngine->isActive()) {
+        $GLOBALS['rrw_wpe_engine'] = $rrwEngine;
+        $GLOBALS['rrw_wpe_db'] = $rrwEngineDb;
+        $GLOBALS['rrw_wpe_opts'] = [];
+        rrw_wpe_guard_output();
+        require __DIR__ . '/wp-engine-boot.php';
+        if (\Elvado\Wp\Bridge::booted()) {
+            rrw_wpe_after_boot($rrwEngine);
+            require_once ABSPATH . 'wp-admin/includes/update.php';
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+            require_once ABSPATH . 'wp-includes/update.php';
+            wp_update_plugins();
+            wp_update_themes();
+            $up = (array)get_site_transient('update_plugins');
+            $ut = (array)get_site_transient('update_themes');
+            $pl = [];
+            foreach ((array)($up['response'] ?? []) as $file => $o) {
+                $d = get_plugin_data(WP_PLUGIN_DIR . '/' . $file, false, false);
+                $pl[] = ['name' => (string)($d['Name'] ?? $file), 'installed' => (string)($d['Version'] ?? ''), 'latest' => (string)($o->new_version ?? '')];
+            }
+            $th = [];
+            foreach ((array)($ut['response'] ?? []) as $slug => $o) {
+                $t = wp_get_theme((string)$slug);
+                $th[] = ['name' => (string)($t->exists() ? $t->get('Name') : $slug), 'installed' => (string)($t->exists() ? $t->get('Version') : ''), 'latest' => (string)($o['new_version'] ?? '')];
+            }
+            $rrwCache['wp'] = ['plugins' => $pl, 'themes' => $th, 'checked_at' => date('c')];
+        } else {
+            $rrwErr[] = 'WordPress ließ sich nicht starten.';
+        }
+    }
+    $rrwEngine->protect();
+    @file_put_contents($rrwCacheFile, json_encode($rrwCache, JSON_UNESCAPED_UNICODE), LOCK_EX);
+    @chmod($rrwCacheFile, 0600);
+    $rrwEngineLog('Updates geprüft' . ($rrwErr ? ' (mit Hinweisen)' : ''));
+    $f = $rrwFacts();
+    rrw_json(['status' => 'ok', 'notes' => $rrwErr, 'generated_at' => date('c'), 'updates' => \Elvado\Wp\SystemStatus::updates($f), 'system' => \Elvado\Wp\SystemStatus::build($f)]);
 }
 if (in_array($rrwEngineAction, ['migration_runs', 'migration_run', 'migration_rollback'], true)) {
     // Echte Migration (nur mit ausdrücklicher Bestätigung): legt Inhalte in WordPress an, verändert die bisherigen Daten nie; jeder Lauf ist protokolliert und zurückbaubar.

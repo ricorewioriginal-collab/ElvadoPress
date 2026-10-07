@@ -155,3 +155,72 @@ function rrw_wpe_after_boot(Engine $e): ?array
 {
     return \Elvado\Wp\Bridge::recovering() ? \Elvado\Wp\Bridge::recover($e) : null;
 }
+
+/** Tatsachen für Systemstatus und Update-Übersicht sammeln (kein Start von WordPress; Ergebnisse der letzten Update-Suche kommen aus dem Zwischenspeicher). @return array<string,mixed> */
+function rrw_wpe_facts(Engine $e, DbConfig $db, string $dataDir, string $cmsDir): array
+{
+    $ini = static function (string $v): int {
+        $v = trim($v);
+        if ($v === '-1') {
+            return -1;
+        }
+        $n = (int)$v;
+        return match (strtolower(substr($v, -1))) { 'g' => $n * 1073741824, 'm' => $n * 1048576, 'k' => $n * 1024, default => $n };
+    };
+    $st = $e->state();
+    $cache = is_file($e->stateDir() . '/updates.json') ? json_decode((string)@file_get_contents($e->stateDir() . '/updates.json'), true) : null;
+    $cache = is_array($cache) ? $cache : [];
+    $f = [
+        'cms_version' => function_exists('rrw_cms_version') ? rrw_cms_version() : '',
+        'php' => PHP_VERSION, 'memory_limit' => $ini((string)ini_get('memory_limit')),
+        'disk_free' => ($d = @disk_free_space($dataDir)) === false ? null : (int)$d,
+        'data_writable' => is_dir($dataDir) && is_writable($dataDir),
+        'content_writable' => !is_dir($e->contentDir()) || is_writable($e->contentDir()),
+        'media_writable' => !is_dir($cmsDir . '/media') || is_writable($cmsDir . '/media'),
+        'db_native' => 'JSON-/Markdown-Dateien',
+        'rest_ok' => is_file($cmsDir . '/rest.php'),
+        'cron' => ['wp_cron_disabled' => defined('DISABLE_WP_CRON') && DISABLE_WP_CRON, 'server_cron' => false],
+        'opcache' => function_exists('opcache_get_status') && (bool)ini_get('opcache.enable'),
+        'engine' => ['mode' => $st['mode'], 'version' => $st['version'], 'safe' => $st['safe'], 'incident' => $st['incident'], 'latest' => (string)($cache['core']['version'] ?? ''), 'latest_checked' => (string)($cache['checked_at'] ?? '')],
+        'wp_updates' => is_array($cache['wp'] ?? null) ? ['plugins' => (array)($cache['wp']['plugins'] ?? []), 'themes' => (array)($cache['wp']['themes'] ?? []), 'checked_at' => (string)($cache['wp']['checked_at'] ?? '')] : [],
+        'packs' => function_exists('rrw_pack_available') ? array_values(array_filter([defined('RRW_PACK_RADIO') && rrw_pack_available(RRW_PACK_RADIO) ? RRW_PACK_RADIO : ''])) : [],
+    ];
+    // Zugangsdaten-Dateien der Engine: nicht für andere lesbar
+    $bad = [];
+    foreach (glob($e->stateDir() . '/*.json') ?: [] as $file) {
+        if ((fileperms($file) & 0077) !== 0) {
+            $bad[] = basename($file);
+        }
+    }
+    if (is_dir($e->stateDir()) && (fileperms($e->stateDir()) & 0077) !== 0 && !is_file($e->stateDir() . '/.htaccess')) {
+        $bad[] = 'Ordner .wp-engine';
+    }
+    $f['state_perms_bad'] = $bad;
+    if ($st['mode'] !== 'off' && !empty($st['db']['ready'])) {   // Verbindung zur WordPress-Datenbank (nur Verbindungstest, kein WordPress-Start)
+        $cfg = $db->get();
+        if ($cfg !== null) {
+            $t = $db->test($cfg);
+            $f['engine']['db_ok'] = (bool)$t['ok'];
+            $f['engine']['db_server'] = $t['server'];
+            $f['engine']['db_message'] = $t['ok'] ? '' : $t['message'];
+        }
+    }
+    // Migration, Layouts
+    $jobs = ['migration_failed' => 0, 'migration_partial' => 0, 'overdue_layouts' => 0];
+    foreach (glob($e->stateDir() . '/migration/run-*.json') ?: [] as $file) {
+        $r = json_decode((string)@file_get_contents($file), true);
+        if (is_array($r) && empty($r['rolled_back'])) {
+            $jobs['migration_failed'] += ($r['status'] ?? '') === 'failed' ? 1 : 0;
+            $jobs['migration_partial'] += ($r['status'] ?? '') === 'partial' ? 1 : 0;
+        }
+    }
+    foreach (glob($dataDir . '/layouts/*.json') ?: [] as $file) {
+        $l = json_decode((string)@file_get_contents($file), true);
+        $at = is_array($l) ? (string)($l['draft']['publish_at'] ?? '') : '';
+        if ($at !== '' && (strtotime($at . ':00') ?: PHP_INT_MAX) <= time()) {
+            $jobs['overdue_layouts']++;
+        }
+    }
+    $f['jobs'] = $jobs;
+    return $f;
+}

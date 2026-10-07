@@ -106,3 +106,8 @@ Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, B
 
 ## Demo mit echtem WordPress
 `cms/lib/demo.php` (`rrw_demo_engine_*`, `RRW_DEMO_ENGINE_BLOCKED`), `engine-api.php` (`engine_demo_setup`, Sperren statt Totalsperre), `components-api.php` (Layouts in der Demo frei), `wp-engine.js` (Demo-Ansicht, Selbstaufbau nach Anmeldung/Zurücksetzen), `make-demo.php --engine=…`, Test `scripts/test-demo-engine.php` (7; 23 mit echtem WordPress). Braucht serverseitig eine eigene leere MySQL/MariaDB-Datenbank und `cms/lib/demo-engine.json`; ohne sie unverändertes Verhalten. Nativ-Plugin-Aktionen (`np_*`) bleiben in der Demo gesperrt.
+
+## Phase 11b: REST-API, Systemstatus, Update-Center
+`cms/rest.php` (Version 1, siehe `cms/docs/API.md`), `cms/src/Wp/SystemStatus.php` + `rrw_wpe_facts()`, Aktionen `system_status|updates_overview|updates_check` in `engine-api.php`, Panel „Systemstatus & Updates“ (`panel-sysstatus.php`, `sysstatus.js`; Menü System → Systemstatus und „Updates“ mit Zähler), Tests `test-wp-engine-status.php` (22) und `test-wp-engine-api.php` (44; 56 mit echtem WordPress, inkl. REST-CRUD).
+
+- Demo: Plugin-/Theme-Installation nur für eine Freigabeliste (`RRW_DEMO_ENGINE_ALLOW`, anpassbar in `demo-engine.json`); ZIP-Upload bleibt gesperrt.

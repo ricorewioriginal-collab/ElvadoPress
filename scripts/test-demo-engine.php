@@ -51,8 +51,12 @@ if (!$real) {
     t('Ohne demo-engine.json: Aufbau und alle Engine-Aktionen gesperrt (wie bisher)', $r['code'] === 403 && $c['code'] === 403 && http('GET', $E . 'content_list&type=post', $tok)['code'] === 403);
     echo "Hinweis: Teil mit echtem WordPress übersprungen (WPE_TEST_ZIP/WPE_TEST_DB nicht gesetzt).\n";
 } else {
-    foreach (['engine_core', 'engine_db_install', 'engine_db_test', 'engine_mode', 'engine_remove', 'ext_install', 'ext_upload', 'ext_delete'] as $a) { $c = http('POST', $E . $a, $tok, ['mode' => 'off', 'slug' => 'x']); if ($c['code'] !== 403) { t("Demo sperrt $a", false, (string)$c['code']); } }
-    t('Demo sperrt Aufbau von Hand, Installation, Upload, Löschen (403)', true);
+    foreach (['engine_core', 'engine_db_install', 'engine_db_test', 'engine_mode', 'engine_remove', 'ext_upload'] as $a) { $c = http('POST', $E . $a, $tok, ['mode' => 'off', 'slug' => 'x']); if ($c['code'] !== 403) { t("Demo sperrt $a", false, (string)$c['code']); } }
+    t('Demo sperrt Aufbau von Hand und ZIP-Upload (403)', true);
+    $bad = http('POST', $E . 'ext_install', $tok, ['kind' => 'plugin', 'slug' => 'irgendein-fremdes-plugin']); $badT = http('POST', $E . 'ext_install', $tok, ['kind' => 'theme', 'slug' => 'astra']); $badD = http('POST', $E . 'ext_delete', $tok, ['kind' => 'plugin', 'id' => 'woocommerce/woocommerce.php']);
+    t('Demo: nicht freigegebene Plugins/Themes lassen sich weder installieren noch löschen', $bad['code'] === 403 && $badT['code'] === 403 && $badD['code'] === 403 && str_contains($bad['body'], 'ausgewählte') && ($bad['json']['demo'] ?? false) === true, $bad['body']);
+    $okI = http('POST', $E . 'ext_install', $tok, ['kind' => 'plugin', 'slug' => 'classic-editor']);
+    t('Demo: freigegebene Plugins/Themes sind nicht von der Demo gesperrt (ob der Download klappt, hängt vom Netz ab)', !(($okI['json']['demo'] ?? false) === true && $okI['code'] === 403), $okI['body']);
     t('Aufbau verlangt POST', http('GET', $E . 'engine_demo_setup', $tok)['code'] === 405);
     $t0 = microtime(true); $s = http('POST', $E . 'engine_demo_setup', $tok, []); $ms = (int)round((microtime(true) - $t0) * 1000);
     t('Aufbau: Core eingespielt, Tabellen angelegt, Engine aktiv', ($s['json']['status'] ?? '') === 'ok' && ($s['json']['engine']['mode'] ?? '') === 'active', $s['body']);

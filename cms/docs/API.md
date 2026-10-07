@@ -222,3 +222,29 @@ Alle Oberflächen (CMS, Control Center, weitere Clients) schreiben über dieselb
 
 `POST ?action=news_import` (angemeldet) mit `{ "articles": [...], "as_draft": true, "on_duplicate": "skip" | "copy" }` – Gegenstück zu `news_export`.
 Höchstens 200 Beiträge je Aufruf; jeder bekommt eine neue ID, Texte werden wie beim Speichern bereinigt, der importierende Benutzer wird Autor. Bei vorhandener Adresse (Slug) wird übersprungen oder mit Suffix `-2` angelegt. Antwort: `{ imported, skipped, invalid }`.
+
+
+## Stabile REST-API (Version 1): `cms/rest.php`
+Für Apps, Frontends und eigene Clients. Intern: **API → Dienst (Content/Media/Navigation) → Adapter → (ElvadoPress-Daten | echter WordPress-Core)** – Clients hängen nie direkt an WordPress.
+
+- **Aufruf:** `/cms/rest.php/<Route>` (oder `?route=/<Route>`). **Anmeldung:** `Authorization: Bearer <Sitzungsschlüssel>` oder `X-AnMaCha-Token` – nie per Cookie (dadurch kein CSRF). Der Schlüssel kommt wie bei der Verwaltung aus `api.php?action=login`.
+- **Antwort:** `{"status":"ok","data":…,"meta":{…}}` bzw. `{"status":"error","message":…}` mit passendem HTTP-Code (401, 403, 404, 405, 409, 422). Kopfzeile `X-ElvadoPress-API: 1`.
+- **Routen:**
+
+| Methode | Route | Bedeutung |
+|---|---|---|
+| GET | `/` | Version, Engine-Betriebsart, Routen |
+| GET, POST | `/pages`, `/posts` | Liste (`status`, `search`, `category`, `page`, `per_page`) bzw. anlegen (201) |
+| GET, PUT/PATCH, DELETE | `/pages/{id}`, `/posts/{id}` | lesen, ändern, löschen (`?force=1` endgültig) |
+| GET | `/categories`, `/tags` | Begriffe |
+| GET, POST, DELETE | `/media`, `/media/{id}` | Mediathek (Upload: `multipart/form-data`, Feld `file`) |
+| GET | `/navigation`, `/navigation/{id}` | Menüs und Menübäume |
+| GET | `/components`, `/layouts/{bereich}` | Komponenten-Katalog, Layouts (`home`, `site:<name>`, `page:<name>`, `post:<nr>`) |
+| GET | `/status` | Systemstatus (nur Administratoren) |
+
+- **Quelle:** aktive Engine ⇒ WordPress; sonst die ElvadoPress-Daten (**nur lesend**, Schreiben ergibt 409); `?source=native` erzwingt die ElvadoPress-Daten. Rechte wie in der Verwaltung (Administratoren alles; Autoren Inhalte/Medien nach Besitz).
+- **Modell:** Beitrag/Seite: `id, type, title, slug, content, excerpt, status (published|draft|scheduled|private|trash), date, modified, author, categories, tags, parent, image, owner`.
+- Tests: `scripts/test-wp-engine-api.php` (Rechte, Methoden, Eingaben, CRUD gegen echtes WordPress).
+
+## Systemstatus und Update-Center (Verwaltung)
+`engine-api.php?action=system_status` (Einträge mit OK/Warnung/Fehler und deutscher Erklärung), `updates_overview` (zwischengespeicherte Ergebnisse, ohne Netz) und `updates_check` (POST: fragt ElvadoPress, WordPress-Core und – bei aktiver Engine – WordPress-Plugins/-Themes ab). Oberfläche: System → Systemstatus, Updates. Logik: `cms/src/Wp/SystemStatus.php` (Test `scripts/test-wp-engine-status.php`).
