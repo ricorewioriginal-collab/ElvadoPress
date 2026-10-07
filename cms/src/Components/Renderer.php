@@ -76,7 +76,7 @@ final class Renderer
         foreach ($layout as $inst) {
             $c = is_array($inst) ? $this->registry->get((string)($inst['type'] ?? '')) : null;
             if ($c && $c->bind !== '') {
-                $sel = $c->bind;
+                $sel = 'html body ' . $c->bind;   // etwas mehr Gewicht als die Regeln der Website (Themes setzen oft #bereich{…!important})
                 $v = Layout::visibility($inst['visibility'] ?? []);
                 if (!empty($inst['hidden']) || !empty($inst['missing']) || $v['devices'] === []) {
                     $out .= $sel . '{display:none!important}';
