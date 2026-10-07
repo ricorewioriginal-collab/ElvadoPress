@@ -73,4 +73,11 @@ function elvado_bk_layout_from_mods(): array {
     }
     return elvado_bk_clean_layout($out)?:[];
 }
-function elvado_bk_active_layout(): array { $l=elvado_bk_saved_layout();return $l!==null?$l:elvado_bk_layout_from_mods(); }
+/** Entwurf der Startseite (Live Builder): wird nur in der geprüften Vorschau ausgeliefert, nie auf der öffentlichen Seite. */
+function elvado_bk_draft_layout(): ?array { $l=get_option('elvado_bk_layout_draft',null);return is_array($l)?$l:null; }
+function elvado_bk_save_draft($raw): array { $l=elvado_bk_clean_layout($raw);update_option('elvado_bk_layout_draft',$l,false);return $l; }
+function elvado_bk_discard_draft(): void { delete_option('elvado_bk_layout_draft'); }
+function elvado_bk_active_layout(): array {
+    if((string)($GLOBALS['rrw_wp_preview_theme']??'')==='elvado-baukasten'&&($d=elvado_bk_draft_layout())!==null)return $d;
+    $l=elvado_bk_saved_layout();return $l!==null?$l:elvado_bk_layout_from_mods();
+}

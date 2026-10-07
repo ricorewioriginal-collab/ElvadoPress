@@ -13,13 +13,18 @@
         </div>
       </div>
       <div class="tab-group">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-thumbtack"></i><span>Beiträge</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-globe"></i><span>Website</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
+          <button class="tab" data-tab="livebuilder" onclick="cmsTab('livebuilder',this);window.LiveBuilder?.load()"><i class="fas fa-wand-magic-sparkles"></i>Live Builder</button>
+          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this)"><i class="fas fa-file-lines"></i>Alle Seiten</button>
+          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this);cmsAddPage()"><i class="fas fa-file-circle-plus"></i>Erstellen</button>
           <button class="tab" data-tab="news" onclick="cmsTab('news',this)"><i class="fas fa-newspaper"></i>Alle Beiträge</button>
           <button class="tab" data-tab="news" onclick="cmsTab('news',this);setTimeout(()=>window.NewsMagazine?.newArticle(),350)"><i class="fas fa-pen"></i>Erstellen</button>
           <button class="tab" data-tab="news" onclick="cmsTab('news',this);setTimeout(()=>document.getElementById('newsCategoryChips')?.scrollIntoView({behavior:'smooth',block:'center'}),250)"><i class="fas fa-folder-tree"></i>Kategorien</button>
           <button class="tab" data-tab="tags" onclick="cmsTab('tags',this);window.TagsManager?.load()"><i class="fas fa-tags"></i>Schlagwörter</button>
           <button class="tab" data-tab="feeds" onclick="cmsTab('feeds',this)"><i class="fas fa-rss"></i>Feeds &amp; RSS</button>
+          <button class="tab" data-tab="comments" onclick="cmsTab('comments',this)"><i class="fas fa-comments"></i>Kommentare</button>
+          <button class="tab" data-tab="contents" onclick="cmsTab('contents',this);window.ContentsManager?.load()"><i class="fas fa-layer-group"></i>Alle Inhalte</button>
         </div>
       </div>
       <div class="tab-group">
@@ -30,42 +35,13 @@
         </div>
       </div>
       <div class="tab-group">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-file-lines"></i><span>Seiten</span><i class="fas fa-chevron-down tg-chev"></i></div>
-        <div class="tab-group-body">
-          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this)"><i class="fas fa-file-lines"></i>Alle Seiten</button>
-          <button class="tab" data-tab="pages" onclick="cmsTab('pages',this);cmsAddPage()"><i class="fas fa-file-circle-plus"></i>Erstellen</button>
-          <button class="tab" data-tab="contents" onclick="cmsTab('contents',this);window.ContentsManager?.load()"><i class="fas fa-layer-group"></i>Alle Inhalte</button>
-        </div>
-      </div>
-      <div class="tab-group single">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-comments"></i><span>Kommentare</span><i class="fas fa-chevron-down tg-chev"></i></div>
-        <div class="tab-group-body">
-          <button class="tab" data-tab="comments" onclick="cmsTab('comments',this)"><i class="fas fa-comments"></i>Kommentare</button>
-        </div>
-      </div>
-      <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-paintbrush"></i><span>Design</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="themes" onclick="cmsTab('themes',this);window.DesignHub?.load()"><i class="fas fa-brush"></i>Themes</button>
-          <button class="tab" data-tab="baukasten" onclick="cmsTab('baukasten',this);window.HomeBuilder?.load()"><i class="fas fa-table-cells-large"></i>Homepage-Baukasten</button>
           <button class="tab" data-tab="menus" onclick="cmsTab('menus',this)"><i class="fas fa-bars"></i>Menüs</button>
           <button class="tab" data-tab="widgets" onclick="cmsTab('widgets',this)"><i class="fas fa-puzzle-piece"></i>Widgets</button>
           <button class="tab" data-tab="branding" onclick="cmsTab('branding',this)"><i class="fas fa-palette"></i>Branding</button>
           <button class="tab" data-tab="headerbuilder" onclick="cmsTab('headerbuilder',this);window.HeaderBuilder?.render()"><i class="fas fa-grip"></i>Header-Builder</button>
-        </div>
-      </div>
-      <div class="tab-group single" data-feature="radio" hidden>
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-radio"></i><span>Radio</span><i class="fas fa-chevron-down tg-chev"></i></div>
-        <div class="tab-group-body">
-          <button class="tab" data-tab="radio" onclick="cmsTab('radio',this);window.RadioAdmin?.load()"><i class="fas fa-tower-broadcast"></i>Sender &amp; Sendeplan</button>
-        </div>
-      </div>
-      <div id="tcMenuHost"></div>
-      <div class="tab-group single">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI</span><i class="fas fa-chevron-down tg-chev"></i></div>
-        <div class="tab-group-body">
-          <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>KI</button>
-          <button class="tab" hidden data-pack-app="ricorewi-radio" data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()" aria-hidden="true" tabindex="-1"></button><!-- erreichbar über die Unterreiter im Menü „KI“; Markierung für die Paketlogik -->
         </div>
       </div>
       <div class="tab-group">
@@ -99,6 +75,30 @@
           <button class="tab" data-tab="polls" onclick="cmsTab('polls',this);window.PollsManager?.load()"><i class="fas fa-square-poll-vertical"></i>Umfragen</button>
         </div>
       </div>
+      <div class="tab-group-sep" aria-hidden="true"></div>
+      <div class="tab-group single">
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>KI</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-body">
+          <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>KI</button>
+          <button class="tab" hidden data-pack-app="ricorewi-radio" data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()" aria-hidden="true" tabindex="-1"></button><!-- erreichbar über die Unterreiter im Menü „KI“; Markierung für die Paketlogik -->
+        </div>
+      </div>
+      <div class="tab-group">
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-mobile-screen-button"></i><span>Apps &amp; Kanäle</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-body">
+          <button class="tab" data-tab="apps" onclick="cmsTab('apps',this);window.AppsManager?.render?.()"><i class="fas fa-mobile-screen"></i>Apps</button>
+          <button class="tab" data-pack-app="ricorewi-radio" data-tab="alexa" onclick="cmsTab('alexa',this);window.AlexaManager?.render()"><i class="fab fa-amazon"></i>Alexa-Skill</button>
+          <button class="tab" data-pack="ricorewi-radio" data-tab="directory" onclick="cmsTab('directory',this);window.DirectoryManager?.render()"><i class="fas fa-tower-broadcast"></i>Radioverzeichnis<span id="dmTabBadge" class="dm-badge" hidden></span></button>
+          <button class="tab" data-tab="social" onclick="cmsTab('social',this)"><i class="fas fa-share-nodes"></i>Social</button>
+        </div>
+      </div>
+      <div class="tab-group single" data-feature="radio" hidden>
+        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-radio"></i><span>Radio</span><i class="fas fa-chevron-down tg-chev"></i></div>
+        <div class="tab-group-body">
+          <button class="tab" data-tab="radio" onclick="cmsTab('radio',this);window.RadioAdmin?.load()"><i class="fas fa-tower-broadcast"></i>Sender &amp; Sendeplan</button>
+        </div>
+      </div>
+      <div id="tcMenuHost"></div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-sliders"></i><span>Einstellungen</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
@@ -112,15 +112,6 @@
           <button class="tab" data-tab="seo" onclick="cmsTab('seo',this);window.SystemManager?.loadSeo()"><i class="fas fa-magnifying-glass-chart"></i>SEO &amp; Suche</button>
           <button class="tab" data-tab="legal" onclick="cmsTab('legal',this)"><i class="fas fa-scale-balanced"></i>Rechtliches</button>
           <button class="tab" data-pack="ricorewi-radio" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
-        </div>
-      </div>
-      <div class="tab-group">
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-mobile-screen-button"></i><span>Apps &amp; Kanäle</span><i class="fas fa-chevron-down tg-chev"></i></div>
-        <div class="tab-group-body">
-          <button class="tab" data-tab="apps" onclick="cmsTab('apps',this);window.AppsManager?.render?.()"><i class="fas fa-mobile-screen"></i>Apps</button>
-          <button class="tab" data-pack-app="ricorewi-radio" data-tab="alexa" onclick="cmsTab('alexa',this);window.AlexaManager?.render()"><i class="fab fa-amazon"></i>Alexa-Skill</button>
-          <button class="tab" data-pack="ricorewi-radio" data-tab="directory" onclick="cmsTab('directory',this);window.DirectoryManager?.render()"><i class="fas fa-tower-broadcast"></i>Radioverzeichnis<span id="dmTabBadge" class="dm-badge" hidden></span></button>
-          <button class="tab" data-tab="social" onclick="cmsTab('social',this)"><i class="fas fa-share-nodes"></i>Social</button>
         </div>
       </div>
       <div class="tab-group">

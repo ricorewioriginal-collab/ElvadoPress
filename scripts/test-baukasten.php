@@ -92,5 +92,17 @@ set_theme_mod('home_sidebar',false);
 $hk=[];add_action('elvado_bk_after_section',function($sec) use(&$hk){ $hk[]=$sec['type']; });add_action('elvado_bk_after_sections',function(){ echo '<!--bk-plugin-->'; });
 update_option('elvado_bk_layout',elvado_bk_clean_layout([['type'=>'text','props'=>['body'=>'Hallo']],['type'=>'cta','props'=>['title'=>'X']]]));
 $bq=page('/')['body'];t('Plugin-Haken je Abschnitt und am Ende',$hk===['text','cta']&&str_contains($bq,'<!--bk-plugin-->'));
+// Entwurf (Live Builder): nur in der geprüften Vorschau sichtbar, öffentlich unverändert; Veröffentlichen/Verwerfen
+update_option('elvado_bk_layout',elvado_bk_clean_layout([['type'=>'text','props'=>['title'=>'Öffentlich','body'=>'A']]]));
+t('Ohne Entwurf kein Entwurfsstand',elvado_bk_draft_layout()===null);
+$dr=elvado_bk_save_draft([['type'=>'text','props'=>['title'=>'Nur Entwurf','body'=>'B']]]);
+t('Entwurf gespeichert und bereinigt',count($dr)===1&&elvado_bk_draft_layout()[0]['props']['title']==='Nur Entwurf');
+t('Öffentlich bleibt der veröffentlichte Stand',elvado_bk_active_layout()[0]['props']['title']==='Öffentlich'&&str_contains(page('/')['body'],'Öffentlich')&&!str_contains(page('/')['body'],'Nur Entwurf'));
+$GLOBALS['rrw_wp_preview_theme']='elvado-baukasten';
+t('Geprüfte Vorschau zeigt den Entwurf',elvado_bk_active_layout()[0]['props']['title']==='Nur Entwurf'&&str_contains(page('/')['body'],'Nur Entwurf'));
+$GLOBALS['rrw_wp_preview_theme']='anderes-theme';
+t('Vorschau eines anderen Themes zeigt den Entwurf nicht',elvado_bk_active_layout()[0]['props']['title']==='Öffentlich');
+unset($GLOBALS['rrw_wp_preview_theme']);
+elvado_bk_discard_draft();t('Verwerfen entfernt den Entwurf',elvado_bk_draft_layout()===null);
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);
