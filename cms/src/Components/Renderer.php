@@ -123,7 +123,7 @@ final class Renderer
                 continue;
             }
             $target = isset($m['target']) && preg_match('/^[ .#a-z0-9_>-]{0,40}$/i', (string)$m['target']) === 1 ? (string)$m['target'] : '';
-            $decl = fn(mixed $v): string => self::decl($m, $v);
+            $decl = fn(mixed $v): string => self::decl($m, $v, $selector !== null);   // gebundene Bereiche: !important – die Website setzt ihre eigenen Regeln oft später (z. B. per Skript)
             $bv = $decl($inst['props'][$f['k']] ?? null);
             if ($bv !== '') {
                 $base .= $sel . $target . '{' . $bv . '}';
@@ -143,7 +143,7 @@ final class Renderer
     }
 
     /** @param array<string,mixed> $m */
-    private static function decl(array $m, mixed $v): string
+    private static function decl(array $m, mixed $v, bool $important = false): string
     {
         if ($v === null || $v === '' || $v === false || (isset($m['tpl']) && ($v === '0' || $v === 0)) || (!empty($m['skip_zero']) && (int)$v === 0)) {
             return '';
@@ -154,7 +154,7 @@ final class Renderer
         } elseif (is_numeric($v) && isset($m['unit'])) {
             $val .= (string)$m['unit'];
         }
-        return preg_match('/^#?[a-z0-9 %.,()-]{1,60}$/i', $val) === 1 ? $m['prop'] . ':' . $val . ';' : '';
+        return preg_match('/^#?[a-z0-9 %.,()-]{1,60}$/i', $val) === 1 ? $m['prop'] . ':' . $val . ($important ? '!important' : '') . ';' : '';
     }
 
     /** Neutrale Grundgestaltung der nativen Komponenten (Farben über CSS-Variablen der Seite, mit Rückfall). */
