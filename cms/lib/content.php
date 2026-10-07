@@ -83,7 +83,7 @@ function rrw_content_import_to_site(array $site,?string $onlySlug=null): array {
    Inhalte dürfen als Dateien im Repository gepflegt werden (Entwickler-Werkzeuge arbeiten über Git): cms/content/pages/<slug>/page.md und cms/content/posts/<slug>/post.md.
    Das Manifest cms/data/content-sync.json merkt sich je Datei den Stand des letzten Abgleichs; geänderte oder neue Dateien werden beim Veröffentlichen/Neuaufbau
    (rrw_publish, cms/rebuild.php im Deploy) und über api.php?action=content_pull in die Website übernommen. Beim allerersten Lauf wird nur der Ist-Stand gemerkt (nichts wird überschrieben). */
-function rrw_content_manifest_file(): string { return defined('RRW_CONTENT_MANIFEST')?(string)RRW_CONTENT_MANIFEST:__DIR__.'/../data/content-sync.json'; }
+function rrw_content_manifest_file(): string { return defined('RRW_CONTENT_MANIFEST')?(string)RRW_CONTENT_MANIFEST:(defined('RRW_CONTENT_DIR')?dirname((string)RRW_CONTENT_DIR).'/content-sync.json':__DIR__.'/../data/content-sync.json'); }   // Tests (RRW_CONTENT_DIR) schreiben nie in die echten Daten
 function rrw_content_manifest(): array { $f=rrw_content_manifest_file();$j=is_file($f)?json_decode((string)file_get_contents($f),true):null;return is_array($j)?$j+['pages'=>[],'posts'=>[],'config'=>[]]:['pages'=>[],'posts'=>[],'config'=>[],'fresh'=>true]; }
 function rrw_content_manifest_save(array $m): void { unset($m['fresh']);$d=dirname(rrw_content_manifest_file());if(!is_dir($d))return;rrw_write_atomic(rrw_content_manifest_file(),json_encode($m,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n"); }
 function rrw_content_hash(string $txt): string { return sha1(str_replace(["\r\n","\r"],"\n",$txt)); }
