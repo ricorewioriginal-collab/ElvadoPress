@@ -105,9 +105,26 @@ final class DbConfig
     /** Standard-Präfix für neue Installationen (unterscheidet sich vom Präfix der WordPress-Schicht des CMS „wp_“). */
     public const DEFAULT_PREFIX = 'wpk_';
 
+    /** Kennung der Website dieser Anfrage ('' = Hauptwebsite; Multisite, lib/sites.php). */
+    private function siteId(): string
+    {
+        return function_exists('rrw_site_current') ? rrw_site_current() : '';
+    }
+
+    /** Standard-Präfix: Hauptwebsite „wpk_“, weitere Websites ein eigenes, aus der Kennung abgeleitetes (z. B. „wpk3fa91c_“) – gleiche Datenbank, getrennte Tabellen. */
+    public function defaultPrefix(): string
+    {
+        $id = $this->siteId();
+        return $id === '' ? self::DEFAULT_PREFIX : 'wpk' . substr(md5($id), 0, 6) . '_';
+    }
+
+    /** Die Verbindung gehört dem ganzen CMS: weitere Websites nutzen die Datei der Hauptwebsite. */
     public function sharedFile(): string
     {
-        return defined('RRW_DB_CONFIG_FILE') ? (string)RRW_DB_CONFIG_FILE : dirname($this->engine->stateDir()) . '/database.local.php';
+        if (defined('RRW_DB_CONFIG_FILE')) {
+            return (string)RRW_DB_CONFIG_FILE;
+        }
+        return ($this->siteId() !== '' ? rrw_sites_base() . '/data' : dirname($this->engine->stateDir())) . '/database.local.php';
     }
 
     /** Gemeinsame Datenbank-Einstellungen des CMS (nur MySQL/MariaDB). @return array{host:string,name:string,user:string,pass:string,cms_prefix:string}|null */
@@ -149,7 +166,20 @@ final class DbConfig
     {
         $sh = $this->shared();
         if ($sh !== null && strcasecmp($sh['cms_prefix'], $prefix) === 0) {
-            return 'Das Tabellenpräfix „' . $prefix . '“ nutzt schon die WordPress-Schicht des CMS in dieser Datenbank. Bitte ein anderes wählen (Vorschlag: ' . self::DEFAULT_PREFIX . ').';
+            return 'Das Tabellenpräfix „' . $prefix . '“ nutzt schon die WordPress-Schicht des CMS in dieser Datenbank. Bitte ein anderes wählen (Vorschlag: ' . $this->defaultPrefix() . ').';
+        }
+        if (function_exists('rrw_sites_registry')) {   // andere Websites derselben Datenbank
+            $me = $this->siteId();
+            foreach (array_merge([''], array_column(rrw_sites_registry(), 'id')) as $id) {
+                if ($id === $me) {
+                    continue;
+                }
+                $f = rrw_site_dir('data', $id) . '/.wp-engine/db.json';
+                $d = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+                if (is_array($d) && strcasecmp((string)($d['prefix'] ?? ''), $prefix) === 0) {
+                    return 'Das Tabellenpräfix „' . $prefix . '“ nutzt schon die WordPress-Engine einer anderen Website in dieser Datenbank. Bitte ein anderes wählen (Vorschlag: ' . $this->defaultPrefix() . ').';
+                }
+            }
         }
         return null;
     }
@@ -221,7 +251,7 @@ final class DbConfig
         if ($sh === null) {
             return $in;
         }
-        $prefix = trim((string)($in['prefix'] ?? '')) !== '' ? (string)$in['prefix'] : ($this->enginePrefix() ?? self::DEFAULT_PREFIX);
+        $prefix = trim((string)($in['prefix'] ?? '')) !== '' ? (string)$in['prefix'] : ($this->enginePrefix() ?? $this->defaultPrefix());
         return ['host' => $sh['host'], 'name' => $sh['name'], 'user' => $sh['user'], 'pass' => $sh['pass'], 'prefix' => $prefix];
     }
 
@@ -277,7 +307,7 @@ final class DbConfig
     public function overview(): array
     {
         $sh = $this->shared();
-        return ['shared' => $sh !== null, 'legacy' => $sh === null && $this->legacy() !== null, 'cms_prefix' => $sh['cms_prefix'] ?? '', 'default_prefix' => self::DEFAULT_PREFIX, 'suggest_prefix' => $this->enginePrefix() ?? self::DEFAULT_PREFIX];
+        return ['shared' => $sh !== null, 'legacy' => $sh === null && $this->legacy() !== null, 'cms_prefix' => $sh['cms_prefix'] ?? '', 'default_prefix' => $this->defaultPrefix(), 'suggest_prefix' => $this->enginePrefix() ?? $this->defaultPrefix(), 'site' => $this->siteId()];
     }
 
     /** Schlüssel und Salze von WordPress: einmal erzeugen, geschützt speichern. @return array<string,string> */

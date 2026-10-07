@@ -329,6 +329,7 @@ class RRW_SQL_Translator {
 /** Gespeicherte Datenbank-Konfiguration des CMS (cms/data/database.local.php bzw. RRW_DB_CONFIG_FILE) oder null. */
 function rrw_wp_db_config(): ?array {
     static $c=false;if($c!==false)return $c;$c=null;
+    if(function_exists('rrw_site_current')&&rrw_site_current()!=='')return $c;   // weitere Website: eigene SQLite-Ablage (RRW_WP_DATA) – keine gemeinsamen Tabellen mit der Hauptwebsite
     $f=defined('RRW_DB_CONFIG_FILE')?(string)RRW_DB_CONFIG_FILE:dirname(__DIR__,2).'/data/database.local.php';
     if(is_file($f)){ $x=@include $f;if(is_array($x)&&in_array($x['driver']??'',['mysql','mariadb'],true))$c=$x; }
     return $c;

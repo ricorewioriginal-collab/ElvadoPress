@@ -14,6 +14,10 @@ function rrw_wpe(?string $cmsDir = null, ?string $dataDir = null, bool $fresh = 
     static $e = null;
     if ($e === null || $fresh) {
         $cms = $cmsDir ?? dirname(__DIR__);
+        if ($dataDir === null && !defined('RRW_DATA_DIR') && is_file($cms . '/lib/sites.php')) {   // weitere Website: eigener Engine-Zustand (state/db/keys) unter ihren Daten
+            require_once $cms . '/lib/sites.php';
+            $dataDir = rrw_site_current() !== '' ? rrw_site_dir('data') : null;
+        }
         $e = new Engine($cms, $dataDir ?? (defined('RRW_DATA_DIR') ? (string)RRW_DATA_DIR : $cms . '/data'));
     }
     return $e;

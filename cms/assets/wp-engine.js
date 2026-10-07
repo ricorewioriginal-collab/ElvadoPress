@@ -98,7 +98,7 @@ window.WpEngine=(()=>{
       +(ov.shared?'<p class="hint">Gemeinsame Datenbank: CMS und WordPress-Kern nutzen dieselbe Verbindung ('+goDb+'); WordPress hat eigene Tabellen mit dem Präfix <code>'+esc(db.prefix)+'</code>.</p>'
       :'<p class="hint">Diese Verbindung wird noch getrennt von den Datenbank-Einstellungen des CMS gespeichert. <button class="btn-g" type="button" onclick="WpEngine.dbUnify()"'+dis+'><i class="fas fa-link"></i> Gemeinsame Datenbank verwenden</button></p>');
   }else if(ov.shared){
-    dbForm='<p><b>Gemeinsame Datenbank</b> <code>'+esc(db.name)+'</code> auf '+esc(db.host)+' – dieselbe Verbindung wie das CMS ('+goDb+'). Es wird nichts überschrieben: WordPress legt eigene Tabellen mit eigenem Präfix an.</p>'
+    dbForm='<p><b>Gemeinsame Datenbank</b> <code>'+esc(db.name)+'</code> auf '+esc(db.host)+' – dieselbe Verbindung wie das CMS ('+goDb+'). Es wird nichts überschrieben: WordPress legt eigene Tabellen mit eigenem Präfix an.'+(ov.site?' Diese Website (<code>'+esc(ov.site)+'</code>) hat ihre eigene WordPress-Engine mit eigenen Tabellen.':'')+'</p>'
       +'<div style="display:grid;gap:6px;max-width:420px">'+f('Prefix','Tabellenpräfix für WordPress',db.prefix)+'</div>'
       +'<p class="hint" style="margin-top:4px">Das Präfix <code>'+esc(ov.cms_prefix||'wp_')+'</code> nutzt die WordPress-Schicht des CMS – wähle ein anderes (Vorschlag: <code>'+esc(ov.default_prefix||'wpk_')+'</code>).</p>'+btns;
   }else if(ov.legacy){
