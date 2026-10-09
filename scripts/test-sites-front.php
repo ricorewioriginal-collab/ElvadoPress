@@ -62,6 +62,7 @@ rrw_site_update('zweite', ['enabled' => false]);
 $d = get('zweite.test');
 t('Deaktivierte Website: Domain fällt auf die Hauptwebsite zurück', str_contains($d['body'], 'Haupt-Beitrag'));
 $serverErr = (string)@file_get_contents("$tmp/server.err");
+$serverErr = preg_replace('/^.*JIT is incompatible with third party extensions.*$/m', '', $serverErr);   // Umgebungsmeldung des CI-Runners (Erweiterung überschreibt zend_execute_ex), kein CMS-Fehler
 preg_match_all('/^.*(Fatal|Warning|Parse error).*$/m', $serverErr, $errLines);
 t('Server-Fehlerprotokoll ohne PHP-Fehler', !$errLines[0], implode(' | ', array_slice($errLines[0], 0, 5)));
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
