@@ -3,7 +3,7 @@
 // Die Einstellungen liegen in der Sektion "apps" (managed) und werden von den Apps über die öffentliche Aktion app_config abgeholt.
 window.AppsManager=(()=>{
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const S={targets:null,ov:null,managed:{},busy:false,err:'',tel:{usage:false,errors:false,listen:false,geo:true},stats:null};
+ const S={targets:null,ov:null,managed:{},busy:false,err:'',tel:{usage:false,errors:false,geo:true},stats:null};
  const api=(a,b)=>window.cmsApi(a,b);
  const toast=(m,bad)=>{try{window.cmsToast(m,!!bad);}catch(e){}};
  const size=n=>{n=+n||0;return n>=1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':n>=1024?Math.round(n/1024)+' KB':n?n+' B':'–';};
@@ -20,13 +20,12 @@ window.AppsManager=(()=>{
   gastro:{label:'Restaurant / Café',tabs:[['Start','home','/'],['Karte','menu','/speisekarte/'],['Anfahrt','map','/anfahrt/'],['Reservieren','phone','/reservierung/']]},
   dienst:{label:'Dienstleister / Portfolio',tabs:[['Start','home','/'],['Leistungen','star','/leistungen/'],['Referenzen','play','/referenzen/'],['Kontakt','mail','/kontakt/']]}
  };
- const FEATURES={directory:'Radioverzeichnis (Suche, Fremd-Streams)',assistant:'KI-Assistent',report:'Sender melden',cast:'Cast (nur Android)'};
  async function load(){
   S.err='';
   try{S.ov=await api('apps_overview');}catch(e){S.err=e.message||'Laden fehlgeschlagen';S.ov=null;}
   S.managed={};
   (S.ov?S.ov.items:[]).forEach(r=>{S.managed[key(r)]=JSON.parse(JSON.stringify(r.config));});
-  const t=(root().apps&&root().apps.telemetry)||{};S.tel={usage:!!t.usage,errors:!!t.errors,listen:!!t.listen,geo:t.geo!==false};
+  const t=(root().apps&&root().apps.telemetry)||{};S.tel={usage:!!t.usage,errors:!!t.errors,geo:t.geo!==false};
   try{S.stats=await api('apps_stats');}catch(e){S.stats=null;}
   if(S.targets===null&&(S.ov?S.ov.items:[]).some(r=>r.own&&r.type==='content')){try{S.targets=(await api('wp_link_targets')).items||[];}catch(e){S.targets=[];}}
  }
@@ -39,21 +38,13 @@ window.AppsManager=(()=>{
   return '<div class="ap-health">'+h.map(x=>`<div class="dm-meta" style="color:${HC[x.level]||HC.info}">${HI[x.level]||''} ${esc(x.text)}</div>`).join('')+'</div>';
  }
  function card(r){
-  if(r.own)return `<div class="dm-row"><div class="dm-head"><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b><span class="dm-pill">eigene App</span><span class="dm-pill grey">${({web:'Website-App',content:'Baukasten-App'})[r.type]||'Radio-App'}</span></div><div class="dm-meta">Website ${esc(r.origin||'–')} · gebaut und heruntergeladen wird sie unter „Eigene App bauen“ (GitHub). Hinweise, Wartung und weitere Einstellungen unten gelten ohne neuen Build.</div></div>`;
-  const m=r.meta||{},files=m.files||[];
-  const state=!m.available?'<span class="dm-pill grey">noch nicht gebaut</span>':files.length&&files.every(f=>f.exists&&f.size_ok&&f.sha_ok!==false)?'<span class="dm-pill">online</span>':'<span class="dm-pill red">Datei fehlt oder unvollständig</span>';
-  const rows=files.map(f=>`<div class="ap-file"><span><b>${esc(f.label)}</b> ${esc(f.name)} · ${size(f.size)}${dlTxt(f.name)}${f.exists?'':' · <b style="color:#e0245e">fehlt auf dem Server</b>'}${f.exists&&!f.size_ok?' · <b style="color:#e0245e">Größe stimmt nicht</b>':''}</span>${f.exists?`<a class="btn-g" href="${esc((r.origin||'')+f.url)}" target="_blank" rel="noopener"><i class="fas fa-download"></i></a>`:''}${f.sha256?`<button class="btn-g" title="Prüfsumme kopieren" onclick="AppsManager.copy('${esc(f.sha256)}')"><i class="fas fa-fingerprint"></i></button>`:''}</div>`).join('');
-  const sign=r.platform==='android'?(m.signing==='stable'?'<span class="dm-pill" title="Die APK ist mit dem festen Schlüssel signiert">Signatur stabil · Selbst-Update möglich</span>':m.signing==='debug'?'<span class="dm-pill red" title="Schlüssel fehlt: Updates lassen sich nicht über die installierte App einspielen">Debug-Signatur · Selbst-Update nicht möglich</span>':m.available?'<span class="dm-pill grey">Signatur wird beim nächsten Build angezeigt</span>':''):'';
-  return `<div class="dm-row"><div class="dm-head"><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b>${state}${sign}${r.shown?'':'<span class="dm-pill grey">im Portal ausgeblendet</span>'}</div>
-   <div class="dm-meta">Version <b>${esc(m.version||'–')}</b> · gebaut ${m.built_at?esc(when(m.built_at)):'–'}${m.package?` · Paket ${esc(m.package)}`:''}${m.cert_sha256?` · Zertifikat <code title="${esc(m.cert_sha256)}">${esc(m.cert_sha256.slice(0,8))}…${esc(m.cert_sha256.slice(-4))}</code>`:''}</div>${health(r)}${rows}</div>`;
+  return `<div class="dm-row"><div class="dm-head"><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b><span class="dm-pill">eigene App</span><span class="dm-pill grey">${({web:'Website-App',content:'Baukasten-App'})[r.type]||'Website-App'}</span></div><div class="dm-meta">Website ${esc(r.origin||'–')} · gebaut und heruntergeladen wird sie unter „Eigene App bauen“ (GitHub). Hinweise, Wartung und weitere Einstellungen unten gelten ohne neuen Build.</div></div>`;
  }
  function cfgBlock(r){
-  const c=S.managed[key(r)]||r.config,k=key(r),own=!!r.own,radio=(r.type||'radio')==='radio';
-  const feats=Object.keys(FEATURES).filter(f=>f!=='directory'||r.directory).map(f=>`<label class="ap-check"><input type="checkbox" ${c.features[f]!==false?'checked':''} onchange="AppsManager.set('${esc(k)}','features.${f}',this.checked)"> ${esc(FEATURES[f])}</label>`).join('');
+  const c=S.managed[key(r)]||r.config,k=key(r),own=!!r.own;
   const n=c.notice||{};
-  return `<details class="ap-det"><summary><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b> <span class="dm-meta">${n.enabled?'Hinweis aktiv · ':''}${(c.maintenance||{}).enabled?'Wartungsmodus an · ':''}${own?(radio?'Radio-App':'Website-App'):(c.min_version?'Mindestversion '+esc(c.min_version):'keine Mindestversion')}</span></summary>
+  return `<details class="ap-det"><summary><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b> <span class="dm-meta">${n.enabled?'Hinweis aktiv · ':''}${(c.maintenance||{}).enabled?'Wartungsmodus an · ':''}${r.type==='content'?'Baukasten-App':'Website-App'}</span></summary>
    <div class="ap-body">
-    ${(own&&!radio)?'':`<div class="ap-sub">Funktionen in der App</div><div class="ap-checks">${feats}</div>`}
     <div class="ap-sub">Hinweis an alle Nutzer dieser App</div>
     <label class="ap-check"><input type="checkbox" ${n.enabled?'checked':''} onchange="AppsManager.set('${esc(k)}','notice.enabled',this.checked)"> Hinweis anzeigen (einmal pro Gerät, bis du den Text änderst)</label>
     <div class="ap-grid">
@@ -86,10 +77,9 @@ window.AppsManager=(()=>{
       <div class="dm-meta">Schützt vor einem versehentlich oder bösartig getauschten Schlüssel: Weicht das Zertifikat eines neuen Builds ab, wird kein Update angeboten und es erscheint eine rote Warnung.</div></div>`:''}
     </div>
     `}
-    <div class="ap-sub">App-Builder – Aussehen &amp; Startseite</div>
+    <div class="ap-sub">Inhalte &amp; Aussehen</div>
     ${(own&&window.ElvadoAi)?storeAi(k):''}
     ${(own&&r.type==='content')?ownBlock(k):((own&&r.type==='web')?ownBlock(k):'')}
-    ${(window.AppBuilder&&(!own||radio))?window.AppBuilder.html(k):''}
    </div></details>`;
  }
  const hms=s=>{s=Math.round(+s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h} h ${m} min`:m?`${m} min`:`${s} s`;};
@@ -97,14 +87,6 @@ window.AppsManager=(()=>{
  function geoBox(){
   const g=(S.stats&&S.stats.geo_db)||{};
   return `<div class="dm-meta">Geodatenbank: ${g.installed?`<b>installiert</b> (${bytes(g.size)}, Stand ${esc(when(g.updated))})`:'<b>nicht installiert</b> – ohne sie wird keine Herkunft erfasst'} · <button class="btn-g" onclick="AppsManager.geoUpdate(this)"><i class="fas fa-download"></i> ${g.installed?'Aktualisieren':'Herunterladen'} (ca. 60 MB)</button><br>IP-Adressen werden nur für die Umrechnung genutzt und nicht gespeichert; gespeichert wird nur das Gebiet. Gruppen unter 3 Geräten werden nicht einzeln gezeigt. <span style="opacity:.8">IP Geolocation by DB-IP (CC BY 4.0).</span></div>`;
- }
- function listenBox(r){
-  const l=((S.stats&&S.stats.listen)||{})[key(r)];if(!l)return '';
-  const max=Math.max(1,...(l.stations||[]).map(x=>x.seconds));
-  const bars=(l.stations||[]).slice(0,10).map(x=>`<div class="ap-bar"><span>${esc(x.id)}</span><i style="width:${Math.max(2,Math.round(x.seconds/max*100))}%"></i><b>${hms(x.seconds)} · ${x.listeners} Hörer</b></div>`).join('');
-  const dmax=Math.max(1,...(l.daily||[]).map(x=>x.seconds));
-  const days=(l.daily||[]).slice(-30).map(x=>`<u title="${esc(x.date)}: ${hms(x.seconds)}, ${x.listeners} Hörer" style="height:${Math.max(3,Math.round(x.seconds/dmax*100))}%"></u>`).join('');
-  return `<div class="ap-sub">Hörstatistik (30 Tage)</div><div class="dm-meta">Hörer <b>${l.listeners}</b> · Hördauer gesamt <b>${hms(l.seconds)}</b> · je Hörer <b>${hms(l.avg_per_listener)}</b> (pro Tag <b>${hms(l.avg_per_listener_day)}</b>) · Ø Sitzung <b>${hms(l.avg_session)}</b> · ${l.sessions} Sitzungen</div><div class="ap-days">${days}</div><div class="ap-bars">${bars}</div>`;
  }
  function geoRows(r){
   const g=((S.stats&&S.stats.geo)||{})[key(r)];if(!g)return '';
@@ -124,34 +106,24 @@ window.AppsManager=(()=>{
  }
  function stats(){
   const st=S.stats||{usage:{},errors:[]};
-  const rows=S.ov.items.map(r=>{const u=(st.usage||{})[key(r)];if(!u)return '';const v=Object.keys(u.versions||{}).map(x=>`${esc(x)}: <b>${u.versions[x]}</b>`).join(' · ');return `<div class="dm-row"><div class="dm-head"><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b></div><div class="dm-meta">Geräte gesamt <b>${u.total}</b> · aktiv 7 Tage <b>${u.active7}</b> · aktiv 30 Tage <b>${u.active30}</b></div><div class="dm-meta">Neue Geräte (7 Tage) <b>${u.new7||0}</b> · Versionen (30 Tage): ${v||'–'}</div>${listenBox(r)}${geoRows(r)}</div>`;}).join('');
+  const rows=S.ov.items.map(r=>{const u=(st.usage||{})[key(r)];if(!u)return '';const v=Object.keys(u.versions||{}).map(x=>`${esc(x)}: <b>${u.versions[x]}</b>`).join(' · ');return `<div class="dm-row"><div class="dm-head"><b>${esc(r.brand_name)} · ${esc(r.platform_name)}</b></div><div class="dm-meta">Geräte gesamt <b>${u.total}</b> · aktiv 7 Tage <b>${u.active7}</b> · aktiv 30 Tage <b>${u.active30}</b></div><div class="dm-meta">Neue Geräte (7 Tage) <b>${u.new7||0}</b> · Versionen (30 Tage): ${v||'–'}</div>${geoRows(r)}</div>`;}).join('');
   const errs=(st.errors||[]).map(e=>`<div class="dm-row"><div class="dm-head"><b>${esc(e.message)}</b><span class="dm-pill grey">${esc(e.kind)}</span><span class="dm-pill">${e.count}×</span></div><div class="dm-meta">${esc(e.brand)} · ${esc(e.platform)}${e.where?' · '+esc(e.where):''} · zuletzt ${esc(when(e.last*1000))} · Versionen: ${esc(Object.keys(e.versions||{}).join(', ')||'–')}${Object.keys(e.os||{}).length?' · '+esc(Object.keys(e.os).join(', ')):''}</div>${e.stack?`<details><summary class="dm-meta">Details</summary><pre class="ap-pre">${esc(e.stack)}</pre></details>`:''}</div>`).join('');
   return `<div class="ap-h">Datenschutz &amp; Statistik</div>
-   <p class="hint">Beides ist standardmäßig <b>aus</b>. Es werden keine Namen, IP-Adressen oder Hörverläufe gespeichert: Jede App erzeugt eine zufällige Kennung, die auf dem Server zusätzlich gesalzen und gehasht wird; gezählt wird nur „Gerät war an Tag X mit Version Y aktiv“. Fehlerberichte enthalten nur Fehlertext, Version und Android-/Windows-Version. Bitte nenne das in der Datenschutzerklärung.</p>
+   <p class="hint">Beides ist standardmäßig <b>aus</b>. Es werden keine Namen oder IP-Adressen gespeichert: Jede App erzeugt eine zufällige Kennung, die auf dem Server zusätzlich gesalzen und gehasht wird; gezählt wird nur „Gerät war an Tag X mit Version Y aktiv“. Fehlerberichte enthalten nur Fehlertext, Version und Android-/Windows-Version. Bitte nenne das in der Datenschutzerklärung.</p>
    <label class="ap-check"><input type="checkbox" ${S.tel.usage?'checked':''} onchange="AppsManager.tel('usage',this.checked)"> Anonyme Nutzungszahlen (Versionen, aktive Geräte)</label>
-   <label class="ap-check"><input type="checkbox" ${S.tel.errors?'checked':''} onchange="AppsManager.tel('errors',this.checked)"> Fehlerberichte aus den Apps sammeln (Abspielfehler, Abstürze)</label>
-   <label class="ap-check"><input type="checkbox" ${S.tel.listen?'checked':''} onchange="AppsManager.tel('listen',this.checked)"> Hörstatistik (meistgehörte Sender, Hördauer – nur zusammen mit „Nutzungszahlen“)</label>
+   <label class="ap-check"><input type="checkbox" ${S.tel.errors?'checked':''} onchange="AppsManager.tel('errors',this.checked)"> Fehlerberichte aus den Apps sammeln (Abstürze, Netzwerkfehler)</label>
    <label class="ap-check"><input type="checkbox" ${S.tel.geo?'checked':''} onchange="AppsManager.tel('geo',this.checked)"> Herkunft der Geräte (Bundesland, Stadt – nur intern im CMS, nur zusammen mit „Nutzungszahlen“)</label>
    ${geoBox()}
    <div class="ap-h" style="font-size:.9rem">Nutzung</div><div class="dm-list">${rows||'<div class="dm-empty">Noch keine Daten.</div>'}</div>
    <div class="ap-h" style="font-size:.9rem">Fehler <button class="btn-g" onclick="AppsManager.clear('errors')"><i class="fas fa-trash"></i> Fehler leeren</button> <button class="btn-g" onclick="AppsManager.clear('usage')"><i class="fas fa-trash"></i> Zahlen leeren</button></div><div class="dm-list">${errs||'<div class="dm-empty">Keine Fehler gemeldet.</div>'}</div>`;
  }
- function images(){
-  const B=root().branding||{},items=(root().brands&&root().brands.items)||[];
-  const img=(u,l)=>`<figure class="ap-img">${u?`<img src="${esc(u)}" alt="">`:'<div class="ap-none">–</div>'}<figcaption>${esc(l)}</figcaption></figure>`;
-  const main=items[0]||{};
-  let h=`<div class="dm-row"><div class="dm-head"><b>${esc(main.name||'Mein Radio')}</b><span class="dm-pill grey">Hauptmarke</span></div><div class="ap-imgs">${img(B.android_app_icon,'App-Icon')}${img(B.android_startscreen,'Startbild')}${img(B.windows_logo||B.android_inapp_logo,'Logo (Windows/In-App)')}</div><div class="dm-actions"><button class="btn-g" onclick="cmsTab('branding')"><i class="fas fa-pen"></i> Im Branding ändern</button></div></div>`;
-  items.slice(1).forEach(b=>{h+=`<div class="dm-row"><div class="dm-head"><b>${esc(b.name||b.id)}</b></div><div class="ap-imgs">${img(b.touch_icon||b.favicon,'App-Icon')}${img(b.social_image||b.og_image,'Startbild / Social')}${img(b.logo,'Logo')}</div><div class="dm-actions"><button class="btn-g" onclick="cmsTab('brands')"><i class="fas fa-pen"></i> Unter Domains &amp; Branding ändern</button></div></div>`;});
-  return h;
- }
  function draw(){
   const host=document.getElementById('appsManager');if(!host)return;
   if(!S.ov){host.innerHTML=`<div class="dm-empty">${esc(S.err||'Lädt …')}</div>`;return;}
   host.innerHTML=`<div class="ap-h">Übersicht <button class="btn-g" onclick="AppsManager.refresh()"><i class="fas fa-rotate"></i> Aktualisieren</button></div><div class="dm-list">${S.ov.items.map(card).join('')}</div>
-   <div class="ap-h">Funktionen, Hinweise, Wartung, Ausrollen &amp; App-Builder</div><p class="hint">Gilt je App und Plattform. „Speichern“ oben rechts übernimmt alles; die Apps lesen es beim nächsten Start.</p><div class="dm-list">${S.ov.items.map(cfgBlock).join('')}</div>
+   <div class="ap-h">Hinweise, Wartung, Ausrollen &amp; Inhalte</div><p class="hint">Gilt je App und Plattform. „Speichern“ oben rechts übernimmt alles; die Apps lesen es beim nächsten Start.</p><div class="dm-list">${S.ov.items.map(cfgBlock).join('')}</div>
    ${stats()}
-   ${keyHelp()}
-   ${S.ov.items.some(r=>!r.own)?`<div class="ap-h">Bilder der Apps</div><p class="hint">Icon, Startbild und Logo werden beim nächsten App-Bau übernommen.</p><div class="dm-list">${images()}</div>`:''}`;
+   ${keyHelp()}`;
  }
  function set(k,path,val){
   const c=S.managed[k];if(!c)return;const p=path.split('.');let o=c;

@@ -12,10 +12,10 @@ function clean(array $in){ [$b,$e]=rrw_ab_clean_brand($in);return [$b,$e]; }
 
 t('Ohne Branding-Angaben bleibt der Eintrag unverändert (keine neuen Schlüssel)',function() use($base){
     [$b]=clean($base);foreach(['splash','headerLogo','iconBg','screenshots','shortDescription','fullDescription'] as $k)if(array_key_exists($k,$b))throw new RuntimeException("Schlüssel $k ohne Angabe");
-    eq(array_keys($b),['id','applicationId','appName','site','launchUrl','filePrefix','directory','icon','type','platforms','themeColor']);
+    eq(array_keys($b),['id','applicationId','appName','site','launchUrl','filePrefix','icon','type','platforms','themeColor']);
 });
-t('Branding gilt für jeden App-Typ (Radio und Website)',function() use($base){
-    foreach(['radio','web'] as $ty){
+t('Branding gilt für jeden App-Typ (Website und Baukasten)',function() use($base){
+    foreach(['content','web'] as $ty){
         [$b,$e]=clean(['type'=>$ty,'splash'=>'/cms/media/start.png','headerLogo'=>'/cms/media/lockup.png','iconBg'=>'#AABBCC','screenshots'=>['/cms/media/a.png','/cms/media/b.png','/cms/media/a.png'],'shortDescription'=>'<b>Kurz</b>','fullDescription'=>'Lang']+$base);
         eq($e,'',$ty);eq($b['splash'],'/cms/media/start.png');eq($b['headerLogo'],'/cms/media/lockup.png');eq($b['iconBg'],'#aabbcc');eq($b['screenshots'],['/cms/media/a.png','/cms/media/b.png'],'doppelte entfallen');
         eq($b['shortDescription'],'Kurz','HTML entfernt');eq($b['fullDescription'],'Lang');
@@ -35,9 +35,10 @@ t('Marken-IDs, die Gradle als Flavor ablehnt (test…, androidtest…, Build-Typ
 t('Texte werden begrenzt',function() use($base){
     [$b]=clean(['shortDescription'=>str_repeat('k',200),'fullDescription'=>str_repeat('l',9000)]+$base);eq(mb_strlen($b['shortDescription']),80);eq(mb_strlen($b['fullDescription']),4000);
 });
-t('Radioverzeichnis in der App nur mit RicoReWi-Paket',function() use($base){
-    [$b]=clean(['type'=>'radio','directory'=>true]+$base);eq($b['directory'],false);
-    [$b]=clean(['type'=>'web','directory'=>true]+$base);eq($b['directory'],false);
+t('Nur Website- und Baukasten-App: der frühere Typ „radio“ ist unbekannt',function() use($base){
+    [$b,$e]=clean(['type'=>'radio']+$base);eq($b,null);eq($e,'Unbekannter App-Typ.');
+    [$b]=clean(['type'=>'content']+$base);eq($b['type'],'content');
+    eq(array_keys(RRW_AB_TYPES),['web','content']);
 });
 t('Icon mit Hintergrundfarbe: deckende Fläche statt Transparenz, Icon bleibt sichtbar',function(){
     if(!function_exists('imagecreatetruecolor'))return;
@@ -67,11 +68,6 @@ t('Bilder: nur aus der Medienbibliothek, verkleinert, Seitenverhältnis bleibt (
     [$x,$e]=rrw_ab_image_png($root,'/cms/media/wide.png',512,false,5000,'Das Bild');eq($x,null);if(!str_contains($e,'zu klein'))throw new RuntimeException($e);
     exec('rm -rf '.escapeshellarg($root));
 });
-t('Eigene Sender: laut.fm-Kennung oder https-Stream, selbst eingetragen',function(){
-    $c=rrw_apps_custom_stations([['title'=>'Mein Sender','stream'=>'meinsender'],['title'=>'Zweiter','stream'=>'https://laut.fm/zweiter'],['title'=>'Dritter','stream'=>'https://stream.example.org/live'],['title'=>'Vierter','stream'=>'http://stream.example.org/live']]);
-    eq(array_column($c,'id'),['mein-sender','zweiter','dritter']);
-    eq($c[0]['stream'],'https://meinsender.stream.laut.fm/meinsender');eq($c[0]['laut'],'meinsender');eq($c[1]['stream'],'https://zweiter.stream.laut.fm/zweiter');eq($c[2]['stream'],'https://stream.example.org/live');eq(isset($c[2]['laut']),false);
-});
 t('Build: Branding-Dateien landen im Repository (Startbild, Screenshots, Store-Texte, Icon-Hintergrund) – nur wenn angegeben',function(){
     if(!function_exists('imagecreatetruecolor'))return;
     $root=sys_get_temp_dir().'/abst-'.bin2hex(random_bytes(4));mkdir($root.'/cms/media',0777,true);mkdir($root.'/data');
@@ -100,15 +96,15 @@ t('Build: Branding-Dateien landen im Repository (Startbild, Screenshots, Store-T
     eq($put,['android/brands.json','brands/meinapp/app_logo.png'],'ohne Branding nur wie bisher');
     exec('rm -rf '.escapeshellarg($root));
 });
-t('brands.json: von Hand ergänzte Angaben (z. B. "radio") bleiben erhalten, bekannte Felder folgen dem CMS (Typ-Wechsel entfernt "type")',function(){
-    $cur=[['id'=>'meinapp','applicationId'=>'de.alt.app','appName'=>'Alt','launchUrl'=>'https://alt.example/','site'=>'https://alt.example','filePrefix'=>'Alt','type'=>'web','themeColor'=>'#111111','radio'=>['podcast'=>true,'shops'=>[['title'=>'Shop','url'=>'https://s.example/']]]],
+t('brands.json: von Hand ergänzte Angaben bleiben erhalten, bekannte Felder folgen dem CMS',function(){
+    $cur=[['id'=>'meinapp','applicationId'=>'de.alt.app','appName'=>'Alt','launchUrl'=>'https://alt.example/','site'=>'https://alt.example','filePrefix'=>'Alt','type'=>'content','themeColor'=>'#111111','extra'=>['podcast'=>true,'shops'=>[['title'=>'Shop','url'=>'https://s.example/']]]],
           ['id'=>'andere','applicationId'=>'de.x.y','appName'=>'X','launchUrl'=>'https://x/','site'=>'https://x','filePrefix'=>'X']];
     $GLOBALS['rrw_ab_http']=fn($m,$path,$tok,$json)=>['code'=>200,'body'=>json_encode(['content'=>base64_encode(json_encode($cur)),'sha'=>'x']),'headers'=>[]];
-    [$b]=rrw_ab_clean_brand(['type'=>'radio','applicationId'=>'de.neu.app']+$GLOBALS['__base']);   // Radio-App, ohne Farbe
+    [$b]=rrw_ab_clean_brand(['type'=>'web','applicationId'=>'de.neu.app']+$GLOBALS['__base']);   // Website-App, ohne Farbe
     [$json,$err]=rrw_ab_merge_brands(['repo'=>'me/x','branch'=>'app-builder','token'=>'t'],$b);unset($GLOBALS['rrw_ab_http']);
     eq($err,'');$list=json_decode((string)$json,true);eq(count($list),2);eq($list[1]['id'],'andere','andere Marke unberührt');
-    $e=$list[0];eq($e['applicationId'],'de.neu.app');eq(array_key_exists('type',$e),false,'type entfernt');eq(array_key_exists('themeColor',$e),false,'Farbe entfernt');
-    eq($e['radio']['podcast'],true,'radio-Angaben bleiben');eq($e['radio']['shops'][0]['url'],'https://s.example/');
+    $e=$list[0];eq($e['applicationId'],'de.neu.app');eq($e['type'],'web','Typ folgt dem CMS');eq(array_key_exists('themeColor',$e),false,'Farbe entfernt');
+    eq($e['extra']['podcast'],true,'Handangaben bleiben');eq($e['extra']['shops'][0]['url'],'https://s.example/');
 });
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exit($fail?1:0);

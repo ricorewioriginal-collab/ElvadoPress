@@ -42,6 +42,8 @@
 ## Demo-Bereitstellung
 - **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig über AnMaCha Universal Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.
 
-## Radio-Reste in Alexa, Apps und Assistent
-- **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets) ist entfernt. Der Alexa-Skill-Baukasten arbeitet weiter mit vom Betreiber eingetragenen Streams (Sender), die Apps kennen noch den Typ „Radio-App“, die Datenordner-Listen kennen noch `directory`.
-- **Offen:** Diese Teile allgemein umbauen oder ins geplante Plugin „Elvado Radio / Audio“ verschieben; danach App-Typ „radio“ und `app-template` (Radio-Client) bereinigen. Der KI-Assistent ist bereits ein reiner Website-Assistent (ohne Sender, Sendeplan, Studiomail und Verzeichnis); sein Wissen über Apps und Alexa-Skill entfällt, bis diese umgebaut sind.
+## Radio-Reste in Alexa und in den nativen App-Clients
+- **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets), der Radio-Modus des KI-Assistenten und der Radio-App-Typ im App-Baukasten (Builder, Hörstatistik, Radio-Funktionen, Vorlagenkatalog) sind entfernt. Neue Apps sind Website- oder Baukasten-Apps; der frühere Typ „radio“ gilt als Website-App.
+- **Offen (Alexa):** Der Alexa-Skill-Baukasten arbeitet noch mit vom Betreiber eingetragenen Streams (Sender). Er soll auf allgemeine Website-Inhalte umgestellt werden.
+- **Offen (native Clients):** `app-template/` enthält noch den Radio-Player (Android `MainActivity`, `PlaybackService`, `Stations`, `Directory`, Cast/DLNA; Windows `MainWindow`, `RadioApi`, `RadioDirectory`, `NativePlayer`). Website- und Baukasten-Apps nutzen `WebShellActivity` bzw. die Web-Shell und brauchen ihn nicht. Das Entfernen setzt einen Build mit Android-SDK und .NET voraus (hier nicht möglich) und erfolgt getrennt.
+- **Offen (Assistent):** Sein Wissen über Apps und Alexa-Skill entfällt, bis diese umgebaut sind.

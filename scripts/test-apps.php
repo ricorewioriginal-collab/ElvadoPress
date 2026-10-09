@@ -69,41 +69,23 @@ t('Änderungsprotokoll fasst Änderungen zusammen (und schweigt bei keiner)',fun
     $s=rrw_apps_change_summary('apps',$a,$b);foreach(['Rollout 100 % → 20 %','Wartungsmodus an','3.0.1'] as $x)if(strpos($s,$x)===false)throw new RuntimeException("fehlt '$x' in: $s");
     eq(rrw_apps_change_summary('apps',$a,$a),'');
 });
-t('App-Builder: eigene Sender (https-Stream) werden bereinigt und ausgeliefert',function(){
-    $bld=fn($custom)=>rrw_apps_clean(['managed'=>['meinradio:android'=>['builder'=>['enabled'=>true,'stations'=>['order'=>['aa'],'custom'=>$custom]]]]])['managed']['meinradio:android']['builder']['stations'];
-    $c=$bld([
-        ['title'=>'Mein Stream','stream'=>'https://stream.example.org/live.mp3','logo'=>'https://example.org/l.png'],
-        ['title'=>'Ohne https','stream'=>'http://stream.example.org/live'],
-        ['title'=>'','stream'=>'https://stream.example.org/x'],
-        ['title'=>'Mein Stream','stream'=>'https://stream.example.org/zwei'],   // gleiche Kennung: entfällt
-        ['id'=>'../x','title'=>'Böse','stream'=>'https://stream.example.org/y'],
-        'kein Array',
-    ])['custom'];
-    eq(count($c),1);eq($c[0]['id'],'mein-stream');eq($c[0]['stream'],'https://stream.example.org/live.mp3');eq($c[0]['logo'],'https://example.org/l.png');
-    eq(count($bld(array_fill(0,40,['title'=>'xx','stream'=>'https://a.example.org/s']))['custom']),1,'doppelte Kennungen');
-    $many=[];for($i=0;$i<40;$i++)$many[]=['title'=>"Sender $i",'stream'=>"https://a.example.org/$i"];eq(count($bld($many)['custom']),20,'höchstens 20');
-});
-t('App-Builder: ohne eigene Sender bleibt die Ausgabe unverändert (kein custom-Schlüssel)',function(){
-    $st=rrw_apps_clean(['managed'=>['meinradio:android'=>['builder'=>['enabled'=>true,'stations'=>['order'=>['aa'],'hidden'=>['bb']]]]]])['managed']['meinradio:android']['builder']['stations'];
-    eq($st,['order'=>['aa'],'hidden'=>['bb']]);
+t('Inhalte der App: nur Tab-Leiste und Kopf/Fuß werden gespeichert, Radio-Builder-Felder entfallen',function(){
+    $b=rrw_apps_clean(['managed'=>['meinshop:android'=>['builder'=>['enabled'=>true,'stations'=>['order'=>['aa']],'home'=>[['type'=>'hero']],'theme'=>['accent'=>'#ff0000'],'tabs'=>[['title'=>'Start','icon'=>'home','url'=>'/']],'chrome'=>'hide']]]])['managed']['meinshop:android']['builder'];
+    eq(array_keys($b),['tabs','chrome']);eq($b['chrome'],'hide');eq(count($b['tabs']),1);
 });
 // ---- Eigene Apps des Build-Assistenten im laufenden Betrieb verwalten (Hinweis, Wartung, Funktionen, Layout) – auch im eigenständigen CMS
 $dd=$root.'/data';@mkdir($dd.'/.apps',0777,true);
 file_put_contents($dd.'/.apps/build.json',json_encode(['repo'=>'me/x','brands'=>[
     ['id'=>'meinshop','appName'=>'Mein Shop','type'=>'web','platforms'=>['android','windows'],'site'=>'https://shop.example'],
-    ['id'=>'meinradio','appName'=>'Mein Radio','type'=>'radio','platforms'=>['android'],'site'=>'https://radio.example'],
+    ['id'=>'meinradio','appName'=>'Mein Radio','type'=>'radio','platforms'=>['android'],'site'=>'https://radio.example'],   // alter Typ „radio“ gilt als Website-App
     ['id'=>'xx','appName'=>'zu kurz','type'=>'web','platforms'=>['android'],'site'=>'https://x.example']]]));
 t('Eigene Apps werden aus dem Build-Assistenten gelesen (ungültige Kennungen entfallen)',function() use($dd){
-    $own=rrw_apps_own($dd);eq(array_keys($own),['meinshop','meinradio']);eq($own['meinshop']['platforms'],['android','windows']);eq($own['meinradio']['type'],'radio');
+    $own=rrw_apps_own($dd);eq(array_keys($own),['meinshop','meinradio']);eq($own['meinshop']['platforms'],['android','windows']);eq($own['meinradio']['type'],'web');
 });
 t('Übersicht im eigenständigen Betrieb: nur eigene Apps, je Plattform eine Zeile, mit Typ',function() use($dd,$root){
-    $ov=rrw_apps_overview(['apps'=>[]],$root,rrw_apps_own($dd),true);
+    $ov=rrw_apps_overview(['apps'=>[]],$root,rrw_apps_own($dd));
     eq(array_map(fn($r)=>$r['brand'].':'.$r['platform'],$ov['items']),['meinshop:android','meinshop:windows','meinradio:android']);
-    eq($ov['items'][0]['own'],true);eq($ov['items'][0]['type'],'web');eq($ov['items'][2]['type'],'radio');eq($ov['items'][0]['origin'],'https://shop.example');
-});
-t('Übersicht mit Hersteller-Marken: eigene Apps kommen zusätzlich dazu',function() use($dd,$root){
-    $ov=rrw_apps_overview(['apps'=>[]],$root,rrw_apps_own($dd),false);$own=array_filter($ov['items'],fn($r)=>$r['own']);
-    eq(count($own),3);eq(count($ov['items'])>3,true);
+    eq($ov['items'][0]['own'],true);eq($ov['items'][0]['type'],'web');eq($ov['items'][2]['type'],'web');eq($ov['items'][0]['origin'],'https://shop.example');
 });
 t('app_config?brand=<eigene App>: Hinweis und Wartung dieser App, nicht der Hauptmarke',function() use($dd,$root){
     $own=rrw_apps_own($dd);$b=rrw_apps_own_brand($own,'MeinShop');eq($b['brand'],'meinshop');
@@ -113,7 +95,7 @@ t('app_config?brand=<eigene App>: Hinweis und Wartung dieser App, nicht der Haup
         'meinradio:android'=>['notice'=>['enabled'=>false]]]])];
     $o=rrw_apps_public($site,$root,$b,'android','1.0.0','',str_repeat('s',32));
     eq($o['brand'],'meinshop');eq($o['notice']['title'],'Hallo');eq($o['maintenance']['title'],'Wartungsarbeiten');eq($o['update']['available'],false);eq($o['update']['required'],false);
-    $o2=rrw_apps_public($site,$root,rrw_apps_own_brand($own,'meinradio'),'android','1.0.0','',str_repeat('s',32));eq($o2['notice'],null);eq($o2['maintenance'],null);eq($o2['features']['directory'],false);
+    $o2=rrw_apps_public($site,$root,rrw_apps_own_brand($own,'meinradio'),'android','1.0.0','',str_repeat('s',32));eq($o2['notice'],null);eq($o2['maintenance'],null);eq(array_keys($o2['features']),['assistant']);
 });
 t('Baukasten-App: Tab-Leiste wird bereinigt und über app_config geliefert',function() use($root){
     $tabs=rrw_apps_tabs_clean([['title'=>'Start','icon'=>'home','url'=>'/'],['title'=>'Shop','icon'=>'unbekannt','url'=>'https://shop.example.org/x'],

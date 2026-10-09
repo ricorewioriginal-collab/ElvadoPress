@@ -27,7 +27,7 @@ foreach(['README.md','ANLEITUNG.md','.gitignore','icon-512.png','android/build.g
     t("Datei vorhanden: $f",is_file($T.'/'.$f));
 // Zusammenspiel mit dem Build-Assistenten
 t('Workflows des Build-Assistenten sind enthalten',is_file($T.'/.github/workflows/'.RRW_AB_WORKFLOW)&&is_file($T.'/.github/workflows/'.RRW_AB_WORKFLOW_WIN));
-t('Windows-Projektdatei liegt dort, wo das CMS sie prüft',is_file($T.'/'.RRW_AB_WIN_PROJECT)&&!is_file($T.'/'.RRW_AB_WIN_PROJECT_OLD));
+t('Windows-Projektdatei liegt dort, wo das CMS sie prüft',is_file($T.'/'.RRW_AB_WIN_PROJECT));
 $wa=(string)file_get_contents($T.'/.github/workflows/'.RRW_AB_WORKFLOW);$ww=(string)file_get_contents($T.'/.github/workflows/'.RRW_AB_WORKFLOW_WIN);
 t('Workflows nehmen die Marken-ID als Eingabe „brand“ und lesen android/brands.json',str_contains($wa,'brand:')&&str_contains($ww,'brand:')&&str_contains($wa,'android/brands.json')&&str_contains($ww,'android/brands.json'));
 t('Pre-Release-Namen passen zu dem, was das CMS sucht (app-<id>-<nr>, app-<id>-win-<nr>)',str_contains($wa,'TAG="app-$BRAND-$GITHUB_RUN_NUMBER"')&&(bool)preg_match('/app-\$env:BRAND-win-\$env:GITHUB_RUN_NUMBER|app-\$\(\$env:BRAND\)-win-/',$ww)
@@ -56,7 +56,7 @@ t('Export-Skript und Prüfskript vorhanden',is_file(__DIR__.'/export-app-templat
 $rel=(string)file_get_contents(__DIR__.'/../.github/workflows/release.yml');
 t('Release-Workflow hängt app-template.zip an (mit Prüfsumme)',str_contains($rel,'export-app-template.sh --zip=dist/app-template.zip')&&str_contains($rel,'app-template.zip.sha256'));
 $doc=(string)file_get_contents($T.'/ANLEITUNG.md');
-foreach(['Apps → Eigene App bauen','Apps verwalten','Wartungsmodus','brands.json','create-developer-keystore','Fehlersuche','Website-App','Radio-App'] as $w)t("Anleitung behandelt: $w",str_contains($doc,$w));
+foreach(['Apps → Eigene App bauen','Apps verwalten','Wartungsmodus','brands.json','create-developer-keystore','Fehlersuche','Website-App','Baukasten-App'] as $w)t("Anleitung behandelt: $w",str_contains($doc,$w));
 t('Anleitung nennt jedes Feld des Formulars (CMS: app-build.js)',(function() use($doc){ $js=(string)file_get_contents(__DIR__.'/../cms/assets/app-build.js');foreach(['App-Typ','Plattformen','App-Name','Marken-ID','Paketname','Website','Dateiname-Anfang','Farbe','App-Icon','Startbild','Kopfzeile','Screenshots'] as $l)if(!str_contains($js,$l)||!str_contains($doc,$l))return false;return true; })());
 // Katalog der Vorlagen
 $cat=json_decode((string)file_get_contents($T.'/templates.json'),true);$ctypes=array_column($cat['vorlagen']??[],'type');sort($ctypes);$ktypes=array_keys(RRW_AB_TYPES);sort($ktypes);

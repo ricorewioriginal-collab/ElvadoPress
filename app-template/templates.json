@@ -3,34 +3,45 @@
   "beschreibung": "Katalog der App-Vorlagen. Jeder Eintrag entspricht einem App-Typ im CMS (Apps → Eigene App bauen → App-Typ) und dem Feld \"type\" in android/brands.json.",
   "vorlagen": [
     {
-      "type": "radio",
-      "name": "Radio-App",
-      "fuer": "Webradios",
-      "plattformen": ["android", "windows"],
-      "inhalt": "Sender (Core-Netzwerk + eigene Streams), Player mit Hintergrundwiedergabe, Sendeplan, Favoriten, News, Cast, KI-Assistent",
-      "cms": "Apps → Apps verwalten: Funktionen, Startseite (App-Builder), Sender, Menü, Hinweis, Wartung, Updates",
-      "ohne_neuen_build": ["features", "notice", "maintenance", "update", "builder"],
-      "anleitung": "ANLEITUNG.md#5-die-radio-app-im-detail"
-    },
-    {
       "type": "web",
       "name": "Website-App",
       "fuer": "jede Website, die 1:1 als App erscheinen soll (Shop, Verein, Magazin, Portfolio, Firma)",
-      "plattformen": ["android", "windows"],
+      "plattformen": [
+        "android",
+        "windows"
+      ],
       "inhalt": "Die Homepage im Vollbild, interne Links bleiben in der App, Offline-Seite, eigene Farbe",
       "cms": "Apps → Apps verwalten: Hinweis, Wartung, Pflicht-Update",
-      "ohne_neuen_build": ["notice", "maintenance", "update"],
+      "ohne_neuen_build": [
+        "notice",
+        "maintenance",
+        "update"
+      ],
       "anleitung": "ANLEITUNG.md#6-die-website-app-im-detail"
     },
     {
       "type": "content",
       "name": "Baukasten-App",
       "fuer": "eigene App mit eigenen Inhalten im Baukasten-Prinzip (Verein, Shop, Gastro, Dienstleister, Magazin …)",
-      "plattformen": ["android", "windows"],
+      "plattformen": [
+        "android",
+        "windows"
+      ],
       "inhalt": "Tab-Leiste mit bis zu 5 Bereichen; jeder Tab zeigt eine Seite, einen Beitrag oder den Shop deiner Website; Tabs, Symbole und Reihenfolge werden im CMS gepflegt",
       "cms": "Apps → Apps verwalten → Inhalte der App (Tab-Leiste, Vorlagen), Hinweis, Wartung, Pflicht-Update",
-      "ohne_neuen_build": ["tabs", "notice", "maintenance", "update"],
-      "vorlagen_tabs": ["verein", "shop", "magazin", "gastro", "dienst"],
+      "ohne_neuen_build": [
+        "tabs",
+        "notice",
+        "maintenance",
+        "update"
+      ],
+      "vorlagen_tabs": [
+        "verein",
+        "shop",
+        "magazin",
+        "gastro",
+        "dienst"
+      ],
       "anleitung": "ANLEITUNG.md#7-die-baukasten-app-im-detail"
     }
   ]

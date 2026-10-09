@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   var st=null,loaded=false,edit=null,timers={},media=null,shots=[],pickFor='icon';
-  var TYPES={radio:'Radio-App',web:'Website-App',content:'Baukasten-App'},PLAT={android:'Android',windows:'Windows'};
+  var TYPES={web:'Website-App',content:'Baukasten-App'},PLAT={android:'Android',windows:'Windows'};
   function buildBtns(b){
     var pl=(b.platforms&&b.platforms.length)?b.platforms:['android'];
     return pl.map(function(p,i){return '<button class="'+(i===0?'btn-a':'btn-g')+'" type="button" onclick="AppBuild.start(\''+esc(b.id)+'\',\''+p+'\')"><i class="fas '+(p==='windows'?'fa-windows fab':'fa-android fab')+'"></i> '+(pl.length>1?esc(PLAT[p])+' bauen':'App bauen')+'</button>'}).join('');
@@ -20,7 +20,7 @@
   function drawConn(chk){
     var box=$('abConn');if(!box||!st)return;
     box.innerHTML='<div class="hint">So geht\'s: <ol style="margin:6px 0 6px 18px;padding:0;display:grid;gap:3px"><li>Ein neues GitHub-Repository aus der <b>App-Vorlage</b> anlegen (Ordner <code>app-template/</code> im ElvadoPress-Repository bzw. <code>app-template.zip</code> im Release – Anleitung: <a href="docs/APP-BUILDER.md" target="_blank" rel="noopener">Doku</a> und <code>app-template/ANLEITUNG.md</code>; privat ist möglich).</li><li>Unter GitHub → Settings → Developer settings ein <b>Fine-grained Token</b> für genau dieses Repository erzeugen mit „Contents: Read and write“, „Actions: Read and write“ und „Metadata: Read“.</li><li>Repository und Token hier eintragen, speichern und prüfen.</li></ol><span class="hint">Optional für fest signierte Updates: Signatur-Schlüssel als Repository-Secrets hinterlegen (siehe Doku).</span></div>'
-      +'<div class="ab-grid"><label>Repository<input class="fc" id="abRepo" placeholder="besitzer/mein-radio-apps" value="'+esc(st.repo)+'"></label><label>Branch für App-Builds<input class="fc" id="abBranch" value="'+esc(st.branch||'app-builder')+'"></label>'
+      +'<div class="ab-grid"><label>Repository<input class="fc" id="abRepo" placeholder="besitzer/meine-apps" value="'+esc(st.repo)+'"></label><label>Branch für App-Builds<input class="fc" id="abBranch" value="'+esc(st.branch||'app-builder')+'"></label>'
       +'<label style="grid-column:1/-1">GitHub-Token '+(st.has_token?'<span class="hint">(gespeichert: '+esc(st.token_hint)+' – leer lassen, um es zu behalten)</span>':'')+'<input class="fc" id="abToken" type="password" autocomplete="off" placeholder="'+(st.has_token?'unverändert':'github_pat_…')+'"></label></div>'
       +'<div class="ab-row"><button class="btn-a" type="button" onclick="AppBuild.saveConn()"><i class="fas fa-floppy-disk"></i> Speichern</button><button class="btn-g" type="button" onclick="AppBuild.check()"><i class="fas fa-circle-check"></i> Verbindung prüfen</button>'+(st.has_token?'<button class="btn-g" type="button" onclick="AppBuild.clearToken()">Token entfernen</button>':'')+'</div>'
       +(chk?'<ul class="ab-checks">'+chk.checks.map(function(c){return '<li class="'+(c[0]?'ok':'bad')+'"><i class="fas '+(c[0]?'fa-check':'fa-xmark')+'"></i> '+esc(c[1])+'</li>'}).join('')+'</ul>':'');
@@ -28,7 +28,7 @@
   function brandForm(b){
     var n=b.id?false:true;
     return '<div class="ab-form"><div class="ab-grid">'
-      +'<label>App-Typ<select class="fc" id="abfType" onchange="AppBuild.typeChange()"><option value="radio"'+((b.type||'radio')==='radio'?' selected':'')+'>Radio-App (Sender, Sendeplan, Player …)</option><option value="web"'+(b.type==='web'?' selected':'')+'>Website-App (deine Website als App – für jedes Thema: Shop, Verein, Magazin, Portfolio …)</option><option value="content"'+(b.type==='content'?' selected':'')+'>Baukasten-App (eigene Inhalte: Tab-Leiste mit Seiten aus dem CMS, Hinweise, Wartung – ohne neuen Bau änderbar)</option></select></label>'
+      +'<label>App-Typ<select class="fc" id="abfType" onchange="AppBuild.typeChange()"><option value="web"'+((b.type||'web')==='web'?' selected':'')+'>Website-App (deine Website als App – für jedes Thema: Shop, Verein, Magazin, Portfolio …)</option><option value="content"'+(b.type==='content'?' selected':'')+'>Baukasten-App (eigene Inhalte: Tab-Leiste mit Seiten aus dem CMS, Hinweise, Wartung – ohne neuen Bau änderbar)</option></select></label>'
       +'<div><div class="news-lbl">Plattformen</div><div class="ab-row"><label class="ab-chk"><input type="checkbox" id="abfAnd"'+((b.platforms||['android']).indexOf('android')>=0?' checked':'')+'> Android</label><label class="ab-chk"><input type="checkbox" id="abfWin"'+((b.platforms||[]).indexOf('windows')>=0?' checked':'')+'> Windows</label></div></div>'
       +'<label>App-Name<input class="fc" id="abfName" maxlength="30" value="'+esc(b.appName||'')+'" oninput="AppBuild.autoFill()"></label>'
       +'<label>Marken-ID <span class="hint">(intern, nicht änderbar)</span><input class="fc" id="abfId" maxlength="20" value="'+esc(b.id||'')+'" '+(n?'':'readonly')+'></label>'
@@ -49,7 +49,7 @@
   function draw(){
     var box=$('abBrands');if(!box||!st)return;
     var h='<div class="ab-head"><b>2 · Meine Apps</b><span class="hint">'+st.brands.length+' von '+st.max_brands+'</span></div>';
-    h+=st.brands.map(function(b){return edit===b.id?'<div class="ab-app">'+brandForm(b)+'</div>':'<div class="ab-app" data-b="'+esc(b.id)+'"><div class="ab-top"><div class="ab-ic">'+(b.icon?'<img src="'+esc(b.icon)+'" alt="">':'<i class="fas fa-mobile-screen"></i>')+'</div><div style="flex:1;min-width:0"><b>'+esc(b.appName)+'</b><div class="hint">'+esc(TYPES[b.type||'radio'])+' · '+esc((b.platforms||['android']).map(function(x){return PLAT[x]||x}).join(' + '))+' · '+esc(b.applicationId)+' · '+esc(b.site)+'</div></div>'
+    h+=st.brands.map(function(b){return edit===b.id?'<div class="ab-app">'+brandForm(b)+'</div>':'<div class="ab-app" data-b="'+esc(b.id)+'"><div class="ab-top"><div class="ab-ic">'+(b.icon?'<img src="'+esc(b.icon)+'" alt="">':'<i class="fas fa-mobile-screen"></i>')+'</div><div style="flex:1;min-width:0"><b>'+esc(b.appName)+'</b><div class="hint">'+esc(TYPES[b.type||'web'])+' · '+esc((b.platforms||['android']).map(function(x){return PLAT[x]||x}).join(' + '))+' · '+esc(b.applicationId)+' · '+esc(b.site)+'</div></div>'
       +'<div class="ab-row">'+buildBtns(b)+'<button class="btn-g" type="button" onclick="AppBuild.edit(\''+esc(b.id)+'\')">Bearbeiten</button><button class="btn-g" type="button" onclick="AppBuild.remove(\''+esc(b.id)+'\')" title="Entfernen"><i class="fas fa-trash"></i></button></div></div>'+((b.type||'radio')==='radio'?'<div class="hint"><i class="fas fa-microphone"></i> Sprachsteuerung per Alexa: Skill-Paket und Anleitung im Bereich <a href="#" onclick="cmsTab(\'alexa\',document.querySelector(\'.tab[data-tab=alexa]\'));return false">Alexa-Skill</a>.</div>':'')+'<div class="ab-status" id="abs-'+esc(b.id)+'"></div></div>'}).join('');
     if(edit==='new')h+='<div class="ab-app">'+brandForm({})+'</div>';
     else if(st.brands.length<st.max_brands)h+='<button class="btn-g" type="button" onclick="AppBuild.edit(\'new\')"><i class="fas fa-plus"></i> Neue App</button>';
