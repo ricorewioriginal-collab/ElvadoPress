@@ -1,0 +1,2 @@
+# Die Projektseite (docs/) gehört nicht ins Installations-ZIP
+/docs export-ignore

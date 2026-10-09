@@ -4,6 +4,9 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 
 ## Nicht veröffentlicht (nach 1.1.0)
 
+### Projektseite
+- Statische Projektseite unter `docs/` (ohne Skripte und externe Ressourcen, `scripts/test-site.php`); nicht im Installations-ZIP. Aktivieren: GitHub → Settings → Pages → *Deploy from a branch* → `main` / `/docs`.
+
 ### Update-Hinweise für bestehende Installationen
 - **Neu anmelden:** Der Sitzungs-Header heißt jetzt `X-ElvadoPress-Token`, der Browser-Speicherschlüssel `elvadopress_session_token`. Eigene Clients müssen den Header anpassen (`cms/docs/API.md`).
 - **Neu veröffentlichen:** Marker in generierten Seiten und interne Namen wurden von `rrw`/`RRW` auf `elvado`/`ELVADO` umgestellt. Nach dem Update einmal veröffentlichen (Verwaltung → Speichern/Veröffentlichen); ältere generierte Seiten können von Hand gelöscht werden.

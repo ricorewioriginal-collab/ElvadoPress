@@ -8,11 +8,11 @@ declare(strict_types=1);
 function elvado_demo_layout(array $c): array {
     $u=htmlspecialchars($c['user'],ENT_QUOTES);$p=htmlspecialchars($c['password'],ENT_QUOTES);$min=(int)$c['minutes'];
     return [
-        ['id'=>'hero','type'=>'hero','props'=>['title'=>'ElvadoPress','text'=>'Das erweiterbare CMS für Websites aller Art: WordPress-kompatibel, mit eigenem Homepage-Baukasten, fünf Themes, freien Bildquellen, KI-Assistent und Updates mit automatischem Rückschritt.','overlay'=>false,'btn_label'=>'Verwaltung live ausprobieren','btn_url'=>'/cms/?demo=1','height'=>520]],
+        ['id'=>'hero','type'=>'hero','props'=>['title'=>'ElvadoPress','text'=>'Das erweiterbare CMS für Websites aller Art: WordPress-kompatibel, mit eigenem Homepage-Baukasten, vier Themes, freien Bildquellen, KI-Assistent und Updates mit automatischem Rückschritt.','overlay'=>false,'btn_label'=>'Verwaltung live ausprobieren','btn_url'=>'/cms/?demo=1','height'=>520]],
         ['id'=>'features','type'=>'features','props'=>['title'=>'Alles drin, was eine Website braucht','columns'=>'3','bg'=>'default','items'=>[
             ['title'=>'Homepage-Baukasten','text'=>'Startseiten aus frei sortierbaren Abschnitten bauen – per Drag & Drop direkt in der Verwaltung, Farben, Schrift und Breiten im Customizer.'],
             ['title'=>'WordPress-kompatibel','text'=>'Hooks, Shortcodes, Blöcke, Customizer und viele klassische Themes und Plugins laufen weiter – ohne WordPress-Installation.'],
-            ['title'=>'Fünf Themes','text'=>'Baukasten, Radio, Band, Creator und Klassisch – jedes mit eigenem Look und eigenem Konfigurationsmenü, das nur beim aktiven Theme erscheint.'],
+            ['title'=>'Vier Themes','text'=>'Baukasten, Band, Creator und Klassisch – jedes mit eigenem Look und eigenem Konfigurationsmenü, das nur beim aktiven Theme erscheint.'],
             ['title'=>'Freie Bilder','text'=>'Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons direkt in der Mediathek durchsuchen – mit Bildnachweis automatisch übernommen.'],
             ['title'=>'KI-Assistent','text'=>'Texte, Übersetzungen und Layouts mit EvoLink, OpenAI, Anthropic, Google, OpenRouter oder DeepSeek – mit deinem eigenen Schlüssel.'],
             ['title'=>'Updates mit Rückschritt','text'=>'Neue Versionen aus GitHub einspielen: mit Sicherung, Gesundheitsprüfung und automatischem Zurückspielen, falls etwas schiefgeht.']]]],
@@ -38,7 +38,7 @@ function elvado_demo_pages(array $c): array {
     $page=fn(string $id,string $title,string $html)=>['id'=>$id,'slug'=>$id,'title'=>$title,'type'=>'custom','enabled'=>true,'blocks_before'=>[['type'=>'html','html'=>$html]],'blocks_after'=>[]];
     return [
         $page('funktionen','Funktionen','<h2>Inhalte</h2><ul><li>Beiträge mit Kategorien, Schlagwörtern, Entwürfen, Planung und Revisionen</li><li>Seiten mit Blöcken, Menüs, Widgets und Kommentaren</li><li>Mediathek mit Upload und <strong>freien Bildquellen</strong> (Pixabay, Pexels, Unsplash, Openverse, Wikimedia Commons) inklusive Bildnachweis</li><li>Formulare, Umfragen, Forum und Community</li></ul>'
-            .'<h2>Design</h2><ul><li><strong>Homepage-Baukasten</strong>: Abschnitte hinzufügen, sortieren, ausblenden – mit Live-Vorschau</li><li>Customizer für Farben, Schrift, Breiten, Kopf- und Fußbereich</li><li>Fünf mitgelieferte Themes, dazu klassische WordPress-Themes</li></ul>'
+            .'<h2>Design</h2><ul><li><strong>Homepage-Baukasten</strong>: Abschnitte hinzufügen, sortieren, ausblenden – mit Live-Vorschau</li><li>Customizer für Farben, Schrift, Breiten, Kopf- und Fußbereich</li><li>Vier mitgelieferte Themes, dazu klassische WordPress-Themes</li></ul>'
             .'<h2>WordPress-Kompatibilität</h2><ul><li>Hooks, Shortcodes, <code>WP_Query</code>, Blöcke, Block-Themes</li><li>Viele bekannte Plugins laufen (z. B. Contact Form 7, Yoast SEO)</li></ul>'
             .'<h2>KI, Entwicklung, Betrieb</h2><ul><li>KI-Assistent mit mehreren Anbietern für Texte, Übersetzungen und Layouts</li><li>Lovable-Bridge und GitHub-Synchronisation für React-Oberflächen</li><li>Datenbank-Spiegel (MySQL/MariaDB/SQLite), Backups, SEO, Sitemap</li><li><strong>CMS-Update über GitHub</strong> mit Sicherung, Gesundheitsprüfung, automatischem Rückschritt und Downgrade</li></ul>'),
         $page('themes','Themes','<p>Jedes Theme sieht anders aus und bringt – sobald es aktiv ist – sein eigenes Konfigurationsmenü in die Verwaltung mit. Wechsle unter <em>Design → Themes</em> und sieh dir die Startseite an.</p>'
@@ -67,7 +67,7 @@ function elvado_demo_posts(): array {
     return [
         ['Neu: CMS-Update über GitHub mit Rückschritt','Entwicklung','Neue Versionen suchen, einspielen und bei Problemen automatisch zurückrollen.','<p>Unter <strong>System → Version &amp; Update</strong> zeigt ElvadoPress immer die installierte und die neueste Version. Updates kommen aus GitHub (Release, Beta oder Branch), werden vor dem Einspielen geprüft und gesichert – und wenn die Gesundheitsprüfung fehlschlägt, spielt das CMS die alte Version automatisch zurück.</p>','Updates, GitHub, Sicherheit'],
         ['Freie Bilder direkt in der Mediathek','Medien','Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons – mit Bildnachweis.','<p>Die Mediathek durchsucht fünf freie Bildquellen. Ein Klick übernimmt das Bild in deine Mediathek; Urheber, Quelle und Lizenz werden automatisch als Bildnachweis gespeichert und beim Einfügen als Bildunterschrift gesetzt.</p>','Medien, Bilder, Lizenzen'],
-        ['Fünf Themes – und keines sieht aus wie das andere','Design','Baukasten, Radio, Band, Creator und Klassisch mit passenden Konfigurationsmenüs.','<p>Jedes mitgelieferte Theme hat einen eigenen Stil und bringt – nur solange es aktiv ist – sein eigenes Menü in der Verwaltung mit: Sender und Sendeplan für Radio, Tourdaten für Bands, Link-in-Bio und Drops für Creator.</p>','Themes, Baukasten, Design'],
+        ['Vier Themes – und keines sieht aus wie das andere','Design','Baukasten, Band, Creator und Klassisch mit passenden Konfigurationsmenüs.','<p>Jedes mitgelieferte Theme hat einen eigenen Stil und bringt – nur solange es aktiv ist – sein eigenes Menü in der Verwaltung mit: Sender und Sendeplan für Radio, Tourdaten für Bands, Link-in-Bio und Drops für Creator.</p>','Themes, Baukasten, Design'],
         ['KI-Assistent: Texte, Übersetzungen, Layouts','KI','Mit deinem eigenen Schlüssel bei EvoLink, OpenAI, Anthropic, Google, OpenRouter oder DeepSeek.','<p>Der Assistent schreibt Beiträge, übersetzt Texte und schlägt Layouts für den Homepage-Baukasten vor. Schlüssel liegen nur auf dem Server und werden nie angezeigt.</p>','KI, Texte, Layouts'],
         ['Die Demo ist die Homepage','News','Diese Website ist selbst mit ElvadoPress und dem Homepage-Baukasten gebaut.','<p>Du siehst hier keine Attrappe, sondern ein laufendes ElvadoPress. Baue die Startseite unter <em>Design → Homepage-Baukasten</em> um – nach einigen Minuten ist wieder alles im Ausgangszustand.</p>','Demo, Baukasten, Homepage'],
     ];
@@ -80,7 +80,7 @@ function elvado_demo_widgets(array $c): array {
     $texts=[
         1=>$text('','<p style="text-align:center;margin:0 0 8px"><img src="/cms/assets/brand/elvadopress-logo.png" alt="ElvadoPress" style="max-width:100%;height:auto"></p><p style="text-align:center;margin:0">Das erweiterbare CMS für Websites aller Art.</p>'),
         2=>$text('Live-Demo','<p>Nahezu alle Funktionen sind freigeschaltet. Nach <strong>'.$min.' Minuten</strong> wird alles zurückgesetzt.</p><p>Benutzer <code>'.$u.'</code><br>Passwort <code>'.$p.'</code></p><p><a class="btn" href="/cms/?demo=1">Verwaltung öffnen</a></p>'),
-        3=>$text('Das kann ElvadoPress','<ul><li><a href="/funktionen/">Beiträge, Seiten, Menüs, Widgets</a></li><li><a href="/themes/">Fünf Themes + Baukasten</a></li><li>Freie Bilder in der Mediathek</li><li>KI-Assistent mit sechs Anbietern</li><li>Lovable &amp; GitHub-Sync</li><li>WordPress-Themes und -Plugins</li><li><a href="/selbst-betreiben/">Updates mit Rückschritt</a></li></ul>'),
+        3=>$text('Das kann ElvadoPress','<ul><li><a href="/funktionen/">Beiträge, Seiten, Menüs, Widgets</a></li><li><a href="/themes/">Vier Themes + Baukasten</a></li><li>Freie Bilder in der Mediathek</li><li>KI-Assistent mit sechs Anbietern</li><li>Lovable &amp; GitHub-Sync</li><li>WordPress-Themes und -Plugins</li><li><a href="/selbst-betreiben/">Updates mit Rückschritt</a></li></ul>'),
         4=>$text('Mitmachen','<p>ElvadoPress ist freie Software (GPL-2.0-or-later).</p><p><a class="btn" href="https://github.com/ricorewioriginal-collab/ElvadoPress">Auf GitHub ansehen</a></p>'),
     ];
     $texts['_multiwidget']=1;
@@ -93,7 +93,7 @@ function elvado_demo_widgets(array $c): array {
             'widget_categories'=>[1=>['title'=>'Kategorien','count'=>true],'_multiwidget'=>1],
             'widget_tag_cloud'=>[1=>['title'=>'Schlagwörter'],'_multiwidget'=>1],
             'widget_pages'=>[1=>['title'=>'Seiten'],'_multiwidget'=>1],
-            'widget_custom_html'=>[1=>['title'=>'Fünf Themes','content'=>'<p><span class="btn btn-ghost">Baukasten</span> <span class="btn btn-ghost">Radio</span> <span class="btn btn-ghost">Band</span> <span class="btn btn-ghost">Creator</span> <span class="btn btn-ghost">Klassisch</span></p><p>Wechsle unter <em>Design → Themes</em> – jedes Theme bringt sein eigenes Menü mit.</p>'],'_multiwidget'=>1],
+            'widget_custom_html'=>[1=>['title'=>'Vier Themes','content'=>'<p><span class="btn btn-ghost">Baukasten</span> <span class="btn btn-ghost">Band</span> <span class="btn btn-ghost">Creator</span> <span class="btn btn-ghost">Klassisch</span></p><p>Wechsle unter <em>Design → Themes</em> – jedes Theme bringt sein eigenes Menü mit.</p>'],'_multiwidget'=>1],
             'widget_archives'=>[1=>['title'=>'Archiv','count'=>true],'_multiwidget'=>1],
         ],
     ];
