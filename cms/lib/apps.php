@@ -346,7 +346,7 @@ function elvado_apps_retention(string $dataDir): array {
 }
 // Fehlerbericht aufnehmen: gleiche Fehler werden gezählt statt doppelt gespeichert (max. 200 Gruppen)
 function elvado_apps_error_add(string $dataDir,string $brand,string $platform,array $in): bool {
-    $kind=in_array(($in['kind']??''),['player','crash','network','other'],true)?(string)$in['kind']:'other';
+    $kind=in_array(($in['kind']??''),['crash','network','other'],true)?(string)$in['kind']:'other';
     $msg=elvado_apps_text($in['message']??'',300);if($msg==='')return false;
     $where=elvado_apps_text($in['where']??'',80);$ver=elvado_apps_version_clean((string)($in['version']??''));$os=elvado_apps_text($in['os']??'',60);
     $stack=mb_substr(trim(strip_tags((string)($in['stack']??''))),0,1500);

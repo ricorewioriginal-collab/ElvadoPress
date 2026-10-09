@@ -25,6 +25,11 @@ foreach(['README.md','ANLEITUNG.md','.gitignore','icon-512.png','android/build.g
          'windows-native/ElvadoPress.App.Windows.csproj','windows-native/installer.iss','windows-native/WebRuntime.cs','windows-native/WebShellWindow.cs',
          'scripts/create-developer-keystore.sh','scripts/create-developer-keystore.ps1','brands/.gitkeep'] as $f)
     t("Datei vorhanden: $f",is_file($T.'/'.$f));
+// Vorlage ist leer und baut nichts von allein
+foreach([ELVADO_AB_WORKFLOW,ELVADO_AB_WORKFLOW_WIN] as $wf){ $y=(string)file_get_contents($T.'/.github/workflows/'.$wf);
+    t("Workflow $wf startet nur von Hand (kein push/pull_request/schedule)",str_contains($y,'workflow_dispatch:')&&!preg_match('/^\s{2}(push|pull_request|schedule|release|workflow_run):/m',$y)); }
+$guide=(string)file_get_contents($T.'/ANLEITUNG.md');
+foreach(['Weg A','Weg B','Weg C','Schnittstellen-Referenz','action=app_config','action=app_error','workflow_dispatch','android/brands.json','Run workflow'] as $needle)t("Anleitung behandelt: $needle",str_contains($guide,$needle));
 // Zusammenspiel mit dem Build-Assistenten
 t('Workflows des Build-Assistenten sind enthalten',is_file($T.'/.github/workflows/'.ELVADO_AB_WORKFLOW)&&is_file($T.'/.github/workflows/'.ELVADO_AB_WORKFLOW_WIN));
 t('Windows-Projektdatei liegt dort, wo das CMS sie prüft',is_file($T.'/'.ELVADO_AB_WIN_PROJECT));

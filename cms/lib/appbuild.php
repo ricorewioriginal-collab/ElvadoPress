@@ -155,7 +155,7 @@ function elvado_ab_merge_brands(array $d, array $brand): array {
     $entry['type']=($brand['type']??'')==='content'?'content':'web';
     if(($brand['themeColor']??'')!=='')$entry['themeColor']=$brand['themeColor'];
     $out=[];$done=false;
-    // Zusätzliche Angaben, die von Hand in brands.json stehen (z. B. "radio": {"podcast": true, "shops": […]}), bleiben beim Speichern erhalten
+    // Zusätzliche Angaben, die von Hand in brands.json stehen (eigene Zusatzfelder), bleiben beim Speichern erhalten
     $known=['id','applicationId','appName','launchUrl','site','filePrefix','type','themeColor'];
     foreach($list as $b){ if(is_array($b)&&($b['id']??'')===$brand['id']){ foreach($b as $k=>$v)if(!in_array($k,$known,true)&&!array_key_exists($k,$entry))$entry[$k]=$v;$out[]=$entry;$done=true; }else $out[]=$b; }
     if(!$done)$out[]=$entry;
