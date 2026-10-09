@@ -87,7 +87,7 @@ Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderw
 ## Abgrenzung zu RicoReWi / Senderwelt
 - Keine RicoReWi- oder Senderwelt-Inhalte in dieses Repository aufnehmen.
 - Es gibt keinen Sync nach *ricorewi-radio* mehr; Änderungen unter `cms/` müssen dessen Paket-Tests nicht bestehen.
-- Die RicoReWi-Paketzweige im PHP-Code sind entfernt. Verbleibende Reste: der generische Paket-Mechanismus (`rrw_pack_available($pack)` in `cms/lib/pack.php`, nur für Komponenten und `admin.js`) sowie die Oberflächen-Schalter `data-pack` / `data-pack-app` / `window.CMS_PACKS['ricorewi-radio']` (immer „aus“, siehe `KNOWN_ISSUES.md`); neuer Code nutzt sie nicht. Das Theme `rrw-classic` ist **kein** Rest, sondern das neutrale Standard-Theme der Einrichtung (`cms/lib/install.php`) und bleibt erhalten.
+- Die RicoReWi-Paketzweige in PHP, Verwaltungsoberfläche und JavaScript sind entfernt (`data-pack`, `CMS_PACKS`, Reiter Radioverzeichnis/Website-Inhalte/Sender-Netzwerk). Erhalten bleibt nur der generische Theme-Paket-Mechanismus (`rrw_pack_available($pack)` in `cms/lib/pack.php`). Offene Reste (Control-Center-Anbindung): `KNOWN_ISSUES.md`. Das Theme `rrw-classic` ist **kein** Rest, sondern das neutrale Standard-Theme der Einrichtung (`cms/lib/install.php`) und bleibt erhalten.
 - Brand-/Produktdateien (`cms/lib/product.default.json`, `cms/assets/brand/**`, `cms/lib/alexa-skill/*`) gehören jetzt allein zu ElvadoPress.
 
 ## Dokumentation nach größeren Aufgaben

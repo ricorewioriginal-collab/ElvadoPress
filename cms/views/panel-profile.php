@@ -1,7 +1,6 @@
 <section id="panel-profile" class="panel">
       <div class="card">
         <div class="th"><div><div class="wp-page-title">Mein Profil</div><div class="wp-subtitle">Anzeigename, E-Mail und eigenes Passwort ändern.</div></div></div>
-        <div id="profileExternalNote" data-pack="ricorewi-radio" class="danger-note" style="display:none;margin-bottom:14px"><i class="fas fa-circle-info"></i> Dieses Profil wird über das <?=rrw_product_h(rrw_product_control_center())?> verwaltet. Anzeigename und Passwort können nur dort geändert werden.</div>
         <div id="profileForm" style="display:grid;gap:12px;max-width:440px">
           <div><label class="news-lbl">Benutzername</label><input id="profileUsername" class="fc w-100" disabled></div>
           <div><label class="news-lbl">Rolle</label><input id="profileRole" class="fc w-100" disabled></div>

@@ -550,7 +550,7 @@ if(!isset($site['theme'])||!is_array($site['theme']))$site['theme']=['active'=>r
 
 // One-time migration of the previously stored Control-Center CMS settings.
 // After this marker exists, /cms/data/site.json is the only content source.
-if(in_array($action,['access','get','save','media_upload','branding_upload','core_validate','core_add','core_remove','architecture','services_status','news_list','news_get','news_save','news_delete','news_thumbnail_upload'],true)
+if(in_array($action,['access','get','save','media_upload','branding_upload','architecture','services_status','news_list','news_get','news_save','news_delete','news_thumbnail_upload'],true)
    && empty($site['_meta']['control_center_imported_at']) && !rrw_standalone()) {
     $tok=rrw_token();
     if($tok!=='') {
@@ -580,42 +580,6 @@ if($action==='brand')rrw_json(['status'=>'ok']+rrw_brand_public_payload($rrwBran
 if($action==='assistant_chat'){ $r=rrw_assistant_chat($site,$rrwBrand,rrw_body(),$dataDir,$newsFile);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
 if($action==='assistant_send'){ $r=rrw_assistant_send_studiomail($site,rrw_body(),$dataDir);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
 if($action==='assistant_voice'){ $r=rrw_assistant_send_voice($site,$dataDir);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
-// Radioverzeichnis: nicht Teil von ElvadoPress
-if(strncmp($action,'directory_',10)===0)rrw_json(['status'=>'error','message'=>'Das Radioverzeichnis ist in diesem CMS nicht enthalten.'],404);
-// Radioverzeichnis (Marken mit Verzeichnis-Funktion, z.B. SenderWelt): öffentlich, mit Stundenlimit je IP
-if($action==='directory_search'){
-    if(!rrw_assistant_rate_ok($dataDir,'directory',400))rrw_json(['status'=>'error','message'=>'Zu viele Suchanfragen – bitte in ein paar Minuten noch einmal versuchen.'],429);
-    try{rrw_json(rrw_directory_search($site,$_GET,$dataDir));}
-    catch(Throwable $e){error_log('directory_search: '.get_class($e).': '.$e->getMessage().' @'.basename($e->getFile()).':'.$e->getLine());rrw_json(['status'=>'error','message'=>'Die Verzeichnis-Suche ist gerade nicht erreichbar. Bitte später noch einmal versuchen.','where'=>get_class($e).' @'.basename($e->getFile()).':'.$e->getLine()],503);}
-}
-if($action==='directory_frame'){
-    if(!rrw_assistant_rate_ok($dataDir,'directory',400))rrw_json(['status'=>'error','message'=>'Zu viele Anfragen.'],429);
-    try{$adm=rrw_dir_admin_load($dataDir);if(!$adm['settings']['preview']||rrw_dir_url_blocked((string)($_GET['url']??''),$adm))rrw_json(['status'=>'ok','embeddable'=>false,'url'=>'']);$e=rrw_dir_embeddable((string)($_GET['url']??''),$dataDir);rrw_json(['status'=>'ok','embeddable'=>!empty($e['ok']),'url'=>(string)($e['url']??'')]);}
-    catch(Throwable $e){error_log('directory_frame: '.get_class($e).': '.$e->getMessage());rrw_json(['status'=>'ok','embeddable'=>false]);}
-}
-if($action==='directory_meta'){
-    if(!rrw_assistant_rate_ok($dataDir,'dirmeta',500))rrw_json(['status'=>'ok','title'=>'','image'=>'']);
-    try{if(rrw_dir_url_blocked((string)($_GET['url']??''),rrw_dir_admin_load($dataDir)))rrw_json(['status'=>'ok','title'=>'','image'=>'']);$m=rrw_dir_stream_title((string)($_GET['url']??''),$dataDir);rrw_json(['status'=>'ok','title'=>$m['t'],'image'=>$m['i']]);}
-    catch(Throwable $e){error_log('directory_meta: '.get_class($e).': '.$e->getMessage());rrw_json(['status'=>'ok','title'=>'','image'=>'']);}
-}
-if($action==='directory_preview'){
-    if(!rrw_assistant_rate_ok($dataDir,'directory',400))rrw_json(['status'=>'ok','preview'=>new stdClass()]);
-    try{$adm=rrw_dir_admin_load($dataDir);if(!$adm['settings']['preview']||rrw_dir_url_blocked((string)($_GET['url']??''),$adm))rrw_json(['status'=>'ok','preview'=>new stdClass()]);$pv=rrw_dir_preview((string)($_GET['url']??''),$dataDir);rrw_json(['status'=>'ok','preview'=>$pv?:new stdClass()]);}
-    catch(Throwable $e){error_log('directory_preview: '.get_class($e).': '.$e->getMessage());rrw_json(['status'=>'ok','preview'=>new stdClass()]);}
-}
-if($action==='directory_random'){
-    if(!rrw_assistant_rate_ok($dataDir,'directory',400))rrw_json(['status'=>'error','message'=>'Zu viele Anfragen.'],429);
-    try{
-        $own=array_map('strtolower',array_map('strval',(array)($site['core_network']['stations']??[])));
-        $kind=in_array(($_GET['kind']??'mix'),['laut','world','mix'],true)?(string)$_GET['kind']:'mix';
-        rrw_json(['status'=>'ok','report'=>!empty(rrw_dir_admin_load($dataDir)['settings']['report']),'results'=>rrw_dir_random($kind,(int)($_GET['n']??6),$own,$dataDir)]);
-    }catch(Throwable $e){error_log('directory_random: '.get_class($e).': '.$e->getMessage().' @'.basename($e->getFile()).':'.$e->getLine());rrw_json(['status'=>'error','message'=>'Gerade nicht erreichbar.'],503);}
-}
-if($action==='directory_report'){
-    if(!rrw_assistant_rate_ok($dataDir,'dirreport',6))rrw_json(['status'=>'error','message'=>'Zu viele Meldungen – bitte später erneut versuchen.'],429);
-    try{$r=rrw_dir_report_add($dataDir,rrw_body());rrw_json(!empty($r['ok'])?['status'=>'ok']:['status'=>'error','message'=>(string)($r['message']??'Meldung nicht möglich.')],!empty($r['ok'])?200:400);}
-    catch(Throwable $e){error_log('directory_report: '.get_class($e).': '.$e->getMessage());rrw_json(['status'=>'error','message'=>'Meldung momentan nicht möglich.'],503);}
-}
 // Apps: öffentliche Startabfrage der nativen Apps (Funktionen, Hinweis, Update) und Übersicht für das CMS (Admin)
 if($action==='app_config'){
     $did=rrw_apps_did_clean($_GET['did']??'');$pl=(string)($_GET['platform']??'android');$ver=(string)($_GET['version']??'');
@@ -760,11 +724,6 @@ if(str_starts_with($action,'app_build')){
 if($action==='apps_stats'){ rrw_auth(true);rrw_json(['status'=>'ok','usage'=>rrw_apps_usage($dataDir),'new_daily'=>rrw_apps_new_daily($dataDir),'retention'=>rrw_apps_retention($dataDir),'downloads'=>rrw_apps_download_stats($dataDir,$site,$root),'errors'=>rrw_apps_errors($dataDir),'telemetry'=>(array)($site['apps']['telemetry']??[]),'listen'=>rrw_apps_listen_stats($dataDir),'geo'=>rrw_apps_geo_stats($dataDir),'geo_db'=>rrw_geo_status($dataDir)]); }
 if($action==='apps_geo_update'){ rrw_auth(true);$r=rrw_geo_download($dataDir);rrw_json($r['ok']?['status'=>'ok','geo_db'=>rrw_geo_status($dataDir)]:['status'=>'error','message'=>$r['message']],$r['ok']?200:502); }
 if($action==='apps_stats_clear'){ rrw_auth(true);$b=rrw_body();rrw_apps_stats_clear($dataDir,(string)($b['what']??'all'));rrw_json(['status'=>'ok']); }
-if($action==='directory_admin_get'){ rrw_auth(true);rrw_json(['status'=>'ok']+rrw_dir_admin_view($dataDir)); }
-if($action==='directory_admin_save'){
-    $auth=rrw_auth(true);$r=rrw_dir_admin_apply($dataDir,rrw_body(),(string)($auth['user']??'admin'));
-    rrw_json(!empty($r['ok'])?['status'=>'ok']+rrw_dir_admin_view($dataDir):['status'=>'error','message'=>(string)($r['message']??'Speichern nicht möglich.')],!empty($r['ok'])?200:400);
-}
 if($action==='assistant_status'){ rrw_auth(false);rrw_json(['status'=>'ok']+rrw_assistant_status($site,$dataDir)); }
 if($action==='assistant_test'){ rrw_auth(false);$b=rrw_body();rrw_json(['status'=>'ok']+rrw_assistant_test($site,(string)($b['provider']??''),$dataDir,(string)($b['model']??''))); }
 if($action==='assistant_models'){ rrw_auth(true);rrw_json(['status'=>'ok']+rrw_assistant_models_list($site,rrw_body(),$dataDir)); }
@@ -1000,8 +959,7 @@ if($action==='site_health'){
     rrw_json(['status'=>'ok','overall'=>$overall,'summary'=>$summary,'items'=>$items,'checked_at'=>date('Y-m-d H:i:s')]);
 }
 if($action==='revs'){rrw_auth(false);rrw_json(['status'=>'ok','revs'=>rrw_site_revs($site)]);}
-if($action==='get'){rrw_auth(false);$cfgOut=$site;if(function_exists('rrw_assistant_admin_view'))$cfgOut['assistant']=rrw_assistant_admin_view((array)($site['assistant']??[]));rrw_json(['status'=>'ok','config'=>$cfgOut,'revs'=>rrw_site_revs($site),'storage'=>'cms/data/site.json','packs'=>[RRW_PACK_RADIO=>false]]);}
-if($action==='pack_status'){rrw_auth(false);rrw_json(['status'=>'ok','packs'=>[RRW_PACK_RADIO=>false]]);}
+if($action==='get'){rrw_auth(false);$cfgOut=$site;if(function_exists('rrw_assistant_admin_view'))$cfgOut['assistant']=rrw_assistant_admin_view((array)($site['assistant']??[]));rrw_json(['status'=>'ok','config'=>$cfgOut,'revs'=>rrw_site_revs($site),'storage'=>'cms/data/site.json']);}
 const RRW_ADMIN_ONLY_SECTIONS=['apps','alexa','assistant','services','brands','storage','backup','plugins'];
 if($action==='save'){
     $authUser=rrw_auth(false);$b=rrw_body();$section=(string)($b['section']??'');
@@ -1100,9 +1058,6 @@ if($action==='branding_assign'){
     $size=$b['size']??'auto';$url=rrw_media_pick_variant($item,$size,$kind);$sync=rrw_sync_branding_asset($kind,$url,$root);$site['branding'][$kind]=$sync['url'];$site['branding_media'][$kind]=['path'=>(string)($b['path']??''),'size'=>$size,'source_url'=>$url,'assigned_at'=>date(DATE_ATOM)];rrw_publish($site,$siteFile,$genDir,$root);
     rrw_json(['status'=>'ok','url'=>$sync['url'],'source_url'=>$url,'branding'=>$site['branding'],'branding_media'=>$site['branding_media'],'updated_files'=>$sync['files'],'warnings'=>$sync['warnings']]);
 }
-if($action==='core_validate'){rrw_auth(false);$st=strtolower(trim((string)($_GET['station']??'')));if(!preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$st))rrw_json(['status'=>'error','message'=>'Ungültiger Sendername'],400);$raw=@file_get_contents('https://api.laut.fm/station/'.rawurlencode($st));$d=json_decode((string)$raw,true);if(!is_array($d)||empty($d['name']))rrw_json(['status'=>'error','message'=>'Sender bei laut.fm nicht gefunden'],404);rrw_json(['status'=>'ok','station'=>$d]);}
-if($action==='core_add'){rrw_auth(false);$b=rrw_body();$st=strtolower(trim((string)($b['station']??'')));if(!preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$st))rrw_json(['status'=>'error','message'=>'Ungültiger Sendername'],400);$list=(array)($site['core_network']['stations']??[]);if(!in_array($st,$list,true))$list[]=$st;$site['core_network']=rrw_clean_section('core_network',['stations'=>$list]);rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','stations'=>$site['core_network']['stations']]);}
-if($action==='core_remove'){rrw_auth(true);$b=rrw_body();$st=strtolower(trim((string)($b['station']??'')));if(strtolower(trim((string)($b['typed']??'')))!==$st||trim((string)($b['confirm']??''))!=='ENTFERNEN '.$st)rrw_json(['status'=>'error','message'=>'Sicherheitsbestätigung stimmt nicht'],400);$list=array_values(array_filter((array)($site['core_network']['stations']??[]),fn($x)=>$x!==$st));$site['core_network']=rrw_clean_section('core_network',['stations'=>$list]);rrw_publish($site,$siteFile,$genDir,$root);rrw_json(['status'=>'ok','stations'=>$site['core_network']['stations']]);}
 if($action==='admin_prefs_get'||$action==='admin_prefs_save'){   // persönliche Einstellungen der Verwaltung (Design), pro Benutzer, nicht pro Browser
     $u=rrw_auth(false);$pf=$dataDir.'/.prefs/admin.json';$all=is_file($pf)?json_decode((string)@file_get_contents($pf),true):[];$all=is_array($all)?$all:[];$name=(string)($u['user']??'');
     if($name==='')rrw_json(['status'=>'error','message'=>'Kein Benutzer'],400);
@@ -1904,7 +1859,7 @@ if($action==='theme_delete'||$action==='theme_unhide'){
     $rm=function(string $d)use(&$rm):void{foreach(scandir($d)?:[] as $x){if($x==='.'||$x==='..')continue;$f=$d.'/'.$x;if(is_link($f)||is_file($f))@unlink($f);elseif(is_dir($f))$rm($f);}@rmdir($d);};$rm($dir);
     rrw_json(['status'=>'ok','hidden'=>false]);
 }
-if($action==='architecture'){rrw_auth(false);rrw_json(['status'=>'ok','components'=>[['id'=>'portal','name'=>'Website','type'=>'Frontend','path'=>'/'],['id'=>'cms','name'=>rrw_product_title(),'type'=>'Datei-CMS','path'=>'/cms/'],['id'=>'storage','name'=>'CMS-Dateispeicher','type'=>'JSON','path'=>'/cms/data/site.json'],['id'=>'generated','name'=>'Generierte Seiten & SEO','type'=>'HTML/CSS','path'=>'/cms/generated/'],['id'=>'control-center','name'=>rrw_product_control_center().(rrw_standalone()?' (ausgeschaltet)':' (optional)'),'type'=>'Zugriff & Rechte','path'=>'/control/'],['id'=>'local-auth','name'=>'Lokaler CMS-Zugang','type'=>'Zugriff & Rechte','path'=>'/cms/data/local-auth.local.php']],'core_stations'=>rrw_pack_available()?($site['core_network']['stations']??[]):[],'updated_at'=>date(DATE_ATOM)]);}
+if($action==='architecture'){rrw_auth(false);rrw_json(['status'=>'ok','components'=>[['id'=>'portal','name'=>'Website','type'=>'Frontend','path'=>'/'],['id'=>'cms','name'=>rrw_product_title(),'type'=>'Datei-CMS','path'=>'/cms/'],['id'=>'storage','name'=>'CMS-Dateispeicher','type'=>'JSON','path'=>'/cms/data/site.json'],['id'=>'generated','name'=>'Generierte Seiten & SEO','type'=>'HTML/CSS','path'=>'/cms/generated/'],['id'=>'control-center','name'=>rrw_product_control_center().(rrw_standalone()?' (ausgeschaltet)':' (optional)'),'type'=>'Zugriff & Rechte','path'=>'/control/'],['id'=>'local-auth','name'=>'Lokaler CMS-Zugang','type'=>'Zugriff & Rechte','path'=>'/cms/data/local-auth.local.php']],'core_stations'=>[],'updated_at'=>date(DATE_ATOM)]);}
 // Community (Mitglieder; optional, standardmäßig aus): öffentliche Konto-Funktionen und Verwaltung im CMS
 if(str_starts_with($action,'member_')||str_starts_with($action,'community_')||str_starts_with($action,'forum_')||str_starts_with($action,'social_')){
     $cmCfg=rrw_cm_config($dataDir);$cmIp=trim(explode(',',(string)($_SERVER['HTTP_X_FORWARDED_FOR']??$_SERVER['REMOTE_ADDR']??''))[0]);

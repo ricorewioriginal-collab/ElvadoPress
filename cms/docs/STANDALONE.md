@@ -80,10 +80,9 @@ Siehe auch [WORDPRESS.md](WORDPRESS.md) (WordPress-Kompatibilitätsschicht) und 
 Alles, was zum RicoReWi-Radioportal gehört, ist ein **Design-Paket** (`"pack": "ricorewi-radio"` in der `theme.json` der sechs Portal-Themes; Code in `cms/lib/pack.php`):
 Radio-Widgets, Portal-Seiten, Alexa-Skill, Radioverzeichnis, Sender-Netzwerk, Apps des Herstellers, Partnerseite, Rechtstexte-Vorlagen und die Marken-Voreinstellungen.
 
-- **Aktiv** ist das Paket nur, solange eines dieser Themes die Website ausliefert. Mit einem WordPress-Theme oder ohne die Themes verschwinden die Teile aus der Verwaltung (Elemente mit `data-pack`), vorhandene Daten bleiben erhalten.
-- **Vorhanden** ist das Paket nur, wenn ein Theme es mitbringt (`rrw_pack_available()`). Fehlt es (eigenständiges Paket), entstehen bei der Einrichtung keine RicoReWi-Inhalte: kein Favoriten-Menü, keine Partnerseite, keine Rechtstexte-Vorlagen, nur das Beitrags-Widget, eine einzige Marke mit dem Namen der Website, neutrale SEO-Angaben.
+- **Pakete:** ElvadoPress liefert kein Design-Paket aus. Bei der Einrichtung entstehen keine RicoReWi-Inhalte: kein Favoriten-Menü, keine Partnerseite, keine Rechtstexte-Vorlagen, nur das Beitrags-Widget, eine einzige Marke mit dem Namen der Website, neutrale SEO-Angaben.
 - **Bauen:** `php scripts/build-standalone.php <Zielordner> [--zip=<Datei.zip>]` nimmt nur verfolgte Dateien aus `cms/`, lässt die Portal-Themes, den RicoReWi-Skill-Katalog, Daten und Marken-Doku weg und legt `index.php`/`.htaccess` für die WordPress-Theme-Auslieferung dazu. Der Workflow „Standalone CMS“ prüft das bei jeder Änderung an `cms/` mit einer echten Testinstallation (`scripts/test-standalone-build.php`) und veröffentlicht bei einem Tag `cms-v<Version>` das ZIP als Release.
-- **Einrichtung:** Der Assistent schaltet bei fehlendem Paket das neutrale Theme `rrw-classic` ein; die Website erscheint sofort, weitere Themes installierst du im CMS.
+- **Einrichtung:** Der Assistent schaltet das neutrale Theme `rrw-classic` ein; die Website erscheint sofort, weitere Themes installierst du im CMS.
 
 ### Verbundene Dienste (eigene Dienste)
 

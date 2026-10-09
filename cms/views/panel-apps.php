@@ -15,10 +15,4 @@
     </details>
     <div id="abBrands" class="ab-brands"></div>
   </div>
-  <div class="card" data-pack="ricorewi-radio"<?= $own?'':' hidden' ?>>
-    <div class="th"><div class="tt"><i class="fas fa-mobile-screen"></i>Darstellung im Portal</div></div>
-    <label style="display:flex;align-items:center;gap:10px;margin:12px 0"><input id="cmsAndroid" class="switch" type="checkbox"> Android-App im App-Bereich der Website anzeigen</label>
-    <label style="display:flex;align-items:center;gap:10px;margin:12px 0"><input id="cmsWindows" class="switch" type="checkbox"> Windows-App im App-Bereich der Website anzeigen</label>
-    <p class="hint">Die Build-/Download-Automationen bleiben davon unberührt; hier wird nur die öffentliche Darstellung gesteuert.</p>
-  </div>
 </section>

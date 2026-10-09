@@ -36,7 +36,7 @@ t('Texte werden begrenzt',function() use($base){
     [$b]=clean(['shortDescription'=>str_repeat('k',200),'fullDescription'=>str_repeat('l',9000)]+$base);eq(mb_strlen($b['shortDescription']),80);eq(mb_strlen($b['fullDescription']),4000);
 });
 t('Radioverzeichnis in der App nur mit RicoReWi-Paket',function() use($base){
-    [$b]=clean(['type'=>'radio','directory'=>true]+$base);eq($b['directory'],rrw_pack_available());
+    [$b]=clean(['type'=>'radio','directory'=>true]+$base);eq($b['directory'],false);
     [$b]=clean(['type'=>'web','directory'=>true]+$base);eq($b['directory'],false);
 });
 t('Icon mit Hintergrundfarbe: deckende Fläche statt Transparenz, Icon bleibt sichtbar',function(){

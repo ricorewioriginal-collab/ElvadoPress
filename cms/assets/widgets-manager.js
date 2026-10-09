@@ -51,7 +51,7 @@ window.WidgetsManager=(()=>{
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  /* Radio-Paket (RicoReWi-Design): ohne das Paket nicht in der Bibliothek; vorhandene Widgets bleiben erhalten */
  const PACK_RADIO=new Set(['stations','now-playing','schedule','random-station','favorites','podcast','voting','song-voting','studiomail','voicemail','wunsch','poll','social-wall','social-single']);
- const avail=()=>window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio']===false?T.filter(t=>!PACK_RADIO.has(t.id)):T;
+ const avail=()=>T.filter(t=>!PACK_RADIO.has(t.id));
  const typeOf=id=>T.find(t=>t.id===id)||{id,name:id,icon:'fa-puzzle-piece',cat:'Eigene',desc:'',fields:[]};
  const S={open:new Set(),openInst:new Set(),search:'',history:[],future:[],baseline:'',picker:null,target:'',drag:null,inited:false};
  const areas=()=>(CMS.widget_areas=CMS.widget_areas||[]);

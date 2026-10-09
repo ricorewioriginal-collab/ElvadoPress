@@ -41,7 +41,7 @@
   async function activate(i){
     var t=themes[i];if(!t)return;
     if(!confirm(sbx?'Theme „'+t.name+'“ in der Sandbox aktivieren? Die Live-Seite ändert sich nicht.':'Theme „'+t.name+'“ aktivieren? Die Website wird ab sofort damit ausgeliefert (jederzeit rückgängig zu machen).'))return;
-    try{take(await call('wp_theme_activate','',{slug:t.slug}));closePreview(true);toast('Theme aktiviert.');window.cmsPackRefresh&&cmsPackRefresh()}catch(e){toast(e.message,true)}
+    try{take(await call('wp_theme_activate','',{slug:t.slug}));closePreview(true);toast('Theme aktiviert.')}catch(e){toast(e.message,true)}
   }
   async function del(i){
     var t=themes[i];if(!t||!confirm(t.bundled?'Theme „'+t.name+'“ ausblenden? Es liegt im Code und lässt sich unter „Ausgeblendete Themes“ zurückholen.':'Theme „'+t.name+'“ endgültig löschen?'))return;
@@ -50,7 +50,7 @@
   async function unhide(slug){try{take(await call('wp_theme_unhide','',{slug:slug}));toast('Theme wieder eingeblendet.')}catch(e){toast(e.message,true)}}
   async function off(){
     if(!confirm('WordPress-Theme-Auslieferung beenden und zur normalen CMS-Portal-Oberfläche zurückkehren?'))return;
-    try{take(await call('wp_theme_deactivate','',{}));toast('Zurück beim CMS-Portal.');window.cmsPackRefresh&&cmsPackRefresh()}catch(e){toast(e.message,true)}
+    try{take(await call('wp_theme_deactivate','',{}));toast('Zurück beim CMS-Portal.')}catch(e){toast(e.message,true)}
   }
   async function preview(i){
     var t=themes[i];if(!t)return;

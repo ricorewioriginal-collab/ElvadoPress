@@ -82,7 +82,7 @@
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-wand-magic-sparkles"></i><span>AI Studio</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="aicenter" onclick="cmsTab('aicenter',this);window.AiCenter?.open()"><i class="fas fa-brain"></i>AI Studio</button>
-          <button class="tab" hidden data-pack-app="ricorewi-radio" data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()" aria-hidden="true" tabindex="-1"></button><!-- erreichbar über die Unterreiter im Menü „KI“; Markierung für die Paketlogik -->
+          <button class="tab" hidden data-tab="assistant" onclick="cmsTab('assistant',this);window.AssistantManager?.render()" aria-hidden="true" tabindex="-1"></button><!-- erreichbar über die Unterreiter im Menü „KI“; Markierung für die Paketlogik -->
         </div>
       </div>
       <div class="tab-group">
@@ -90,7 +90,6 @@
         <div class="tab-group-body">
           <button class="tab" data-tab="apps" onclick="cmsTab('apps',this);window.AppsManager?.render?.()"><i class="fas fa-mobile-screen"></i>Apps</button>
           <button class="tab" data-tab="alexa" onclick="cmsTab('alexa',this);window.AlexaManager?.render()"><i class="fab fa-amazon"></i>Alexa-Skill</button>
-          <button class="tab" data-pack="ricorewi-radio" data-tab="directory" onclick="cmsTab('directory',this);window.DirectoryManager?.render()"><i class="fas fa-tower-broadcast"></i>Radioverzeichnis<span id="dmTabBadge" class="dm-badge" hidden></span></button>
           <button class="tab" data-tab="social" onclick="cmsTab('social',this)"><i class="fas fa-share-nodes"></i>Social</button>
         </div>
       </div>
@@ -110,7 +109,6 @@
           <button class="tab" data-tab="settings" onclick="cmsTab('settings',this);WpSettings.open('discussion')"><i class="fas fa-comment-dots"></i>Diskussion</button>
           <button class="tab" data-tab="settings" onclick="cmsTab('settings',this);WpSettings.open('media')"><i class="fas fa-image"></i>Medien</button>
           <button class="tab" data-tab="settings" onclick="cmsTab('settings',this);WpSettings.open('permalinks')"><i class="fas fa-link"></i>Permalinks</button>
-          <button class="tab" data-pack="ricorewi-radio" data-tab="portal" onclick="cmsTab('portal',this)"><i class="fas fa-sliders"></i>Website-Inhalte</button>
           <button class="tab" data-tab="seo" onclick="cmsTab('seo',this);window.SystemManager?.loadSeo()"><i class="fas fa-magnifying-glass-chart"></i>SEO &amp; Suche</button>
           <button class="tab" data-tab="legal" onclick="cmsTab('legal',this)"><i class="fas fa-scale-balanced"></i>Rechtliches</button>
           <button class="tab" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
@@ -124,7 +122,6 @@
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-screwdriver-wrench"></i><span>System</span><i class="fas fa-chevron-down tg-chev"></i></div>
         <div class="tab-group-body">
           <button class="tab" data-tab="services" onclick="cmsTab('services',this)"><i class="fas fa-plug"></i>Verbundene Dienste</button>
-          <button class="tab" data-pack="ricorewi-radio" data-tab="network" onclick="cmsTab('network',this)"><i class="fas fa-tower-broadcast"></i>Sender-Netzwerk</button>
           <button class="tab" data-tab="contentfiles" onclick="cmsTab('contentfiles',this);window.SystemManager?.loadContent()"><i class="fas fa-folder-tree"></i>Datei-Ablage</button>
           <button class="tab" data-tab="database" onclick="cmsTab('database',this);window.SystemManager?.loadDatabase()"><i class="fas fa-database"></i>Datenbank</button>
           <button class="tab" data-tab="backups" onclick="cmsTab('backups',this);window.SystemManager?.loadBackup()"><i class="fas fa-clock-rotate-left"></i>Backups</button>

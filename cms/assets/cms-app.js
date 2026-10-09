@@ -58,9 +58,6 @@ async function checkCmsFilesystem(){
    const el=document.getElementById('cmsFsState'); if(el){el.hidden=false;el.classList.add('bad');el.innerHTML='<i class="fas fa-triangle-exclamation"></i> Speicher-Prüfung fehlgeschlagen';}
  }
 }
-/* Design-Pakete (lib/pack.php): ohne das RicoReWi-Portal als Design verschwinden die Radio-Teile (Elemente mit data-pack) */
-function cmsPackApply(p){window.CMS_PACKS=p||{};document.body.classList.toggle('rrw-standalone',!!(typeof RRW_P!=='undefined'&&RRW_P.standalone));Object.keys(window.CMS_PACKS).forEach(k=>document.body.classList.toggle('no-pack-'+k,!window.CMS_PACKS[k]));window.WidgetsManager?.render?.();window.RadioAdmin?.refresh?.();window.ThemeConf?.refresh?.()}
-async function cmsPackRefresh(){try{const d=await cmsApi('pack_status');cmsPackApply(d.packs)}catch(e){}}
 function cmsGoto(id){cmsTab(id,document.querySelector('[data-tab="'+id+'"]'))}
 async function loadDashboardStats(){
  const host=document.getElementById('dashboardStats'); if(!host)return;
@@ -134,8 +131,7 @@ async function loadProfile(){
  try{
   const d=await cmsApi('profile_get_self');
   const isLocal=d.source==='local';
-  const note=document.getElementById('profileExternalNote'),form=document.getElementById('profileForm');
-  if(note)note.style.display=isLocal?'none':'';
+  const form=document.getElementById('profileForm');
   if(form)form.style.display=isLocal?'':'none';
   document.getElementById('profileUsername').value=d.user||'';
   document.getElementById('profileRole').value=d.role==='admin'?'Administrator (voller Zugriff)':'Autor (nur eigene Beiträge)';
@@ -223,10 +219,6 @@ document.addEventListener('click',e=>{
  panel.style.display='none';
 });
 setInterval(()=>{ if(cmsToken())loadNotifications(); },45000);
-function cmsLoginRedirect(){
- try{sessionStorage.setItem('anmacha_login_redirect','/cms/');}catch(e){}
- location.replace('/control/login.html');
-}
 async function cmsShowLogin(){
  document.getElementById('cmsDenied').style.display='none';
  document.getElementById('cmsApp').style.display='none';
@@ -243,7 +235,7 @@ async function cmsShowLogin(){
  document.getElementById('cmsLoginForm').dataset.mode=configured?'login':'setup';
  document.getElementById('cmsLoginTitle').textContent=configured?'Anmeldung erforderlich':'Ersten CMS-Zugang einrichten';
  document.getElementById('cmsLoginDesc').textContent=configured
-   ?(RRW_P.standalone||!(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio'])?'Melde dich mit deinem lokalen '+RRW_P.access_name+'-Zugang an.':'Melde dich mit dem lokalen '+RRW_P.access_name+'-Zugang an oder nutze das '+RRW_P.control_center+'.')
+   ?'Melde dich mit deinem lokalen '+RRW_P.access_name+'-Zugang an.'
    :'Es ist noch kein lokaler CMS-Zugang eingerichtet. Lege jetzt Benutzername und Passwort (mind. 8 Zeichen) fest.';
  document.getElementById('cmsLoginSubmit').innerHTML=configured?'<i class="fas fa-right-to-bracket"></i> Anmelden':'<i class="fas fa-user-plus"></i> Zugang einrichten';
  const msg=document.getElementById('cmsLoginMsg');if(msg)msg.textContent='';
@@ -292,7 +284,6 @@ async function initCms(){
    document.getElementById('cmsDenied').style.display='none';
    document.getElementById('cmsApp').style.display='';
    cmsBarMark(true);
-   const mig=document.getElementById('legacyImportCard');if(mig)mig.style.display=(CMS_IS_SA&&!RRW_P.standalone)?'':'none';
    await cmsReload();
  }catch(e){
    cmsBarMark(false);
@@ -331,15 +322,12 @@ async function importLegacyCms(){
    cmsToast('Altdaten übernommen: '+(d.news_count||0)+' News-Beiträge ✓');
  }catch(e){setPublishState(false,'Import fehlgeschlagen');cmsToast(e.message,true)}
 }
-async function cmsReload(){try{const d=await cmsApi('get');CMS=d.config||{};cmsPackApply(d.packs);window.WidgetsManager?.sync();renderCms();checkCmsFilesystem();loadDashboardStats();loadDashboardActivity();loadDashboardComments();loadSiteHealth();loadNotifications();window.NewsMagazine?.setCategories?.(CMS.news_categories||[]);if(newsMounted&&window.NewsMagazine)NewsMagazine.reload();}catch(e){cmsToast(e.message,true)}}
+async function cmsReload(){try{const d=await cmsApi('get');CMS=d.config||{};window.WidgetsManager?.sync();renderCms();checkCmsFilesystem();loadDashboardStats();loadDashboardActivity();loadDashboardComments();loadSiteHealth();loadNotifications();window.NewsMagazine?.setCategories?.(CMS.news_categories||[]);if(newsMounted&&window.NewsMagazine)NewsMagazine.reload();}catch(e){cmsToast(e.message,true)}}
 function renderCms(){
  const nav=(CMS.navigation||[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
  document.getElementById('navEditor').innerHTML=nav.map((x,i)=>`<div class="navrow" data-id="${escCms(x.id)}"><div><input class="switch nav-vis" type="checkbox" ${x.visible?'checked':''}></div><div><input class="fc w-100 nav-label" maxlength="32" value="${escCms(x.label)}"></div><div><input class="fc w-100 nav-order" type="number" min="0" max="999" value="${Number(x.order)||0}"></div><div class="nav-id" style="color:var(--muted);font-family:monospace">${escCms(x.id)}</div></div>`).join('');
- const p=CMS.portal||{};cmsSiteName.value=p.site_name||'';cmsNewsTitle.value=p.news_title||'';cmsNewsIntro.value=p.news_intro||'';cmsHeroEyebrow.value=p.hero_eyebrow||'';cmsHeroTitle.value=p.hero_title||'';cmsHeroText.value=p.hero_text||'';cmsFooterText.value=p.footer_text||'';cmsNoticeEnabled.checked=!!p.notice_enabled;cmsNoticeText.value=p.notice_text||'';
  const s=CMS.social||{};cmsRt.value=s.ricorewi_tiktok||'';cmsRi.value=s.ricorewi_instagram||'';cmsAt.value=s.anmacha_tiktok||'';cmsAi.value=s.anmacha_instagram||'';
- const a=CMS.apps||{};cmsAndroid.checked=a.android_enabled!==false;cmsWindows.checked=a.windows_enabled!==false;
- renderBranding(); window.BrandsManager?.render(); window.DirectoryManager?.refreshBadge?.(); window.AppsManager?.render?.(); window.AlexaManager?.render?.(); window.ThemeManager?.refreshBrandSelect?.(); renderCoreNetwork(); renderServices(); renderPages(); renderMenus(); renderWidgets(); renderWidgetAreas(); renderFeeds(); renderLegal();
- const cc=document.getElementById('coreCountOverview');if(cc)cc.textContent=(CMS.core_network?.stations||[]).length;
+ renderBranding(); window.BrandsManager?.render(); window.AppsManager?.render?.(); window.AlexaManager?.render?.(); window.ThemeManager?.refreshBrandSelect?.(); renderServices(); renderPages(); renderMenus(); renderWidgets(); renderWidgetAreas(); renderFeeds(); renderLegal();
 }
 function cmsFilterNav(q){
  q=(q||'').trim().toLowerCase();
@@ -362,20 +350,13 @@ function cmsToggleNav(){document.querySelector('.tabs')?.classList.toggle('open'
 function cmsCloseNav(){document.querySelector('.tabs')?.classList.remove('open');document.getElementById('cmsNavBackdrop')?.classList.remove('on')}
 async function saveSection(section,value){const scrollY=window.scrollY;try{setPublishState(true,'Speichere…');const d=await cmsApi('save',{section,value});CMS[section]=d.value;renderCms();requestAnimationFrame(()=>window.scrollTo({top:scrollY,left:0,behavior:'auto'}));const live=await verifyPublicSection(section,d.value);cmsToast(live?'Gespeichert & live veröffentlicht ✓':'Gespeichert, Live-Stand bitte prüfen',!live)}catch(e){setPublishState(false,'Speichern fehlgeschlagen');cmsToast(e.message,true)}}
 function saveNavigation(){const value=[...document.querySelectorAll('.navrow')].map(r=>({id:r.dataset.id,label:r.querySelector('.nav-label').value.trim(),visible:r.querySelector('.nav-vis').checked,order:parseInt(r.querySelector('.nav-order').value||'100')}));saveSection('navigation',value)}
-async function savePortal(){
- const portal={site_name:cmsSiteName.value.trim(),news_title:cmsNewsTitle.value.trim(),news_intro:cmsNewsIntro.value.trim(),hero_eyebrow:cmsHeroEyebrow.value.trim(),hero_title:cmsHeroTitle.value.trim(),hero_text:cmsHeroText.value.trim(),footer_text:cmsFooterText.value.trim(),notice_enabled:cmsNoticeEnabled.checked,notice_text:cmsNoticeText.value.trim()};
- const start=(CMS.pages||[]).find(p=>p.type==='system'&&p.system_target==='start');
- if(start){start.headline=portal.hero_title;start.intro=portal.hero_text;}
- await saveSection('portal',portal);
- if(start)await saveSection('pages',CMS.pages||[]);
-}
 function saveSocial(){saveSection('social',{ricorewi_tiktok:cmsRt.value.trim(),ricorewi_instagram:cmsRi.value.trim(),anmacha_tiktok:cmsAt.value.trim(),anmacha_instagram:cmsAi.value.trim()})}
 // „Apps verwalten“ (apps-manager.js) liefert den vollständigen Bereich samt Einstellungen je App; cms-app.js wird später geladen und darf das nicht mit der Kurzfassung überschreiben
 function saveApps(){
  const am=window.AppsManager;
  if(am&&am.ready&&am.ready())return saveSection('apps',am.collect());
  if(am&&am.ready)return alert('Die App-Verwaltung ist noch nicht geladen. Bitte kurz warten und erneut speichern.');
- return saveSection('apps',{android_enabled:cmsAndroid.checked,windows_enabled:cmsWindows.checked});
+ return saveSection('apps',{android_enabled:CMS.apps?.android_enabled!==false,windows_enabled:CMS.apps?.windows_enabled!==false});
 }
 function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
 function currentPage(){return (CMS?.pages||[]).find(p=>p.id===CURRENT_PAGE_ID)||null}
@@ -450,7 +431,7 @@ function refreshNativePreview(){
  try{
    sessionStorage.setItem('rrw_page_preview_override',JSON.stringify(p));
    const portal={
-     site_name:document.getElementById('cmsSiteName')?.value||CMS.portal?.site_name||'',
+     site_name:CMS.portal?.site_name||'',
      news_title:document.getElementById('cmsNewsTitle')?.value||CMS.portal?.news_title||'',
      news_intro:document.getElementById('cmsNewsIntro')?.value||CMS.portal?.news_intro||'',
      hero_eyebrow:document.getElementById('cmsHeroEyebrow')?.value||CMS.portal?.hero_eyebrow||'',
@@ -694,29 +675,6 @@ async function uploadBranding(kind){
 }
 
 
-function renderCoreNetwork(){
- const h=document.getElementById('coreStationList');if(!h)return;const list=CMS?.core_network?.stations||[];
- h.innerHTML=list.map(st=>`<div class="core-row"><div><div class="core-name"><i class="fas fa-radio" style="color:var(--cyan);margin-right:7px"></i>${escCms(st)}</div><div class="core-meta">Core-Netzwerk · laut.fm</div></div><div>${st==='ricorewi'&&(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio'])?'<span class="hint"><i class="fas fa-lock"></i> geschützt</span>':CMS_IS_SA?'<button class="btn-d" onclick="removeCore(\''+escCms(st)+'\')"><i class="fas fa-trash"></i> Entfernen</button>':'<span class="hint"><i class="fas fa-shield-halved"></i> Superadmin nötig</span>'}</div></div>`).join('')||'<div class="empty">Keine Sender.</div>';
-}
-async function validateAndAddCore(){
- const st=(document.getElementById('coreNewStation')?.value||'').trim().toLowerCase(),out=document.getElementById('coreValidation');
- if(!st)return cmsToast('Sendernamen eingeben',true);
- out.innerHTML='<i class="fas fa-spinner fa-spin"></i> Prüfe bei laut.fm …';
- try{
-  const v=await fetch(CRON+'?action=core_validate&station='+encodeURIComponent(st),{headers:cmsHeaders(false)}).then(async r=>{const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||'Nicht gefunden');return d});
-  out.innerHTML='<span style="color:var(--good)"><i class="fas fa-circle-check"></i> '+escCms(v.station.display_name||v.station.name)+' gefunden.</span>';
-  if(!confirm('Sender „'+st+'“ wirklich als Core-Netzwerk-Sender aufnehmen?'))return;
-  const d=await cmsApi('core_add',{station:st});CMS.core_network={stations:d.stations};renderCoreNetwork();document.getElementById('coreCountOverview').textContent=d.stations.length;document.getElementById('coreNewStation').value='';cmsToast('Core-Sender aufgenommen ✓');
- }catch(e){out.innerHTML='<span style="color:var(--bad)"><i class="fas fa-triangle-exclamation"></i> '+escCms(e.message)+'</span>'}
-}
-async function removeCore(st){
- if(!CMS_IS_SA)return cmsToast('Nur Superadmins dürfen Core-Sender entfernen',true);
- const typed=prompt('Sicherheitsprüfung 1/2\n\nGib den Sendernamen exakt ein:\n'+st);
- if(typed!==st)return cmsToast('Abgebrochen: Sendername stimmt nicht',true);
- const phrase=prompt('Sicherheitsprüfung 2/2\n\nGib exakt ein:\nENTFERNEN '+st);
- if(phrase!=='ENTFERNEN '+st)return cmsToast('Abgebrochen: Bestätigung stimmt nicht',true);
- try{const d=await cmsApi('core_remove',{station:st,typed,confirm:phrase});CMS.core_network={stations:d.stations};renderCoreNetwork();document.getElementById('coreCountOverview').textContent=d.stations.length;cmsToast('Core-Sender entfernt')}catch(e){cmsToast(e.message,true)}
-}
 const SERVICE_FIELDS=[
  ['radio_portal','Radioportal'],['control_center','Control Center'],['public_api','Public API'],['news_api','News API'],['tracker','Tracker'],
  ['apps_page','App-Seite'],['nextcloud','Nextcloud / Medien-Cloud'],['owncast','Owncast / Video'],['castopod','Castopod / Podcast'],['airdeck','AirDeck']
@@ -746,9 +704,9 @@ async function loadArchitecture(){
  const h=document.getElementById('architectureHost');if(!h)return;h.innerHTML='<div class="empty"><i class="fas fa-spinner fa-spin"></i>Lade Architektur…</div>';
  try{
   const d=await cmsApi('architecture');
-  h.innerHTML='<div class="grid" style="margin-bottom:12px"><div class="stat"><div class="l">Komponenten</div><div class="v">'+d.components.length+'</div></div>'+(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']===false?'':'<div class="stat"><div class="l">Core-Sender</div><div class="v">'+d.core_stations.length+'</div></div>')+'</div><div class="arch-grid">'+d.components.map(x=>`<div class="arch-card"><b><i class="fas fa-cube" style="color:var(--accent);margin-right:6px"></i>${escCms(x.name)} ${x.health?'<span class="svc-dot '+(x.health.online?'ok':'bad')+'" title="'+(x.health.online?'erreichbar':'nicht erreichbar')+'"></span>':''}</b><div class="hint">${escCms(x.type)}</div><code>${escCms(x.path)}</code><div class="arch-deps">${x.depends_on?.length?'Abhängig von: '+x.depends_on.map(escCms).join(', '):'Keine internen Abhängigkeiten'}${x.health?' · HTTP '+(x.health.http||0)+' · '+(x.health.ms||0)+' ms':''}</div></div>`).join('')+'</div><div class="hint" style="margin-top:12px">Stand: '+new Date(d.updated_at).toLocaleString('de-DE')+'</div>';
+  h.innerHTML='<div class="grid" style="margin-bottom:12px"><div class="stat"><div class="l">Komponenten</div><div class="v">'+d.components.length+'</div></div>'+'</div><div class="arch-grid">'+d.components.map(x=>`<div class="arch-card"><b><i class="fas fa-cube" style="color:var(--accent);margin-right:6px"></i>${escCms(x.name)} ${x.health?'<span class="svc-dot '+(x.health.online?'ok':'bad')+'" title="'+(x.health.online?'erreichbar':'nicht erreichbar')+'"></span>':''}</b><div class="hint">${escCms(x.type)}</div><code>${escCms(x.path)}</code><div class="arch-deps">${x.depends_on?.length?'Abhängig von: '+x.depends_on.map(escCms).join(', '):'Keine internen Abhängigkeiten'}${x.health?' · HTTP '+(x.health.http||0)+' · '+(x.health.ms||0)+' ms':''}</div></div>`).join('')+'</div><div class="hint" style="margin-top:12px">Stand: '+new Date(d.updated_at).toLocaleString('de-DE')+'</div>';
  }catch(e){h.innerHTML='<div class="empty" style="color:var(--bad)">'+escCms(e.message)+'</div>'}
 }
 
-window.cmsReload=cmsReload;window.renderBranding=renderBranding;window.cmsTab=cmsTab;window.cmsHandleLogin=cmsHandleLogin;window.cmsLoginRedirect=cmsLoginRedirect;
+window.cmsReload=cmsReload;window.renderBranding=renderBranding;window.cmsTab=cmsTab;window.cmsHandleLogin=cmsHandleLogin;
 document.addEventListener('DOMContentLoaded',initCms);

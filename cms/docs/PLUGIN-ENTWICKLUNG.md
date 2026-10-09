@@ -141,7 +141,6 @@ Zustand: `cms/data/.plugins/` (`state.json`, `settings/`, `data/<id>/`, `backup/
 
 * **Neuinstallation** (Installer, Schritt „Installationsart“): *Empfohlen* (alle Essentials installiert und aktiviert), *Minimal* (nur Core – die grundlegende Sicherheit ist Core, kein Pflichtplugin), *Benutzerdefiniert* (Auswahl mit automatischer Abhängigkeitserkennung). Fehler bei Plugins machen die Einrichtung nie ungültig.
 * **Bestehende Installationen**: Beim ersten Aufruf der Plugin-Verwaltung werden die Essentials **installiert, aber nicht aktiviert** – die Website verhält sich unverändert, bis der Administrator „Empfohlene aktivieren“ wählt. Inhalte, Medien, Themes, KI-Konfiguration und vorhandene Plugins werden nicht angefasst.
-* Das RicoReWi-Paket (`rrw_pack_available()`) ist ausgenommen.
 
 ## Tests
 
