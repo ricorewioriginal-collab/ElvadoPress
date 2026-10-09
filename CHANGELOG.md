@@ -4,6 +4,13 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 
 ## Nicht veröffentlicht (nach 1.2.0)
 
+### Live Builder und Customizer zuverlässiger
+- **Fehler behoben:** Ein nur zum Bearbeiten geöffnetes Theme galt im Customizer und im Live Builder fälschlich als „aktiv“. Folge: „Veröffentlicht ✓“, obwohl die Website ein anderes Theme auslieferte, und kein Hinweis „Theme aktivieren“. Jetzt wird das echte aktive Theme geprüft; der Customizer fragt vor „Aktivieren & Veröffentlichen“ nach.
+- **Fehler behoben:** Die Reiter „Vorschau“ und „Einstellungen“ des Live Builders blieben am großen Bildschirm leer.
+- **Fehler behoben (Theme Baukasten):** Der Abschnitt „Vorteile“ (und „Neueste Beiträge“) wurde bei kurzen Texten in einer schmalen Spalte statt über die volle Breite dargestellt (Klassenname doppelt vergeben). Theme-Version 1.0.1.
+- **Geräte-Vorschau:** Desktop (1280 px), Tablet (768 px) und Mobil (390 px) werden in echter Gerätebreite berechnet und passend verkleinert; vorher zeigte jede Auswahl in dem schmalen Vorschaufenster fast dasselbe Layout.
+- **Autospeichern:** Bei Verbindungs- oder Serverfehlern bis zu drei weitere Versuche, offene Änderungen werden beim Verlassen des Tabs sofort gesichert.
+
 ### Eigene Links im Verwaltungsmenü
 - Neu: Einstellungen → **Eigene Links** (nur Administratoren). Bis zu 20 Einträge mit Name, Adresse, Symbol und Öffnungsart erscheinen unten im Menü der Verwaltung für alle Benutzer: **im Rahmen der Verwaltung** (iframe, Seite des eigenen Servers ohne Zugriff auf die Sitzung) oder **in neuem Tab**. Erlaubt sind `https://`, `http://` und Pfade wie `/statistik/`; `javascript:`-/`data:`-Adressen werden serverseitig abgelehnt. Speicherung in `data/admin-links.json`, API `admin_links_get`/`admin_links_save`, Test `scripts/test-adminlinks.php`.
 

@@ -3,7 +3,7 @@ Theme Name: ElvadoPress Baukasten
 Theme URI: https://github.com/ricorewioriginal-collab/ElvadoPress
 Description: Freier Homepage-Baukasten: Startseite aus Abschnitten (Hero, Text, Vorteile, Bild+Text, Beiträge, Aufruf, HTML) zusammenstellen; Farben, Schriften, Breiten, Kopf- und Fußbereich im Live-Customizer einstellen.
 Author: ElvadoPress
-Version: 1.0
+Version: 1.0.1
 Text Domain: elvado-baukasten
 Requires PHP: 7.4
 */
@@ -46,15 +46,17 @@ img,video,iframe{max-width:100%;height:auto}
 .bk-hero h1{margin:0 0 .3em;font-size:clamp(2rem,5vw,3.2rem)}.bk-hero p{margin:0 0 1.2em;font-size:1.15rem;opacity:.92}
 .bk-hero.has-overlay{position:relative}.bk-hero.has-overlay:before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.45)}.bk-hero.has-overlay>*{position:relative}
 .bk-hero .btn{background:var(--on-accent);color:var(--accent)}
-.bk-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+.bk-section.bk-features{display:block}
+div.bk-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
 .bk-feature{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}.bk-feature h3{margin:0 0 .4em}
 .bk-split{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}.bk-split.rev .bk-split-img{order:2}
 .bk-split-img img{border-radius:var(--radius);display:block;width:100%}
 @media(max-width:760px){.bk-split{grid-template-columns:1fr}.bk-split.rev .bk-split-img{order:0}}
 /* Feste Spaltenzahl (Abschnitt „Vorteile“) wird auf schmalen Bildschirmen reduziert statt seitlich zu scrollen */
-@media(max-width:760px){.bk-features[style]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-@media(max-width:480px){.bk-features[style]{grid-template-columns:minmax(0,1fr)!important}}
-.bk-posts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.bk-posts .post-card{margin:0}
+@media(max-width:760px){div.bk-features[style]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:480px){div.bk-features[style]{grid-template-columns:minmax(0,1fr)!important}}
+.bk-section.bk-posts{display:block}
+div.bk-posts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.bk-posts .post-card{margin:0}
 .bk-cta{background:var(--accent);color:var(--on-accent);text-align:center}.bk-cta .btn{background:var(--on-accent);color:var(--accent)}
 .bk-alt{background:var(--card)}
 .bk-bg-alt{background:var(--card)}.bk-bg-accent{background:var(--accent);color:var(--on-accent)}.bk-bg-accent .btn{background:var(--on-accent);color:var(--accent)}

@@ -27,7 +27,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <link rel="stylesheet" href="assets/cms.css?v=45">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
-<link rel="stylesheet" href="assets/shell.css?v=8">
+<link rel="stylesheet" href="assets/shell.css?v=10">
 <script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
 
 </head>
@@ -163,7 +163,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/brands-manager.js?v=5"></script><script src="assets/sites-manager.js?v=1"></script>
 <script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=10"></script><script src="assets/apps-manager.js?v=11"></script>
-<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=10"></script>
+<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=11"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script><script src="assets/elvado-plugins.js?v=3"></script>
 <script src="assets/system-manager.js?v=3"></script>
@@ -172,7 +172,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/activity-log.js?v=2"></script>
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script><script src="assets/admin-links.js?v=1"></script>
-<script src="assets/home-builder.js?v=4"></script><script src="assets/live-builder.js?v=6"></script>
+<script src="assets/home-builder.js?v=4"></script><script src="assets/live-builder.js?v=9"></script>
 
 <script src="assets/theme-config.js?v=1"></script>
 <script src="assets/ai-lovable-admin.js?v=1"></script>

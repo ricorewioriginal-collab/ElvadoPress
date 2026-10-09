@@ -79,10 +79,8 @@ body.cms-folded .cms-brand>div{display:none}
 .lb-live{font-size:.76rem;color:var(--dim)}.lb-live i{color:var(--good);font-size:.5rem;vertical-align:middle;margin-right:5px}
 .lb-url{display:flex;align-items:center;gap:8px;margin:0 12px 8px;padding:4px 6px 4px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font-size:.78rem;color:var(--dim)}
 .lb-url span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lb-stage{flex:1;min-height:0;display:flex;justify-content:center;background:rgba(0,0,0,.25);overflow:auto}
-.lb-stage iframe{width:100%;height:100%;border:0;background:#fff;transition:width .2s}
-.lb-stage iframe[data-dev="tablet"]{width:768px;max-width:100%}
-.lb-stage iframe[data-dev="mobile"]{width:390px;max-width:100%}
+.lb-stage{flex:1;min-height:0;display:block;position:relative;background:rgba(0,0,0,.25);overflow:hidden}
+.lb-stage iframe{display:block;width:100%;height:100%;border:0;background:#fff}
 /* Schmale Fenster: eine Spalte nach Auswahl in der Leiste */
 @media(max-width:1180px){
   .lb-grid{grid-template-columns:1fr;height:auto}
@@ -92,6 +90,9 @@ body.cms-folded .cms-brand>div{display:none}
   .lb-modes button span{display:none}
 }
 @media(min-width:1181px){
+  /* feste Spalten: ausgeblendete Spalten dürfen die sichtbare nicht in eine 0-breite Spalte schieben (Vorschau und Einstellungen blieben sonst leer) */
+  .lb-grid .lb-structure{grid-column:1}.lb-grid .lb-settings{grid-column:2}.lb-grid .lb-preview{grid-column:3}
+  .lb-grid[data-lbview="preview"],.lb-grid[data-lbview="structure"],.lb-grid[data-lbview="settings"]{column-gap:0}
   .lb-grid[data-lbview="preview"]{grid-template-columns:0 0 minmax(0,1fr)}
   .lb-grid[data-lbview="preview"] .lb-structure,.lb-grid[data-lbview="preview"] .lb-settings{display:none}
   .lb-grid[data-lbview="structure"]{grid-template-columns:minmax(0,1fr) 0 0}
