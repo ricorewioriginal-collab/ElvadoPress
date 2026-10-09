@@ -3,18 +3,12 @@
 // Die nativen Apps fragen beim Start die öffentliche Schnittstelle app_config ab (Marke ergibt sich aus der Domain).
 
 const RRW_APPS_PLATFORMS=['android'=>'Android','windows'=>'Windows'];
-const RRW_APPS_FEATURES=['directory'=>'Radioverzeichnis (Suche, Fremd-Streams)','assistant'=>'KI-Assistent','report'=>'Sender melden','cast'=>'Cast (auf Lautsprecher/TV übertragen, nur Android)'];
-
-// Bausteine des App-Builders (feste Auswahl: die Apps rendern diese nativ, es wird nie Code oder HTML aus dem CMS ausgeführt)
-const RRW_APPS_TILES=['favorites'=>'Favoriten','schedule'=>'Sendeplan','podcast'=>'Podcast','community'=>'Mitmachen','news'=>'News & Magazin','assistant'=>'KI-Assistent','directory'=>'Radioverzeichnis','shops'=>'Shops','help'=>'Hilfe','link'=>'Eigener Link'];
-const RRW_APPS_BLOCKS=['hero'=>'Willkommens-Karte','tiles'=>'Kacheln','stations'=>'Senderliste','text'=>'Text-Karte','link'=>'Link-Karte'];
-// Einträge im „Mehr“-Menü der Android-App, die ausgeblendet werden dürfen (Datenschutz, Impressum, App-Info, Beenden bleiben immer)
-const RRW_APPS_MENU=['podcast'=>'Podcast','news'=>'News & Magazin','help'=>'Hilfe & Bedienung','shops'=>'Shops','assistant'=>'KI-Assistent','anmacha'=>'anmacha.de','portal'=>'Radioportal'];
+const RRW_APPS_FEATURES=['assistant'=>'KI-Assistent'];
 
 function rrw_apps_key(string $brand,string $platform): string { return $brand.':'.$platform; }
 
 function rrw_apps_entry_defaults(): array {
-    return ['features'=>['directory'=>true,'assistant'=>true,'report'=>true,'cast'=>true],
+    return ['features'=>['assistant'=>true],
             'notice'=>['enabled'=>false,'level'=>'info','title'=>'','text'=>'','url'=>'','url_label'=>''],
             'min_version'=>'',
             'maintenance'=>['enabled'=>false,'title'=>'','text'=>''],
@@ -25,7 +19,7 @@ function rrw_apps_entry_defaults(): array {
             'builder'=>rrw_apps_builder_defaults()];
 }
 function rrw_apps_builder_defaults(): array {
-    return ['enabled'=>false,'theme'=>['accent'=>'','hero_from'=>'','hero_to'=>''],'home'=>[],'stations'=>['order'=>[],'hidden'=>[]],'more_menu'=>['hide'=>[],'custom'=>[]],'tabs'=>[],'chrome'=>'auto'];
+    return ['tabs'=>[],'chrome'=>'auto'];
 }
 /** Symbole der Tab-Leiste in Baukasten-Apps (die Apps zeichnen sie selbst, keine Bilddateien nötig). */
 const RRW_APPS_TAB_ICONS=['home'=>'Start','news'=>'Neuigkeiten','info'=>'Info','shop'=>'Shop','calendar'=>'Termine','phone'=>'Kontakt','map'=>'Karte','mail'=>'Nachricht','user'=>'Profil','star'=>'Favoriten','play'=>'Medien','menu'=>'Menü'];
@@ -44,55 +38,10 @@ function rrw_apps_tabs_clean($list,int $max=5): array {
 }
 function rrw_apps_color_clean($c): string { $c=strtolower(trim((string)$c));return preg_match('/^#[0-9a-f]{6}$/',$c)?$c:''; }
 function rrw_apps_text($v,int $max): string { return mb_substr(trim(strip_tags((string)$v)),0,$max); }
-/** Eigene Sender der App: Kennung, Name und Stream (Pflicht; https-Adresse oder laut.fm-Kennung), optional Logo (https). Doppelte Kennungen entfallen. */
-function rrw_apps_custom_stations($list,int $max=20): array {
-    $out=[];$seen=[];
-    foreach(array_slice((array)$list,0,$max*2) as $c){
-        if(!is_array($c))continue;
-        $title=rrw_apps_text($c['title']??'',40);
-        // Stream: beliebige https-Adresse oder die laut.fm-Kennung (auch als laut.fm-Adresse) – laut.fm-Sender trägt man genauso selbst ein
-        $raw=trim((string)($c['stream']??''));$laut='';
-        if(preg_match('~^(?:https?://(?:www\.)?laut\.fm/|laut\.fm/)?([a-z0-9][a-z0-9_-]{1,62})/?$~i',$raw,$m)){ $laut=strtolower($m[1]);$stream='https://'.$laut.'.stream.laut.fm/'.$laut; }
-        else $stream=rrw_apps_url_clean($raw);
-        $id=strtolower(trim((string)($c['id']??'')));if($id==='')$id=trim((string)preg_replace('/[^a-z0-9]+/','-',strtolower($title)),'-');
-        $id=substr($id,0,40);
-        if($title===''||$stream===''||!preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$id)||isset($seen[$id]))continue;
-        $seen[$id]=1;$row=['id'=>$id,'title'=>$title,'stream'=>$stream];if($laut!=='')$row['laut']=$laut;
-        $logo=rrw_apps_url_clean((string)($c['logo']??''));if($logo!=='')$row['logo']=$logo;
-        $out[]=$row;if(count($out)>=$max)break;
-    }
-    return $out;
-}
-function rrw_apps_station_ids($list,int $max=60): array {
-    $out=[];foreach(array_slice((array)$list,0,$max) as $x){$x=strtolower(trim((string)$x));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$x)&&!in_array($x,$out,true))$out[]=$x;}
-    return $out;
-}
-// App-Builder bereinigen: feste Bausteine, begrenzte Längen, Links nur https
+// Inhalte der App bereinigen: Tab-Leiste (Baukasten-App) und Umgang mit Kopf und Fuß der Website (Website-/Baukasten-App)
 function rrw_apps_builder_clean($b): array {
-    $b=is_array($b)?$b:[];$d=rrw_apps_builder_defaults();$th=(array)($b['theme']??[]);
-    $out=['enabled'=>!empty($b['enabled']),'theme'=>['accent'=>rrw_apps_color_clean($th['accent']??''),'hero_from'=>rrw_apps_color_clean($th['hero_from']??''),'hero_to'=>rrw_apps_color_clean($th['hero_to']??'')],'home'=>[],'stations'=>$d['stations'],'more_menu'=>$d['more_menu'],'tabs'=>rrw_apps_tabs_clean($b['tabs']??[]),'chrome'=>in_array((string)($b['chrome']??''),['hide','keep'],true)?(string)$b['chrome']:'auto'];
-    foreach(array_slice((array)($b['home']??[]),0,14) as $blk){
-        if(!is_array($blk))continue;$t=(string)($blk['type']??'');if(!isset(RRW_APPS_BLOCKS[$t]))continue;
-        if($t==='hero')$out['home'][]=['type'=>'hero','eyebrow'=>rrw_apps_text($blk['eyebrow']??'',80),'title'=>rrw_apps_text($blk['title']??'',160),'text'=>rrw_apps_text($blk['text']??'',600)];
-        elseif($t==='tiles'){
-            $tiles=[];foreach(array_slice((array)($blk['tiles']??[]),0,8) as $tl){
-                if(!is_array($tl)||!isset(RRW_APPS_TILES[(string)($tl['id']??'')]))continue;$id=(string)$tl['id'];$url=rrw_apps_url_clean((string)($tl['url']??''));
-                if($id==='link'&&$url==='')continue;
-                $tiles[]=['id'=>$id,'title'=>rrw_apps_text($tl['title']??'',40),'sub'=>rrw_apps_text($tl['sub']??'',60),'url'=>$id==='link'?$url:''];
-            }
-            $out['home'][]=['type'=>'tiles','title'=>rrw_apps_text($blk['title']??'',60),'tiles'=>$tiles];
-        }
-        elseif($t==='stations')$out['home'][]=['type'=>'stations','title'=>rrw_apps_text($blk['title']??'',60),'limit'=>max(0,min(40,(int)($blk['limit']??0)))];
-        elseif($t==='text')$out['home'][]=['type'=>'text','title'=>rrw_apps_text($blk['title']??'',80),'text'=>rrw_apps_text($blk['text']??'',600)];
-        elseif($t==='link')$out['home'][]=['type'=>'link','title'=>rrw_apps_text($blk['title']??'',80),'text'=>rrw_apps_text($blk['text']??'',400),'url'=>rrw_apps_url_clean((string)($blk['url']??'')),'label'=>rrw_apps_text($blk['label']??'',40)];
-    }
-    $st=(array)($b['stations']??[]);$out['stations']=['order'=>rrw_apps_station_ids($st['order']??[]),'hidden'=>rrw_apps_station_ids($st['hidden']??[])];
-    // Eigene Sender (beliebige https-Streams neben dem Core-Netzwerk); der Schlüssel fehlt, solange keine angelegt sind
-    $custom=rrw_apps_custom_stations($st['custom']??[]);if($custom)$out['stations']['custom']=$custom;
-    $mm=(array)($b['more_menu']??[]);$hide=[];foreach((array)($mm['hide']??[]) as $k)if(isset(RRW_APPS_MENU[(string)$k])&&!in_array((string)$k,$hide,true))$hide[]=(string)$k;
-    $custom=[];foreach(array_slice((array)($mm['custom']??[]),0,6) as $c){if(!is_array($c))continue;$u=rrw_apps_url_clean((string)($c['url']??''));$t=rrw_apps_text($c['title']??'',40);if($u===''||$t==='')continue;$custom[]=['title'=>$t,'sub'=>rrw_apps_text($c['sub']??'',60),'url'=>$u];}
-    $out['more_menu']=['hide'=>$hide,'custom'=>$custom];
-    return $out;
+    $b=is_array($b)?$b:[];
+    return ['tabs'=>rrw_apps_tabs_clean($b['tabs']??[]),'chrome'=>in_array((string)($b['chrome']??''),['hide','keep'],true)?(string)$b['chrome']:'auto'];
 }
 function rrw_apps_version_clean(string $v): string { return preg_match('/^\d{1,4}(\.\d{1,4}){0,3}/',trim($v),$m)?$m[0]:''; }
 function rrw_apps_url_clean(string $u): string { $u=trim($u);return preg_match('~^https://[^\s"\'<>]{3,300}$~i',$u)?$u:''; }
@@ -109,7 +58,7 @@ function rrw_apps_clean($value): array {
     $value=is_array($value)?$value:[];
     $tm=(array)($value['telemetry']??[]);
     $out=['android_enabled'=>!empty($value['android_enabled']),'windows_enabled'=>!empty($value['windows_enabled']),
-          'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors']),'listen'=>!empty($tm['listen']),'geo'=>!array_key_exists('geo',$tm)||!empty($tm['geo'])],'managed'=>[]];
+          'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors']),'geo'=>!array_key_exists('geo',$tm)||!empty($tm['geo'])],'managed'=>[]];
     foreach(array_slice((array)($value['managed']??[]),0,40,true) as $k=>$e){
         if(!is_string($k)||!preg_match('/^([a-z0-9_-]{1,40}):(android|windows)$/',$k)||!is_array($e))continue;
         $d=rrw_apps_entry_defaults();$f=(array)($e['features']??[]);$n=(array)($e['notice']??[]);
@@ -262,40 +211,26 @@ function rrw_apps_own(string $dataDir): array {
     foreach(is_array($d)?(array)($d['brands']??[]):[] as $b){
         if(!is_array($b)||!preg_match('/^[a-z][a-z0-9]{2,19}$/',(string)($b['id']??'')))continue;
         $pl=array_values(array_filter((array)($b['platforms']??['android']),fn($x)=>isset(RRW_APPS_PLATFORMS[$x])))?:['android'];
-        $out[$b['id']]=['id'=>$b['id'],'appName'=>(string)($b['appName']??$b['id']),'type'=>in_array(($b['type']??'radio'),['web','content'],true)?(string)$b['type']:'radio','platforms'=>$pl,'site'=>(string)($b['site']??''),'icon'=>(string)($b['icon']??''),'themeColor'=>preg_match('/^#[0-9a-fA-F]{6}$/',(string)($b['themeColor']??''))?(string)$b['themeColor']:''];
+        $out[$b['id']]=['id'=>$b['id'],'appName'=>(string)($b['appName']??$b['id']),'type'=>($b['type']??'')==='content'?'content':'web','platforms'=>$pl,'site'=>(string)($b['site']??''),'icon'=>(string)($b['icon']??''),'themeColor'=>preg_match('/^#[0-9a-fA-F]{6}$/',(string)($b['themeColor']??''))?(string)$b['themeColor']:''];
     }
     return $out;
 }
 /** Marken-Angabe für app_config, wenn die App eine eigene App des Build-Assistenten ist (Parameter brand=<Kennung>); sonst null (Marke wie bisher aus dem Hostnamen). */
 function rrw_apps_own_brand(array $own,string $id): ?array {
     $id=strtolower(trim($id));if(!isset($own[$id]))return null;
-    return ['brand'=>$id,'id'=>$id,'origin'=>$own[$id]['site'],'directory'=>false,'own'=>true];
+    return ['brand'=>$id,'id'=>$id,'origin'=>$own[$id]['site'],'own'=>true];
 }
-/**
- * Übersicht je Marke und Plattform. $own: eigene Apps des Build-Assistenten (zusätzliche Zeilen, ohne Downloads auf dieser Website);
- * $onlyOwn: nur diese Zeilen (eigenständiger Betrieb – die Marken des Herstellers gehören nicht dazu).
- */
-function rrw_apps_overview(array $site,string $root,array $own=[],bool $onlyOwn=false): array {
-    $reg=rrw_brands_registry($site);$rows=[];
-    foreach($onlyOwn?[]:$reg['items'] as $b){
-        if(empty($b['enabled']))continue;
-        $dom=trim((string)($b['primary_domain']??''));
-        foreach(RRW_APPS_PLATFORMS as $pk=>$pl){
-            $m=rrw_apps_meta($root,$b['id'],$reg['default'],$pk);
-            $e=rrw_apps_entry($site,$b['id'],$pk);
-            $rows[]=['brand'=>$b['id'],'brand_name'=>(string)($b['name']??$b['id']),'directory'=>!empty($b['directory']),'platform'=>$pk,'platform_name'=>$pl,
-                'origin'=>$dom!==''?'https://'.$dom:'','meta'=>$m,'config'=>$e,'health'=>rrw_apps_health($m,$e,$pk),
-                'shown'=>!empty($site['apps'][$pk.'_enabled'])||!array_key_exists($pk.'_enabled',(array)($site['apps']??[])),'own'=>false,'type'=>'radio'];
-        }
-    }
+/** Übersicht der eigenen Apps des Build-Assistenten je Plattform. $own: Ergebnis von rrw_apps_own(). */
+function rrw_apps_overview(array $site,string $root,array $own=[]): array {
+    $rows=[];
     foreach($own as $a){
         foreach($a['platforms'] as $pk){
-            $rows[]=['brand'=>$a['id'],'brand_name'=>$a['appName'],'directory'=>false,'platform'=>$pk,'platform_name'=>RRW_APPS_PLATFORMS[$pk],
+            $rows[]=['brand'=>$a['id'],'brand_name'=>$a['appName'],'platform'=>$pk,'platform_name'=>RRW_APPS_PLATFORMS[$pk],
                 'origin'=>$a['site'],'meta'=>['available'=>false,'version'=>'','built_at'=>'','files'=>[]],'config'=>rrw_apps_entry($site,$a['id'],$pk),'health'=>[],
                 'shown'=>true,'own'=>true,'type'=>$a['type'],'theme_color'=>(string)($a['themeColor']??'')];
         }
     }
-    return ['status'=>'ok','default'=>$reg['default'],'items'=>$rows,'features'=>RRW_APPS_FEATURES];
+    return ['status'=>'ok','items'=>$rows,'features'=>RRW_APPS_FEATURES];
 }
 
 // Rollout: stabile Gruppe 0-99 je Installation (ohne ID: Gruppe 0 nur bei 100 %)
@@ -313,7 +248,7 @@ function rrw_apps_public(array $site,string $root,array $brand,string $platform,
     $isOwn=!empty($brand['own']);
     $metaDefault=in_array($id,$knownIds,true)?$reg['default']:($isOwn?$reg['default']:$id);
     $e=rrw_apps_entry($site,$id,$platform);$m=rrw_apps_meta($root,$id,$metaDefault,$platform);
-    $features=$e['features'];if(empty($brand['directory']))$features['directory']=false;
+    $features=$e['features'];
     $notice=null;$n=$e['notice'];
     if(!empty($n['enabled'])&&($n['text']!==''||$n['title']!=='')){
         $notice=['id'=>substr(md5(json_encode([$n['level'],$n['title'],$n['text'],$n['url']])),0,10),'level'=>$n['level'],'title'=>$n['title'],'text'=>$n['text'],'url'=>$n['url'],'url_label'=>$n['url_label']];
@@ -338,13 +273,7 @@ function rrw_apps_public(array $site,string $root,array $brand,string $platform,
     $mt=$e['maintenance'];$maintenance=!empty($mt['enabled'])?['title'=>$mt['title']!==''?$mt['title']:'Wartungsarbeiten','text'=>$mt['text']!==''?$mt['text']:'Die App ist vorübergehend nicht verfügbar. Bitte versuche es später erneut.']:null;
     $tm=(array)($site['apps']['telemetry']??[]);
     $out=['status'=>'ok','brand'=>$id,'platform'=>$platform,'features'=>$features,'notice'=>$notice,'update'=>$update,'maintenance'=>$maintenance,
-          'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors']),'listen'=>!empty($tm['usage'])&&!empty($tm['listen'])],'layout'=>null,'tabs'=>$e['builder']['tabs']??[]];
-    $b=$e['builder'];
-    if(!empty($b['enabled'])){
-        $layout=['theme'=>$b['theme'],'home'=>$b['home'],'stations'=>$b['stations'],'more_menu'=>$b['more_menu']];
-        $layout['rev']=substr(md5(json_encode($layout)),0,10);
-        $out['layout']=$layout;
-    }
+          'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors'])],'tabs'=>$e['builder']['tabs']??[]];
     return $out;
 }
 
@@ -440,7 +369,7 @@ function rrw_apps_errors(string $dataDir): array {
 function rrw_apps_stats_clear(string $dataDir,string $what): void {
     $dir=rrw_apps_dir($dataDir);
     if($what==='errors'||$what==='all')@unlink($dir.'/errors.json');
-    if($what==='usage'||$what==='all'){@unlink($dir.'/usage.json');@unlink($dir.'/listen.json');}
+    if($what==='usage'||$what==='all'){@unlink($dir.'/usage.json');}
     if($what==='downloads'||$what==='all')@unlink($dir.'/downloads.json');
 }
 // Kurzer Schreibschutz gegen Flut (je IP-Hash und Stunde)
@@ -510,47 +439,6 @@ function rrw_apps_geo_stats(string $dataDir,int $min=3): array {
         }
         $fmt=function(array $m) use($min){arsort($m);$list=[];$rest=0;foreach($m as $k=>$n){if($n<$min){$rest+=$n;continue;}$list[]=['name'=>str_replace('|',' · ',$k),'count'=>$n];}return ['items'=>array_slice($list,0,30),'other'=>$rest];};
         $out[$key]=['countries'=>$fmt($c),'regions'=>$fmt($r),'cities'=>$fmt($ci),'unknown'=>$unknown];
-    }
-    return $out;
-}
-
-// ---------- Hörstatistik (nur wenn "Hörstatistik" im CMS an ist): Sender + Sekunden je Sitzung ----------
-function rrw_apps_station_clean($s): string { $s=strtolower(trim((string)$s));return preg_match('/^[a-z0-9][a-z0-9_.:-]{0,63}$/',$s)?$s:''; }
-function rrw_apps_record_listen(string $dataDir,string $brand,string $platform,string $did,string $station,int $seconds): bool {
-    $did=rrw_apps_did_clean($did);$station=rrw_apps_station_clean($station);
-    if($did===''||$station===''||$seconds<10)return false;$seconds=min($seconds,6*3600);
-    $h=substr(hash('sha256',rrw_apps_salt($dataDir).'|stat|'.$did),0,16);$key=rrw_apps_key($brand,$platform);$today=gmdate('Y-m-d');$cut=gmdate('Y-m-d',time()-90*86400);
-    return rrw_apps_rmw(rrw_apps_dir($dataDir).'/listen.json',function(array $d) use($key,$h,$station,$seconds,$today,$cut){
-        $day=&$d['days'][$today][$key];$day=$day??['sec'=>0,'n'=>0,'dev'=>[],'st'=>[]];
-        $day['sec']+=$seconds;$day['n']++;
-        $day['dev'][$h]=($day['dev'][$h]??0)+$seconds;
-        $s=$day['st'][$station]??['sec'=>0,'n'=>0,'dev'=>[]];$s['sec']+=$seconds;$s['n']++;$s['dev'][$h]=1;$day['st'][$station]=$s;
-        if(count($day['st'])>150){uasort($day['st'],fn($a,$b)=>$b['sec']<=>$a['sec']);$day['st']=array_slice($day['st'],0,150,true);}
-        unset($day);
-        foreach(array_keys($d['days']) as $dk)if($dk<$cut)unset($d['days'][$dk]);
-        return $d;
-    });
-}
-function rrw_apps_listen_stats(string $dataDir): array {
-    $f=rrw_apps_dir($dataDir).'/listen.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
-    $t30=gmdate('Y-m-d',time()-29*86400);$out=[];
-    foreach((array)($d['days']??[]) as $date=>$keys)foreach($keys as $key=>$day){
-        if($date<$t30)continue;$o=&$out[$key];
-        $o=$o??['sec'=>0,'sessions'=>0,'dev'=>[],'stations'=>[],'daily'=>[]];
-        $o['sec']+=$day['sec'];$o['sessions']+=$day['n'];$o['daily'][$date]=['sec'=>$day['sec'],'listeners'=>count($day['dev'])];
-        foreach($day['dev'] as $h=>$sec)$o['dev'][$h]=($o['dev'][$h]??0)+$sec;
-        foreach($day['st'] as $id=>$st){$x=$o['stations'][$id]??['sec'=>0,'n'=>0,'dev'=>[]];$x['sec']+=$st['sec'];$x['n']+=$st['n'];foreach($st['dev'] as $h=>$_)$x['dev'][$h]=1;$o['stations'][$id]=$x;}
-        unset($o);
-    }
-    foreach($out as $key=>$o){
-        $listeners=count($o['dev']);$days=max(1,count($o['daily']));
-        uasort($o['stations'],fn($a,$b)=>$b['sec']<=>$a['sec']);ksort($o['daily']);
-        $out[$key]=['seconds'=>$o['sec'],'sessions'=>$o['sessions'],'listeners'=>$listeners,
-            'avg_per_listener'=>$listeners?(int)round($o['sec']/$listeners):0,
-            'avg_per_listener_day'=>$listeners?(int)round($o['sec']/max(1,array_sum(array_map(fn($x)=>$x['listeners'],$o['daily'])))):0,
-            'avg_session'=>$o['sessions']?(int)round($o['sec']/$o['sessions']):0,
-            'stations'=>array_map(fn($id,$x)=>['id'=>$id,'seconds'=>$x['sec'],'sessions'=>$x['n'],'listeners'=>count($x['dev'])],array_slice(array_keys($o['stations']),0,15),array_slice(array_values($o['stations']),0,15)),
-            'daily'=>array_map(fn($date,$x)=>['date'=>$date,'seconds'=>$x['sec'],'listeners'=>$x['listeners']],array_keys($o['daily']),array_values($o['daily']))];
     }
     return $out;
 }

@@ -14,7 +14,7 @@ ElvadoPress (deine Website, CMS)             GitHub (dein App-Repository, aus di
 
 * **Gebaut** wird bei GitHub (kostenlos im Rahmen des GitHub-Kontingents), nicht auf deinem Webserver – Android-Apps brauchen Gradle und das Android-SDK.
 * **Gesteuert** wird alles im CMS. Du musst keinen Quelltext anfassen.
-* Was sich **ohne neuen Build** ändern lässt (Hinweise, Wartungsmodus, Funktionen, Startseite der Radio-App), liegt im CMS und wird von der App beim Start abgeholt.
+* Was sich **ohne neuen Build** ändern lässt (Hinweise, Wartungsmodus, Funktionen, Tab-Leiste der Baukasten-App), liegt im CMS und wird von der App beim Start abgeholt.
 
 ## 1. Einmalige Einrichtung
 
@@ -53,7 +53,7 @@ CMS → **Apps → Eigene App bauen → 2 · Meine Apps → Neue App**. Bis zu 8
 
 | Feld im CMS | Was es bewirkt | Wo es landet |
 | --- | --- | --- |
-| **App-Typ** | *Website-App* oder *Radio-App* (siehe README) | `android/brands.json` → `type` (`web`; Radio ist der Standard) |
+| **App-Typ** | *Website-App* oder *Baukasten-App* (siehe README) | `android/brands.json` → `type` (`web` oder `content`) |
 | **Plattformen** | Android und/oder Windows | nur im CMS; bestimmt, welche Workflows gestartet werden |
 | **App-Name** | Name unter dem Symbol, Fenstertitel, Dateiname-Anfang | `appName` |
 | **Marken-ID** | interne Kennung (3–20 Kleinbuchstaben/Ziffern, nicht änderbar). Darf **nicht** mit `test` oder `androidtest` beginnen (Android-Regel) und nicht `debug`, `release`, `developer`, `main` heißen | `id` |
@@ -84,25 +84,9 @@ CMS → **Apps → Apps verwalten**. Pro App und Plattform gibt es einen aufklap
 | --- | --- | --- |
 | **Hinweis an alle Nutzer** (Überschrift, Text, Link, Art Info/Wichtig) | beide App-Typen | Hinweis in der App (Banner bzw. Dialog), einmal pro Gerät – bis du den Text änderst |
 | **Wartungsmodus** | beide App-Typen | Die App zeigt nur die Wartungsmeldung („Erneut prüfen“), bis du ihn wieder ausschaltest |
-| **Funktionen** (KI-Assistent, Cast, Sender melden) | Radio-App | schaltet die Funktion in der App aus bzw. an |
-| **App-Builder: Aussehen & Startseite** (Farben, Karten, Kacheln, Senderreihenfolge, eigene Sender, „Mehr“-Menü) | Radio-App | gestaltet die Startseite und Listen der Radio-App |
-| **Datenschutz & Statistik** (anonyme Nutzungszahlen, Fehlerberichte, Hörstatistik) | beide | standardmäßig **aus**; gespeichert werden keine Namen, IP-Adressen oder Hörverläufe |
+| **Datenschutz & Statistik** (anonyme Nutzungszahlen, Fehlerberichte) | beide | standardmäßig **aus**; gespeichert werden keine Namen oder IP-Adressen |
 
 Bei einer fehlgeschlagenen Abfrage (kein Netz, Server nicht erreichbar) **startet die App immer normal** – sie sperrt nie aus.
-
-## 5. Die Radio-App im Detail
-
-* **Sender:** Trage sie unter **Apps → Apps verwalten → (App) → App-Builder → *Eigene Sender*** ein (Name, https-Stream-Adresse oder laut.fm-Kennung, optional Logo; bis zu 20) und schalte **„Builder aktiv“** ein – ohne aktiven Builder liefert das CMS keine Sender und kein Layout an die App. Hat dein CMS zusätzlich ein Core-Netzwerk (laut.fm-Kennungen), erscheinen diese Sender vor den eigenen. Eigene Sender mit beliebigem Stream haben keine Titel- und Sendeplan-Auskunft (die kommt von laut.fm); eigene Sender mit laut.fm-Kennung schon. Reihenfolge und Sichtbarkeit stellst du im selben Block ein.
-* **Weitere Funktionen** (Podcast, Voting/Community, Shops) hängen an Backends, die nur die Website bereitstellen kann, und sind standardmäßig **aus**. Wer sie hat, ergänzt sie im Eintrag der App in `android/brands.json` (gilt für Android und Windows; das CMS behält solche Zusätze beim Speichern bei):
-
-  ```json
-  { "id": "meinradio", …, "radio": {
-      "podcast": true,
-      "communityBase": "https://www.meinradio.de/community/",
-      "shops": [ { "title": "Fanshop", "desc": "Shirts und mehr", "url": "https://shop.meinradio.de/" } ] } }
-  ```
-  `communityBase` verweist auf ein Verzeichnis mit den Seiten `voting.html`, `wunsch.html`, `studiomail/widget-form.html` und `voicemsg.html`; der Podcast wird von `https://<website>/podcast.php` als JSON geladen. Beliebige Links lassen sich auch ohne Backend als Kachel/Menüeintrag im App-Builder anlegen.
-* **Radioverzeichnis** (Suche in laut.fm und aller Welt) gehört zum Hersteller-Paket und ist in dieser Vorlage nicht freigeschaltet.
 
 ## 6. Die Website-App im Detail
 
@@ -176,7 +160,6 @@ Neue Funktionen und Korrekturen der Apps kommen mit neuen ElvadoPress-Versionen 
 | Update lässt sich nicht installieren | Signaturschlüssel wechselte (Abschnitt 1.4) – App einmal deinstallieren und neu installieren |
 | Hinweis erscheint nicht | Er wird einmal pro Gerät gezeigt; zum erneuten Zeigen den Text im CMS ändern |
 | App zeigt trotz Wartungsmodus die Website | Wartungsmodus nur beim App-Start abgefragt; App neu starten |
-| Radio-App ohne Sender | Keine eigenen Sender eingetragen oder „Builder aktiv“ ausgeschaltet (Abschnitt 5) |
 
 ## 11. Technische Hinweise
 

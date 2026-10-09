@@ -10,7 +10,6 @@ Diese Vorlage macht aus einer ElvadoPress-Website installierbare **Android-** un
 | --- | --- | --- |
 | **Website-App** (`web`) | jede Website: Shop, Verein, Magazin, Portfolio, Firma … | Deine Website im Vollbild, interne Links bleiben in der App, fremde Adressen/E-Mail/Telefon öffnen extern, Offline-Seite, eigene Farbe. Hinweise, Wartungsmodus und Pflicht-Update kommen aus dem CMS. |
 | **Baukasten-App** (`content`) | eigene App mit eigenen Inhalten: Verein, Shop, Gastro, Dienstleister, Magazin | Tab-Leiste unten (bis 5 Tabs); jeder Tab zeigt eine Seite deiner Website. Tabs, Symbole und Reihenfolge pflegst du im CMS (mit fertigen Vorlagen) – ohne neuen Build. |
-| **Radio-App** (`radio`) | Webradios | Sender (Core-Netzwerk deiner Website + eigene Streams), Player mit Hintergrundwiedergabe, Sendeplan, Favoriten, News, Cast, KI-Assistent – Funktionen, Startseite und Menü im CMS einstellbar. |
 
 Beides gibt es für **Android** (APK) und **Windows** (Installer + portable EXE); pro App wählst du die Plattformen.
 
@@ -27,7 +26,7 @@ Beides gibt es für **Android** (APK) und **Windows** (Installer + portable EXE)
 | Pfad | Zweck |
 | --- | --- |
 | `templates.json`, `VORLAGEN.md` | Katalog der App-Vorlagen |
-| `android/`, `android-app/` | Android-App (Website-, Baukasten- und Radio-App), Marken aus `android/brands.json` |
+| `android/`, `android-app/` | Android-App (Website- und Baukasten-App), Marken aus `android/brands.json` |
 | `windows-native/` | Windows-App (WPF/WebView2) |
 | `.github/workflows/android-custom-brand.yml` | baut die Android-APK einer Marke |
 | `.github/workflows/windows-custom-brand.yml` | baut Installer und portable EXE einer Marke |
