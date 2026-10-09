@@ -152,20 +152,17 @@ foreach(['pages'=>[],'social'=>['ricorewi_tiktok'=>''],'legal'=>['imprint_mode'=
 }
 $r=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'rss','value'=>['enabled'=>true]])],array_merge($H,['Content-Type: application/json']));
 t('Feed-Titel ohne Angabe folgt dem Website-Namen (nicht dem des Herstellers)',str_contains((string)(json_decode($r['body'],true)['value']['title']??''),'Mein Test-Radio'),$r['body']);
-/* Alexa-Skill als Baukasten (ohne RicoReWi-Katalog) */
+/* Alexa-Skill-Baukasten (Website-Skill) */
 $ax=json_decode(http('GET',"$B/cms/api.php?action=alexa_get",[],$H)['body'],true)?:[];
-t('Alexa: Baukasten-Modus ohne Sender',($ax['neutral']??null)===true&&($ax['stations']??null)===[],json_encode($ax));
+t('Alexa: frisch ohne Themen',($ax['topics']??null)===[]&&!array_key_exists('stations',$ax)&&!array_key_exists('neutral',$ax),json_encode($ax));
 t('Alexa: Aufrufname aus dem Website-Namen',($ax['invocation']??'')==='mein test radio',(string)($ax['invocation']??''));
-$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'alexa','value'=>['default_station'=>'meinradio','stations'=>['meinradio'=>['enabled'=>true,'title'=>'Mein Radio','extra'=>['meins']],'zweites-24'=>['enabled'=>true,'title'=>'','extra'=>[]],'eigener-stream'=>['enabled'=>true,'title'=>'Eigener Stream','extra'=>[],'stream'=>'https://stream.example.org/live.mp3'],'unsicher'=>['enabled'=>true,'title'=>'Unsicher','extra'=>[],'stream'=>'http://stream.example.org/live.mp3']],'order'=>['meinradio','zweites-24','eigener-stream','unsicher']]])],array_merge($H,['Content-Type: application/json']));
+$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'alexa','value'=>['topics'=>['kontakt'=>['enabled'=>true,'title'=>'Kontakt','text'=>'Schreib uns eine Mail.','extra'=>['erreichbarkeit']],'preise'=>['enabled'=>true,'title'=>'Preise','text'=>'Alles ist kostenlos.']],'order'=>['preise','kontakt'],'news'=>['enabled'=>true,'count'=>2]]])],array_merge($H,['Content-Type: application/json']));
 t('Alexa: Einstellungen speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
 $pub=json_decode(http('GET',"$B/cms/api.php?action=alexa_config")['body'],true)?:[];
-t('Alexa: öffentliche Konfiguration mit eigenen Sendern',($pub['default']??'')==='meinradio'&&count($pub['stations']??[])===4&&($pub['name']??'')==='Mein Test-Radio',json_encode($pub));
-$byid=[];foreach($pub['stations']??[] as $x)$byid[$x['id']]=$x;
-t('Alexa: eigene https-Stream-Adresse wird übernommen',($byid['eigener-stream']['stream']??'')==='https://stream.example.org/live.mp3'&&!isset($byid['meinradio']['stream']),json_encode($pub['stations']??[]));
-t('Alexa: Stream ohne https wird verworfen',!isset($byid['unsicher']['stream']));
-t('Alexa: Marken-Zuordnung für den Skill',($pub['brand_map']['main']??'')==='meinradio');
+t('Alexa: öffentliche Konfiguration mit Themen in der gewählten Reihenfolge',count($pub['topics']??[])===2&&($pub['topics'][0]['id']??'')==='preise'&&($pub['name']??'')==='Mein Test-Radio',json_encode($pub));
 t('Alexa: Begrüßung nennt den Namen der Website',str_contains((string)($pub['texts']['welcome']??''),'Mein Test-Radio'));
-t('Alexa: keine RicoReWi-Texte in der öffentlichen Konfiguration',!preg_match('/ricorewi|rico rewi|anmacha|senderwelt/i',json_encode($pub)));
+t('Alexa: Neuigkeiten aus den Beiträgen der Website',is_array($pub['news']??null)&&count($pub['news'])<=2);
+t('Alexa: keine Radio-/Hersteller-Texte in der öffentlichen Konfiguration',!preg_match('/ricorewi|rico rewi|anmacha|senderwelt|laut\.fm|stream/i',json_encode($pub)));
 $zr=http('GET',"$B/cms/api.php?action=alexa_download&file=package&_tok=".rawurlencode($tok));
 file_put_contents($tmp.'/skill.zip',$zr['body']);
 $zz=new ZipArchive();$zopen=$zz->open($tmp.'/skill.zip')===true;
@@ -173,15 +170,14 @@ t('Alexa: Skill-Paket (ZIP) lässt sich laden',$zopen&&$zz->numFiles>=6,'HTTP '.
 $all='';$names=[];
 if($zopen)for($i=0;$i<$zz->numFiles;$i++){ $nm=$zz->getNameIndex($i);$names[]=$nm;$all.=($nm==='' ? '' : (string)$zz->getFromIndex($i))."\n"; }
 t('Alexa: Paketordner trägt den Namen der Website',$names&&str_starts_with($names[0],'mein-test-radio-skill/'),(string)($names[0]??''));
-t('Alexa: Paket ohne RicoReWi-Inhalte',!preg_match('/ricorewi|rico rewi|anmacha|senderwelt|rapradio/i',$all),(function() use($all){ preg_match('/.{40}(ricorewi|rico rewi|anmacha|senderwelt|rapradio).{40}/is',$all,$m);return $m[0]??''; })());
-$model=[];$mf='';if($zopen)foreach($names as $nm)if(str_ends_with($nm,'de-DE.json'))$mf=(string)$zz->getFromName($nm);
+t('Alexa: Paket ohne Radio-/Hersteller-Inhalte',!preg_match('/ricorewi|rico rewi|anmacha|senderwelt|rapradio|laut\.fm|audioplayer|audio player/i',$all),(function() use($all){ preg_match('/.{40}(ricorewi|rico rewi|anmacha|senderwelt|rapradio|laut\.fm|audioplayer).{40}/is',$all,$m);return $m[0]??''; })());
+$mf='';if($zopen)foreach($names as $nm)if(str_ends_with($nm,'de-DE.json'))$mf=(string)$zz->getFromName($nm);
 $model=json_decode($mf,true)?:[];
 $lm=$model['interactionModel']['languageModel']??[];
-t('Alexa: Sprachmodell mit Aufrufname und eigenen Sendern',($lm['invocationName']??'')==='mein test radio'&&in_array('meinradio',array_column($lm['types'][0]['values']??[],'id'),true),json_encode($lm['invocationName']??null));
-t('Alexa: Sprachmodell kennt „24“-Aussprache für Sender mit Zahl',(function() use($lm){ foreach($lm['types'][0]['values']??[] as $v)if($v['id']==='zweites-24')return in_array('zweites vierundzwanzig',array_column([['n'=>$v['name']['value']]],'n'),true)||in_array('zweites vierundzwanzig',$v['name']['synonyms'],true);return false; })());
+t('Alexa: Sprachmodell mit Aufrufname und Themen',($lm['invocationName']??'')==='mein test radio'&&array_column($lm['types'][0]['values']??[],'id')===['preise','kontakt'],json_encode($lm['invocationName']??null));
 $sj=json_decode((string)($zopen?$zz->getFromName('mein-test-radio-skill/skill-package/skill.json'):''),true)?:[];
 t('Alexa: Skill-Angaben mit Namen und Aufrufbeispiel',($sj['manifest']['publishingInformation']['locales']['de-DE']['name']??'')==='Mein Test-Radio'&&str_contains(implode(' ',$sj['manifest']['publishingInformation']['locales']['de-DE']['examplePhrases']??[]),'mein test radio'));
-t('Alexa-Katalog im Paket ist die neutrale Vorlage',(json_decode((string)file_get_contents($pkg.'/cms/lib/alexa-skill/catalog.json'),true)['neutral']??false)===true);
+t('Alexa: Skill-Vorlage im Paket ohne Katalog-Datei',!is_file($pkg.'/cms/lib/alexa-skill/catalog.json')&&is_file($pkg.'/cms/lib/alexa-skill/skill.json'));
 
 /* Produktname (z. B. ElvadoPress), wenn das Paket einen mitbringt */
 if(is_file($pkg.'/cms/lib/product.default.json')){

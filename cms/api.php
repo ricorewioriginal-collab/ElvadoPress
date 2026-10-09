@@ -614,14 +614,13 @@ if($action==='alexa_stat'){
     $b=rrw_body();$tok=(string)($b['token']??'');
     if(!hash_equals(rrw_alexa_token($dataDir),$tok))rrw_json(['status'=>'error','message'=>'Nicht erlaubt'],403);
     if(empty($site['alexa']['stats']))rrw_json(['status'=>'ok','stored'=>false]);
-    rrw_json(['status'=>'ok','stored'=>rrw_alexa_stat_add($dataDir,(string)($b['event']??''),(string)($b['station']??''),(string)($b['intent']??''))]);
+    rrw_json(['status'=>'ok','stored'=>rrw_alexa_stat_add($dataDir,(string)($b['event']??''),(string)($b['topic']??''),(string)($b['intent']??''))]);
 }
 if($action==='alexa_get'){
-    rrw_auth(true);$origin=rrw_site_origin($site);
-    $defs=rrw_alexa_station_defs($site);$st=[];
-    foreach($defs as $id=>$s){$v=rrw_alexa_station_value($s,rrw_alexa_catalog()['suffixes']);$st[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled'],'extra'=>$s['extra'],'speakable'=>array_merge([$v['name']['value']],array_slice($v['name']['synonyms'],0,6)),'custom_title'=>(string)(((array)(($site['alexa']['stations']??[])))[$id]['title']??''),'stream'=>(string)($s['stream']??''),'from_radio'=>!empty($s['from_radio'])];}
-    rrw_alexa_model($site,$warn);
-    rrw_json(['status'=>'ok','config'=>rrw_alexa_clean($site['alexa']??[]),'stations'=>$st,'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>rrw_alexa_catalog()['brand']['invocationName'],'neutral'=>rrw_alexa_neutral(),'app_name'=>rrw_alexa_catalog()['brand']['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
+    rrw_auth(true);$origin=rrw_site_origin($site);$cfg=rrw_alexa_clean($site['alexa']??[]);$over=(array)$cfg['topics'];$tp=[];
+    foreach(rrw_alexa_topic_defs($site) as $id=>$s){$v=rrw_alexa_topic_value($s);$tp[]=['id'=>$id,'title'=>$s['title'],'text'=>(string)($over[$id]['text']??''),'enabled'=>(bool)($over[$id]['enabled']??true),'extra'=>$s['extra'],'custom_title'=>(string)($over[$id]['title']??''),'speakable'=>array_merge([$v['name']['value']],array_slice($v['name']['synonyms'],0,6))];}
+    rrw_alexa_model($site,$warn);$brand=rrw_alexa_brand($site);
+    rrw_json(['status'=>'ok','config'=>$cfg,'topics'=>$tp,'news'=>rrw_alexa_news($dataDir,$cfg['news']['count']),'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>$brand['invocationName'],'app_name'=>$brand['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
 }
 if($action==='alexa_icon_upload'){
     rrw_auth(true);
@@ -662,7 +661,7 @@ if($action==='alexa_download'){
     $what=(string)($_GET['file']??'package');$files=rrw_alexa_package_files($site,$root,$origin,$dataDir,$warn);
     if(in_array($what,['package','model'],true))rrw_alexa_mark_exported($dataDir,rrw_alexa_model_rev($site));
     header_remove('Content-Type');
-    if($what==='package'){try{$zip=rrw_alexa_zip($files);}catch(Throwable $e){http_response_code(500);exit($e->getMessage());}header('Content-Type: application/zip');header('Content-Disposition: attachment; filename="ricorewi-radio-alexa-skill.zip"');header('Content-Length: '.filesize($zip));readfile($zip);@unlink($zip);exit;}
+    if($what==='package'){try{$zip=rrw_alexa_zip($files);}catch(Throwable $e){http_response_code(500);exit($e->getMessage());}header('Content-Type: application/zip');header('Content-Disposition: attachment; filename="alexa-skill.zip"');header('Content-Length: '.filesize($zip));readfile($zip);@unlink($zip);exit;}
     $map=['model'=>['skill-package/interactionModels/custom/de-DE.json','de-DE.json'],'manifest'=>['skill-package/skill.json','skill.json'],'lambda'=>['lambda/index.js','index.js'],'fallback'=>['lambda/fallback.json','fallback.json'],'cms'=>['lambda/cms.json','cms.json']];
     if(!isset($map[$what])){http_response_code(404);exit('Unbekannte Datei');}
     header('Content-Type: '.(str_ends_with($map[$what][1],'.js')?'application/javascript':'application/json').'; charset=utf-8');header('Content-Disposition: attachment; filename="'.$map[$what][1].'"');echo $files[$map[$what][0]];exit;

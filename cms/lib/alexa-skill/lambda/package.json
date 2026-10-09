@@ -1,7 +1,7 @@
 {
-  "name": "radio-alexa-skill",
+  "name": "website-alexa-skill",
   "version": "1.0.0",
-  "description": "Alexa-Skill: Radio-Streams per Sprachbefehl",
+  "description": "Alexa-Skill: Neuigkeiten und Themen einer Website per Sprachbefehl",
   "main": "index.js",
   "license": "UNLICENSED",
   "private": true,
