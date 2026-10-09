@@ -8,6 +8,10 @@ Im CMS unter **Apps → Eigene App bauen** erstellst du aus deiner Website insta
 
 Beides gibt es für **Android** und **Windows**; pro App wählst du die Plattformen.
 
+> **Ausführliche Schritt-für-Schritt-Anleitung:** [`app-template/ANLEITUNG.md`](../../app-template/ANLEITUNG.md) (liegt auch im Ordner `app-template/` und im Release `app-template.zip`). Sie beschreibt drei Wege – **A** Assistent im CMS, **B** GitHub Actions von Hand (ohne Token im CMS), **C** lokal bauen – und enthält die Schnittstellen-Referenz (`brands.json`, Workflows, GitHub-Aufrufe, `app_config`/`app_error`/`app_download`).
+>
+> **Standardmäßig ist alles leer:** ElvadoPress enthält keine fertigen Apps und deployt nichts. Die Marken-Liste ist leer, die Workflows starten nur von Hand, und erst dein eigenes App-Repository baut Pakete.
+
 ## Warum GitHub?
 Android-Apps werden mit Gradle und dem Android-SDK gebaut. Das läuft nicht auf normalem Webhosting. Der Build läuft deshalb kostenlos bei **GitHub Actions**. Das CMS übernimmt alles Drumherum: Konfiguration schreiben, Build starten, Stand anzeigen, fertige APK ausliefern.
 
@@ -27,7 +31,7 @@ Die App fragt beim Start deine Website (`app_config&brand=<Marken-ID>`) nach Fun
 CMS → **Apps → Apps verwalten** zeigt auch im eigenständigen CMS alle Apps aus dem Build-Assistenten (je Plattform ein Block). Ohne neuen Build einstellbar:
 
 * **Hinweis an alle Nutzer** (Überschrift, Text, Link, Art) und **Wartungsmodus** – für Website- und Baukasten-Apps (Android und Windows).
-* **Anonyme Nutzungszahlen und Fehlerberichte** (standardmäßig aus).
+* **Anonyme Nutzungszahlen** (beide Plattformen) und **Fehlerberichte** (nur Windows), standardmäßig aus.
 
 Die App meldet sich mit ihrer Marken-ID (`brand=`); das CMS erkennt sie an der Liste des Build-Assistenten (`cms/data/.apps/build.json`). Update-Steuerung (Mindestversion, stufenweises Ausrollen, Prüfsummen) gibt es nur für Apps, die über diese Website verteilt werden (Hersteller-Paket). Schlägt die Abfrage fehl, startet die App immer normal.
 

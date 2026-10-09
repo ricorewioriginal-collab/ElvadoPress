@@ -17,9 +17,9 @@ Beides gibt es für **Android** (APK) und **Windows** (Installer + portable EXE)
 
 ## Schnellstart
 
-1. Aus diesem Ordner ein eigenes GitHub-Repository machen (privat genügt) – siehe [ANLEITUNG.md](ANLEITUNG.md), Abschnitt 1.
-2. Fine-grained Token für genau dieses Repository erzeugen (*Contents*, *Actions*: Read and write, *Metadata*: Read).
-3. Im CMS unter **Apps → Eigene App bauen** Repository und Token eintragen, **Verbindung prüfen**, App anlegen, **bauen**.
+1. Aus diesem Ordner ein eigenes GitHub-Repository machen (privat genügt) – siehe [ANLEITUNG.md](ANLEITUNG.md), „Weg A“ (Assistent im CMS), „Weg B“ (GitHub Actions von Hand) oder „Weg C“ (lokal).
+2. (Weg A) Fine-grained Token für genau dieses Repository erzeugen (*Contents*, *Actions*: Read and write, *Metadata*: Read).
+3. (Weg A) Im CMS unter **Apps → Eigene App bauen** Repository und Token eintragen, **Verbindung prüfen**, App anlegen, **bauen**. Ohne CMS-Verbindung: `android/brands.json` selbst ausfüllen und den Workflow in GitHub → Actions starten (Weg B).
 
 ## Inhalt
 
@@ -37,4 +37,4 @@ Beides gibt es für **Android** (APK) und **Windows** (Installer + portable EXE)
 ## Hinweise
 
 * Die Quellen enthalten keine Marken- oder Zugangsdaten. Der interne Quelltext-Paketname `app.elvadopress.client` ist **nicht** die App-Kennung – die vergibst du pro App im CMS (z. B. `de.meinefirma.app`).
-* Änderungen an dieser Vorlage gehören in das ElvadoPress-Repository (Ordner `app-template/`); danach das eigene App-Repository aktualisieren (ANLEITUNG, Abschnitt 8).
+* Änderungen an dieser Vorlage gehören in das ElvadoPress-Repository (Ordner `app-template/`); danach das eigene App-Repository aktualisieren (ANLEITUNG, „Vorlage aktualisieren“).
