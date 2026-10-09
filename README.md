@@ -37,7 +37,7 @@ ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung vo
 - **App-Baukasten:** eigene Android- und Windows-Apps (Website-App oder Baukasten-App mit Tab-Leiste) über GitHub Actions bauen; die Vorlage ist leer und baut nichts von allein, Anleitung: [app-template/ANLEITUNG.md](app-template/ANLEITUNG.md)
 - **Alexa-Skill:** Sprachmodell, Skill-Angaben und Backend aus deinen Themen und Beiträgen erzeugen (liest Neuigkeiten vor, beantwortet Fragen zur Website)
 - **KI-Assistent** für deine Website
-- **Elvado Radio / Audio** (optionales Plugin, nicht Standard): Webradio- und Audio-Streams per Shortcode `[elvado_radio]` als Player einbinden
+- **Elvado Radio / Audio** (optionales Plugin, nicht Standard): Webradio- und Audio-Streams per Shortcode `[elvado_radio]` als Player einbinden, dazu Sendeplan und „Jetzt läuft“ (`[elvado_radio_schedule]`, `[elvado_radio_now]`)
 
 ## Live-Demo
 

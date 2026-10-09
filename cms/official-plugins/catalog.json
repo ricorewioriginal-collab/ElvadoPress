@@ -60,13 +60,13 @@
         {
             "id": "elvado-radio",
             "name": "Elvado Radio / Audio",
-            "description": "Stellt Webradio- und Audio-Streams als Player auf Seiten, in Beiträgen und Widgets bereit – per Shortcode [elvado_radio]. Die Sender trägst du selbst ein. Es wird kein Skript von Dritten geladen und der Stream erst nach dem Klick auf „Abspielen“ abgerufen.",
+            "description": "Stellt Webradio- und Audio-Streams als Player auf Seiten, in Beiträgen und Widgets bereit – per Shortcode [elvado_radio] bereit und zeigt Sendeplan und „Jetzt läuft“ ([elvado_radio_schedule], [elvado_radio_now]) aus deiner eigenen Liste. Die Sender und Sendungen trägst du selbst ein. Es wird kein Sk",
             "category": "Medien",
             "icon": "fa-radio",
             "status": "available",
             "recommended": false,
             "version": "1.0.0",
-            "hash": "1007514765b1ff94d40da91e6d6042343731a6e0b78e735c5586707ed67126f4"
+            "hash": "ad0fd3ae316cf0e4db50a4ee3c15575304ceabe5b28b14eee127176692a6a4ff"
         },
         {
             "id": "elvado-redirects",

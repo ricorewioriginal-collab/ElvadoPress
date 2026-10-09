@@ -24,7 +24,7 @@ Dieses Dokument beschreibt das **native Plugin-System** (Verzeichnis `cms/src/Pl
 | Elvado Analytics | interne Statistik, optional Matomo/Google Analytics | – |
 | Elvado Redirects | automatische Weiterleitung bei geändertem Slug, Schleifen-/Ketten-Schutz, 404-Monitor-Aktionen | vorhandene Regeln und 404-Protokoll (`cms/lib/tools.php`, Verwaltung unter Werkzeuge) |
 | Elvado AI | Textwerkzeuge im Editor, Vorschläge für Tabs/Hinweise/Store-Texte der Apps | KI-Zentrale (Anbieter, Schlüssel, Modelle, Limits) |
-| Elvado Radio / Audio (optional, nicht empfohlen) | Senderliste, Shortcode `[elvado_radio]` mit Audio-Player (nur https, Stream erst nach Klick, ohne Fremd-Skript) | WordPress-Shortcode-System |
+| Elvado Radio / Audio (optional, nicht empfohlen) | Senderliste, Shortcode `[elvado_radio]` mit Audio-Player (nur https, Stream erst nach Klick, ohne Fremd-Skript), Sendeplan aus eigener Liste (`[elvado_radio_schedule]`, `[elvado_radio_now]` mit „Jetzt“/„Danach“ aus der Serverzeit, ohne externe Abfragen) | WordPress-Shortcode-System |
 
 Geplante, noch nicht vorhandene Plugins (Newsletter, Podcast, Events, Shop, Social, Consent, Maintenance, WordPress Compatibility Tools) stehen im Katalog als „noch nicht verfügbar“ (`cms/official-plugins/planned.json`). Sie lassen sich nicht installieren und tun nichts.
 

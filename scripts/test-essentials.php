@@ -427,7 +427,7 @@ t('Radio: Installation und Übersicht ohne Fehler',(function() use($mgr,$cms){
     $r=$mgr->installSelection(['elvado-radio'],true);if($r['failed'])return false;
     $mgr->saveSettings('elvado-radio',['stations'=>"abc | Test | https://s.example/live\nkaputt"]);reboot($cms);
     $o=$mgr->callApi('elvado-radio','overview',[],'admin');
-    return !empty($o['blocks'])&&$o['blocks'][0]['items'][0]['value']===1&&$o['blocks'][0]['items'][1]['value']===1;
+    return !empty($o['blocks'])&&$o['blocks'][0]['items'][0]['value']===1&&$o['blocks'][0]['items'][2]['value']===1;
 })());
 
 t('Radio: Senderliste wird geprüft (nur https, Kennung, Duplikate)',(function(){
@@ -441,5 +441,32 @@ t('Radio: Player maskiert Ausgaben und ignoriert unsichere Adressen',(function()
         &&$R::render($st,['url'=>'javascript:alert(1)'],true)===''&&$R::render($st,['url'=>'http://s.example/x'],true)===''&&$R::render([],['station'=>'nope'],true)===''
         &&str_contains($R::render([],['url'=>'https://s.example/a.mp3','title'=>'<i>Hallo</i>'],false),'aria-label="iHallo/i"')&&!str_contains($R::render([],['url'=>'https://s.example/a.mp3'],false),'elvado-radio-title');
 })());
+t('Radio: Sendeplan wird geprüft (Tage, Bereiche, Zeiten, über Mitternacht)',(function(){
+    $S='\\ElvadoPlugin\\Radio\\Schedule';
+    [$e,$n]=$S::parse("Mo-Fr | 18:00-20:00 | Abendshow\nSa,So | 22:00-02:00 | Nachtclub | mein-radio\ntäglich | 06:00-09:00 | Morgens\nXx | 10:00-11:00 | Falsch\nMo | 25:00-26:00 | Falsch\nDi | 10:00-11:00 |\n# Kommentar");
+    return count($e)===3&&count($n)===3&&$e[0]['days']===[1,2,3,4,5]&&$e[1]['days']===[6,7]&&$e[1]['end']===120&&$S::parseDays('Fr-Mo')===[1,5,6,7]&&$S::parseTimes('10:00-10:00')===null&&$S::parseTimes('00:00-24:00')===[0,1440];
+})());
+t('Radio: „Jetzt läuft“ und „Danach“ aus der Serverzeit (inkl. Mitternacht und Wochenwechsel)',(function(){
+    $S='\\ElvadoPlugin\\Radio\\Schedule';
+    [$e]=$S::parse("Mo-Fr | 18:00-20:00 | Abendshow\nSa,So | 22:00-02:00 | Nachtclub\ntäglich | 06:00-09:00 | Morgens");
+    $t=fn(string $d)=>new \DateTimeImmutable($d);
+    $a=$S::at($e,$t('2026-10-05 18:30'));   // Montag
+    $b=$S::at($e,$t('2026-10-04 01:00'));   // Sonntag früh: Nachtclub vom Samstag läuft noch
+    $c=$S::at($e,$t('2026-10-04 23:30'));   // Sonntag spät: Nachtclub, danach Montag 06:00
+    $d=$S::at($e,$t('2026-10-05 12:00'));   // Montag Mittag: nichts, danach Abendshow
+    $f=$S::at([],$t('2026-10-05 12:00'));
+    return $a['now']['title']==='Abendshow'&&$a['next']['title']==='Morgens'
+        &&$b['now']['title']==='Nachtclub'&&$b['next']['title']==='Morgens'
+        &&$c['now']['title']==='Nachtclub'&&$c['next']['title']==='Morgens'&&$c['next']['day']===1
+        &&$d['now']===null&&$d['next']['title']==='Abendshow'&&$f===['now'=>null,'next'=>null];
+})());
+t('Radio: Sendeplan-Ausgabe ist maskiert und leer ohne Einträge',(function(){
+    $S='\\ElvadoPlugin\\Radio\\Schedule';
+    [$e]=$S::parse('Mo | 10:00-11:00 | Show <b>1</b> & Co');
+    $h=$S::renderTable($e);$n=$S::renderNow($e,new \DateTimeImmutable('2026-10-05 10:30'));
+    return str_contains($h,'Montag')&&str_contains($h,'10:00–11:00')&&!str_contains($h,'<b>')&&str_contains($n,'Jetzt:')&&str_contains($n,'(10:00–11:00)')
+        &&$S::renderTable([])===''&&$S::renderNow([],new \DateTimeImmutable('now'))==='';
+})());
+
 Fs::rmTree($tmp);
 echo $fail?"$fail von $n Prüfungen fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);
