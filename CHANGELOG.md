@@ -2,7 +2,10 @@
 
 Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröffentlichen eines Releases (Tag `v<Version>`) angehoben.
 
-## Nicht veröffentlicht (nach 1.1.0)
+## 1.2.0
+
+### Lizenz
+- Die offiziellen Plugins (jeweils Version 1.0.1, damit bestehende Installationen das Update erhalten) stehen jetzt wie das gesamte CMS unter GPL-2.0-or-later (vorher in `plugin.json` fälschlich „MIT“).
 
 ### Projektseite
 - Statische Projektseite unter `docs/` (ohne Skripte und externe Ressourcen, `scripts/test-site.php`); nicht im Installations-ZIP. Aktivieren: GitHub → Settings → Pages → *Deploy from a branch* → `main` / `/docs`.

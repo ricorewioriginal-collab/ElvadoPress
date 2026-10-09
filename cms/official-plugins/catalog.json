@@ -10,8 +10,8 @@
             "icon": "fa-wand-magic-sparkles",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "1c8f10e698dbd8f4ba9ba7f9afb37a6c94c51ddf6ae41318018b5d18ee124632"
+            "version": "1.0.1",
+            "hash": "39b6b21e22fe91b42249487482172fc191bf8b710ce45b2f063bd7245908643e"
         },
         {
             "id": "elvado-analytics",
@@ -21,8 +21,8 @@
             "icon": "fa-chart-line",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "4eed5a8d9b9e79119dbb3ffc9de89e13a5f039219d3f109aeae29a920668e756"
+            "version": "1.0.1",
+            "hash": "06c52454570f29974f910111880c4c46292936414427e51bf4458ac68289f909"
         },
         {
             "id": "elvado-backup",
@@ -32,8 +32,8 @@
             "icon": "fa-box-archive",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "aa64ea038cc1bf58001cc860a0c57276de459cc86d7ba63af180f2e32c18353f"
+            "version": "1.0.1",
+            "hash": "abed8156bd4b345c02d955aa199803124e6e07859e544e4c8fad84bc917a75af"
         },
         {
             "id": "elvado-forms",
@@ -43,8 +43,8 @@
             "icon": "fa-envelope-open-text",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "391086bf6f62610b6ce2c510e6ed233313dfad01b467c500d5654b0168f0567e"
+            "version": "1.0.1",
+            "hash": "74a4469f44fd73645c079ca0fa12baf6a0d9da6ade3b9bbdc016dddd088e2783"
         },
         {
             "id": "elvado-performance",
@@ -54,8 +54,8 @@
             "icon": "fa-gauge-high",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "aaaa4577786b4162255a51193a445ba7327231f3b23e058735956ceca896ad06"
+            "version": "1.0.1",
+            "hash": "698342235be91cc78da5e96e44bea58d64b046c6b8b66b56798a212437daa26f"
         },
         {
             "id": "elvado-radio",
@@ -65,8 +65,8 @@
             "icon": "fa-radio",
             "status": "available",
             "recommended": false,
-            "version": "1.0.0",
-            "hash": "ad0fd3ae316cf0e4db50a4ee3c15575304ceabe5b28b14eee127176692a6a4ff"
+            "version": "1.0.1",
+            "hash": "a09861f5c2fe26a84d1bdc7526ed1227ec68972f0a7265abe71c22cef613c0ba"
         },
         {
             "id": "elvado-redirects",
@@ -76,8 +76,8 @@
             "icon": "fa-right-left",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "fb04cfe2d3aacce6a18e9ae2b90e41fc803766d39f3e00d0aa8305bf3c67b878"
+            "version": "1.0.1",
+            "hash": "8ed3a991786691d2a365f24a47efe0ed1f22732f7e34d42bf3247c98301d5add"
         },
         {
             "id": "elvado-seo",
@@ -87,8 +87,8 @@
             "icon": "fa-magnifying-glass-chart",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "86f2cb841419f8aba07e5355fb6a9cbe06c1301b8c074af516eb63d7a3bfb2ff"
+            "version": "1.0.1",
+            "hash": "4edf4bd2b7360bc91aeb92aec850cb7834ac41cfb1060f1842ce5a475eb23db8"
         },
         {
             "id": "elvado-security",
@@ -98,8 +98,8 @@
             "icon": "fa-shield-halved",
             "status": "available",
             "recommended": true,
-            "version": "1.0.0",
-            "hash": "2f3b20ef18f5dc2c2d9c5da8af782ca12ebca7cb318195cf9b503287749e7bf1"
+            "version": "1.0.1",
+            "hash": "1a95735f7932e71228b8ddb3626165ee76135174300650417830d59233087cfa"
         },
         {
             "id": "elvado-consent",
