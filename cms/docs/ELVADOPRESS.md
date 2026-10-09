@@ -1,20 +1,18 @@
 # ElvadoPress – Entwicklung, Veröffentlichung, Demo
 
-ElvadoPress ist das eigenständige CMS mit optionalen Radio-Erweiterungen. **Hauptquelle ist das Repository <https://github.com/ricorewioriginal-collab/ElvadoPress>**; das Projekt *ricorewi-radio* (RicoReWi-Portal) übernimmt `cms/` von dort.
+ElvadoPress ist das eigenständige CMS mit optionalen Radio-Erweiterungen. **Hauptquelle ist das Repository <https://github.com/ricorewioriginal-collab/ElvadoPress>**; *RicoReWi Radio* und *Senderwelt* werden unabhängig davon entwickelt (kein Sync).
 
 ## Funktionsarten
 | Art | Wo entwickelt |
 |---|---|
 | CMS (Beiträge, Seiten, WordPress-Schicht, Benutzer, Formulare, Community …) | ElvadoPress |
 | Radio-Erweiterungen (App-Baukasten, Alexa-Skill, KI-Assistent – neutral) | ElvadoPress |
-| RicoReWi (Portal, Portal-Themes, Radioverzeichnis (nur mit Paket aktiv), Core-Netzwerk, Partnerseite, SenderWelt …) | nur ricorewi-radio |
+| RicoReWi (Portal, Portal-Themes, Radioverzeichnis (nur mit Paket aktiv), Core-Netzwerk, Partnerseite, SenderWelt …) | unabhängig, nicht in ElvadoPress |
 
 ## Ablauf
 1. Änderung in ElvadoPress per Pull Request (CI: Syntax, `scripts/smoke-test.php`, alle `scripts/test-*.php`).
-2. In ricorewi-radio holt der Workflow *Sync ElvadoPress* den Stand (Branch `sync/elvadopress`, Pull Request). Dort laufen zusätzlich die Paket-Tests der RicoReWi-Seite (Bestandsschutz).
-3. Nach dem Merge dort wird die Live-Seite bereitgestellt; die Demo (`https://elvadopress.ricorewi-radio.de`) folgt dem Stand von ricorewi-radio.
-
-Nicht synchronisiert werden: `cms/lib/product.default.json`, `cms/assets/brand/**`, `cms/lib/alexa-skill/{catalog.json,skill.json,README.md,listing-de.md}` (jedes Repository hat dafür eigene Fassungen).
+2. Nach dem Merge steht der Stand in `main`; ein Release entsteht über den Tag `v<Version>` (Workflow *Release*).
+3. Die Demo (`https://elvadopress.ricorewi-radio.de`) wurde bisher über ricorewi-radio bereitgestellt; die künftige Bereitstellung ist noch zu klären (siehe `KNOWN_ISSUES.md`).
 
 ## Lizenz
 GPL-2.0-or-later (Datei `LICENSE`).
@@ -26,4 +24,4 @@ GPL-2.0-or-later (Datei `LICENSE`).
 - **Alle Funktionen sind frei** (Benutzer, Passwörter, System, Backups, Medien-Upload, KI-Gateway, Lovable, freie Bildquellen, Update-Anzeige …) – nach dem Zurücksetzen ist alles wieder im Ausgangszustand (auch `backups/` und `frontend/`). Gesperrt (Antwort 403 „In der Demo nicht möglich“) ist nur, was den gemeinsamen Server gefährdet: Plugin-/Theme-Upload und -Installation (fremder PHP-Code), WordPress-Updates, CMS-Update einspielen (`update_apply/rollback/config_save`), externe Datenbank-Verbindungen, Mailversand/Assistent mit Zugangsdaten, App-Builds, Weiterleitungen, GitHub-Dateisync (`lovable_sync`) und das Umschalten des Betriebsmodus. Liste: `RRW_DEMO_BLOCKED` in `cms/lib/demo.php`.
 - **Demo mit echtem WordPress (optional):** Legt der Betreiber `cms/lib/demo-engine.json` an (`{"host":"localhost","name":"<leere Demo-Datenbank>","user":"…","pass":"…","prefix":"wpdemo_"}`, optional `"core_zip":"/pfad/wordpress-X.Y.Z.zip"`; beim Bauen: `php scripts/make-demo.php <Ordner> --engine="host|datenbank|benutzer|passwort|wpdemo_"`), richtet sich die Engine nach der Anmeldung selbst ein (Aktion `engine_demo_setup`: Core von wordpress.org prüfen und einspielen – nur beim ersten Mal –, Demo-Tabellen leeren, WordPress einrichten, aktiv) und alle Engine-Funktionen sind freigeschaltet: Inhalte, Medien, Benutzer, Menüs, Widgets, Blöcke, Plugins/Themes (Liste, Aktivieren), Migration (Trockenlauf, echter Lauf, Rückbau) und Live Builder. Beim Zurücksetzen werden nur Tabellen mit dem Demo-Präfix gelöscht (nie andere); die Core-Dateien bleiben. **Plugins/Themes:** installieren (und löschen) lassen sich nur ausgewählte, bekannte Pakete aus dem WordPress-Verzeichnis – Standard: Plugins `classic-editor`, `hello-dolly`, Themes `twentytwentyfive`, `twentytwentyfour`; der Betreiber ändert die Liste in `demo-engine.json` (`"allow_install":{"plugins":[…],"themes":[…]}`, leere Listen = nichts). **Gesperrt bleiben** ZIP-Upload, alle anderen Pakete und der manuelle Aufbau der Engine (fremder Programmcode auf dem gemeinsamen Server). Ohne `demo-engine.json` verhält sich die Demo wie bisher. Die Datei ist per `.htaccess` gesperrt (0600), das Passwort erscheint in keiner Antwort. Test: `php scripts/test-demo-engine.php` (mit `WPE_TEST_ZIP`/`WPE_TEST_DB` gegen echtes WordPress).
 - Test: `php scripts/test-demo.php`.
-- Bereitstellung: Workflow „Deploy ElvadoPress Demo“ in ricorewi-radio (Secret `ELVADOPRESS_DEMO_PATH` = Webordner einer **eigenen Subdomain**). Ein Unterordner einer bestehenden Domain ist bewusst nicht vorgesehen: Das CMS nutzt Wurzelpfade (`/cms/`, `/wp-admin/`), und Anmeldedaten liegen pro Domain im Browser.
+- Bisherige Bereitstellung (Stand vor der Trennung, künftig zu klären): Workflow „Deploy ElvadoPress Demo“ in ricorewi-radio (Secret `ELVADOPRESS_DEMO_PATH` = Webordner einer **eigenen Subdomain**). Ein Unterordner einer bestehenden Domain ist bewusst nicht vorgesehen: Das CMS nutzt Wurzelpfade (`/cms/`, `/wp-admin/`), und Anmeldedaten liegen pro Domain im Browser.

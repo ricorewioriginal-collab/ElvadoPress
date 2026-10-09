@@ -23,7 +23,6 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 
 - Radio-Erweiterung + Theme `cms/themes/elvado-radio` (laut.fm / Icecast / Shoutcast, Jetzt läuft, Verlauf, Sendeplan, Player-Leiste, Shortcodes). Menü „Radio“ im CMS nur bei aktivem Theme. Doku `cms/docs/THEMES.md`, Test `scripts/test-radio.php`. Im Browser geprüft (Theme, Menü sichtbar/versteckt, Panel); echte laut.fm-/Icecast-Server nur mit Fake-Abruf getestet.
 - Alexa-Verdrahtung: Radio-Sender → Skill-Sender (`cms/lib/alexa.php`: `rrw_alexa_radio_*`, `radio_sync`), Skill-Backend nutzt `radio_api` für Titel/Sendeplan eigener Streams, Alexa-Menü mit Block „Radio-Theme“, Test `scripts/test-alexa-radio.php`. Das geänderte Backend (`lambda/index.js`) muss bei Amazon neu eingespielt werden.
-- Sync nach ricorewi-radio: dort wird `scripts/smoke-test.php` als `test-standalone-build.php` übernommen (Erwartung: drei neutrale Themes). Nichts RicoReWi-Spezifisches im neuen Code.
 
 - Band-Theme `cms/themes/elvado-band` (Poster-Stil) + generische Theme-Konfiguration `cms/lib/themeconf.php`/`band.php` (Menü „Band“ nur bei aktivem Theme, Editor aus Schema `cms/assets/theme-config.js`, API `themeconf_*`). Plugin-Haken in allen drei Themes (Radio, Baukasten, Band). Doku `cms/docs/THEMES.md`, Test `scripts/test-band.php`. Im Browser geprüft (Startseite, Player-Klick, Mobil, Band-Menü/Editor). Smoke-Test erwartet jetzt vier neutrale Themes.
 
@@ -43,7 +42,7 @@ ElvadoPress ist die Hauptquelle des eigenständigen CMS. Version laut `cms/VERSI
 - KI-Website-Generator (Menü „Website-Generator“): Beschreibung → Entwurf (Titel, Farben, Startseite, Seiten, Beiträge) mit Vorschau, Übernehmen und Rückgängig; `cms/src/Ai/SiteBuilder.php`, `cms/assets/ai-builder.js`, Aktion `ai_site_plan`, Test `scripts/test-ai-sitebuilder.php`. Details `cms/docs/KI-LOVABLE.md`. Noch offen: KI-Entwickler für Themes/Widgets/Plugins (Aufgabe 10).
 - KI-Entwickler (Menü „KI-Entwickler“): Plugins, Widgets und Themes aus einer Beschreibung; Code-Ansicht, automatische Prüfung (Tokenizer + Sperrliste), Installation immer inaktiv, Aktivierung per Klick; `cms/src/Ai/CodeBuilder.php`, `cms/assets/ai-dev.js`, Test `scripts/test-ai-codebuilder.php`. Details `cms/docs/KI-LOVABLE.md`.
 - Alt-Texte und Bilder für den Website-Generator: `media_alt_save`/`ai_alt_suggest` (KI-Vorschlag mit Bildverständnis oder aus Metadaten, `cms/src/Ai/AltTexter.php`), Alt-Feld und Sammelvorschlag in der Mediathek, `image_alt` im Baukasten; Generator lädt freie Bilder (`ai_site_images`, `rrw_stock_pick()`), legt bei Bedarf „Bildnachweise“ an. Tests `test-ai-alttext`, `test-site-images`. Details `cms/docs/MEDIA.md`, `KI-LOVABLE.md`.
-- Deploy: Produktion läuft serverseitig (AnMaCha Universal Deploy, bei Änderung in main), keine GitHub-Actions-Läufe von Hand auslösen; Sync nach ricorewi-radio vorerst manuell über Branch `sync/elvadopress` (Guard „shared CMS files“ lässt nur diesen Branch durch).
+- Deploy: Produktion läuft serverseitig (AnMaCha Universal Deploy, bei Änderung in main), keine GitHub-Actions-Läufe von Hand auslösen; kein Sync nach ricorewi-radio mehr (unabhängige Entwicklung seit Oktober 2026).
 
 ## Aktuell in Arbeit
 Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokumentiert.
@@ -63,7 +62,7 @@ Keine konkrete Anwendungscode-Aufgabe ist in diesem Repository als laufend dokum
 - Zuerst `CLAUDE.md`, dann diese Datei und `PROJECT_MAP.md` lesen.
 - Nicht das gesamte Repository erneut analysieren.
 - `cms/docs/` enthält bereits umfangreiche Fach-Doku; keine parallelen Dokumentationen anlegen.
-- Keine RicoReWi-spezifischen Inhalte in ElvadoPress einführen; Sync-/Bestandsschutzregeln in `CLAUDE.md` beachten.
+- Keine RicoReWi-spezifischen Inhalte in ElvadoPress einführen; Abgrenzungsregeln in `CLAUDE.md` beachten (kein Sync mehr).
 
 ## Phase 2: WordPress-Engine (Fundament)
 Neu: `cms/src/Wp/` (Engine, Requirements, CoreSource, CoreInstaller, DbConfig, Bridge, Adapter), `cms/engine-api.php`, `cms/wp-engine-boot.php`, `cms/lib/wpengine.php`, Panel „WordPress-Engine“ (System). Standard: aus. Test: `scripts/test-wp-engine.php`. Doku: `cms/docs/ARCHITECTURE-WORDPRESS.md`, `WORDPRESS-BRIDGE.md`. Offen: Phasen 3–11 (Inhalte über Adapter, Plugins/Themes, Live-Customizer, Migration, RicoReWi-Paket).

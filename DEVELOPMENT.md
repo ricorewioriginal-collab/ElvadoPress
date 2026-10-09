@@ -16,7 +16,7 @@ ElvadoPress wird in diesem Repository als Hauptquelle entwickelt. Verbindliche A
 4. Laufzeit-, Zugangsdaten und Secrets niemals committen. Details: [INSTALL.md](INSTALL.md) und `cms/docs/ELVADOPRESS.md`.
 
 ## Entwicklung
-Bevorzugter Ablauf: Branch anlegen → gezielt ändern → betroffene Tests → Pull Request → CI grün → Merge. Nach dem Merge übernimmt *ricorewi-radio* die CMS-Dateien per Sync-Workflow und führt zusätzliche Paket-Tests aus.
+Bevorzugter Ablauf: Branch anlegen → gezielt ändern → betroffene Tests → Pull Request → CI grün → Merge.
 
 ## Syntaxprüfung und Tests
 Gezielte PHP-Syntaxprüfung:
