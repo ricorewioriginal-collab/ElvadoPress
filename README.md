@@ -35,7 +35,7 @@ ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung vo
 
 **Radio-Erweiterungen (für eigene Radio-Apps und -Seiten)**
 - **App-Baukasten:** eigene Android- und Windows-Apps (Radio-App oder Website-App) über GitHub-Actions bauen
-- **Alexa-Skill:** Sprachmodell, Skill-Angaben und Backend aus deinen eigenen Sendern erzeugen
+- **Alexa-Skill:** Sprachmodell, Skill-Angaben und Backend aus deinen Themen und Beiträgen erzeugen (liest Neuigkeiten vor, beantwortet Fragen zur Website)
 - **KI-Assistent** für Website und Apps
 
 Alle Radio-Erweiterungen sind optional und arbeiten mit deinen eigenen Inhalten.

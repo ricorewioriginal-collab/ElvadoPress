@@ -46,7 +46,6 @@ Nur angegebene Werte werden ins Repository geschrieben; Apps ohne diese Angaben 
 
 ## Eigene Sender und beliebige Streams
 * **App:** Im Builder (Apps → Layout) trägst du die Sender selbst ein – auch laut.fm-Sender: unter **Eigene Sender** bis zu 20 Stück mit **https-Stream-Adresse oder laut.fm-Kennung** (Name, Stream, optional Logo-Adresse). Eine laut.fm-Kennung (oder `laut.fm/<kennung>`) wird zur Stream-Adresse `https://<kennung>.stream.laut.fm/<kennung>` und zusätzlich als `laut` mitgegeben. Sie stehen in der Konfiguration `layout.stations.custom` (`id`, `title`, `stream`, optional `logo`) und erscheinen zusätzlich zu den Sendern des Core-Netzwerks; Reihenfolge und Sichtbarkeit gelten über `order`/`hidden` auch für sie. Ohne eigene Sender fehlt der Schlüssel `custom`, die Ausgabe bleibt wie bisher.
-* **Alexa:** Im Bereich Alexa-Skill kann jeder Sender eine eigene https-Stream-Adresse bekommen (leer = laut.fm). Alexa spielt nur https. Bei eigenen Streams gibt es keine Titel- und Sendeplan-Auskunft (die kommt von laut.fm).
 
 ## Grenzen
 * Die Windows-App wird von GitHub Actions gebaut (Windows-Runner, ebenfalls kostenlos im Rahmen des Kontingents).

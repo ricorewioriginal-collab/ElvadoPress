@@ -25,6 +25,6 @@ Die Demo nutzt Benutzer `demo`, setzt alle 10 Minuten zurück und sperrt riskant
 3. Echter SMTP-Test mit einem Formular-Plugin.
 
 ## Nächste Entwicklungsschritte
-- App-Baukasten/Alexa: eigene App-Inhalte, eigener Alexa-Skill, beliebige Stream-Adressen, eigene Branding-Dateien, ausführlichere Verwaltung.
+- App-Baukasten/Alexa: eigene App-Inhalte, eigener Alexa-Skill (Website-Skill mit Themen und Neuigkeiten), eigene Branding-Dateien, ausführlichere Verwaltung.
 - Umbenennung interner `rrw_`-Namen (groß, nur bei Bedarf).
 - Unterordner-Betrieb des CMS (Wurzelpfade `/cms/`, `/wp-admin/`) ist nicht unterstützt; bei Bedarf als eigene Aufgabe.

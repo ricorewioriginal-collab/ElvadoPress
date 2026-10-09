@@ -2,14 +2,14 @@
 
 **Name:** {{NAME}}
 
-**Kurzbeschreibung:** Höre {{NAME}} per Sprachbefehl.
+**Kurzbeschreibung:** Neuigkeiten und Infos von {{NAME}} per Sprachbefehl.
 
 **Beispielsätze:**
 1. Alexa, öffne {{INVOCATION}}
-2. Alexa, öffne {{INVOCATION}} und spiele {{EXAMPLE}}
-3. Alexa, frage {{INVOCATION}}, was gerade läuft
+2. Alexa, frage {{INVOCATION}}, was es Neues gibt
+3. Alexa, frage {{INVOCATION}} nach {{EXAMPLE}}
 
-**Kategorie:** Musik & Audio · **Länder:** DE, AT, CH
+**Kategorie:** Organizer & Assistenten · **Länder:** DE, AT, CH
 
 **Datenschutz-URL:** {{ORIGIN}}/ (trage hier die Adresse deiner Datenschutzerklärung ein)
 

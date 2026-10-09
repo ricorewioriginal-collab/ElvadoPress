@@ -42,8 +42,8 @@
 ## Demo-Bereitstellung
 - **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig über AnMaCha Universal Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.
 
-## Radio-Reste in Alexa und in den nativen App-Clients
+## Radio-Reste in den nativen App-Clients
 - **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets), der Radio-Modus des KI-Assistenten und der Radio-App-Typ im App-Baukasten (Builder, Hörstatistik, Radio-Funktionen, Vorlagenkatalog) sind entfernt. Neue Apps sind Website- oder Baukasten-Apps; der frühere Typ „radio“ gilt als Website-App.
-- **Offen (Alexa):** Der Alexa-Skill-Baukasten arbeitet noch mit vom Betreiber eingetragenen Streams (Sender). Er soll auf allgemeine Website-Inhalte umgestellt werden.
+- **Alexa:** Ist ein Website-Skill (Themen des Betreibers und Neuigkeiten aus den Beiträgen); die frühere Sender-/Stream-Logik ist entfernt.
 - **Offen (native Clients):** `app-template/` enthält noch den Radio-Player (Android `MainActivity`, `PlaybackService`, `Stations`, `Directory`, Cast/DLNA; Windows `MainWindow`, `RadioApi`, `RadioDirectory`, `NativePlayer`). Website- und Baukasten-Apps nutzen `WebShellActivity` bzw. die Web-Shell und brauchen ihn nicht. Das Entfernen setzt einen Build mit Android-SDK und .NET voraus (hier nicht möglich) und erfolgt getrennt.
 - **Offen (Assistent):** Sein Wissen über Apps und Alexa-Skill entfällt, bis diese umgebaut sind.

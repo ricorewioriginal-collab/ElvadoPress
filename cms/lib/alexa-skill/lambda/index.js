@@ -1,6 +1,6 @@
 'use strict';
-// Alexa-Skill: spielt die Sender per AudioPlayer (Live-Streams von laut.fm) und nennt Titel, Sendung und Sendeplan.
-// Einstellungen (Sender, Reihenfolge, Texte, Wartung) kommen aus dem CMS (alexa_config); fällt das CMS aus, gilt fallback.json.
+// Alexa-Skill (Website-Skill): liest die neuesten Beiträge der Website vor und beantwortet Fragen zu den Themen, die der Betreiber im CMS pflegt.
+// Einstellungen (Themen, Texte, Neuigkeiten, Wartung) kommen aus dem CMS (alexa_config); fällt das CMS aus, gilt fallback.json.
 // Es werden keine Nutzerdaten gespeichert; es wird auch nichts mit Geräte-/Nutzer-IDs protokolliert oder gemeldet.
 const Alexa = require('ask-sdk-core');
 const https = require('https');
@@ -10,7 +10,7 @@ const FALLBACK = require('./fallback.json');
 // ---------- Netzwerk ----------
 
 let fetchJson = (url) => new Promise((resolve, reject) => {
-  const req = https.get(url, { timeout: 3000, headers: { Accept: 'application/json', 'User-Agent': 'radio-alexa-skill/1.1' } }, (res) => {
+  const req = https.get(url, { timeout: 3000, headers: { Accept: 'application/json', 'User-Agent': 'website-alexa-skill/1.0' } }, (res) => {
     if (res.statusCode !== 200) { res.resume(); reject(new Error(`HTTP ${res.statusCode}`)); return; }
     let body = '';
     res.setEncoding('utf8');
@@ -38,369 +38,148 @@ async function loadConfig() {
   if (cfgCache.value && now - cfgCache.at < 5 * 60 * 1000) return cfgCache.value;
   try {
     const c = await fetchJson(`${CMS.base}/cms/api.php?action=alexa_config`);
-    if (c && c.status === 'ok' && Array.isArray(c.stations) && c.stations.length) { cfgCache = { at: now, value: c }; return c; }
+    if (c && c.status === 'ok' && Array.isArray(c.topics)) { cfgCache = { at: now, value: c }; return c; }
   } catch (e) { /* weiter mit altem Stand oder Rückfall */ }
   if (cfgCache.value) { cfgCache.at = now - 4 * 60 * 1000; return cfgCache.value; } // in einer Minute erneut versuchen
   return FALLBACK;
 }
 
 const cfgOf = (h) => h.attributesManager.getRequestAttributes().cfg;
-const enabledStations = (cfg) => cfg.stations.filter((s) => s.enabled);
-const byId = (cfg, id) => cfg.stations.find((s) => s.id === id) || null;
-const streamUrl = (cfg, id) => { const st = byId(cfg, id); return (st && st.stream) || cfg.stream_url.split('{id}').join(id); };
-// Eigene Stream-Adressen haben keine laut.fm-Schnittstelle (Titel, Sendeplan)
-const isCustom = (cfg, id) => { const st = byId(cfg, id); return !!(st && st.stream); };
-// Dynamische Texte gehören in SSML: Sonderzeichen entschärfen, Zahlen im Sendernamen ausschreiben
-const tidy = (s) => s.replace(/\s+/g, ' ').trim();
+const topicsOf = (cfg) => (cfg.topics || []).filter((t) => t.enabled && t.text);
+const newsOf = (cfg) => (cfg.news || []).filter((n) => n && n.title);
+
+// ---------- Texte (SSML-sicher) ----------
+
+const tidy = (s) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+// Dynamische Texte gehören in SSML: Sonderzeichen entschärfen
 const esc = (s) => tidy(String(s == null ? '' : s).replace(/\s*&\s*/g, ' und ').replace(/[<>]/g, ' ').replace(/["']/g, ''));
-const spoken = (title) => esc(title).replace(/\b24\b/g, 'vierundzwanzig');
-const fill = (tpl, vars) => esc0(tpl).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
-const esc0 = (s) => tidy(String(s).replace(/\s*&\s*/g, ' und ').replace(/[<>]/g, ' '));
+const fill = (tpl, vars) => esc(tpl).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
 const examples = (cfg) => {
-  const list = enabledStations(cfg);
-  return list.slice(1, 4).concat(list.slice(0, 1)).slice(0, 3).map((s) => spoken(s.title)).join(', ');
+  const list = topicsOf(cfg).slice(0, 3).map((t) => esc(t.title));
+  return list.length ? list.join(', ') : 'die Neuigkeiten';
 };
+const join = (list) => list.length > 1 ? `${list.slice(0, -1).join(', ')} und ${list[list.length - 1]}` : (list[0] || '');
 
-// ---------- Hilfen ----------
-
-/** Slot-Wert über die Entity Resolution auf die ID abbilden; null, wenn nichts Passendes erkannt wurde. */
-function slotId(handlerInput, name) {
-  const slot = Alexa.getSlot(handlerInput.requestEnvelope, name);
-  const per = (slot && slot.resolutions && slot.resolutions.resolutionsPerAuthority) || [];
-  for (const a of per) {
-    if (a.status && a.status.code === 'ER_SUCCESS_MATCH' && a.values && a.values.length) return a.values[0].value.id;
+/** Thema aus dem Slot „thema“: bevorzugt die Auflösung von Amazon (Kennung), sonst Vergleich mit dem gesprochenen Text. */
+function topicFromSlot(cfg, slot) {
+  if (!slot) return null;
+  const list = topicsOf(cfg);
+  const per = slot.resolutions && slot.resolutions.resolutionsPerAuthority;
+  if (Array.isArray(per)) {
+    for (const a of per) {
+      if (a.status && a.status.code === 'ER_SUCCESS_MATCH' && a.values && a.values[0]) {
+        const t = list.find((x) => x.id === a.values[0].value.id);
+        if (t) return t;
+      }
+    }
   }
-  return null;
+  const said = tidy(slot.value).toLowerCase();
+  return said ? (list.find((x) => tidy(x.title).toLowerCase() === said) || null) : null;
 }
 
-/** Zuletzt gespielter Sender (Token des AudioPlayers). */
-function currentStationId(handlerInput) {
-  const ctx = handlerInput.requestEnvelope.context;
-  const token = ctx && ctx.AudioPlayer && ctx.AudioPlayer.token;
-  return byId(cfgOf(handlerInput), token) ? token : null;
-}
-
-function neighbour(cfg, id, step) {
-  const list = enabledStations(cfg);
-  const i = Math.max(0, list.findIndex((s) => s.id === id));
-  return list[(i + step + list.length) % list.length].id;
-}
-
-function play(handlerInput, id, speech) {
-  const cfg = cfgOf(handlerInput);
-  const st = byId(cfg, id) || byId(cfg, cfg.default);
-  const meta = { title: st.title, subtitle: cfg.name };
-  if (cfg.art) { meta.art = { sources: [{ url: cfg.art }] }; meta.backgroundImage = { sources: [{ url: cfg.art }] }; }
-  const rb = handlerInput.responseBuilder;
-  if (speech) rb.speak(speech);
-  return rb
-    .addAudioPlayerPlayDirective('REPLACE_ALL', streamUrl(cfg, st.id), st.id, 0, undefined, meta)
-    .withShouldEndSession(true)
-    .getResponse();
-}
-
-function stop(handlerInput, speech) {
-  const rb = handlerInput.responseBuilder.addAudioPlayerStopDirective();
-  if (speech) rb.speak(speech);
-  return rb.withShouldEndSession(true).getResponse();
-}
-
-/** Sender wählen: Slot > laufender Sender > null */
-const pickStation = (h) => {
-  const cfg = cfgOf(h);
-  const id = slotId(h, 'sender') || currentStationId(h);
-  return id && byId(cfg, id) ? id : null;
-};
-
-const is = (type) => (h) => Alexa.getRequestType(h.requestEnvelope) === type;
-const isIntent = (...names) => (h) => Alexa.getRequestType(h.requestEnvelope) === 'IntentRequest' && names.includes(Alexa.getIntentName(h.requestEnvelope));
-
-// ---------- Sendeplan (laut.fm), Berlin-Zeit ----------
-
-const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-const DAY_DE = { mon: 'Montag', tue: 'Dienstag', wed: 'Mittwoch', thu: 'Donnerstag', fri: 'Freitag', sat: 'Samstag', sun: 'Sonntag' };
-const WD = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-
-let nowFn = () => new Date();
-function berlinNow(date) {
-  const p = {};
-  for (const x of new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date || nowFn())) p[x.type] = x.value;
-  return { day: WD[p.weekday], hour: parseInt(p.hour, 10) % 24, minute: parseInt(p.minute, 10) };
-}
-
-let scheduleCache = new Map();
-async function loadSchedule(cfg, id) {
-  if (isCustom(cfg, id)) throw new Error('eigener Stream');
-  const hit = scheduleCache.get(id);
-  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.list;
-  let raw = null;
-  if (raw === null) raw = await fetchJson(`${cfg.api_base}${id}/schedule`);
-  const list = (Array.isArray(raw) ? raw : []).map((e) => {
-    const d = DAYS.indexOf(e.day);
-    const start = Number(e.hour), end = Number(e.end_time);
-    if (d < 0 || !isFinite(start) || !isFinite(end)) return null;
-    return { name: String(e.name || '').trim(), day: d, start: d * 24 + start, end: d * 24 + start + ((end - start + 24) % 24 || 24), sh: start, eh: end % 24 === 0 && end !== 0 ? 24 : end };
-  }).filter((e) => e && e.name).sort((a, b) => a.start - b.start);
-  scheduleCache.set(id, { at: Date.now(), list });
-  return list;
-}
-
-/** Aktuelle und nächste Sendung (Position in der Woche in Stunden). */
-function showsAt(list, now) {
-  const pos = now.day * 24 + now.hour + now.minute / 60;
-  const WEEK = 168;
-  let current = list.find((e) => e.start <= pos && pos < e.end) || list.find((e) => e.end > WEEK && pos + WEEK < e.end && pos + WEEK >= e.start) || null;
-  let next = list.find((e) => e.start > pos && (!current || e.name !== current.name)) || null;
-  if (!next && list.length) next = list.find((e) => !current || e.name !== current.name) || null;
-  return { current, next };
-}
-
-const hourText = (h) => (h === 24 ? '24' : String(h)) + ' Uhr';
-
-/** Sendungen eines Wochentags, benachbarte gleiche Sendungen zusammengefasst. */
-function dayShows(list, dayIdx) {
-  const out = [];
-  for (const e of list.filter((x) => x.day === dayIdx)) {
-    const last = out[out.length - 1];
-    if (last && last.name === e.name && last.eh === e.sh) last.eh = e.eh; else out.push({ name: e.name, sh: e.sh, eh: e.eh });
-  }
-  return out;
-}
-
-function dayFromSlot(h, now) {
-  const id = slotId(h, 'tag');
-  if (!id || id === 'today') return { idx: now.day, label: 'heute' };
-  if (id === 'tomorrow') return { idx: (now.day + 1) % 7, label: 'morgen' };
-  if (id === 'dayafter') return { idx: (now.day + 2) % 7, label: 'übermorgen' };
-  const i = DAYS.indexOf(id);
-  return i >= 0 ? { idx: i, label: 'am ' + DAY_DE[id] } : { idx: now.day, label: 'heute' };
+// Antwort samt „Wiederholen“ merken
+function say(h, speech, reprompt, end) {
+  h.attributesManager.setSessionAttributes(Object.assign({}, h.attributesManager.getSessionAttributes(), { last: speech }));
+  const b = h.responseBuilder.speak(speech);
+  if (!end) b.reprompt(reprompt || speech);
+  return b.getResponse();
 }
 
 // ---------- Handler ----------
 
+const is = (h, type, name) => {
+  const r = h.requestEnvelope.request;
+  return r.type === type && (!name || (r.intent && (Array.isArray(name) ? name.includes(r.intent.name) : r.intent.name === name)));
+};
+
 const MaintenanceHandler = {
-  canHandle(h) {
-    const cfg = cfgOf(h);
-    // Auch wenn im CMS alle Sender ausgeschaltet sind, gibt es nichts zu spielen
-    if (cfg.enabled && !cfg.maintenance && enabledStations(cfg).length) return false;
-    const t = Alexa.getRequestType(h.requestEnvelope);
-    if (t === 'IntentRequest') return !['AMAZON.StopIntent', 'AMAZON.CancelIntent', 'AMAZON.PauseIntent', 'AMAZON.NavigateHomeIntent'].includes(Alexa.getIntentName(h.requestEnvelope));
-    return t === 'LaunchRequest' || t.startsWith('PlaybackController.');
-  },
-  handle(h) {
-    const cfg = cfgOf(h);
-    return stop(h, esc0(cfg.maintenance || 'Der Skill ist gerade nicht verfügbar. Bitte versuche es später noch einmal.'));
-  }
+  canHandle: (h) => { const cfg = cfgOf(h); return h.requestEnvelope.request.type !== 'SessionEndedRequest' && (cfg.enabled === false || !!cfg.maintenance); },
+  handle: (h) => { const cfg = cfgOf(h); return say(h, esc(cfg.maintenance || 'Der Skill ist gerade nicht verfügbar. Bitte versuche es später noch einmal.'), '', true); }
 };
 
 const LaunchHandler = {
-  canHandle: is('LaunchRequest'),
-  handle(h) {
+  canHandle: (h) => is(h, 'LaunchRequest') || is(h, 'IntentRequest', 'AMAZON.NavigateHomeIntent'),
+  handle: (h) => { const cfg = cfgOf(h); return say(h, fill(cfg.texts.welcome, {}), fill(cfg.texts.help, { beispiele: examples(cfg) })); }
+};
+
+const NewsHandler = {
+  canHandle: (h) => is(h, 'IntentRequest', 'NewsIntent'),
+  handle: (h) => {
     const cfg = cfgOf(h);
-    const st = byId(cfg, cfg.default) || enabledStations(cfg)[0];
-    const hint = examples(cfg) ? ` Sag zum Beispiel: Spiele ${examples(cfg)}.` : '';
-    return play(h, st.id, `${fill(cfg.texts.welcome, {})} ${fill(cfg.texts.play, { sender: spoken(st.title) })}${hint}`);
+    const news = newsOf(cfg);
+    if (!news.length) return say(h, fill(cfg.texts.nonews, {}), fill(cfg.texts.help, { beispiele: examples(cfg) }));
+    const parts = news.map((n, i) => `Beitrag ${i + 1}: ${esc(n.title)}.`);
+    h.attributesManager.setSessionAttributes(Object.assign({}, h.attributesManager.getSessionAttributes(), { news: true }));
+    return say(h, `${parts.join(' ')} Sag zum Beispiel: Lies Beitrag eins, um mehr zu hören.`, 'Sag zum Beispiel: Lies Beitrag eins.');
   }
 };
 
-const PlayStationHandler = {
-  canHandle: isIntent('PlayStationIntent'),
-  handle(h) {
+const ReadNewsHandler = {
+  canHandle: (h) => is(h, 'IntentRequest', 'ReadNewsIntent'),
+  handle: (h) => {
     const cfg = cfgOf(h);
-    const id = slotId(h, 'sender');
-    if (!id || !byId(cfg, id)) {
-      const said = Alexa.getSlotValue(h.requestEnvelope, 'sender');
-      const msg = said
-        ? `Den Sender ${esc(said)} kenne ich leider nicht. Sag zum Beispiel: Spiele ${examples(cfg)}.`
-        : `Welchen Sender möchtest du hören? Zum Beispiel ${examples(cfg)}.`;
-      return h.responseBuilder.speak(msg).reprompt('Welchen Sender möchtest du hören? Sag Sender, um alle zu hören.').getResponse();
-    }
-    const st = byId(cfg, id);
-    if (!st.enabled) {
-      return h.responseBuilder.speak(`${fill(cfg.texts.unavailable, { sender: spoken(st.title) })} Sag zum Beispiel: Spiele ${examples(cfg)}.`).reprompt('Welchen Sender möchtest du hören?').getResponse();
-    }
-    return play(h, id, fill(cfg.texts.play, { sender: spoken(st.title) }));
+    const news = newsOf(cfg);
+    const slot = h.requestEnvelope.request.intent.slots && h.requestEnvelope.request.intent.slots.nummer;
+    const n = parseInt(slot && slot.value, 10);
+    if (!news.length) return say(h, fill(cfg.texts.nonews, {}), '');
+    if (!n || n < 1 || n > news.length) return say(h, `Diesen Beitrag gibt es nicht. Wähle eine Nummer von eins bis ${news.length}.`, 'Welchen Beitrag möchtest du hören?');
+    const item = news[n - 1];
+    return say(h, `${esc(item.title)}. ${esc(item.text) || 'Dazu gibt es keinen weiteren Text.'}`, 'Möchtest du einen weiteren Beitrag hören?');
   }
 };
 
-const PlayBrandHandler = {
-  canHandle: isIntent('PlayBrandIntent'),
-  handle(h) {
+const TopicHandler = {
+  canHandle: (h) => is(h, 'IntentRequest', 'TopicIntent'),
+  handle: (h) => {
     const cfg = cfgOf(h);
-    const brandId = slotId(h, 'marke');
-    const map = cfg.brand_map || {};
-    let id = map[brandId] || cfg.default;
-    if (!byId(cfg, id) || !byId(cfg, id).enabled) id = (enabledStations(cfg)[0] || {}).id;
-    return play(h, id, fill(cfg.texts.play, { sender: spoken(byId(cfg, id).title) }));
+    const slot = h.requestEnvelope.request.intent.slots && h.requestEnvelope.request.intent.slots.thema;
+    const t = topicFromSlot(cfg, slot);
+    h.attributesManager.setRequestAttributes(Object.assign({}, h.attributesManager.getRequestAttributes(), { topic: t ? t.id : '' }));
+    if (!t) return say(h, fill(cfg.texts.unknown, {}), 'Frag zum Beispiel: Welche Themen gibt es?');
+    return say(h, esc(t.text), 'Möchtest du noch etwas wissen?');
   }
 };
 
-const NowPlayingHandler = {
-  canHandle: isIntent('NowPlayingIntent'),
-  async handle(h) {
+const ListTopicsHandler = {
+  canHandle: (h) => is(h, 'IntentRequest', 'ListTopicsIntent'),
+  handle: (h) => {
     const cfg = cfgOf(h);
-    const id = pickStation(h);
-    if (!id) return h.responseBuilder.speak(`Gerade läuft nichts. Sag zum Beispiel: Spiele ${examples(cfg)}.`).getResponse();
-    try {
-      if (isCustom(cfg, id)) throw new Error('eigener Stream');
-      const d = await fetchJson(`${cfg.api_base}${id}/current_song`);
-      const title = (d && d.title) || '';
-      const artist = (d && d.artist && (typeof d.artist === 'string' ? d.artist : d.artist.name)) || '';
-      if (title) return h.responseBuilder.speak(`Auf ${spoken(byId(cfg, id).title)} läuft gerade ${esc(title)}${artist ? ' von ' + esc(artist) : ''}.`).getResponse();
-    } catch (e) { /* fällt unten auf die allgemeine Antwort zurück */ }
-    return h.responseBuilder.speak(`Das aktuelle Lied von ${spoken(byId(cfg, id).title)} kann ich gerade nicht abrufen.`).getResponse();
+    const titles = topicsOf(cfg).map((t) => esc(t.title));
+    if (!titles.length) return say(h, 'Dazu gibt es aktuell keine Themen. Frag nach den Neuigkeiten.', 'Frag nach den Neuigkeiten.');
+    return say(h, `Ich kenne diese Themen: ${join(titles)}.`, 'Worüber möchtest du mehr wissen?');
   }
-};
-
-const noSchedule = (h) => h.responseBuilder.speak('Den Sendeplan gibt es in diesem Skill gerade nicht.').getResponse();
-
-const CurrentShowHandler = {
-  canHandle: isIntent('CurrentShowIntent'),
-  async handle(h) {
-    const cfg = cfgOf(h);
-    if (cfg.schedule === false) return noSchedule(h);
-    const id = pickStation(h);
-    if (!id) return h.responseBuilder.speak(`Für welchen Sender? Sag zum Beispiel: Welche Sendung läuft auf ${examples(cfg).split(',')[0]}?`).reprompt('Für welchen Sender?').getResponse();
-    const name = spoken(byId(cfg, id).title);
-    try {
-      const { current } = showsAt(await loadSchedule(cfg, id), berlinNow());
-      if (!current) return h.responseBuilder.speak(`Bei ${name} gibt es gerade keine feste Sendung.`).getResponse();
-      return h.responseBuilder.speak(`Auf ${name} läuft gerade ${esc(current.name)}, bis ${hourText(current.eh)}.`).getResponse();
-    } catch (e) {
-      return h.responseBuilder.speak(`Den Sendeplan von ${name} kann ich gerade nicht abrufen.`).getResponse();
-    }
-  }
-};
-
-const NextShowHandler = {
-  canHandle: isIntent('NextShowIntent'),
-  async handle(h) {
-    const cfg = cfgOf(h);
-    if (cfg.schedule === false) return noSchedule(h);
-    const id = pickStation(h);
-    if (!id) return h.responseBuilder.speak(`Für welchen Sender? Sag zum Beispiel: Was kommt als Nächstes auf ${examples(cfg).split(',')[0]}?`).reprompt('Für welchen Sender?').getResponse();
-    const name = spoken(byId(cfg, id).title);
-    try {
-      const { next } = showsAt(await loadSchedule(cfg, id), berlinNow());
-      if (!next) return h.responseBuilder.speak(`Bei ${name} gibt es keine weitere feste Sendung.`).getResponse();
-      return h.responseBuilder.speak(`Als Nächstes kommt auf ${name} ${esc(next.name)}, ab ${hourText(next.sh)}.`).getResponse();
-    } catch (e) {
-      return h.responseBuilder.speak(`Den Sendeplan von ${name} kann ich gerade nicht abrufen.`).getResponse();
-    }
-  }
-};
-
-const ScheduleHandler = {
-  canHandle: isIntent('ScheduleIntent'),
-  async handle(h) {
-    const cfg = cfgOf(h);
-    if (cfg.schedule === false) return noSchedule(h);
-    const id = pickStation(h) || cfg.default;
-    const name = spoken(byId(cfg, id).title);
-    const day = dayFromSlot(h, berlinNow());
-    try {
-      const shows = dayShows(await loadSchedule(cfg, id), day.idx);
-      if (!shows.length) return h.responseBuilder.speak(`Bei ${name} gibt es ${day.label} keinen festen Sendeplan.`).getResponse();
-      const max = 6;
-      const parts = shows.slice(0, max).map((s) => `${hourText(s.sh)} bis ${hourText(s.eh)}: ${esc(s.name)}`);
-      const more = shows.length > max ? ` Dazu kommen noch ${shows.length - max} weitere Sendungen.` : '';
-      return h.responseBuilder.speak(`Der Sendeplan von ${name} ${day.label}: ${parts.join('; ')}.${more}`).getResponse();
-    } catch (e) {
-      return h.responseBuilder.speak(`Den Sendeplan von ${name} kann ich gerade nicht abrufen.`).getResponse();
-    }
-  }
-};
-
-const ListStationsHandler = {
-  canHandle: isIntent('ListStationsIntent'),
-  handle(h) {
-    const names = enabledStations(cfgOf(h)).map((s) => spoken(s.title));
-    const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' und ' + names[names.length - 1] : names.join('');
-    return h.responseBuilder.speak(`Ich kann ${list} spielen. Welchen möchtest du hören?`).reprompt('Welchen Sender möchtest du hören?').getResponse();
-  }
-};
-
-const PauseHandler = {
-  canHandle: (h) => isIntent('AMAZON.PauseIntent')(h) || is('PlaybackController.PauseCommandIssued')(h),
-  handle: (h) => stop(h)
-};
-
-const ResumeHandler = {
-  canHandle: (h) => isIntent('AMAZON.ResumeIntent')(h) || is('PlaybackController.PlayCommandIssued')(h),
-  // Live-Radio: "Weiter" startet den Stream des zuletzt gespielten Sender neu
-  handle: (h) => { const cfg = cfgOf(h); return play(h, currentStationId(h) || cfg.default); }
-};
-
-const NextHandler = {
-  canHandle: (h) => isIntent('AMAZON.NextIntent')(h) || is('PlaybackController.NextCommandIssued')(h),
-  handle(h) {
-    const cfg = cfgOf(h);
-    const id = neighbour(cfg, currentStationId(h) || cfg.default, 1);
-    return play(h, id, isIntent('AMAZON.NextIntent')(h) ? `Weiter mit ${spoken(byId(cfg, id).title)}.` : undefined);
-  }
-};
-
-const PreviousHandler = {
-  canHandle: (h) => isIntent('AMAZON.PreviousIntent')(h) || is('PlaybackController.PreviousCommandIssued')(h),
-  handle(h) {
-    const cfg = cfgOf(h);
-    const id = neighbour(cfg, currentStationId(h) || cfg.default, -1);
-    return play(h, id, isIntent('AMAZON.PreviousIntent')(h) ? `Zurück zu ${spoken(byId(cfg, id).title)}.` : undefined);
-  }
-};
-
-const StartOverHandler = {
-  canHandle: isIntent('AMAZON.StartOverIntent', 'AMAZON.RepeatIntent'),
-  handle: (h) => { const cfg = cfgOf(h); return play(h, currentStationId(h) || cfg.default); }
-};
-
-const UnsupportedHandler = {
-  canHandle: isIntent('AMAZON.LoopOffIntent', 'AMAZON.LoopOnIntent', 'AMAZON.ShuffleOffIntent', 'AMAZON.ShuffleOnIntent'),
-  handle: (h) => h.responseBuilder.speak('Das geht bei einem Live-Radio leider nicht.').getResponse()
 };
 
 const HelpHandler = {
-  canHandle: isIntent('AMAZON.HelpIntent'),
-  handle(h) {
-    const cfg = cfgOf(h);
-    return h.responseBuilder.speak(fill(cfg.texts.help, { beispiele: examples(cfg) })).reprompt('Welchen Sender möchtest du hören?').getResponse();
-  }
+  canHandle: (h) => is(h, 'IntentRequest', 'AMAZON.HelpIntent'),
+  handle: (h) => { const cfg = cfgOf(h); const t = fill(cfg.texts.help, { beispiele: examples(cfg) }); return say(h, t, t); }
+};
+
+const RepeatHandler = {
+  canHandle: (h) => is(h, 'IntentRequest', 'AMAZON.RepeatIntent'),
+  handle: (h) => { const last = h.attributesManager.getSessionAttributes().last; const cfg = cfgOf(h); return say(h, last || fill(cfg.texts.welcome, {}), ''); }
 };
 
 const StopHandler = {
-  canHandle: isIntent('AMAZON.StopIntent', 'AMAZON.CancelIntent', 'AMAZON.NavigateHomeIntent'),
-  handle: (h) => stop(h, fill(cfgOf(h).texts.goodbye, {}))
+  canHandle: (h) => is(h, 'IntentRequest', ['AMAZON.StopIntent', 'AMAZON.CancelIntent']),
+  handle: (h) => { const cfg = cfgOf(h); return say(h, fill(cfg.texts.goodbye, {}), '', true); }
 };
 
 const FallbackHandler = {
-  canHandle: isIntent('AMAZON.FallbackIntent'),
-  handle: (h) => h.responseBuilder
-    .speak(`Das habe ich nicht verstanden. Sag zum Beispiel: Spiele ${examples(cfgOf(h))}.`)
-    .reprompt('Welchen Sender möchtest du hören?')
-    .getResponse()
+  canHandle: (h) => is(h, 'IntentRequest', 'AMAZON.FallbackIntent') || h.requestEnvelope.request.type === 'IntentRequest',
+  handle: (h) => { const cfg = cfgOf(h); return say(h, fill(cfg.texts.unknown, {}), fill(cfg.texts.help, { beispiele: examples(cfg) })); }
 };
 
-// AudioPlayer-Ereignisse und Sitzungsende: nur bestätigen (hier darf nichts gesprochen werden)
-const SilentHandler = {
-  canHandle: (h) => {
-    const t = Alexa.getRequestType(h.requestEnvelope);
-    return t === 'SessionEndedRequest' || t.startsWith('AudioPlayer.') || t === 'PlaybackController.JumpToCommandIssued' || t.startsWith('System.');
-  },
-  handle: (h) => {
-    const t = Alexa.getRequestType(h.requestEnvelope);
-    if (t === 'AudioPlayer.PlaybackFailed') {
-      const err = h.requestEnvelope.request.error || {};
-      console.error('PlaybackFailed', err.type || '', err.message || '');
-    }
-    return h.responseBuilder.getResponse();
-  }
+const SessionEndedHandler = {
+  canHandle: (h) => h.requestEnvelope.request.type === 'SessionEndedRequest',
+  handle: (h) => h.responseBuilder.getResponse()
 };
 
 const ErrorHandler = {
   canHandle: () => true,
   handle(h, error) {
     console.error('Fehler', error && error.message);
-    return h.responseBuilder.speak('Entschuldigung, da ist etwas schiefgelaufen. Bitte versuche es noch einmal.').reprompt('Welchen Sender möchtest du hören?').getResponse();
+    return h.responseBuilder.speak('Entschuldigung, da ist etwas schiefgelaufen. Bitte versuche es noch einmal.').reprompt('Was möchtest du wissen?').getResponse();
   }
 };
 
@@ -410,36 +189,31 @@ const ConfigInterceptor = {
   async process(h) { h.attributesManager.setRequestAttributes({ cfg: await loadConfig() }); }
 };
 
-// Anonyme Zähler (nur Sender und Befehlsname) – nur wenn im CMS eingeschaltet; wartet höchstens 0,8 s
+// Anonyme Zähler (nur Befehlsname und Thema) – nur wenn im CMS eingeschaltet; wartet höchstens 0,8 s
 const StatsInterceptor = {
-  async process(h, response) {
+  async process(h) {
     const cfg = cfgOf(h);
     if (!cfg.stats || !CMS.token) return;
-    const url = `${CMS.base}/cms/api.php?action=alexa_stat`;
-    const jobs = [];
     const req = h.requestEnvelope.request;
-    if (req.type === 'IntentRequest') jobs.push(postJson(url, { token: CMS.token, event: 'intent', intent: req.intent.name }));
-    const d = ((response && response.directives) || []).find((x) => x.type === 'AudioPlayer.Play');
-    if (d) jobs.push(postJson(url, { token: CMS.token, event: 'play', station: d.audioItem.stream.token }));
-    if (jobs.length) await Promise.all(jobs);
+    if (req.type !== 'IntentRequest') return;
+    const url = `${CMS.base}/cms/api.php?action=alexa_stat`;
+    const jobs = [postJson(url, { token: CMS.token, event: 'intent', intent: req.intent.name })];
+    const topic = h.attributesManager.getRequestAttributes().topic;
+    if (topic) jobs.push(postJson(url, { token: CMS.token, event: 'topic', topic }));
+    await Promise.all(jobs);
   }
 };
 
 exports.handler = Alexa.SkillBuilders.custom()
   .addRequestHandlers(
-    MaintenanceHandler, LaunchHandler, PlayStationHandler, PlayBrandHandler, NowPlayingHandler, CurrentShowHandler, NextShowHandler, ScheduleHandler,
-    ListStationsHandler, PauseHandler, ResumeHandler, NextHandler, PreviousHandler, StartOverHandler, UnsupportedHandler,
-    HelpHandler, StopHandler, FallbackHandler, SilentHandler
+    MaintenanceHandler, LaunchHandler, NewsHandler, ReadNewsHandler, TopicHandler, ListTopicsHandler,
+    HelpHandler, RepeatHandler, StopHandler, SessionEndedHandler, FallbackHandler
   )
   .addRequestInterceptors(ConfigInterceptor)
   .addResponseInterceptors(StatsInterceptor)
   .addErrorHandlers(ErrorHandler)
-  .withCustomUserAgent('radio-alexa-skill/1.1')
+  .withCustomUserAgent('website-alexa-skill/1.0')
   .lambda();
 
 // nur für Tests
-exports.__setFetch = (fn) => { fetchJson = fn; };
-exports.__setPost = (fn) => { postJson = fn; };
-exports.__setNow = (fn) => { nowFn = fn; };
-exports.__reset = () => { cfgCache = { at: 0, value: null }; scheduleCache = new Map(); };
-exports.__internals = { berlinNow, showsAt, dayShows };
+exports.__internals = { esc, fill, join, examples, topicFromSlot };

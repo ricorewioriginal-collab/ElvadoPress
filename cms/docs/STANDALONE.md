@@ -92,7 +92,7 @@ Unter **System → Verbundene Dienste** trägst du die Dienste ein, die zu deine
 
 Funktionen, die zu den eigenen Apps gehören, bleiben im eigenständigen CMS erhalten – ohne RicoReWi-Inhalte:
 
-- **Alexa-Skill (Baukasten):** Name und Aufrufname stammen aus deinen Einstellungen (Standard: Website-Name), die Sender legst du selbst an (laut.fm-Kennung); Sprachmodell, Skill-Angaben, README und Store-Texte werden daraus erzeugt (`cms/standalone/alexa-skill/` enthält die neutralen Vorlagen, das Paket ersetzt damit den RicoReWi-Katalog).
+- **Alexa-Skill (Website-Skill):** Name und Aufrufname stammen aus deinen Einstellungen (Standard: Website-Name). Der Skill liest die neuesten Beiträge deiner Website vor und beantwortet Fragen zu den Themen, die du im CMS anlegst (Öffnungszeiten, Kontakt …); Sprachmodell, Skill-Angaben, README und Store-Texte werden daraus erzeugt (Vorlagen in `cms/lib/alexa-skill/`).
 - Sichtbar sind sie in der Verwaltung unter **Apps & Kanäle**; mit dem RicoReWi-Paket erscheinen sie nur, solange das RicoReWi-Design ausgeliefert wird (`data-pack-app`).
 - **KI-Assistent (frei konfigurierbar, unabhängig vom Radio):** ein Chat-Fenster unten rechts auf deiner Website (bei WordPress-Themes, ohne Cookies, mit Datenschutz-Hinweis). Unter *Einstellungen → KI-Assistent* wählst du:
   - **Art:** *Website-Assistent* (Standard: antwortet aus deinen Beiträgen und dem hinterlegten Wissen, ohne Radio-Bezug) oder *Radio-Assistent* (zusätzlich deine laut.fm-Sender, laufender Titel, Sendeplan). Name, Begrüßung, Wissen, zusätzliche Anweisungen, Antwortlänge und Kreativität (Temperatur) sind einstellbar, ebenso die Live-Recherche (Wetter, Schlagzeilen, Wikipedia).
