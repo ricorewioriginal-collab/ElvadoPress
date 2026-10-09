@@ -361,3 +361,19 @@ html[data-admin-theme="light"] .lb-detrow{background:rgba(0,0,0,.03)}
   .lb-actions{margin-left:0;width:100%;flex-wrap:wrap}
   .dg-upload .dg-upload-menu{position:fixed;left:14px;right:14px;top:auto;bottom:calc(14px + env(safe-area-inset-bottom));width:auto;max-height:70vh;overflow:auto;z-index:2000}
 }
+
+/* Eigene Links unten im Menü (Einstellungen → Eigene Links) und ihre Rahmenansicht */
+.cms-custom-links{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.cms-custom-links[hidden]{display:none}
+.tabs .cms-custom-links .tab{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:10px 12px;border:0;background:transparent;border-radius:12px;font-weight:600;font-size:.88rem;color:var(--text);text-decoration:none;cursor:pointer}
+.tabs .cms-custom-links .tab:hover{background:rgba(47,184,255,.08);color:#fff}
+.tabs .cms-custom-links .tab.on{background:linear-gradient(135deg,#2f9cff,#1a6fe0);color:#fff}
+.cms-custom-links .tab>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cms-custom-links .cl-ext{font-size:.7rem;opacity:.6;flex:none}
+body.cms-folded .cms-custom-links .tab>span,body.cms-folded .cms-custom-links .cl-ext{display:none}
+body.cms-folded .cms-custom-links .tab{justify-content:center;padding:10px 0}
+.cl-frame{display:block;width:100%;height:calc(100vh - var(--ep-top) - 150px);min-height:420px;border:0;background:#fff}
+.al-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(180px,2fr) 130px 190px auto;gap:8px;align-items:center;margin-bottom:8px}
+.al-btns{display:flex;gap:4px}
+@media(max-width:850px){.al-row{grid-template-columns:1fr 1fr;padding:10px;border:1px solid var(--border);border-radius:12px}.al-url{grid-column:1/-1}.al-btns{grid-column:1/-1;justify-content:flex-end}.cl-frame{height:calc(100vh - var(--ep-top) - 130px)}}
+@media(max-width:480px){.al-row{grid-template-columns:1fr}}
