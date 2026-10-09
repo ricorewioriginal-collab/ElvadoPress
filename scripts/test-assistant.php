@@ -3,7 +3,7 @@
 // Modellliste, lokale Anbieter, Website-Suche und -Kontext, zentrale KI-Konfiguration. Aufruf: php scripts/test-assistant.php
 declare(strict_types=1);
 require_once __DIR__.'/../cms/lib/pack.php';
-require_once __DIR__.'/../cms/lib/assistant.php';require_once __DIR__.'/../cms/src/autoload.php';
+require_once __DIR__.'/../cms/lib/alexa.php';require_once __DIR__.'/../cms/lib/assistant.php';require_once __DIR__.'/../cms/src/autoload.php';
 $fail=0;$n=0;
 function t(string $name,callable $fn){global $fail,$n;$n++;try{$fn();echo "  ok  $name\n";}catch(Throwable $e){$fail++;echo "FAIL  $name: ".$e->getMessage()."\n";}}
 function eq($a,$b,string $m=''){if($a!==$b)throw new RuntimeException(($m?$m.': ':'').'erwartet '.json_encode($b).', war '.json_encode($a));}
@@ -85,6 +85,15 @@ t('Website-Prompt und Kontext: ohne Radio-Bezug, mit Inhalten und Wissen',functi
     if(!str_contains(rrw_assistant_website_offline(['hits'=>[],'research'=>[]]),'nichts Passendes'))throw new RuntimeException('Leerantwort');
     $k=rrw_assistant_website_context($cfg,$site,'Verkauft ihr Fahrräder?',$tmp.'/news.json','https://rad.example.org');
     eq($k['knowledge'],['Wir verkaufen Fahrräder.']);if(!str_contains(rrw_assistant_website_offline($k),'Wir verkaufen Fahrräder.'))throw new RuntimeException('Wissen fehlt in der Antwort ohne KI');
+});
+t('Aktive Alexa-Themen dienen dem Assistenten als Wissen; ausgeschaltete nicht',function() use($tmp){
+    $cfg=rrw_assistant_clean([]);
+    $site=['alexa'=>['topics'=>['oeffnung'=>['title'=>'Öffnungszeiten','text'=>'Montag bis Freitag 9 bis 18 Uhr.'],'intern'=>['enabled'=>false,'title'=>'Intern','text'=>'Geheim']]]];
+    $k=rrw_assistant_knowledge($cfg,$site);
+    if(!str_contains($k,'Öffnungszeiten: Montag bis Freitag 9 bis 18 Uhr.')||str_contains($k,'Geheim'))throw new RuntimeException($k);
+    $b=rrw_assistant_website_context($cfg,$site,'Wann habt ihr Öffnungszeiten?',$tmp.'/news.json','https://rad.example.org');
+    if(!$b['knowledge']||!str_contains($b['knowledge'][0],'9 bis 18'))throw new RuntimeException(json_encode($b['knowledge']));
+    eq(rrw_assistant_knowledge($cfg,['alexa'=>['enabled'=>false,'topics'=>['a1'=>['title'=>'X','text'=>'Y']]]]),'','Alexa aus → kein Wissen');
 });
 t('Chat (ohne Anbieter): Antwort aus den Beiträgen, keine Radio-Inhalte',function() use($tmp){
     $site=['assistant'=>['providers'=>array_map(fn($p)=>['id'=>$p['id'],'enabled'=>false],rrw_assistant_provider_presets()),'features'=>['research'=>false]],'portal'=>['site_name'=>'Rad & Tat'],'seo'=>['canonical_base'=>'https://rad.example.org']];

@@ -316,17 +316,26 @@ function rrw_assistant_knowledge_hits(string $knowledge,string $q,int $limit=3):
     usort($rows,fn($a,$b)=>[$b[0],$b[1]]<=>[$a[0],$a[1]]);
     return array_column(array_slice($rows,0,max(1,$limit)),2);
 }
+/** Wissen des Betreibers: Freitext plus die aktiven Themen des Alexa-Skills (dieselben Antworten wie per Sprache). */
+function rrw_assistant_knowledge(array $cfg,array $site): string {
+    $k=$cfg['knowledge'];
+    if(function_exists('rrw_alexa_topic_defs')&&rrw_alexa_clean($site['alexa']??[])['enabled']){
+        $lines=[];foreach(rrw_alexa_topic_defs($site) as $t)if($t['enabled'])$lines[]=$t['title'].': '.$t['text'];
+        if($lines)$k=trim($k."\n".implode("\n",$lines));
+    }
+    return $k;
+}
 function rrw_assistant_website_context(array $cfg,array $site,string $q,string $newsFile,string $origin,array $research=[]): array {
-    $ctx=[];$cards=[];$f=$cfg['features'];
+    $ctx=[];$cards=[];$f=$cfg['features'];$know=rrw_assistant_knowledge($cfg,$site);
     if(!empty($research['lines']))$ctx[]='RECHERCHE (gerade live abgerufen, aktuell und verlässlich – Quelle nennen, nur Passendes nutzen): '.implode("\n",$research['lines']);
     $hits=(!empty($f['news'])||!empty($f['pages']))?rrw_assistant_site_search($newsFile,$q,$origin):[];
     if($hits){
         $ctx[]='INHALTE DIESER WEBSITE (passend zur Frage; nur diese Beiträge sind sicher bekannt, bei Bedarf mit Adresse verlinken): '.implode("\n",array_map(fn($h)=>'- '.$h['title'].($h['date']!==''?' ('.$h['date'].')':'').($h['url']!==''?' '.$h['url']:'').': '.$h['text'],$hits));
         $cards[]=['type'=>'pages','items'=>array_map(fn($h)=>['title'=>$h['title'],'url'=>$h['url'],'date'=>$h['date']],$hits)];
     }
-    if($cfg['knowledge']!=='')$ctx[]='WISSEN (vom Betreiber gepflegt): '.$cfg['knowledge'];
+    if($know!=='')$ctx[]='WISSEN (vom Betreiber gepflegt): '.$know;
     $name=trim((string)($site['portal']['site_name']??''));
-    return ['context'=>implode("\n",$ctx),'cards'=>$cards,'label'=>$name,'research'=>$research['lines']??[],'hits'=>$hits,'knowledge'=>rrw_assistant_knowledge_hits($cfg['knowledge'],$q)];
+    return ['context'=>implode("\n",$ctx),'cards'=>$cards,'label'=>$name,'research'=>$research['lines']??[],'hits'=>$hits,'knowledge'=>rrw_assistant_knowledge_hits($know,$q)];
 }
 function rrw_assistant_website_prompt(array $cfg,array $site,string $context): string {
     $name=$cfg['name'];$web=trim((string)($site['portal']['site_name']??''))?:'dieser Website';
