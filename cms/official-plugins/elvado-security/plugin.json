@@ -2,7 +2,7 @@
   "id": "elvado-security",
   "name": "Elvado Security",
   "description": "Schutz vor Brute-Force-Angriffen beim Login, Login-Protokoll, Sicherheits-Header, Sicherheitsübersicht und Dateiänderungs-Prüfung. Ergänzt den bestehenden Login, ersetzt ihn nicht.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "ElvadoPress",
   "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
   "license": "GPL-2.0-or-later",

@@ -2,7 +2,7 @@
   "id": "elvado-backup",
   "name": "Elvado Backup",
   "description": "Vollständige Backups (Inhalte, Einstellungen, Medien, Themes, Plugins) mit Prüfsummen, automatische Zeitpläne mit Rotation, Wiederherstellung mit Sicherheitskopie und Download. Passwörter, Schlüssel und serverlokale Dateien werden nicht exportiert. Ersetzt die Engine hinter dem bestehenden Bereich „Backups“.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "ElvadoPress",
   "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
   "license": "GPL-2.0-or-later",

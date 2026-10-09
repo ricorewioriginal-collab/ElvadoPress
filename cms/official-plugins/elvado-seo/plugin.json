@@ -2,7 +2,7 @@
   "id": "elvado-seo",
   "name": "Elvado SEO",
   "description": "Meta-Beschreibung, OpenGraph und Twitter-Cards, strukturierte Daten (Schema.org), SEO-Titel, robots-Regeln und eine echte XML-Sitemap – mit Vorschau für Suchergebnis und Social Media im Beitragseditor. Nutzt die SEO-Felder, die Beiträge und Seiten bereits haben.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "ElvadoPress",
   "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
   "license": "GPL-2.0-or-later",

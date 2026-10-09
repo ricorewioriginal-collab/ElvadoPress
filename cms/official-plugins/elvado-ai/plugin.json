@@ -2,7 +2,7 @@
   "id": "elvado-ai",
   "name": "Elvado AI",
   "description": "KI-Werkzeuge für Inhalte und Apps auf Basis der zentralen KI-Zentrale: Texte verbessern, kürzen, zusammenfassen, übersetzen, Titel- und SEO-Vorschläge im Beitragseditor sowie Vorschläge für Tab-Leiste, Hinweise und Store-Texte im App-Bereich. Die Anbieter und Schlüssel verwaltest du weiterhin zentral in der KI-Zentrale – dieses Plugin bringt keine eigenen Schlüssel mit.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "ElvadoPress",
   "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
   "license": "GPL-2.0-or-later",
