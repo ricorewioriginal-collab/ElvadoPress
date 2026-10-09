@@ -18,7 +18,7 @@
 - **Nicht live getestet (kein Zugang in der Entwicklungsumgebung):** SMTP mit STARTTLS/SSL gegen echte Server (getestet wurde die Anmeldung gegen einen lokalen Test-Mailserver ohne Verschlüsselung), Matomo und Google Analytics (nur Auslieferung des Skripts geprüft), alle KI-Anbieter (Gateway mit simulierten Antworten), Webhook-Zustellung an echte Ziele, AVIF-Erzeugung hängt von der GD-Bibliothek des Servers ab (hier ohne AVIF getestet, WebP vorhanden).
 - **Bewusste Grenzen:** Updates offizieller Plugins kommen aus der mit ElvadoPress ausgelieferten Paketbibliothek (`update.source: bundled`), nicht aus separaten Downloads. Hochgeladene Plugins führen kein Server-PHP aus. Newsletter, Podcast, Radio/Audio, Events, Shop, Social, Consent, Maintenance und WordPress Compatibility Tools existieren noch nicht (nur Katalogeinträge).
 - **Hinweise:** Bestehende Installationen bekommen die Essentials inaktiv (kein Verhaltenswechsel ohne Zustimmung). Das Plugin Elvado SEO ersetzt `sitemap.xml` (solange aktiv); die SEO-Felder von Beiträgen/Seiten sind die vorhandenen Felder des CMS, für reine WordPress-Beiträge gelten Beitrags-Metafelder `_elvado_seo_*` (ohne eigene Editor-Oberfläche). Der Seiten-Cache von Elvado Performance wirkt nur für Besucher ohne Cookies/Parameter; Seiten mit dem Attribut `data-elvado-nocache` werden nie gecacht. Elvado Backup exportiert keine Passwörter/Schlüssel; nach einer Wiederherstellung auf einem neuen Server müssen sie neu eingetragen werden. Die Sicherheits-Header (`frame-ancestors 'self'`) verhindern das Einbetten der Website in fremde Seiten (abschaltbar).
-- **Sync nach ricorewi-radio:** Dateien unter `cms/` werden mitsynchronisiert; mit dem RicoReWi-Paket (`rrw_pack_available()`) ist Installer-/Upgrade-Aktivierung der Essentials ausgeschaltet. Der Test `test-install-modes.php` braucht lokale Ports und einen echten PHP-Server.
+- **RicoReWi-Paketreste:** Der Sync nach ricorewi-radio entfällt; `rrw_pack_available()`-Weichen (u. a. Installer-/Upgrade-Aktivierung der Essentials) sind Altlast und können bei Gelegenheit entfernt werden. Der Test `test-install-modes.php` braucht lokale Ports und einen echten PHP-Server.
 
 - **Behoben:** Die Demo (und jede Installation mit aktiven Plugins Elvado AI/SEO) fror beim Öffnen der Verwaltung ein (Endlosschleife im `MutationObserver` der Plugin-Oberflächen). Plugin-Skripte, die den DOM beobachten, müssen eigene Änderungen ausschließen und bündeln (siehe `cms/docs/PLUGIN-ENTWICKLUNG.md`).
 
@@ -34,7 +34,10 @@
   - Widget-Bereiche lassen sich nur mit klassischen Themes sinnvoll testen; Werkzeugleisten-Aktionen der Vorschau-Brücke sind nicht per Klick getestet.
   - Migration: Inhalte werden als HTML übernommen (kein Umbau in Blöcke), Widgets müssen von Hand eingerichtet werden, Papierkorb wird nicht übernommen.
   - Verwaltungs-Oberfläche: Zähler-Abzeichen an „Plugins“/„Updates“ und ein Menüpunkt „Automatisierung“ fehlen mangels Funktion.
-- **Nächste Untersuchung:** Panels auf die Engine umstellen (mit Golden-Test in ricorewi-radio), danach die Emulation entfernen.
+- **Nächste Untersuchung:** Panels auf die Engine umstellen (Golden-Test aus ricorewi-radio entfällt), danach die Emulation entfernen.
 
 ## Mehrere eigenständige Websites (Multisite)
 - Grundlage steht (`cms/lib/sites.php`, `scripts/test-sites.php`, `cms/docs/MULTISITE.md`), ist aber noch **nicht eingebunden**: Auslieferung, Verwaltung (Website-Umschalter, Bereich „Websites“), WordPress-Emulation und -Engine je Website folgen in Stufen (siehe Dokument). Bis dahin ändert sich am Betrieb nichts.
+
+## Demo-Bereitstellung
+- **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig über AnMaCha Universal Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.

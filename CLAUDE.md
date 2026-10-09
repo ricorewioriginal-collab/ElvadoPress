@@ -14,7 +14,7 @@ Nicht automatisch das gesamte Repository neu analysieren.
 ## Projekt und Zweck
 ElvadoPress ist ein eigenständiges, erweiterbares PHP-CMS für Websites mit Themes, Plugins, visueller Verwaltung, Datei-Storage, optionalem Datenbankspiegel und WordPress-Kompatibilitätsschicht. Optionale neutrale Erweiterungen umfassen App-Baukasten, Alexa-Skill-Baukasten und KI-Assistent.
 
-Dieses Repository ist die **Hauptquelle des CMS**. Das Entwicklungsprojekt *ricorewi-radio* übernimmt `cms/` per Sync-Workflow und enthält die RicoReWi-spezifischen Teile.
+Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderwelt* werden seit Oktober 2026 **unabhängig** von ElvadoPress entwickelt; es gibt keinen Sync mehr und ElvadoPress nimmt keine Rücksicht auf deren Paket-Tests.
 
 ## Architektur in Kürze
 - PHP 8.1+; kein Build-Schritt für das CMS.
@@ -32,7 +32,7 @@ Dieses Repository ist die **Hauptquelle des CMS**. Das Entwicklungsprojekt *rico
 |---|---|---|
 | **CMS** | Beiträge, Seiten, Medien, Kommentare, Einstellungen, WordPress-Schicht, Themes/Plugins, Benutzer, Formulare, Community, Demo-Betrieb | **hier** |
 | **Radio-Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
-| **RicoReWi** | Portal, Portal-Themes, paketgebundene Radio-/Netzwerkfunktionen, Marken-Inhalte | **nur ricorewi-radio** |
+| **RicoReWi / Senderwelt** | Portal, Portal-Themes, paketgebundene Radio-/Netzwerkfunktionen, Marken-Inhalte | **eigenständig, nicht hier** |
 
 ## Core oder Plugin (verbindlich)
 - **Core bleibt:** Plugin-System, Themes/Customizer, Block-Editor, Medien, Benutzer/Rollen/Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit, Installer, KI-Infrastruktur (KI-Zentrale, Gateway, Bild/Video, Website-Generator), WordPress-Schicht, vorhandene Weiterleitungs-Engine.
@@ -43,7 +43,7 @@ Dieses Repository ist die **Hauptquelle des CMS**. Das Entwicklungsprojekt *rico
 ## Wichtige Einstiegspunkte und Doku
 - `README.md`: menschlicher Projektüberblick.
 - `INSTALL.md`: vorhandene ausführliche Betriebs-/Installationsdokumentation; siehe Hinweis in `KNOWN_ISSUES.md`.
-- `cms/docs/ELVADOPRESS.md`: Entwicklung, Sync und Demo.
+- `cms/docs/ELVADOPRESS.md`: Entwicklung und Demo.
 - `cms/docs/API.md`: API und Authentifizierung.
 - `cms/docs/DATABASE.md`: Storage/Datenbank.
 - `cms/docs/PLUGIN-ENTWICKLUNG.md`: natives Plugin-System, Essentials, Hooks.
@@ -83,14 +83,12 @@ Dieses Repository ist die **Hauptquelle des CMS**. Das Entwicklungsprojekt *rico
 - Commit/Push nur entsprechend der aktuellen Benutzeranweisung.
 - Bevorzugter Ablauf: Branch → Pull Request → CI grün → Merge.
 - Release: Tag `v<Version>` erzeugt über Workflow *Release* ein Installations-ZIP.
-- `ricorewi-radio` übernimmt CMS-Änderungen anschließend per Sync-Workflow.
 
-## Bestandsschutz / Sync-Besonderheiten
-- Keine RicoReWi-Inhalte in dieses Repository aufnehmen.
-- Paketabweichungen laufen über `rrw_pack_available()` / `rrw_pack_active()` (`cms/lib/pack.php`), UI-`data-pack` bzw. `data-pack-app` und `window.CMS_PACKS['ricorewi-radio']`.
-- Der Sync nach *ricorewi-radio* muss dessen Paket-Tests bestehen.
-- Nicht synchronisiert werden dort eigene Fassungen von `cms/lib/product.default.json`, `cms/assets/brand/**` und `cms/lib/alexa-skill/{catalog.json,skill.json,README.md,listing-de.md}`.
-- Neue Dateien unter `cms/` werden grundsätzlich synchronisiert; deshalb dort nichts Markenspezifisches hinzufügen.
+## Abgrenzung zu RicoReWi / Senderwelt
+- Keine RicoReWi- oder Senderwelt-Inhalte in dieses Repository aufnehmen.
+- Es gibt keinen Sync nach *ricorewi-radio* mehr; Änderungen unter `cms/` müssen dessen Paket-Tests nicht bestehen.
+- Vorhandene Reste (`rrw_pack_available()` / `rrw_pack_active()` in `cms/lib/pack.php`, `data-pack`, `window.CMS_PACKS['ricorewi-radio']`) bleiben bis zu einer ausdrücklich beauftragten Bereinigung unverändert; neuer Code nutzt sie nicht. Das Theme `rrw-classic` ist **kein** Rest, sondern das neutrale Standard-Theme der Einrichtung (`cms/lib/install.php`) und bleibt erhalten.
+- Brand-/Produktdateien (`cms/lib/product.default.json`, `cms/assets/brand/**`, `cms/lib/alexa-skill/*`) gehören jetzt allein zu ElvadoPress.
 
 ## Dokumentation nach größeren Aufgaben
 Nicht bei Kleinigkeiten alle Dateien umschreiben:

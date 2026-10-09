@@ -48,11 +48,11 @@ Optionale Integrationen umfassen den verbundenen Control-Center-Betrieb, konfigu
 - ElvadoPress ist die Hauptquelle.
 - CI auf Push/PR prüft PHP-Syntax, Smoke-Test und `scripts/test-*.php`.
 - Tag `v<Version>` erzeugt ein Release-ZIP.
-- *ricorewi-radio* übernimmt `cms/` per Sync-Workflow; bestimmte Branding-/Produktdateien besitzen dort eigene Fassungen.
+- RicoReWi Radio/Senderwelt sind unabhängig von diesem Repository (kein Sync); Branding-/Produktdateien gehören allein zu ElvadoPress.
 - Die öffentliche Demo wird laut vorhandener Doku über das verbundene Projekt bereitgestellt.
 
 ## Weiterführende Dokumentation
-- `cms/docs/ELVADOPRESS.md` – Entwicklungs-/Sync-/Demo-Ablauf
+- `cms/docs/ELVADOPRESS.md` – Entwicklungs-/Demo-Ablauf
 - `cms/docs/API.md` – API/Auth/Datenflüsse
 - `cms/docs/DATABASE.md` – Datenbank/Storage
 - `cms/docs/PLUGINS.md`, `THEMES.md`, `WORDPRESS.md` – Erweiterbarkeit

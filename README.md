@@ -61,7 +61,7 @@ Ausführliche Hinweise stehen in [INSTALL.md](INSTALL.md) und in `cms/docs/`.
 
 ## Entwicklung
 
-Dieses Repository ist die **Hauptquelle** von ElvadoPress: Änderungen per Pull Request, die CI führt alle Tests aus (siehe [DEVELOPMENT.md](DEVELOPMENT.md)). Marken-spezifische Teile eines Betreibers (z. B. das RicoReWi-Portal) liegen in eigenen Repositories und binden ElvadoPress ein.
+Dieses Repository ist die **Hauptquelle** von ElvadoPress: Änderungen per Pull Request, die CI führt alle Tests aus (siehe [DEVELOPMENT.md](DEVELOPMENT.md)). Marken-spezifische Teile eines Betreibers (z. B. das RicoReWi-Portal) liegen in eigenen, unabhängig entwickelten Repositories (kein Sync mit diesem Repository).
 
 ## Lizenz
 
