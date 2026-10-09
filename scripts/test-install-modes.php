@@ -7,7 +7,8 @@ function t(string $name,bool $ok,string $info=''): void { global $n,$fail;$n++;i
 function rm(string $d): void { if(!is_dir($d)||is_link($d)){@unlink($d);return;}foreach(scandir($d)?:[] as $f)if($f!=='.'&&$f!=='..')rm($d.'/'.$f);@rmdir($d); }
 function http(string $method,string $url,array $headers=[],string $body=''): array {
     $ctx=stream_context_create(['http'=>['method'=>$method,'header'=>implode("\r\n",$headers),'content'=>$body,'ignore_errors'=>true,'timeout'=>60,'follow_location'=>0]]);
-    $b=@file_get_contents($url,false,$ctx);$st=0;$ck=[];foreach($http_response_header??[] as $h){if(preg_match('~^HTTP/\S+\s+(\d{3})~',$h,$m))$st=(int)$m[1];if(stripos($h,'Set-Cookie:')===0)$ck[]=trim(explode(';',substr($h,11))[0]);}
+    $b=false;for($try=0;$try<3&&$b===false;$try++){ if($try)usleep(300000);$b=@file_get_contents($url,false,$ctx); } // PHP-Entwicklungsserver kann direkt nach dem Start einzelne Verbindungen verlieren
+    $st=0;$ck=[];foreach($http_response_header??[] as $h){if(preg_match('~^HTTP/\S+\s+(\d{3})~',$h,$m))$st=(int)$m[1];if(stripos($h,'Set-Cookie:')===0)$ck[]=trim(explode(';',substr($h,11))[0]);}
     return [$st,$ck,(string)$b];
 }
 /** Wegwerf-Kopie des CMS (ohne Laufzeitdaten) und PHP-Server darauf. */
