@@ -40,7 +40,7 @@
               <div id="blocksBefore" class="dropzone" data-zone="before"></div>
               <div id="nativeMarker" class="native-live">
                 <div class="native-live-head">
-                  <div><b><i class="fas fa-eye" style="color:var(--cyan);margin-right:6px"></i>Vorhandener Seiteninhalt</b><div class="hint">Echte Live-Seite von <?=rrw_pack_available()?'ricorewi-radio.de':'deiner Website'?> – nicht nur ein Platzhalter.</div></div>
+                  <div><b><i class="fas fa-eye" style="color:var(--cyan);margin-right:6px"></i>Vorhandener Seiteninhalt</b><div class="hint">Echte Live-Seite von deiner Website – nicht nur ein Platzhalter.</div></div>
                   <div style="display:flex;gap:6px"><button class="btn-g" onclick="refreshNativePreview()"><i class="fas fa-rotate"></i> Vorschau laden</button><button class="btn-a" onclick="scanNativeTexts()"><i class="fas fa-pen"></i> Texte bearbeiten</button></div>
                 </div>
                 <iframe id="nativePreviewFrame" title="Live-Vorschau der vorhandenen Seite"></iframe>

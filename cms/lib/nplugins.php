@@ -47,7 +47,6 @@ function rrw_np_migrate(): void {
     $cms=dirname(__DIR__);$data=defined('RRW_DATA_DIR')?(string)RRW_DATA_DIR:$cms.'/data';
     if(is_file($data.'/.plugins/state.json'))return;
     if(!is_file($data.'/install.lock')&&!is_file($data.'/system.local.json')&&!is_file($data.'/site.json'))return;   // noch nicht eingerichtet
-    if(function_exists('rrw_pack_available')&&rrw_pack_available())return;   // RicoReWi-Paket: Verhalten unverändert lassen
     try{
         $m=rrw_np();$m->installSelection($m->recommendedIds(),false);$m->setMode('upgrade');
     }catch(Throwable $e){ error_log('[ElvadoPress] Plugin-Migration: '.$e->getMessage()); }
@@ -60,7 +59,6 @@ function rrw_np_migrate(): void {
  */
 function rrw_np_ai_autoactivate(bool $usable,?PluginManager $mgr=null): string {
     if(!$usable)return '';
-    if(function_exists('rrw_pack_available')&&rrw_pack_available())return '';
     $mgr??=rrw_np();$id='elvado-ai';
     $flag=$mgr->stateDir().'/ai-autoactivated';
     if($mgr->isActive($id)||is_file($flag))return '';

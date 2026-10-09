@@ -5,7 +5,6 @@
 // Die Apps selbst brauchen danach nur die Website (app_config) – kein Control Center, keine zentrale Infrastruktur.
 // Das GitHub-Token liegt ausschließlich serverseitig (cms/data/.apps/build.json) und wird nie an den Browser geliefert.
 
-if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
 const RRW_AB_WORKFLOW='android-custom-brand.yml';   // Android (Standard-Plattform)
 const RRW_AB_WORKFLOW_WIN='windows-custom-brand.yml';
 const RRW_AB_WIN_PROJECT='windows-native/ElvadoPress.App.Windows.csproj';      // Projektdatei der Windows-App in der App-Vorlage (app-template/)
@@ -63,7 +62,7 @@ function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
     $theme=trim((string)($in['themeColor']??''));if($theme!==''&&!preg_match('/^#[0-9a-fA-F]{6}$/',$theme))return [null,'Die Farbe hat die Form #112233.'];
     $icon=trim((string)($in['icon']??''));
     if($icon!==''&&!rrw_ab_media_url_ok($icon))return [null,'Das Icon muss ein Bild aus der Medienbibliothek sein.'];
-    $out=['id'=>$id,'applicationId'=>$pkg,'appName'=>$name,'site'=>$site,'launchUrl'=>$site.'/','filePrefix'=>$prefix,'directory'=>$type==='radio'&&!empty($in['directory'])&&rrw_pack_available(),'icon'=>$icon,'type'=>$type,'platforms'=>$pl,'themeColor'=>$theme];
+    $out=['id'=>$id,'applicationId'=>$pkg,'appName'=>$name,'site'=>$site,'launchUrl'=>$site.'/','filePrefix'=>$prefix,'directory'=>false,'icon'=>$icon,'type'=>$type,'platforms'=>$pl,'themeColor'=>$theme];
     // Branding für alle App-Typen (nur gesetzte Werte werden gespeichert, bestehende Apps bleiben unverändert)
     $splash=trim((string)($in['splash']??''));
     if($splash!==''){ if(!rrw_ab_media_url_ok($splash))return [null,'Das Startbild muss ein Bild aus der Medienbibliothek sein.'];$out['splash']=$splash; }

@@ -46,19 +46,18 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
     <i class="fas fa-right-to-bracket"></i>
     <h2 id="cmsLoginTitle">Anmeldung erforderlich</h2>
     <?php if($pr['logo']!==''): ?><img src="<?=$ph('logo')?>" alt="" style="max-width:220px;max-height:80px;margin:0 auto 10px;display:block"><?php endif; ?>
-    <p id="cmsLoginDesc"><?=($sa||!rrw_pack_available())?'Melde dich mit deinem lokalen '.$ph('access_name').'-Zugang an.':'Melde dich mit dem lokalen '.$ph('access_name').'-Zugang an oder nutze das '.$ph('control_center').'.'?></p>
+    <p id="cmsLoginDesc"><?='Melde dich mit deinem lokalen '.$ph('access_name').'-Zugang an.'?></p>
     <form id="cmsLoginForm" class="cms-login-form" data-mode="login" onsubmit="return cmsHandleLogin(event)">
       <input type="text" id="cmsLoginUser" class="fc" placeholder="Benutzername" autocomplete="username" required>
       <input type="password" id="cmsLoginPass" class="fc" placeholder="Passwort" autocomplete="current-password" required minlength="1">
       <button type="submit" id="cmsLoginSubmit" class="btn-a"><i class="fas fa-right-to-bracket"></i> Anmelden</button>
     </form>
     <p id="cmsLoginMsg" class="cms-login-msg"></p>
-    <?php if(!$sa&&rrw_pack_available()): ?><a class="btn-g" href="#" onclick="cmsLoginRedirect();return false"><i class="fas fa-arrow-up-right-from-square"></i> Mit <?=$ph('control_center')?> anmelden</a><?php endif; ?>
   </div>
   <div id="cmsApp" style="display:none">
     <section class="hero">
       <div><div class="k"><i class="fas fa-shield-halved"></i> Verwaltung</div><h1><?=$ph('heading')?></h1><p>Hier verwaltest du Inhalte, Design, Plugins, Apps und Einstellungen deiner Website.<?=$sa?'':' Das '.$ph('control_center').' liefert nur Login und Berechtigungen.'?></p><div id="cmsVerBadge" class="hint" style="margin-top:4px"></div></div>
-      <div class="hero-actions"><span id="cmsFsState" class="publish-state bad" hidden></span><span id="cmsPublishState" class="publish-state"><i class="fas fa-circle-check"></i> Alles gespeichert</span><a class="btn-g" href="<?=rrw_pack_available()?'https://www.ricorewi-radio.de/':'/'?>" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Website ansehen</a><button class="btn-a" onclick="cmsReload()"><i class="fas fa-rotate"></i> Aktualisieren</button></div>
+      <div class="hero-actions"><span id="cmsFsState" class="publish-state bad" hidden></span><span id="cmsPublishState" class="publish-state"><i class="fas fa-circle-check"></i> Alles gespeichert</span><a class="btn-g" href="/" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Website ansehen</a><button class="btn-a" onclick="cmsReload()"><i class="fas fa-rotate"></i> Aktualisieren</button></div>
     </section>
     <?php require __DIR__.'/views/sidebar.php'; ?>
 

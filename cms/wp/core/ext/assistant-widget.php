@@ -4,8 +4,6 @@
 if(!function_exists('rrw_wp_assistant_widget')){
     function rrw_wp_assistant_widget(): void {
         if(defined('RRW_DEMO')||(function_exists('is_admin')&&is_admin())||(function_exists('is_customize_preview')&&is_customize_preview()))return;
-        require_once dirname(__DIR__,3).'/lib/pack.php';
-        if(rrw_pack_available())return;
         require_once dirname(__DIR__,3).'/lib/assistant.php';
         $a=rrw_assistant_clean((array)(($GLOBALS['RRW_SITE']??[])['assistant']??[]));
         if(empty($a['enabled']))return;
