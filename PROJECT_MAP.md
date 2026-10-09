@@ -49,3 +49,5 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 - **Apps/Alexa/KI:** `cms/lib/appbuild.php`, `apps.php`, `alexa.php`, `assistant.php` plus passende Assets/Doku.
 - **Demo:** `cms/lib/demo.php`, `scripts/make-demo.php`, `scripts/test-demo.php`, `cms/docs/ELVADOPRESS.md`.
 - **Tests:** zuerst nach einem passenden `scripts/test-*.php` suchen, statt automatisch alles auszuführen.
+
+- `CHANGELOG.md`: Änderungen und Update-Hinweise für bestehende Installationen.

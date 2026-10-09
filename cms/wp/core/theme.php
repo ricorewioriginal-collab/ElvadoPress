@@ -13,8 +13,16 @@ function elvado_wp_theme_roots(): array {
     return $r;
 }
 function get_raw_theme_root($s, $skip_cache=false) { return '/themes'; }
-function get_stylesheet() { return apply_filters('stylesheet',(string)get_option('stylesheet','default')); }
-function get_template() { return apply_filters('template',(string)get_option('template',get_stylesheet())); }
+/** Aktives Theme aus den Optionen. Fehlt dessen Verzeichnis (Theme gelöscht oder umbenannt, z. B. nach einem Update), gilt das Standard-Theme statt einer leeren Seite. */
+function _elvado_wp_theme_or_default(string $slug): string {
+    static $seen=[];
+    if(isset($seen[$slug]))return $seen[$slug];
+    $c=preg_replace('/[^A-Za-z0-9_.-]/','',$slug);
+    $ok=$c!==''&&(is_dir(get_theme_root().'/'.$c)||is_dir(ELVADO_WP_NATIVE_THEMES.'/'.$c)||(defined('ELVADO_WP_SANDBOX_THEMES')&&is_dir(WP_CONTENT_DIR.'/themes/'.$c)));
+    return $seen[$slug]=$ok||!is_dir(ELVADO_WP_NATIVE_THEMES.'/elvado-classic')?$slug:'elvado-classic';
+}
+function get_stylesheet() { return apply_filters('stylesheet',_elvado_wp_theme_or_default((string)get_option('stylesheet','default'))); }
+function get_template() { return apply_filters('template',_elvado_wp_theme_or_default((string)get_option('template',get_stylesheet()))); }
 function _elvado_wp_theme_dir(string $slug): string {
     $slug=preg_replace('/[^A-Za-z0-9_.-]/','',$slug);$wp=get_theme_root().'/'.$slug;
     if($slug!==''&&is_dir($wp))return $wp;
