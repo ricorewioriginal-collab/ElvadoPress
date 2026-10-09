@@ -1,23 +1,12 @@
 <?php
-// KI-Assistent: mit RicoReWi-Paket der Assistent des Radioportals, im eigenständigen CMS ein frei konfigurierbarer Website-Assistent (Modus „website“) oder Radio-Assistent (Modus „radio").
-// Konfiguration (CMS-Sektion "assistant"), Provider-Kette
-// (nur Modelle, die tatsächlich antworten; kostenlose zuerst, Keys optional), Live-Daten
-// (Now Playing, Sendeplan, Sender, Podcast, News, Marken) und Weiterleitung von Nachrichten /
-// Sprachnachrichten an Studiomail im AnMaCha Control Center. Der Nutzer wählt kein Modell.
+// KI-Assistent: frei konfigurierbarer Website-Assistent. Konfiguration (CMS-Sektion "assistant"), Provider-Kette (nur Modelle, die
+// tatsächlich antworten; kostenlose zuerst, Keys optional) und Antworten aus den Inhalten der Website (Beiträge) und dem hinterlegten Wissen.
+// Der Besucher wählt kein Modell.
 declare(strict_types=1);
 
 require_once __DIR__.'/pack.php';
-const RRW_ASSISTANT_CC_BASE='https://ricorewi-radio.de/control/';
-/** Baukasten-Modus: eigene Sender des Betreibers, keine Netzwerk-Inhalte. */
-function rrw_assistant_neutral(): bool { return true; }
-/** Eigene Sender (laut.fm-Kennungen): mit RicoReWi-Paket das Core-Netzwerk, sonst die Sender des Betreibers (Assistent und Alexa-Skill). */
-function rrw_own_stations(array $site): array {
-    if(!rrw_assistant_neutral())return (array)($site['core_network']['stations']??[]);
-    $ids=[];foreach(array_merge((array)($site['assistant']['stations']??[]),array_keys((array)($site['alexa']['stations']??[]))) as $x){$x=strtolower(trim((string)$x));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$x)&&!in_array($x,$ids,true))$ids[]=$x;}
-    return $ids;
-}
-/** Kennungen gegenüber Diensten: User-Agent, Referer, Titel. */
-function rrw_assistant_ua(): string { return rrw_assistant_neutral()?'Radio-Assistent/1.0 (+'.(rrw_default_canonical_base()?:'https://localhost').')':'RicoReWi-Radio-Assistent/1.0 (+https://www.ricorewi-radio.de)'; }
+/** Kennung gegenüber Diensten (User-Agent, Referer). */
+function rrw_assistant_ua(): string { return 'Website-Assistent/1.0 (+'.(rrw_default_canonical_base()?:'https://localhost').')'; }
 
 /** Vorgaben der OpenAI-kompatiblen Anbieter: eine gemeinsame Liste (cms/lib/ai-providers.json) für Assistent und KI-Zentrale. */
 function rrw_assistant_provider_presets(): array {
@@ -31,17 +20,16 @@ function rrw_assistant_provider_presets(): array {
 function rrw_assistant_defaults(): array {
     return [
         'enabled'=>true,
-        'name'=>rrw_assistant_neutral()?'Assistent':'Radio-Assistent',
-        'mode'=>rrw_assistant_neutral()?'website':'radio',        // website: allgemeiner Website-Assistent (Beiträge, Seiten, Wissen); radio: zusätzlich Sender, Titel, Sendeplan
-        'order_mode'=>rrw_assistant_neutral()?'manual':'auto',    // manual: genau die eingestellte Reihenfolge der Anbieter und Modelle; auto: kostenlose zuerst, schnelle Modelle vorn
+        'name'=>'Assistent',
+        'order_mode'=>'manual',    // manual: genau die eingestellte Reihenfolge der Anbieter und Modelle; auto: kostenlose zuerst, schnelle Modelle vorn
         'temperature'=>0.2,
-        'greeting'=>rrw_assistant_neutral()?'Hi! Ich bin der Assistent dieser Website. Frag mich etwas zu unseren Inhalten oder zu allem, wobei ich helfen kann.':'Hi! Ich bin der Assistent des Radioportals. Frag mich, was gerade läuft, nach dem Sendeplan, unseren Sendern, dem Podcast – oder schick dem Studio eine Nachricht.',
+        'greeting'=>'Hi! Ich bin der Assistent dieser Website. Frag mich etwas zu unseren Inhalten oder zu allem, wobei ich helfen kann.',
         'knowledge'=>'',
         'system_prompt'=>'',
         'providers'=>rrw_assistant_provider_presets(),
         'rate_limit'=>40,
         'max_tokens'=>420,
-        'features'=>['nowplaying'=>true,'schedule'=>true,'stations'=>true,'podcast'=>true,'news'=>true,'studiomail'=>true,'voicemail'=>true,'favorites'=>true,'pages'=>true,'research'=>true],
+        'features'=>['news'=>true,'pages'=>true,'research'=>true],
         'privacy_note'=>'Deine Fragen werden zur Beantwortung an einen KI-Dienst übertragen. Bitte keine persönlichen Daten eingeben.',
     ];
 }
@@ -55,7 +43,7 @@ function rrw_assistant_clean($value): array {
     $out=[
         'enabled'=>!array_key_exists('enabled',$v)||!empty($v['enabled']),
         'name'=>mb_substr(trim((string)($v['name']??'')),0,60)?:$d['name'],
-        'mode'=>'radio','order_mode'=>in_array(($v['order_mode']??''),['auto','manual'],true)?(string)$v['order_mode']:$d['order_mode'],
+        'order_mode'=>in_array(($v['order_mode']??''),['auto','manual'],true)?(string)$v['order_mode']:$d['order_mode'],
         'temperature'=>round(max(0.0,min(1.5,array_key_exists('temperature',$v)&&is_numeric($v['temperature'])?(float)$v['temperature']:(float)$d['temperature'])),2),
         'greeting'=>mb_substr(trim((string)($v['greeting']??'')),0,600)?:$d['greeting'],
         'knowledge'=>mb_substr(trim((string)($v['knowledge']??'')),0,6000),
@@ -64,17 +52,9 @@ function rrw_assistant_clean($value): array {
         'max_tokens'=>max(120,min(1500,(int)($v['max_tokens']??$d['max_tokens']))),
         'privacy_note'=>array_key_exists('privacy_note',$v)?mb_substr(trim((string)$v['privacy_note']),0,400):$d['privacy_note'],
         'features'=>[],
-        'stations'=>[],
         'providers'=>[],
     ];
     foreach($d['features'] as $k=>$def){$out['features'][$k]=array_key_exists($k,(array)($v['features']??[]))?!empty($v['features'][$k]):$def;}
-    if(rrw_assistant_neutral()){   // eigene Sender statt Netzwerk; Podcast, Studiomail und Voicemail gehören zum RicoReWi-Netzwerk
-        $rawSt=$v['stations']??[];if(is_string($rawSt))$rawSt=preg_split('/[\s,;]+/',$rawSt,-1,PREG_SPLIT_NO_EMPTY);
-        foreach(array_slice((array)$rawSt,0,40) as $x){$x=strtolower(trim((string)preg_replace('~^.*laut\.fm/~i','',(string)$x)));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$x)&&!in_array($x,$out['stations'],true))$out['stations'][]=$x;}
-        foreach(['podcast','studiomail','voicemail'] as $k)$out['features'][$k]=false;
-        // Modus: ohne Angabe gilt „radio“ für Bestandsinstallationen mit eigenen Sendern, sonst „website“
-        $out['mode']=in_array(($v['mode']??''),['website','radio'],true)?(string)$v['mode']:($out['stations']?'radio':'website');
-    }
     $presets=[];foreach(rrw_assistant_provider_presets() as $p)$presets[$p['id']]=$p;
     $seen=[];
     foreach(array_slice((array)($v['providers']??[]),0,20) as $p){
@@ -151,7 +131,6 @@ function rrw_assistant_merge_keys(array $existing,$value): array {
 function rrw_assistant_admin_view(array $a): array {
     $a=rrw_assistant_with_central(rrw_assistant_clean($a));
     foreach($a['providers'] as &$p){$p['has_key']=$p['api_key']!=='';$p['api_key']='';}unset($p);
-    $a['neutral']=rrw_assistant_neutral();
     return $a;
 }
 // Öffentliche Sicht: niemals API-Keys ausliefern (steckt auch im index.html-Snapshot)
@@ -197,67 +176,11 @@ function rrw_assistant_json(string $url,string $dataDir,string $cacheKey,int $tt
     $r=rrw_assistant_http($url,null,[],8);if(!$r['ok'])return null;$d=json_decode($r['body'],true);if(!is_array($d))return null;
     rrw_assistant_cache_put($dataDir,$cacheKey,$d);return $d;
 }
-function rrw_assistant_station_labels(): array {
-    if(rrw_assistant_neutral())return [];
-    return ['ricorewi'=>'RicoReWi Radio','yourtime-fm'=>'YourTime FM','rapradio24'=>'RapRadio 24','schlagerpop24'=>'Schlagerpop 24','chartradio24'=>'ChartRadio 24','clubradio24'=>'ClubRadio 24','anmacha24'=>'AnMaCha 24','radiofloh'=>'RadioFloh','rockradio24'=>'RockRadio 24','christmasradio24'=>'ChristmasRadio 24','kultradio24'=>'KultRadio 24','zockerfm'=>'ZockerFM','special-radio'=>'Special Radio'];
-}
-function rrw_assistant_station_label(string $id,?array $info=null): string { $l=rrw_assistant_station_labels();if(isset($l[$id]))return $l[$id];$n=trim((string)($info['display_name']??''));return $n!==''?$n:$id; }
-function rrw_assistant_stations(array $site): array {
-    $s=array_values(array_filter(array_map(fn($x)=>strtolower(trim((string)$x)),rrw_own_stations($site)),fn($x)=>preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$x)));
-    if(!rrw_assistant_neutral()&&!in_array('ricorewi',$s,true))array_unshift($s,'ricorewi');
-    return $s;
-}
 
-// ---------------------------------------------------------------- Live-Daten
-function rrw_assistant_station_info(string $id,string $dataDir): ?array { return rrw_assistant_json('https://api.laut.fm/station/'.rawurlencode($id),$dataDir,'st_'.$id,600); }
-function rrw_assistant_now_playing(string $id,string $dataDir): array {
-    $cur=rrw_assistant_json('https://api.laut.fm/station/'.rawurlencode($id).'/current_song',$dataDir,'cur_'.$id,45);
-    $last=rrw_assistant_json('https://api.laut.fm/station/'.rawurlencode($id).'/last_songs',$dataDir,'last_'.$id,120);
-    $fmt=fn($s)=>is_array($s)?trim((string)($s['artist']['name']??'')).' – '.trim((string)($s['title']??'')):'';
-    return ['current'=>$fmt($cur),'album'=>(string)($cur['album']??''),'started_at'=>(string)($cur['started_at']??''),'last'=>array_values(array_filter(array_map($fmt,array_slice(is_array($last)?$last:[],0,4))))];
-}
-function rrw_assistant_schedule(string $id,string $dataDir): array {
-    $raw=rrw_assistant_json('https://api.laut.fm/station/'.rawurlencode($id).'/schedule',$dataDir,'sched_'.$id,900);
-    if(!is_array($raw))return ['ok'=>false,'now'=>null,'next'=>[],'today'=>[]];
-    $tz=new DateTimeZone('Europe/Berlin');$now=new DateTime('now',$tz);$dayKey=strtolower($now->format('D'));$tomorrow=strtolower((clone $now)->modify('+1 day')->format('D'));
-    $hourNow=(int)$now->format('G')+(int)$now->format('i')/60;$dayNames=['mon'=>'Montag','tue'=>'Dienstag','wed'=>'Mittwoch','thu'=>'Donnerstag','fri'=>'Freitag','sat'=>'Samstag','sun'=>'Sonntag'];
-    $slot=fn($p,$d)=>['name'=>(string)($p['name']??''),'description'=>mb_substr(trim((string)($p['description']??'')),0,160),'start'=>(int)($p['hour']??0),'end'=>(int)($p['end_time']??0),'day'=>$dayNames[$d]??$d];
-    $today=[];$tom=[];$current=null;$next=[];
-    foreach($raw as $p){if(!is_array($p))continue;$d=strtolower((string)($p['day']??''));if($d===$dayKey)$today[]=$slot($p,$d);elseif($d===$tomorrow)$tom[]=$slot($p,$d);}
-    usort($today,fn($a,$b)=>$a['start']<=>$b['start']);usort($tom,fn($a,$b)=>$a['start']<=>$b['start']);
-    foreach($today as $s){$end=$s['end']===0?24:$s['end'];if($s['start']<=$hourNow&&$hourNow<$end)$current=$s;elseif($s['start']>$hourNow&&count($next)<3)$next[]=$s;}
-    foreach($tom as $s){if(count($next)>=3)break;$next[]=$s;}
-    // Kompakter Wochenplan: pro Tag eine Zeile, aufeinanderfolgende identische Tage zusammengefasst (Di–Fr: …)
-    $byDay=[];foreach($raw as $p){if(!is_array($p))continue;$d=strtolower((string)($p['day']??''));if(!isset($dayNames[$d]))continue;$byDay[$d][]=$slot($p,$d);}
-    $short=['mon'=>'Mo','tue'=>'Di','wed'=>'Mi','thu'=>'Do','fri'=>'Fr','sat'=>'Sa','sun'=>'So'];$week=[];
-    foreach(array_keys($short) as $d){$list=$byDay[$d]??[];usort($list,fn($a,$b)=>$a['start']<=>$b['start']);
-        $week[$d]=implode('; ',array_map(fn($x)=>sprintf('%02d–%02d',$x['start'],$x['end']===0?24:$x['end']).' '.$x['name'],$list));}
-    $lines=[];$keys=array_keys($week);
-    for($i=0;$i<count($keys);$i++){$from=$keys[$i];$to=$from;while($i+1<count($keys)&&$week[$keys[$i+1]]===$week[$from]){$i++;$to=$keys[$i];}
-        $lines[]=($from===$to?$short[$from]:$short[$from].'–'.$short[$to]).': '.($week[$from]!==''?$week[$from]:'keine Sendungen eingetragen (Musik nonstop)');}
-    return ['ok'=>true,'now'=>$current,'next'=>$next,'today'=>$today,'date'=>$now->format('d.m.Y H:i'),'weekday'=>$dayNames[$dayKey]??'','week'=>implode(' | ',$lines)];
-}
-function rrw_assistant_podcast(string $origin,string $dataDir): ?array {
-    $d=rrw_assistant_json(rtrim($origin,'/').'/podcast.php',$dataDir,'podcast',900);if(!is_array($d))return null;
-    $eps=[];foreach(array_slice((array)($d['episodes']??[]),0,6) as $e){if(!is_array($e))continue;$eps[]=['title'=>(string)($e['title']??''),'date'=>(string)($e['pubDate']??''),'summary'=>mb_substr(trim(html_entity_decode(strip_tags((string)($e['description']??'')))),0,180)];}
-    return ['title'=>(string)($d['podcast']['title']??'AnMaCha – Der Podcast'),'description'=>mb_substr((string)($d['podcast']['description']??''),0,300),'link'=>(string)($d['podcast']['link']??''),'episodes'=>$eps];
-}
-function rrw_assistant_news(string $newsFile): array {
-    $news=is_file($newsFile)?(json_decode((string)@file_get_contents($newsFile),true)?:[]):[];$out=[];
-    foreach($news as $a){if(!is_array($a)||($a['status']??'')!=='published'||!empty($a['deleted_at']))continue;$out[]=$a;}
-    $ts=static fn($x)=>strtotime((string)(($x['published_at']??'')!==''?$x['published_at']:($x['created_at']??'')))?:0;   // Zeitstempel statt Zeichenkettenvergleich
-    usort($out,fn($a,$b)=>$ts($b)<=>$ts($a));
-    return array_map(fn($a)=>['title'=>(string)($a['title']??''),'date'=>substr((string)($a['published_at']??$a['created_at']??''),0,10),'excerpt'=>mb_substr(trim(html_entity_decode(strip_tags((string)($a['excerpt']??$a['intro']??$a['teaser']??$a['content']??'')))),0,220),'tags'=>(string)($a['tags']??'')],array_slice($out,0,6));
-}
-function rrw_assistant_brands(array $site): array {
-    $reg=function_exists('rrw_brands_registry')?rrw_brands_registry($site):['items'=>[]];$out=[];
-    foreach((array)($reg['items']??[]) as $b){if(empty($b['enabled']))continue;$out[]=['name'=>(string)($b['name']??''),'claim'=>(string)($b['claim']??''),'domain'=>(string)($b['primary_domain']??''),'description'=>(string)($b['description']??'')];}
-    return $out;
-}
 
-// ---------------------------------------------------------------- Recherche (Wikipedia, Podcast-Suche, Wetter, Schlagzeilen)
+// ---------------------------------------------------------------- Recherche (Wikipedia, Wetter, Schlagzeilen)
 // Kostenlose, schluesselfreie Quellen, nur bei passender Frage und mit Cache. Die Treffer gehen als RECHERCHE in den
-// Kontext; so kennt der Assistent Personen, Podcasts, das aktuelle Wetter und Schlagzeilen, ohne dass das Modell raten muss.
+// Kontext; so kennt der Assistent Personen, das aktuelle Wetter und Schlagzeilen, ohne dass das Modell raten muss.
 function rrw_assistant_fetch(string $url,int $timeout=5): ?string {
     // ein zweiter Versuch nur bei Netzwerkfehlern (code 0, z.B. TLS-Handshake-Timeout), nicht bei HTTP-Fehlern
     for($try=0;$try<2;$try++){
@@ -313,7 +236,7 @@ function rrw_assistant_research_subject(string $q): string {
     $sub=trim(preg_replace('/\s+(eigentlich|genau|denn|nochmal|bitte|so|überhaupt|ueberhaupt)\b.*$/iu','',$sub));
     $sub=trim($sub," \t\n\r?!.,;:\"'„“");
     if($sub===''||mb_strlen($sub)>60||mb_strlen($sub)<2)return '';
-    if(preg_match('/^(anmacha|ricorewi|senderwelt|laut\.?fm|unser|euer|das radio|der sender|radio)\b/iu',$sub))return '';
+    if(preg_match('/^(unser|euer|diese|dieser|diese seite|die website)\b/iu',$sub))return '';
     return $sub;
 }
 function rrw_assistant_research_wiki(string $subject,string $dataDir): ?string {
@@ -333,15 +256,6 @@ function rrw_assistant_research_wiki(string $subject,string $dataDir): ?string {
     });
     return is_string($dd)&&$dd!==''?'KURZINFO zu "'.$subject.'" (Treffer können ungenau sein, nur passende nutzen): '.$dd:null;
 }
-function rrw_assistant_research_podcast(string $term,string $dataDir): ?string {
-    $res=rrw_assistant_cached_text($dataDir,'pod_'.sha1(mb_strtolower($term)),21600,function() use($term){
-        $b=rrw_assistant_fetch('https://itunes.apple.com/search?term='.rawurlencode($term).'&media=podcast&country=DE&limit=4',5);
-        $d=$b?json_decode($b,true):null;$out=[];
-        foreach((array)($d['results']??[]) as $r){$n=trim((string)($r['collectionName']??''));if($n==='')continue;$out[]=$n.' – von '.trim((string)($r['artistName']??'?')).(!empty($r['primaryGenreName'])?' ('.$r['primaryGenreName'].')':'').(!empty($r['trackCount'])?', '.(int)$r['trackCount'].' Folgen':'').(!empty($r['collectionViewUrl'])?' – '.$r['collectionViewUrl']:'');}
-        return $out;
-    });
-    return is_array($res)&&$res?'PODCAST-SUCHE "'.$term.'" (Apple Podcasts, öffentlich; auf Spotify/YouTube meist ebenfalls verfügbar): '.implode(' ; ',$res):null;
-}
 // Entscheidet anhand der Frage, welche Quellen sinnvoll sind; liefert Kontextzeilen. Alles optional und fehlertolerant.
 function rrw_assistant_research(string $q,string $dataDir,bool $allowLookup=true): array {
     $lines=[];$kinds=[];$lower=mb_strtolower($q);
@@ -352,12 +266,9 @@ function rrw_assistant_research(string $q,string $dataDir,bool $allowLookup=true
         if(preg_match('/schlagzeile|nachrichten|tagesschau|was (?:ist|war) (?:heute |gestern )?(?:in der welt |so )?passiert|weltgeschehen|aktuelle?n? (?:meldung|nachricht|lage|ereignis)|breaking|neuigkeiten aus (?:der welt|deutschland|politik)/iu',$lower)&&!preg_match('/magazin|anmacha|ricorewi|senderwelt/iu',$lower)){
             $h=rrw_assistant_research_headlines($q,$dataDir);if($h){$lines[]=$h;$kinds[]='headlines';}
         }
-        if($allowLookup&&(!$kinds||preg_match('/podcast/iu',$lower))){
+        if($allowLookup&&!$kinds){
             $sub=rrw_assistant_research_subject($q);
             if($sub!==''&&!preg_match('/\b(witz|rätsel|raetsel|gedicht|geschichte)\b/iu',$lower)){
-                if(preg_match('/podcast/iu',$lower)){
-                    $pd=rrw_assistant_research_podcast(trim(preg_replace('/\bpodcast(?:s|er|erin)?\b/iu','',$sub))?:$sub,$dataDir);if($pd){$lines[]=$pd;$kinds[]='podcast';}
-                }
                 $wk=rrw_assistant_research_wiki($sub,$dataDir);if($wk){$lines[]=$wk;$kinds[]='wiki';}
             }
         }
@@ -365,173 +276,12 @@ function rrw_assistant_research(string $q,string $dataDir,bool $allowLookup=true
     return ['lines'=>$lines,'kinds'=>array_values(array_unique($kinds))];
 }
 
-// ---------------------------------------------------------------- Absicht erkennen
-function rrw_assistant_intents(string $q,array $stations,bool $dir=false): array {
-    $t=mb_strtolower($q);$i=[];
-    $has=fn(string $re)=>(bool)preg_match('/'.$re.'/u',$t);
-    if($has('sprach(nachricht|memo)|voice ?(mail|memo|message)|aufnehmen|aufnahme|einsprechen'))$i[]='voicemail';
-    elseif($has('nachricht|schreib|gruß|gruss|grüße|feedback|kontakt|melden|studiomail|mail an|wünsch|wunsch|musikwunsch|anfrage'))$i[]='studiomail';
-    if($has('läuft|laeuft|gerade|aktuell|jetzt|song|titel|lied|künstler|kuenstler|artist|interpret|spielt|zuletzt|playlist'))$i[]='nowplaying';
-    if($has('sendeplan|programm|sendung|show|wann|heute|morgen|nächste|naechste|uhr|moderat|wochenende|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|wochentag|läuft am|laeuft am'))$i[]='schedule';
-    if($has('sender|station|netzwerk|welche|alle|liste|genre|empfiehl|empfehl|favorit'))$i[]='stations';
-    if($dir&&$has('sender|radio|station|webradio|verzeichnis|genre|stilrichtung|spiel|hör|such|find|empfiehl|empfehl|zeig|musikrichtung|aus (deutschland|österreich|oesterreich|der schweiz|frankreich|italien|spanien|england|usa|amerika|polen|türkei|tuerkei|brasilien|japan|niederlande)'))$i[]='directory';
-    if($has('\balexa\b|\becho\b|skill|sprachassistent|smart ?speaker|sprachsteuerung'))$i[]='alexa';
-    if($has('\bapps?\b|android|windows|iphone|ipad|\bios\b|\bapk\b|f-?droid|play ?store|app ?store|herunterlad|runterlad|downloaden|installier|smartphone|handy'))$i[]='apps';
-    if($has('podcast|folge|episode'))$i[]='podcast';
-    if($has('news|neuigkeit|event|veranstaltung|konzert|termin|party|festival|csd|release|neu(e|es) (lied|song|album)'))$i[]='news';
-    if($has('anmacha|ricorewi|senderwelt|wer seid|wer bist|über euch|ueber euch|was ist (?:anmacha|ricorewi|senderwelt|laut\.?fm)|laut\.fm|team|impressum|datenschutz|\bapp\b'))$i[]='about';
-    if($has('eigene[nrs]? (laut\.?fm[- ]?)?(sender|station|radio|webradio)|(erstell|anleg|gründ|aufmach|starte|mach).{0,40}(laut\.?fm|sender|station|webradio)|laut\.?fm.{0,30}(erstell|anleg|anmeld|registr)')){
-        $i[]='howto_station';$i=array_values(array_diff($i,['stations','nowplaying']));
-    }
-    if($dir&&in_array('directory',$i,true)&&!$has('unser|euer|eure|netzwerk|favorit'))$i=array_values(array_diff($i,['stations']));
-    // genannter Sender
-    $mention=null;foreach($stations as $sid){$label=mb_strtolower(rrw_assistant_station_label($sid));if(str_contains($t,$sid)||str_contains($t,$label)||str_contains($t,str_replace(' ','',$label))){$mention=$sid;break;}}
-    if($mention===null&&preg_match('/\banmacha\b/u',$t)&&!$has('podcast'))$mention=null;
-    return ['intents'=>$i?:['general'],'station'=>$mention];
-}
 
 
-// ---------------------------------------------------------------- Radioverzeichnis (nur Marken mit Verzeichnis, z. B. SenderWelt)
-function rrw_assistant_directory_terms(string $q): array {
-    $t=mb_strtolower($q);
-    $countries=['deutschland'=>'DE','österreich'=>'AT','oesterreich'=>'AT','schweiz'=>'CH','frankreich'=>'FR','italien'=>'IT','spanien'=>'ES','england'=>'GB','großbritannien'=>'GB','grossbritannien'=>'GB','usa'=>'US','amerika'=>'US','niederlande'=>'NL','holland'=>'NL','polen'=>'PL','türkei'=>'TR','tuerkei'=>'TR','brasilien'=>'BR','japan'=>'JP','russland'=>'RU','schweden'=>'SE','dänemark'=>'DK','norwegen'=>'NO','portugal'=>'PT','griechenland'=>'GR','mexiko'=>'MX'];
-    $cc='';foreach($countries as $name=>$code)if(preg_match('/(^|[^\p{L}])'.preg_quote($name,'/').'([^\p{L}]|$)/u',$t)){$cc=$code;$t=preg_replace('/'.preg_quote($name,'/').'/u',' ',$t);break;}
-    $stop=array_flip(['ich','mir','mich','bitte','such','suche','suchen','sucht','finde','finden','zeig','zeige','zeigen','empfiehl','empfehle','empfehlen','spiel','spiele','spielen','hör','höre','hören','einen','eine','einem','einer','ein','den','die','das','dem','der','und','oder','mit','von','aus','im','in','für','fuer','gute','guten','gutes','gut','beste','besten','bester','sender','sendern','radio','radios','radiosender','station','stationen','webradio','webradios','musik','nach','wie','was','welche','welchen','gibt','es','mal','doch','kannst','kann','du','möchte','moechte','will','würde','gerne','programm','irgendwas','etwas','neue','neues','neuen','verzeichnis','dem','auf','zum','zur','um','ist','sind','habt','hast','mehr','noch','paar','ganz','richtig','genre','stil','stilrichtung','musikrichtung','läuft','laeuft']);
-    $words=[];foreach(preg_split('/[^\p{L}\p{N}]+/u',$t,-1,PREG_SPLIT_NO_EMPTY) as $w){if(mb_strlen($w)>=3&&!isset($stop[$w])&&!in_array($w,$words,true))$words[]=$w;}
-    return ['words'=>array_slice($words,0,2),'cc'=>$cc];
-}
-function rrw_assistant_directory(array $site,string $q,string $dataDir): array {
-    if(!function_exists('rrw_directory_search'))return ['items'=>[],'query'=>''];
-    $own=array_map('strtolower',array_map('strval',rrw_own_stations($site)));
-    $t=rrw_assistant_directory_terms($q);$words=$t['words'];$cc=$t['cc'];$items=[];$label=trim(implode(' ',$words).($cc!==''?' ('.$cc.')':''));
-    try{
-        if(!$words&&$cc===''){$items=rrw_dir_random('mix',6,$own,$dataDir);$label='Zufallsauswahl';}
-        else{
-            if($words){
-                $name=implode(' ',$words);
-                $l=rrw_dir_laut_search($name,0,3,$own,$dataDir);$items=array_merge($items,$l['items']);
-                $items=array_merge($items,rrw_dir_world_search($name,0,3,$dataDir));
-            }
-            $byTag=rrw_dir_world_by_tag($words[0]??'',$cc,4,$dataDir);
-            $items=$cc!==''?array_merge($byTag,$items):array_merge($items,$byTag); // mit Länderwunsch zuerst die Treffer aus dem Land
-        }
-    }catch(Throwable $e){error_log('assistant_directory: '.$e->getMessage());}
-    $seen=[];$out=[];$adm=rrw_dir_admin_load($dataDir);
-    foreach(rrw_dir_apply_admin($items,$adm) as $it){
-        if(!empty($it['own']))continue;$k=($it['source']??'').':'.strtolower((string)($it['id']??''));if(isset($seen[$k]))continue;$seen[$k]=1;$out[]=$it;if(count($out)>=8)break;
-    }
-    return ['items'=>$out,'query'=>$label];
-}
-
-// ---------------------------------------------------------------- Kontext + Prompt
-/** Apps und Alexa-Skill aus den Einstellungen des CMS: Text für die KI-Antwort und für die Antwort ohne KI (Aufrufe, Varianten, Beispiele). @return array{apps:string,alexa:string} */
-function rrw_assistant_apps_alexa(array $site,string $origin): array {
-    $out=['apps'=>'','alexa'=>''];$neutral=rrw_assistant_neutral();
-    $brands=rrw_assistant_brands($site);$name=trim((string)($brands[0]['name']??''))?:(trim((string)($site['portal']['site_name']??''))?:'unser Radio');
-    $apps=is_array($site['apps']??null)?$site['apps']:[];$pl=[];
-    if(($apps['android_enabled']??true)!==false)$pl[]='Android (APK zum Herunterladen; alternativ über das F-Droid-Repository)';
-    if(($apps['windows_enabled']??true)!==false)$pl[]='Windows (Installer zum Herunterladen)';
-    $pl[]='iPhone/iPad als Web-App (keine Datei: im Safari „Teilen“ → „Zum Home-Bildschirm“; Erinnerungen ab iOS 16.4)';
-    $out['apps']='APPS von '.$name.': '.implode(' · ',$pl).'. Alle Downloads und Hinweise stehen im Portal auf der Seite „Apps“ ('.rtrim($origin,'/').'/#apps). Die Apps bringen '.($neutral?'die Sender, den Player und Favoriten':'Sender, Player, Favoriten, Sendeplan, Podcast, Community sowie News & Social').' mit; Updates kommen über die App selbst.';
-    $al=is_array($site['alexa']??null)?$site['alexa']:[];
-    if(($al['enabled']??true)!==false&&function_exists('rrw_alexa_model')){
-        try{
-            $GLOBALS['RRW_SITE']=$site;$w=[];$m=rrw_alexa_model($site,$w)['interactionModel']['languageModel']??[];$inv=trim((string)($m['invocationName']??''));
-            if($inv!==''){
-                $types=[];foreach((array)($m['types']??[]) as $t)$types[$t['name']??'']=(array)($t['values']??[]);
-                $names=function(array $vals,int $n,int $syn)use(&$names):array{$o=[];foreach(array_slice($vals,0,$n) as $v){$o[]=(string)($v['name']['value']??'');foreach(array_slice((array)($v['name']['synonyms']??[]),0,$syn) as $x)$o[]=(string)$x;}return array_values(array_filter(array_unique($o)));};
-                $sender=$names($types['SENDER_TYP']??[],6,2);$marken=$names($types['MARKE_TYP']??[],6,5);
-                $s0=$sender[0]??'';$m0=$marken[0]??$name;
-                $samples=[];foreach((array)($m['intents']??[]) as $it)$samples[(string)($it['name']??'')]=(array)($it['samples']??[]);
-                $fill=fn(string $t)=>str_replace(['{sender}','{marke}','{tag}'],[$s0,$m0,'heute'],$t);
-                $pick=function(string $intent,int $n)use($samples,$fill):array{$l=array_values(array_unique(array_map($fill,$samples[$intent]??[])));$c=count($l);if($c<=$n)return $l;$o=[];for($k=0;$k<$n;$k++)$o[]=$l[(int)floor($k*$c/$n)];return $o;};   // gleichmäßig über die Liste verteilt (Varianten statt fünfmal „spiele“)
-                $ex=array_merge($pick('PlayStationIntent',5),$pick('PlayBrandIntent',3));
-                $q=array_merge($pick('NowPlayingIntent',3),$pick('CurrentShowIntent',2),$pick('NextShowIntent',2),$pick('ScheduleIntent',2),$pick('ListStationsIntent',2));
-                $lines=['ALEXA-SKILL von '.$name.': Aufrufname „'.$inv.'“. Aufrufen: „Alexa, öffne '.$inv.'“ · „Alexa, starte '.$inv.'“ · „Alexa, starte den Skill '.$inv.'“ · „Alexa, '.$inv.' öffnen“. Direkt mit Wunsch: „Alexa, öffne '.$inv.' und '.($ex[0]??'spiele '.$s0).'“ · „Alexa, frage '.$inv.' '.($q[0]??'was läuft gerade').'“ · „Alexa, sage '.$inv.' '.($ex[0]??'spiele '.$s0).'“.'];
-                if($ex)$lines[]='Radio hören (nach dem Öffnen oder direkt): '.implode(' · ',array_map(fn($x)=>'„'.$x.'“',$ex)).'.';
-                if($q)$lines[]='Fragen im Skill: '.implode(' · ',array_map(fn($x)=>'„'.$x.'“',$q)).'.';
-                if($sender)$lines[]='Sender, die Alexa versteht (mit Schreib- und Sprechvarianten): '.implode(', ',$sender).'.';
-                if($marken)$lines[]='Marken-/Namensvarianten, die Alexa versteht: '.implode(', ',$marken).'.';
-                $lines[]='Steuerung beim Hören: „Alexa, Pause“, „weiter“, „stopp“, „nächster“. Aktivieren: in der Alexa-App unter „Skills & Spiele“ nach „'.$inv.'“ suchen und aktivieren – oder einfach „Alexa, öffne '.$inv.'“ sagen.';
-                $out['alexa']=implode("\n",$lines);
-            }
-        }catch(\Throwable $e){}
-    }
-    return $out;
-}
-function rrw_assistant_build_context(array $site,array $brand,array $cfg,array $intents,string $station,array $favorites,string $dataDir,string $newsFile,string $origin,array $research=[],string $q=''): array {
-    $ctx=[];$cards=[];$f=$cfg['features'];$stations=rrw_assistant_stations($site);
-    $networkAsked=(bool)array_intersect($intents,['nowplaying','schedule','stations','podcast','news','about','studiomail','voicemail','howto_station']);
-    if($station==='')$networkAsked=false;   // ohne eigene Sender gibt es keine Sender-Live-Daten
-    $info=$networkAsked?rrw_assistant_station_info($station,$dataDir):null;$label=rrw_assistant_station_label($station,$info);
-    if($networkAsked)$ctx[]='Aktueller Sender im Kontext: '.$label.' (laut.fm-ID '.$station.')'.($info?' – '.mb_substr(trim((string)($info['description']??'')),0,240).' Genres: '.implode(', ',(array)($info['genres']??[])):'');
-    if(!empty($research['lines']))$ctx[]='RECHERCHE (gerade live abgerufen, aktuell und verlässlich – Quelle nennen, nur Passendes nutzen): '.implode("\n",$research['lines']);
-    if($station!==''&&in_array('nowplaying',$intents,true)&&$f['nowplaying']){
-        $np=rrw_assistant_now_playing($station,$dataDir);
-        $ctx[]='JETZT LÄUFT auf '.$label.': '.($np['current']?:'(keine Titelinfo verfügbar)').($np['album']?' | Album: '.$np['album']:'').($np['last']?' | Zuletzt gespielt: '.implode('; ',$np['last']):'');
-        if($np['current'])$cards[]=['type'=>'nowplaying','station'=>$station,'label'=>$label,'text'=>$np['current']];
-    }
-    if($station!==''&&in_array('schedule',$intents,true)&&$f['schedule']){
-        $s=rrw_assistant_schedule($station,$dataDir);
-        if($s['ok']){
-            $fmtSlot=fn($x)=>$x['name'].' ('.$x['day'].' '.sprintf('%02d:00',$x['start']).'–'.sprintf('%02d:00',$x['end']===0?24:$x['end']).')'.($x['description']?': '.$x['description']:'');
-            $ctx[]='SENDEPLAN '.$label.' (jetzt ist '.$s['weekday'].', '.$s['date'].' Uhr, Europe/Berlin): Läuft gerade: '.($s['now']?$fmtSlot($s['now']):'keine Sendung eingetragen').' | Als Nächstes: '.($s['next']?implode(' ; ',array_map($fmtSlot,$s['next'])):'nichts weiter eingetragen').' | Heute gesamt: '.($s['today']?implode(' ; ',array_map($fmtSlot,$s['today'])):'keine Sendungen eingetragen');
-            $ctx[]='WOCHENPLAN '.$label.' (vollständig, Quelle laut.fm; Uhrzeiten in Stunden): '.$s['week'].' | Moderatoren, Gäste oder Inhalte einzelner Sendungen sind NICHT bekannt – nur diese Sendungsnamen und Zeiten.';
-            $cards[]=['type'=>'schedule','station'=>$station,'label'=>$label,'now'=>$s['now'],'next'=>$s['next']];
-        } else $ctx[]='SENDEPLAN '.$label.': aktuell nicht abrufbar.';
-    }
-    if($stations&&(in_array('stations',$intents,true)||in_array('about',$intents,true))){
-        $list=array_map(fn($id)=>rrw_assistant_station_label($id).' ['.$id.']',$stations);
-        $ctx[]='UNSERE SENDER ('.(rrw_assistant_neutral()?'auf laut.fm':'RicoReWi × AnMaCha Netzwerk auf laut.fm').'): '.implode(', ',$list);
-        if($favorites&&$f['favorites'])$ctx[]='Lieblingssender dieses Hörers: '.implode(', ',array_map(fn($id)=>rrw_assistant_station_label($id),$favorites));
-    }
-    if(in_array('podcast',$intents,true)&&$f['podcast']){
-        $p=rrw_assistant_podcast($origin,$dataDir);
-        if($p)$ctx[]='PODCAST: '.$p['title'].' – '.$p['description'].' Neueste Folgen: '.implode(' ; ',array_map(fn($e)=>$e['title'].' ('.substr($e['date'],0,16).')'.($e['summary']?': '.$e['summary']:''),$p['episodes'])).' Im Portal unter #podcast hörbar.';
-        else $ctx[]='PODCAST: AnMaCha – Der Podcast (Folgen im Portal unter #podcast).';
-    }
-    if(in_array('news',$intents,true)&&$f['news']){
-        $n=rrw_assistant_news($newsFile);
-        if($n)$ctx[]='AKTUELLE NEWS/EVENTS aus dem Magazin (die einzigen bekannten Termine/Veranstaltungen): '.implode(' ; ',array_map(fn($a)=>$a['title'].' ('.$a['date'].')'.($a['excerpt']?': '.$a['excerpt']:''),$n)).' Alle News unter news.html.';
-        else $ctx[]='AKTUELLE NEWS/EVENTS: Derzeit sind keine News, Events oder Termine veröffentlicht – es gibt also keine bekannten Veranstaltungen.';
-    }
-    if(in_array('about',$intents,true)){
-        $b=rrw_assistant_brands($site);
-        $ctx[]='MARKEN/PORTALE: '.implode(' ; ',array_map(fn($x)=>$x['name'].($x['claim']?' – '.$x['claim']:'').($x['domain']?' ('.$x['domain'].')':''),$b)).(rrw_assistant_neutral()?'.':'. AnMaCha ist das Radio- und Podcast-Netzwerk (anmacha.de), RicoReWi Music & Media das Künstlerradio mit eigenen Acts; alle Sender laufen bei laut.fm.');
-    }
-    if(array_intersect($intents,['apps','alexa'])){
-        $aa=rrw_assistant_apps_alexa($site,$origin);
-        if(in_array('apps',$intents,true)&&$aa['apps']!=='')$ctx[]=$aa['apps'];
-        if(in_array('alexa',$intents,true)&&$aa['alexa']!=='')$ctx[]=$aa['alexa'];
-        elseif(in_array('apps',$intents,true)&&$aa['alexa']!=='')$ctx[]='Außerdem gibt es einen Alexa-Skill: '.strtok($aa['alexa'],"\n");
-    }
-    if(in_array('directory',$intents,true)&&!empty($brand['directory'])){
-        $d=rrw_assistant_directory($site,$q,$dataDir);
-        if($d['items']){
-            $ctx[]='VERZEICHNIS-TREFFER ('.$d['query'].'; live aus dem Radioverzeichnis, ohne ausgeschlossene Sender – nur diese Sender sind sicher bekannt): '.implode(' ; ',array_map(fn($x)=>$x['name'].' ['.($x['source']==='laut'?'laut.fm':'Weltradio').($x['country']?', '.$x['country']:'').']'.($x['genres']?' Genres: '.implode('/',array_slice($x['genres'],0,3)):'').(!empty($x['description'])?' – '.mb_substr($x['description'],0,120):''),$d['items']));
-            $cards[]=['type'=>'stations','query'=>$d['query'],'items'=>array_slice($d['items'],0,6)];
-        } else $ctx[]='VERZEICHNIS-TREFFER: Zu dieser Anfrage wurde im Radioverzeichnis nichts gefunden – schlage einen anderen Suchbegriff vor, die Suche oben („Lieblingssender suchen“) oder den Tab „World Radio“.';
-    }
-    if($cfg['knowledge']!=='')$ctx[]='WISSEN (vom Team gepflegt): '.$cfg['knowledge'];
-    return ['context'=>implode("\n",$ctx),'cards'=>$cards,'label'=>$label,'research'=>$research['lines']??[]];
-}
-function rrw_assistant_system_prompt(array $cfg,array $brand,string $context): string {
-    $name=$cfg['name'];$neutral=rrw_assistant_neutral();$site=(string)($brand['title']??($neutral?'dieser Website':'RicoReWi Radioportal'));
-    $now=new DateTime('now',new DateTimeZone('Europe/Berlin'));
-    $days=['Monday'=>'Montag','Tuesday'=>'Dienstag','Wednesday'=>'Mittwoch','Thursday'=>'Donnerstag','Friday'=>'Freitag','Saturday'=>'Samstag','Sunday'=>'Sonntag'];
-    $p="Du bist \"$name\", der KI-Assistent von $site".($neutral?'':' (RicoReWi × AnMaCha Radionetzwerk, Zweitmarke SenderWelt)').". Jetzt ist ".($days[$now->format('l')]??'').', der '.$now->format('d.m.Y, H:i')." Uhr (Europe/Berlin). Antworte auf Deutsch, locker, freundlich und auf den Punkt (meist höchstens 6 Sätze; bei Witzen, Geschichten, Gedichten oder Erklärungen darfst du länger werden).\n";
-    $p.="DU BIST EIN VOLLWERTIGER ALLGEMEINER ASSISTENT: Beantworte jede harmlose Frage mit deinem Weltwissen – Personen, Musiker, Rapper, Schauspieler, Podcaster, Podcasts, Filme, Serien, Spotify, YouTube, TikTok, Technik, Wissenschaft, Geschichte, Sport, Alltag, Kochen, Reisen, Witze, Rätsel, Smalltalk. Sage bei Weltwissen NIEMALS \"steht nicht im Kontext\" oder \"dazu habe ich keine Informationen\", nur weil etwas nicht in unserem Netzwerk vorkommt. Ist der Abschnitt RECHERCHE vorhanden, nutze ihn als aktuelle Quelle (Wetter, Schlagzeilen, Wikipedia, Podcast-Suche) und nenne die Quelle kurz. Bist du bei einer Person oder Sache wirklich unsicher, sag das offen und nenne, was du sicher weißt – verweigere aber nie eine harmlose Frage. Bei Medizin, Recht und Geld gib eine kurze Orientierung und verweise auf Fachleute; bei politischen Themen bleib sachlich und neutral.\n";
-    $p.="NUR für Fragen über UNSER Netzwerk (unsere Sender, unsere Apps und den Alexa-Skill, den Sendeplan, Shows, deren Moderatoren und Gäste, laufende Titel, ".($neutral?'Podcast-Folgen':'Podcast-Folgen von AnMaCha').", News und Events des Magazins) ist der Abschnitt KONTEXT die einzige Quelle: erfinde dort nichts, nenne nur Sendungen, Personen, Uhrzeiten und Termine, die dort wörtlich stehen, und sag klar, wenn dazu nichts vorliegt.\n";
-    $p.="Regeln: Nenne niemals Hörerzahlen, Reichweiten oder Statistiken. Erkläre nicht, wie man einen eigenen laut.fm-Sender erstellt – verweise dafür auf laut.fm selbst. Möchte jemand dem Studio etwas mitteilen, einen Musikwunsch loswerden oder eine Sprachnachricht senden, erkläre, dass er unten auf „Nachricht ans Studio“ bzw. „Sprachnachricht“ tippen kann (landet bei uns in Studiomail). Uhrzeiten gelten für Europe/Berlin. Keine Markdown-Tabellen; einfache Zeilenumbrüche und höchstens **fett** sind erlaubt.\n";
-    if(!empty($brand['directory']))$p.="SENDERWELT-RADIOVERZEICHNIS: SenderWelt ist zusätzlich ein Radioverzeichnis mit Sendern von laut.fm (über 15.000) und radio-browser.info (Weltradio). Besucher können oben „Lieblingssender suchen“, im Tab „World Radio“ stöbern, „Überrasch mich“ nutzen, Fremd-Sender als Favorit speichern oder mit der Flagge melden. Steht im KONTEXT ein Abschnitt VERZEICHNIS-TREFFER, empfiehl NUR Sender daraus (Namen genau so, keine erfundenen Sender, keine Hörerzahlen); unter deiner Antwort erscheinen dazu Buttons zum Hören, weise kurz darauf hin. Fremd-Sender gehören den jeweiligen Betreibern: zu deren Programm, Moderatoren oder Inhalten sagst du, dass du das nicht kennst.\n";
-    if($cfg['system_prompt']!=='')$p.=$cfg['system_prompt']."\n";
-    return $p.($context!==''?"\nKONTEXT:\n".$context:'');
-}
 
 
-// ---------------------------------------------------------------- Website-Modus (eigenständiges CMS ohne Radio-Bezug)
-/** Website-Assistent: kein Radio-Kontext, Antworten aus den Inhalten der Website (Beiträge) und dem hinterlegten Wissen. */
-function rrw_assistant_website_mode(array $cfg): bool { return rrw_assistant_neutral()&&($cfg['mode']??'website')==='website'; }
+
+// ---------------------------------------------------------------- Kontext und Prompt des Website-Assistenten
 /** Suchwörter einer Frage: kleingeschrieben, ohne Füllwörter, mindestens 3 Zeichen. */
 function rrw_assistant_search_terms(string $q): array {
     $stop=['der','die','das','den','dem','des','ein','eine','einen','einem','einer','und','oder','aber','ist','sind','war','wie','was','wer','wo','wann','warum','wieso','welche','welcher','welches','habt','haben','hast','kann','könnt','koennt','gibt','mit','für','fuer','von','vom','zum','zur','auf','bei','nach','über','ueber','mir','mich','dir','euch','wir','ihr','ich','du','sie','es','mal','bitte','gibt','noch','auch','nicht','dass','the','and','you','your','what','how','who'];
@@ -608,7 +358,7 @@ function rrw_assistant_breaker_mark(string $dataDir,string $id,bool $ok,string $
 }
 function rrw_assistant_call_provider(array $p,array $messages,int $maxTokens,int $timeout=20): array {
     $headers=[];if($p['api_key']!=='')$headers[]='Authorization: Bearer '.$p['api_key'];
-    if($p['id']==='openrouter'){$headers[]='HTTP-Referer: '.(rrw_assistant_neutral()?(rrw_default_canonical_base()?:'https://localhost'):'https://www.ricorewi-radio.de');$headers[]='X-Title: '.(rrw_assistant_neutral()?'Radio-Assistent':'RicoReWi Radio Assistent');}
+    if($p['id']==='openrouter'){$headers[]='HTTP-Referer: '.(rrw_default_canonical_base()?:'https://localhost');$headers[]='X-Title: Website-Assistent';}
     // Reasoning-Modelle (z.B. gpt-oss bei Pollinations) verbrauchen max_tokens zuerst fuers Denken:
     // genug Spielraum geben und das Denken kurz halten, sonst kommt eine leere Antwort zurueck.
     $body=['model'=>$p['model'],'messages'=>$messages,'max_tokens'=>max($maxTokens,900),'temperature'=>(float)($p['temperature']??0.2)];
@@ -730,25 +480,6 @@ function rrw_assistant_complete(array $cfg,array $messages,string $dataDir): arr
     return ['ok'=>false];
 }
 
-// Fallback ohne KI: deterministische Antwort aus den Live-Daten
-function rrw_assistant_offline_reply(array $intents,array $cards,string $label,array $cfg,array $site,string $origin,string $dataDir,string $newsFile,array $research=[]): string {
-    $parts=[];
-    foreach($research as $line)$parts[]=$line;
-    foreach($cards as $c){
-        if($c['type']==='nowplaying')$parts[]='Auf '.$c['label'].' läuft gerade: **'.$c['text'].'**';
-        if($c['type']==='schedule'){$fmt=fn($x)=>$x['name'].' ('.sprintf('%02d:00',$x['start']).'–'.sprintf('%02d:00',$x['end']===0?24:$x['end']).' Uhr)';$parts[]='Sendeplan '.$c['label'].': '.($c['now']?'Jetzt: '.$fmt($c['now']).'. ':'').($c['next']?'Als Nächstes: '.implode(', ',array_map($fmt,$c['next'])).'.':'');}
-    }
-    foreach($cards as $c)if($c['type']==='stations')$parts[]='Das habe ich im Radioverzeichnis gefunden ('.$c['query'].'): '.implode(', ',array_map(fn($x)=>$x['name'],array_slice($c['items'],0,5))).'. Unten kannst du die Sender direkt anhören.';
-    if(array_intersect($intents,['apps','alexa'])){$aa=rrw_assistant_apps_alexa($site,$origin);if(in_array('apps',$intents,true)&&$aa['apps']!=='')$parts[]=$aa['apps'];if(in_array('alexa',$intents,true)&&$aa['alexa']!=='')$parts[]=$aa['alexa'];}
-    if(in_array('howto_station',$intents,true))$parts[]='Wie man einen eigenen laut.fm-Sender anlegt, erklärt laut.fm selbst am besten (laut.fm). '.(rrw_assistant_neutral()?'Ich helfe dir gern zu unseren Sendern: Sendeplan, aktueller Titel oder die neuesten News.':'Ich helfe dir gern zu unseren Sendern im RicoReWi × AnMaCha Netzwerk: Sendeplan, aktueller Titel, Podcast oder eine Nachricht ans Studio.');
-    if(in_array('stations',$intents,true))$parts[]='Unsere Sender: '.implode(', ',array_map(fn($id)=>rrw_assistant_station_label($id),rrw_assistant_stations($site))).'. Tipp: Unter „Sender“ im Portal kannst du sie direkt starten.';
-    if(!rrw_assistant_neutral()&&in_array('podcast',$intents,true)){$p=rrw_assistant_podcast($origin,$dataDir);$parts[]=$p?$p['title'].': Neueste Folge „'.($p['episodes'][0]['title']??'').'“. Alle Folgen findest du im Portal unter Podcast.':'Den AnMaCha-Podcast findest du im Portal unter Podcast.';}
-    if(in_array('news',$intents,true)){$n=rrw_assistant_news($newsFile);if($n)$parts[]='Aktuell im Magazin: '.implode(' · ',array_map(fn($a)=>$a['title'],array_slice($n,0,4))).'.';}
-    if(!rrw_assistant_neutral()&&in_array('studiomail',$intents,true))$parts[]='Gern! Tippe unten auf „Nachricht ans Studio“, wähle den Sender (oder das ganze Netzwerk) und schreib los – die Nachricht landet direkt bei uns in Studiomail.';
-    if(!rrw_assistant_neutral()&&in_array('voicemail',$intents,true))$parts[]='Klar! Tippe unten auf „Sprachnachricht“, wähle den Sender und nimm deine Nachricht auf (bis 60 Sekunden).';
-    if(!$parts)$parts[]=rrw_assistant_neutral()?'Ich kann dir sagen, was gerade läuft, den Sendeplan zeigen, unsere Sender und die neuesten News vorstellen oder allgemeine Fragen beantworten. Was möchtest du wissen?':'Ich kann dir sagen, was gerade läuft, den Sendeplan zeigen, unsere Sender und den Podcast vorstellen oder deine Nachricht ans Studio weiterleiten. Was möchtest du wissen?';
-    return implode("\n\n",$parts);
-}
 
 // ---------------------------------------------------------------- Chat-Endpunkt
 function rrw_assistant_chat(array $site,array $brand,array $body,string $dataDir,string $newsFile): array {
@@ -758,31 +489,13 @@ function rrw_assistant_chat(array $site,array $brand,array $body,string $dataDir
     $msgs=[];foreach(array_slice((array)($body['messages']??[]),-8) as $m){if(!is_array($m))continue;$role=($m['role']??'')==='assistant'?'assistant':'user';$c=mb_substr(trim((string)($m['content']??'')),0,1500);if($c!=='')$msgs[]=['role'=>$role,'content'=>$c];}
     $q='';for($i=count($msgs)-1;$i>=0;$i--)if($msgs[$i]['role']==='user'){$q=$msgs[$i]['content'];break;}
     if($q==='')return ['status'=>'error','message'=>'Keine Frage übermittelt.','code'=>400];
-    if(rrw_assistant_website_mode($cfg)){   // Website-Assistent: Inhalte der Website statt Radio-Kontext
-        $origin=rrw_site_origin($site);
-        $research=!empty($cfg['features']['research'])?rrw_assistant_research($q,$dataDir,true):['lines'=>[],'kinds'=>[]];
-        $built=rrw_assistant_website_context($cfg,$site,$q,$newsFile,$origin,$research);
-        $llm=rrw_assistant_complete($cfg,array_merge([['role'=>'system','content'=>rrw_assistant_website_prompt($cfg,$site,$built['context'])]],$msgs),$dataDir);
-        $base=['status'=>'ok','actions'=>[],'cards'=>$built['cards'],'station'=>'','station_label'=>''];
-        if($llm['ok'])return $base+['reply'=>$llm['text'],'provider'=>$llm['provider'],'model'=>$llm['model'],'ms'=>(int)($llm['ms']??0),'research'=>(array)($research['kinds']??[])];
-        return $base+['reply'=>rrw_assistant_website_offline($built),'provider'=>'offline','model'=>''];
-    }
-    $stations=rrw_assistant_stations($site);
-    $det=rrw_assistant_intents($q,$stations,!empty($brand['directory']));$intents=$det['intents'];
-    $station=strtolower(trim((string)($body['station']??'')));if(!in_array($station,$stations,true))$station=$stations[0]??'';
-    if($det['station'])$station=$det['station'];
-    $fav=array_values(array_filter(array_map(fn($x)=>strtolower(trim((string)$x)),(array)($body['favorites']??[])),fn($x)=>in_array($x,$stations,true)));
-    $origin=(string)($brand['origin']??'https://www.ricorewi-radio.de');if(rrw_assistant_neutral())$origin=rrw_site_origin($site);elseif(!preg_match('~^https://(www\.)?ricorewi-radio\.de$~',$origin))$origin='https://www.ricorewi-radio.de';
-    // Wetter/Schlagzeilen/Personen/Podcasts: Live-Recherche; Netzwerk-Fragen (Sendeplan, laufender Titel ...) behalten ihren Kontext
-    $research=rrw_assistant_research($q,$dataDir,!array_diff($intents,['general','about','podcast']));
-    if(array_intersect($research['kinds'],['weather','headlines'])||($research['lines']&&$intents===['general']))$intents=['research'];
-    $built=rrw_assistant_build_context($site,$brand,$cfg,$intents,$station,$fav,$dataDir,$newsFile,$origin,$research,$q);
-    $actions=[];
-    if(in_array('studiomail',$intents,true)&&$cfg['features']['studiomail'])$actions[]=['type'=>'studiomail','station'=>$station];
-    if(in_array('voicemail',$intents,true)&&$cfg['features']['voicemail'])$actions[]=['type'=>'voicemail','station'=>$station];
-    $llm=rrw_assistant_complete($cfg,array_merge([['role'=>'system','content'=>rrw_assistant_system_prompt($cfg,$brand,$built['context'])]],$msgs),$dataDir);
-    if($llm['ok'])return ['status'=>'ok','reply'=>$llm['text'],'provider'=>$llm['provider'],'model'=>$llm['model'],'ms'=>(int)($llm['ms']??0),'research'=>(array)($research['kinds']??[]),'actions'=>$actions,'cards'=>$built['cards'],'station'=>$station,'station_label'=>$built['label']];
-    return ['status'=>'ok','reply'=>rrw_assistant_offline_reply($intents,$built['cards'],$built['label'],$cfg,$site,$origin,$dataDir,$newsFile,(array)$built['research']),'provider'=>'offline','model'=>'','actions'=>$actions,'cards'=>$built['cards'],'station'=>$station,'station_label'=>$built['label']];
+    $origin=rrw_site_origin($site);
+    $research=!empty($cfg['features']['research'])?rrw_assistant_research($q,$dataDir,true):['lines'=>[],'kinds'=>[]];
+    $built=rrw_assistant_website_context($cfg,$site,$q,$newsFile,$origin,$research);
+    $llm=rrw_assistant_complete($cfg,array_merge([['role'=>'system','content'=>rrw_assistant_website_prompt($cfg,$site,$built['context'])]],$msgs),$dataDir);
+    $base=['status'=>'ok','actions'=>[],'cards'=>$built['cards']];
+    if($llm['ok'])return $base+['reply'=>$llm['text'],'provider'=>$llm['provider'],'model'=>$llm['model'],'ms'=>(int)($llm['ms']??0),'research'=>(array)($research['kinds']??[])];
+    return $base+['reply'=>rrw_assistant_website_offline($built),'provider'=>'offline','model'=>''];
 }
 
 // Status fuer das CMS: welche Anbieter aktiv/bereit sind, letzte Fehler, Rate-Limit-Dateien
@@ -818,48 +531,6 @@ function rrw_assistant_test(array $site,string $providerId,string $dataDir,strin
     return ['ok'=>false,'error'=>'Provider nicht gefunden'];
 }
 
-// ---------------------------------------------------------------- Weiterleitung an Studiomail / Voicemail (Control Center)
-function rrw_assistant_studiomail_targets(array $site): array { return array_merge(['netzwerk','podcast'],rrw_assistant_stations($site)); }
-function rrw_assistant_send_studiomail(array $site,array $body,string $dataDir): array {
-    if(function_exists('rrw_standalone')&&rrw_standalone())return ['status'=>'error','message'=>rrw_standalone_notice('Studiomail'),'code'=>503];
-    $cfg=rrw_assistant_clean($site['assistant']??[]);
-    if(!$cfg['enabled']||!$cfg['features']['studiomail'])return ['status'=>'error','message'=>'Nachrichten sind deaktiviert.','code'=>403];
-    if(!rrw_assistant_rate_ok($dataDir,'mail',6))return ['status'=>'error','message'=>'Zu viele Nachrichten – bitte später erneut versuchen.','code'=>429];
-    $name=mb_substr(trim((string)($body['name']??'')),0,80);$email=mb_substr(trim((string)($body['email']??'')),0,120);$station=strtolower(trim((string)($body['station']??'netzwerk')));$msg=mb_substr(trim((string)($body['message']??'')),0,1000);
-    if(trim((string)($body['hp']??''))!=='')return ['status'=>'ok','sent'=>true];
-    if($name==='')return ['status'=>'error','message'=>'Bitte einen Namen angeben.','code'=>400];
-    if(mb_strlen($msg)<3)return ['status'=>'error','message'=>'Bitte eine Nachricht eingeben.','code'=>400];
-    if($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))return ['status'=>'error','message'=>'E-Mail-Adresse ungültig.','code'=>400];
-    if(!in_array($station,rrw_assistant_studiomail_targets($site),true))$station='netzwerk';
-    $r=rrw_assistant_http(RRW_ASSISTANT_CC_BASE.'cron.php?action=studiomail_send',['name'=>$name,'email'=>$email,'station'=>$station,'message'=>$msg,'source'=>'assistant:'.(string)($_SERVER['HTTP_HOST']??'portal')],[],12);
-    $d=json_decode($r['body'],true);
-    if(!$r['ok']||!is_array($d)||($d['status']??'')==='error')return ['status'=>'error','message'=>(string)($d['message']??'Studiomail ist gerade nicht erreichbar.'),'code'=>502];
-    return ['status'=>'ok','sent'=>true,'station'=>$station];
-}
-function rrw_assistant_send_voice(array $site,string $dataDir): array {
-    if(function_exists('rrw_standalone')&&rrw_standalone())return ['status'=>'error','message'=>rrw_standalone_notice('Voicemail'),'code'=>503];
-    $cfg=rrw_assistant_clean($site['assistant']??[]);
-    if(!$cfg['enabled']||!$cfg['features']['voicemail'])return ['status'=>'error','message'=>'Sprachnachrichten sind deaktiviert.','code'=>403];
-    if(!function_exists('curl_init'))return ['status'=>'error','message'=>'Server ohne curl – Sprachnachricht bitte über das Voicemail-Widget senden.','code'=>500];
-    if(!rrw_assistant_rate_ok($dataDir,'voice',4))return ['status'=>'error','message'=>'Zu viele Sprachnachrichten – bitte später erneut versuchen.','code'=>429];
-    $f=$_FILES['audio']??null;
-    if(!is_array($f)||($f['error']??1)!==UPLOAD_ERR_OK||!is_uploaded_file((string)$f['tmp_name']))return ['status'=>'error','message'=>'Keine Aufnahme empfangen.','code'=>400];
-    if((int)$f['size']>8*1024*1024)return ['status'=>'error','message'=>'Aufnahme zu groß (max. 8 MB).','code'=>400];
-    $station=strtolower(trim((string)($_POST['station']??'')));$stations=rrw_assistant_stations($site);if(!in_array($station,$stations,true))$station=$stations[0]??'netzwerk';
-    if(trim((string)($_POST['hp']??''))!=='')return ['status'=>'ok','sent'=>true];
-    $mime=(string)($f['type']??'application/octet-stream');$ext=str_contains($mime,'mp4')?'m4a':(str_contains($mime,'ogg')?'ogg':'webm');
-    $fields=[
-        'audio'=>new CURLFile((string)$f['tmp_name'],$mime,'aufnahme.'.$ext),
-        'name'=>mb_substr(trim((string)($_POST['name']??'')),0,80),'note'=>mb_substr(trim((string)($_POST['note']??'')),0,200),'email'=>mb_substr(trim((string)($_POST['email']??'')),0,120),
-        'station'=>$station,'duration'=>(string)max(0,min(600,(int)($_POST['duration']??0))),'consent'=>'1','hp'=>'','source'=>'assistant:'.(string)($_SERVER['HTTP_HOST']??'portal'),
-    ];
-    $ch=curl_init(RRW_ASSISTANT_CC_BASE.'cron.php?action=voicemsg_send');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$fields,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>40,CURLOPT_USERAGENT=>rrw_assistant_ua()]);
-    $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
-    $d=json_decode((string)$raw,true);
-    if($raw===false||$code>=400||!is_array($d)||($d['status']??'')==='error')return ['status'=>'error','message'=>(string)($d['message']??'Voicemail ist gerade nicht erreichbar.'),'code'=>502];
-    return ['status'=>'ok','sent'=>true,'station'=>$station];
-}
 
 // ---------------------------------------------------------------- Modelle eines Anbieters abrufen (CMS, Administratoren)
 /** Antwort von GET <Basis>/models (OpenAI-Format {data:[{id}]}, Liste, Ollama {models:[{name}]}) in eine sortierte Modellliste wandeln; Embedding-, Sprach- und Bildmodelle entfallen. */

@@ -31,42 +31,31 @@
  function render(keep){
   const host=document.getElementById('assistantEditor');if(!host)return;
   if(keep!==true)model=null;const a=cfg();
-  const f=a.features||{};const own=!!a.neutral;const web=own&&a.mode==='website';
+  const f=a.features||{};
   const feat=(k,label,desc,also)=>`<label class="wm-check" style="display:flex;gap:10px;align-items:flex-start;margin:0"><input type="checkbox" ${f[k]!==false?'checked':''} onchange="AssistantManager.set('features.${k}',this.checked);${also?`AssistantManager.set('features.${also}',this.checked)`:''}"><span><b>${esc(label)}</b><br><small class="hint">${esc(desc)}</small></span></label>`;
-  const modeSel=own?select('mode','Art des Assistenten',a.mode||'website',[['website','Website-Assistent (allgemein, antwortet aus deinen Inhalten)'],['radio','Radio-Assistent (zusätzlich Sender, laufender Titel, Sendeplan)']],'Der Website-Assistent kennt Beiträge und das Wissen unten; der Radio-Assistent zusätzlich deine laut.fm-Sender.'):'';
   host.innerHTML=`
    <div class="section-grid" style="margin-bottom:10px">
-    <label class="wm-check" style="margin:0"><input type="checkbox" ${a.enabled!==false?'checked':''} onchange="AssistantManager.set('enabled',this.checked)"> Assistent ${own?'auf der Website':'im Portal'} anzeigen</label>
-    ${field('name','Name des Assistenten',a.name||'',{ph:own?'Assistent':'Radio-Assistent'})}
-    ${modeSel}
+    <label class="wm-check" style="margin:0"><input type="checkbox" ${a.enabled!==false?'checked':''} onchange="AssistantManager.set('enabled',this.checked)"> Assistent auf der Website anzeigen</label>
+    ${field('name','Name des Assistenten',a.name||'',{ph:'Assistent'})}
     ${field('rate_limit','Max. Fragen je Besucher und Stunde',a.rate_limit||40,{type:'number',hint:'Schutz vor Missbrauch; pro IP-Adresse.'})}
     ${field('max_tokens','Max. Antwortlänge (Tokens)',a.max_tokens||420,{type:'number'})}
     ${field('temperature','Kreativität (Temperatur 0–1,5)',a.temperature??0.2,{type:'number',step:'0.1',min:0,max:1.5,hint:'Niedrig = sachlich und gleichbleibend, hoch = abwechslungsreicher.'})}
    </div>
    ${field('greeting','Begrüßung im Chat',a.greeting||'',{type:'textarea',rows:2})}
    <div style="height:10px"></div>
-   ${field('knowledge','Wissen über uns (wird jeder Antwort mitgegeben)',a.knowledge||'',{type:'textarea',rows:6,ph:own?(web?'z.B. Wer wir sind, was wir anbieten, Öffnungszeiten, Preise, Kontaktwege …':'z.B. Wer wir sind, welche Shows und Moderatoren es gibt, Kontaktwege, Events …'):'z.B. Wer AnMaCha ist, was RicoReWi Music & Media macht, was SenderWelt ist, Shows, Moderatoren, Kontaktwege, Events …',hint:'Freitext, max. 6000 Zeichen. Je konkreter, desto besser antwortet der Assistent.'+(web?' Beiträge deiner Website werden zusätzlich passend zur Frage herangezogen.':'')})}
-   ${own&&!web?`<div style="height:10px"></div>${field('stations','Deine Sender (laut.fm-Kennungen)',(a.stations||[]).join('\n'),{type:'textarea',rows:3,ph:'meinradio\nmein-zweiter-sender',hint:'Eine Kennung je Zeile (laut.fm/<kennung>). Damit nennt der Assistent den laufenden Titel und den Sendeplan. Sender aus dem Alexa-Skill werden automatisch mit verwendet.'})}`:''}
+   ${field('knowledge','Wissen über uns (wird jeder Antwort mitgegeben)',a.knowledge||'',{type:'textarea',rows:6,ph:'z.B. Wer wir sind, was wir anbieten, Öffnungszeiten, Preise, Kontaktwege …',hint:'Freitext, max. 6000 Zeichen. Je konkreter, desto besser antwortet der Assistent.'+' Beiträge deiner Website werden zusätzlich passend zur Frage herangezogen.'})}
    <div style="height:10px"></div>
-   ${field('system_prompt','Zusätzliche Anweisungen (optional)',a.system_prompt||'',{type:'textarea',rows:2,ph:web?'z.B. Duze die Besucher, antworte kurz, verweise bei Preisfragen auf die Kontaktseite …':'z.B. Duze die Hörer, erwähne bei Fragen zu Events immer unsere News-Seite …'})}
+   ${field('system_prompt','Zusätzliche Anweisungen (optional)',a.system_prompt||'',{type:'textarea',rows:2,ph:'z.B. Duze die Besucher, antworte kurz, verweise bei Preisfragen auf die Kontaktseite …'})}
    <div style="height:10px"></div>
    ${field('privacy_note','Datenschutz-Hinweis im Chat',a.privacy_note||'',{type:'textarea',rows:2})}
    <div class="widget-category-title" style="margin-top:16px">Funktionen</div>
    <div class="section-grid">
-    ${web?feat('pages','Inhalte der Website','Passende Beiträge zur Frage heraussuchen und für die Antwort nutzen.','news'):''}
-    ${own?feat('research','Live-Recherche','Wetter, Schlagzeilen und Wikipedia-Auszüge abrufen, wenn die Frage danach klingt (externe Dienste).'):''}
-    ${web?'':feat('nowplaying','Jetzt läuft','Aktueller Titel und zuletzt gespielte Songs je Sender (laut.fm).')}
-    ${web?'':feat('schedule','Sendeplan','Laufende Sendung, nächste Sendungen, Tagesprogramm.')}
-    ${web?'':feat('stations','Sender',own?'Deine Sender vorstellen und empfehlen.':'Alle Sender des Netzwerks vorstellen und empfehlen.')}
-    ${own?'':feat('podcast','Podcast','AnMaCha – Der Podcast mit den neuesten Folgen.')}
-    ${web?'':feat('news','News & Events','Veröffentlichte Beiträge aus dem Magazin.')}
-    ${web?'':feat('favorites','Favoriten','Lieblingssender des Hörers als Kontext nutzen.')}
-    ${own?'':feat('studiomail','Nachricht ans Studio','Hörer schreiben je Sender oder ans Netzwerk – landet in Studiomail.')}
-    ${own?'':feat('voicemail','Sprachnachricht','Voice-Memo je Sender aufnehmen – landet in Studiomail (Voicemail).')}
+    ${feat('pages','Inhalte der Website','Passende Beiträge zur Frage heraussuchen und für die Antwort nutzen.','news')}
+    ${feat('research','Live-Recherche','Wetter, Schlagzeilen und Wikipedia-Auszüge abrufen, wenn die Frage danach klingt (externe Dienste).')}
    </div>
    <div class="widget-category-title" style="margin-top:16px">KI-Anbieter und Modelle</div>
    <div class="section-grid" style="margin-bottom:6px">
-    ${select('order_mode','Reihenfolge',a.order_mode||(own?'manual':'auto'),[['manual','Manuell – genau meine Reihenfolge (oben zuerst)'],['auto','Automatisch – kostenlose zuerst, schnelle Modelle nach vorn']],'Manuell: Es wird der erste aktive Anbieter genutzt, der antwortet, mit seinen Modellen in der angegebenen Reihenfolge. Automatisch: kostenlose Anbieter mit Key, dann Key-freie Dienste, zuletzt kostenpflichtige; gemessen schnellere Modelle rücken vor.')}
+    ${select('order_mode','Reihenfolge',a.order_mode||'manual',[['manual','Manuell – genau meine Reihenfolge (oben zuerst)'],['auto','Automatisch – kostenlose zuerst, schnelle Modelle nach vorn']],'Manuell: Es wird der erste aktive Anbieter genutzt, der antwortet, mit seinen Modellen in der angegebenen Reihenfolge. Automatisch: kostenlose Anbieter mit Key, dann Key-freie Dienste, zuletzt kostenpflichtige; gemessen schnellere Modelle rücken vor.')}
    </div>
    <p class="hint" style="margin:0 0 8px">Fällt ein Anbieter aus, wird er 3 Minuten übersprungen. Anbieter mit „Key nötig“ sind erst aktiv, wenn ein API-Key hinterlegt ist. Keys werden nie an Besucher ausgeliefert. Pro Anbieter wählst du das Hauptmodell und beliebig viele Reservemodelle; „Modelle laden“ fragt den Anbieter nach seiner Liste.</p>
    <div id="assistantStatus" class="hint" style="margin:0 0 8px"></div>

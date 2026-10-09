@@ -43,5 +43,5 @@
 - **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig über AnMaCha Universal Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.
 
 ## Radio-Reste in Alexa, Apps und Assistent
-- **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets) ist entfernt. Der Alexa-Skill-Baukasten arbeitet weiter mit vom Betreiber eingetragenen Streams (Sender), die Apps kennen noch den Typ „Radio-App“, der KI-Assistent hat noch den Modus „radio“ und nutzt `lib/directory.php` (laut.fm, radio-browser.info).
-- **Offen:** Diese Teile allgemein umbauen oder ins geplante Plugin „Elvado Radio / Audio“ verschieben; danach `lib/directory.php`, App-Typ „radio“ und `app-template` (Radio-Client) bereinigen.
+- **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets) ist entfernt. Der Alexa-Skill-Baukasten arbeitet weiter mit vom Betreiber eingetragenen Streams (Sender), die Apps kennen noch den Typ „Radio-App“, die Datenordner-Listen kennen noch `directory`.
+- **Offen:** Diese Teile allgemein umbauen oder ins geplante Plugin „Elvado Radio / Audio“ verschieben; danach App-Typ „radio“ und `app-template` (Radio-Client) bereinigen. Der KI-Assistent ist bereits ein reiner Website-Assistent (ohne Sender, Sendeplan, Studiomail und Verzeichnis); sein Wissen über Apps und Alexa-Skill entfällt, bis diese umgebaut sind.

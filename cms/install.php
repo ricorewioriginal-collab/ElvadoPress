@@ -8,7 +8,7 @@ if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';rrw_
 
 require_once __DIR__.'/lib/publish.php';
 // Dieselben Bausteine wie api.php, damit die Veröffentlichung am Ende identisch zu einem normalen Speichern ist.
-foreach(['feeds','backup','database','seo','content','auth','mail','assistant','directory','apps','geo','alexa','tools','forms','polls','community','forum','social'] as $lib)require_once __DIR__.'/lib/'.$lib.'.php';
+foreach(['feeds','backup','database','seo','content','auth','mail','assistant','apps','geo','alexa','tools','forms','polls','community','forum','social'] as $lib)require_once __DIR__.'/lib/'.$lib.'.php';
 require_once __DIR__.'/lib/system.php';
 require_once __DIR__.'/lib/product.php';
 require_once __DIR__.'/lib/install.php';

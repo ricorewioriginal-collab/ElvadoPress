@@ -1,32 +1,20 @@
 <?php
-// Prüft den frei konfigurierbaren KI-Assistenten (cms/lib/assistant.php): Modus (Website/Radio), Anbieter- und Modellreihenfolge, Temperatur,
-// Modellliste, lokale Anbieter, Website-Suche. Mit RicoReWi-Paket prüft er, dass die bisherigen Vorgaben gelten. Aufruf: php scripts/test-assistant.php
+// Prüft den KI-Assistenten (cms/lib/assistant.php): Vorgaben, Anbieter- und Modellreihenfolge, Temperatur,
+// Modellliste, lokale Anbieter, Website-Suche und -Kontext, zentrale KI-Konfiguration. Aufruf: php scripts/test-assistant.php
 declare(strict_types=1);
 require_once __DIR__.'/../cms/lib/pack.php';
 require_once __DIR__.'/../cms/lib/assistant.php';require_once __DIR__.'/../cms/src/autoload.php';
 $fail=0;$n=0;
 function t(string $name,callable $fn){global $fail,$n;$n++;try{$fn();echo "  ok  $name\n";}catch(Throwable $e){$fail++;echo "FAIL  $name: ".$e->getMessage()."\n";}}
 function eq($a,$b,string $m=''){if($a!==$b)throw new RuntimeException(($m?$m.': ':'').'erwartet '.json_encode($b).', war '.json_encode($a));}
-$neutral=rrw_assistant_neutral();
 $tmp=sys_get_temp_dir().'/as-'.bin2hex(random_bytes(4));mkdir($tmp);register_shutdown_function(function() use($tmp){ exec('rm -rf '.escapeshellarg($tmp)); });
 
-if($neutral){
-t('Vorgaben im eigenständigen CMS: Website-Modus, manuelle Reihenfolge, allgemeine Texte',function(){
-    $c=rrw_assistant_clean([]);eq($c['mode'],'website');eq($c['order_mode'],'manual');eq($c['temperature'],0.2);eq($c['name'],'Assistent');
+t('Vorgaben: manuelle Reihenfolge, allgemeine Texte, keine Radio-Funktionen',function(){
+    $c=rrw_assistant_clean([]);eq($c['order_mode'],'manual');eq($c['temperature'],0.2);eq($c['name'],'Assistent');
     if(preg_match('/radio|sender|sendeplan|ricorewi/i',$c['greeting']))throw new RuntimeException('Radio-Bezug in der Begrüßung: '.$c['greeting']);
-    eq($c['features']['pages'],true);eq($c['features']['research'],true);
+    eq($c['features']['pages'],true);eq($c['features']['research'],true);eq(array_keys($c['features']),['news','pages','research']);
+    eq(array_key_exists('mode',$c),false);eq(array_key_exists('stations',$c),false);
 });
-t('Bestandsinstallation mit eigenen Sendern bleibt im Radio-Modus (ohne Angabe)',function(){
-    eq(rrw_assistant_clean(['stations'=>['meinradio']])['mode'],'radio');eq(rrw_assistant_clean(['stations'=>['meinradio'],'mode'=>'website'])['mode'],'website');
-    eq(rrw_assistant_clean(['mode'=>'unsinn'])['mode'],'website');
-});
-} else {
-t('Mit RicoReWi-Paket gelten die bisherigen Vorgaben (Bestandsschutz)',function(){
-    $c=rrw_assistant_clean([]);eq($c['mode'],'radio');eq($c['order_mode'],'auto');eq($c['name'],'Radio-Assistent');eq($c['temperature'],0.2);
-    eq(rrw_assistant_clean(['mode'=>'website'])['mode'],'radio','Modus Website gibt es nur im eigenständigen CMS');
-    eq(rrw_assistant_website_mode($c),false);
-});
-}
 t('Temperatur und Reihenfolge werden begrenzt und geprüft',function(){
     eq(rrw_assistant_clean(['temperature'=>9])['temperature'],1.5);eq(rrw_assistant_clean(['temperature'=>-1])['temperature'],0.0);eq(rrw_assistant_clean(['temperature'=>'0.7'])['temperature'],0.7);eq(rrw_assistant_clean(['temperature'=>'x'])['temperature'],0.2);
     eq(rrw_assistant_clean(['order_mode'=>'auto'])['order_mode'],'auto');eq(rrw_assistant_clean(['order_mode'=>'manual'])['order_mode'],'manual');
@@ -84,7 +72,7 @@ t('Website-Suche: Beiträge nach Titel, Auszug und Text, nur Veröffentlichtes',
     eq(rrw_assistant_site_search($f,'Völlig anderes Thema Quantenphysik','https://x.example.org'),[]);
     eq(rrw_assistant_search_terms('Was ist das für ein Shop und wie geht es?'),['shop','geht']);
 });
-if($neutral){
+{
 t('Website-Prompt und Kontext: ohne Radio-Bezug, mit Inhalten und Wissen',function() use($tmp){
     $cfg=rrw_assistant_clean(['name'=>'Berater','knowledge'=>'Wir verkaufen Fahrräder.','system_prompt'=>'Duze die Besucher.']);
     $site=['portal'=>['site_name'=>'Rad & Tat']];
@@ -98,8 +86,8 @@ t('Website-Prompt und Kontext: ohne Radio-Bezug, mit Inhalten und Wissen',functi
     $k=rrw_assistant_website_context($cfg,$site,'Verkauft ihr Fahrräder?',$tmp.'/news.json','https://rad.example.org');
     eq($k['knowledge'],['Wir verkaufen Fahrräder.']);if(!str_contains(rrw_assistant_website_offline($k),'Wir verkaufen Fahrräder.'))throw new RuntimeException('Wissen fehlt in der Antwort ohne KI');
 });
-t('Chat im Website-Modus (ohne Anbieter): Antwort aus den Beiträgen, keine Radio-Inhalte',function() use($tmp){
-    $site=['assistant'=>['mode'=>'website','providers'=>array_map(fn($p)=>['id'=>$p['id'],'enabled'=>false],rrw_assistant_provider_presets()),'features'=>['research'=>false]],'portal'=>['site_name'=>'Rad & Tat'],'seo'=>['canonical_base'=>'https://rad.example.org']];
+t('Chat (ohne Anbieter): Antwort aus den Beiträgen, keine Radio-Inhalte',function() use($tmp){
+    $site=['assistant'=>['providers'=>array_map(fn($p)=>['id'=>$p['id'],'enabled'=>false],rrw_assistant_provider_presets()),'features'=>['research'=>false]],'portal'=>['site_name'=>'Rad & Tat'],'seo'=>['canonical_base'=>'https://rad.example.org']];
     $r=rrw_assistant_chat($site,[],['messages'=>[['role'=>'user','content'=>'Wann habt ihr geöffnet?']]],$tmp,$tmp.'/news.json');
     eq($r['status'],'ok');eq($r['provider'],'offline');eq(str_contains($r['reply'],'Neue Öffnungszeiten'),true,$r['reply']);eq($r['cards'][0]['type']??'','pages');
     if(preg_match('/sender|sendeplan|radio/i',$r['reply']))throw new RuntimeException('Radio-Bezug: '.$r['reply']);
@@ -134,32 +122,6 @@ t('Anbieter ohne Schlüsselpflicht aus der Zentrale sind im Betrieb bereit; die 
     $cfg=rrw_assistant_with_central(rrw_assistant_clean([]));$ids=array_column(rrw_assistant_providers_ready($cfg,$tmp),'id');
     if(!in_array('ollama',$ids,true)||!in_array('groq',$ids,true))throw new RuntimeException('bereit: '.implode(',',$ids));
     if(str_contains(json_encode(rrw_assistant_public([])),'zentral-groq'))throw new RuntimeException('Schlüssel in öffentlicher Sicht');
-});
-// Apps und Alexa-Skill: Absichten, Aufrufe, Varianten
-require_once __DIR__.'/../cms/lib/alexa.php';
-t('Absichten: Alexa-Skill und Apps werden erkannt',function(){
-    $a=rrw_assistant_intents('Wie kann ich euren Alexa Skill aufrufen?',[])['intents'];if(!in_array('alexa',$a,true))throw new RuntimeException('alexa fehlt: '.json_encode($a));
-    foreach(['Gibt es eine App für Android?','Kann ich das auf dem iPhone installieren','Wo kann ich die Windows App herunterladen'] as $q){$b=rrw_assistant_intents($q,[])['intents'];if(!in_array('apps',$b,true))throw new RuntimeException("apps fehlt bei $q: ".json_encode($b));}
-    if(in_array('apps',rrw_assistant_intents('Was läuft gerade?',[])['intents'],true))throw new RuntimeException('apps fälschlich erkannt');
-});
-t('Apps-Text: Plattformen, Web-App für iPhone, Hinweis auf die Apps-Seite; abgeschaltete Plattformen fehlen',function(){
-    $site=['portal'=>['site_name'=>'Test Radio'],'apps'=>['android_enabled'=>true,'windows_enabled'=>false]];$r=rrw_assistant_apps_alexa($site,'https://example.test');
-    foreach(['Android','Web-App','Zum Home-Bildschirm','https://example.test/#apps'] as $x)if(!str_contains($r['apps'],$x))throw new RuntimeException("fehlt: $x");
-    if(str_contains($r['apps'],'Windows'))throw new RuntimeException('abgeschaltetes Windows genannt');
-});
-t('Alexa-Text: Aufrufname und Aufruf-Varianten, Beispiele, Sender- und Namensvarianten',function(){
-    $site=['portal'=>['site_name'=>'Test Radio'],'alexa'=>['enabled'=>true]];if($GLOBALS['neutral'])$site['alexa']+=['invocation'=>'test radio','stations'=>['testradio'=>['name'=>'Test Radio']],'default_station'=>'testradio'];
-    $r=rrw_assistant_apps_alexa($site,'https://example.test')['alexa'];
-    if($r==='')throw new RuntimeException('kein Alexa-Text');
-    foreach(['Aufrufname','Alexa, öffne','Alexa, starte','Alexa, starte den Skill','Radio hören','Alexa-App'] as $x)if(!str_contains($r,$x))throw new RuntimeException("fehlt: $x");
-    if(!preg_match('/Aufrufname „([^“]+)“/u',$r,$m)||!str_contains($r,'Alexa, öffne '.$m[1]))throw new RuntimeException('Aufruf passt nicht zum Aufrufnamen');
-});
-t('Alexa abgeschaltet: kein Alexa-Text',function(){eq(rrw_assistant_apps_alexa(['alexa'=>['enabled'=>false]],'https://example.test')['alexa'],'');});
-t('Antwort ohne KI nennt Apps und Alexa-Aufruf',function(){
-    $site=['portal'=>['site_name'=>'Test Radio'],'alexa'=>['enabled'=>true],'apps'=>[]];if($GLOBALS['neutral'])$site['alexa']+=['invocation'=>'test radio','stations'=>['testradio'=>['name'=>'Test Radio']],'default_station'=>'testradio'];
-    $cfg=rrw_assistant_clean([]);$tmp2=sys_get_temp_dir();
-    $x=rrw_assistant_offline_reply(['apps','alexa'],[],'',$cfg,$site,'https://example.test',$tmp2,$tmp2.'/none.json');
-    if(!str_contains($x,'Android')||!str_contains($x,'Alexa, öffne'))throw new RuntimeException('Antwort unvollständig: '.substr($x,0,200));
 });
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
 exit($fail?1:0);
