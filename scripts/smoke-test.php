@@ -106,34 +106,26 @@ foreach(['news-editor.js','alexa-manager.js','apps-manager.js','theme-manager.js
 
 /* KI-Assistent als neutrale App-Erweiterung */
 $as=$cfg['assistant']??[];
-t('Assistent: neutrale Vorgaben im Baukasten-Modus',($as['neutral']??null)===true&&!preg_match('/ricorewi|anmacha|senderwelt|studiomail/i',json_encode(array_diff_key($as,['providers'=>1,'features'=>1]))),json_encode(array_diff_key($as,['providers'=>1,'features'=>1])));
-t('Assistent: Podcast, Studiomail und Voicemail des Herstellers sind aus',($as['features']['podcast']??1)===false&&($as['features']['studiomail']??1)===false&&($as['features']['voicemail']??1)===false);
+t('Assistent: neutrale Vorgaben, keine Radio-Funktionen',!preg_match('/ricorewi|anmacha|senderwelt|studiomail|radio|sender/i',json_encode(array_diff_key($as,['providers'=>1,'features'=>1]))),json_encode(array_diff_key($as,['providers'=>1,'features'=>1])));
+t('Assistent: nur Website-Funktionen',array_keys($as['features']??[])===['news','pages','research']);
 $prov=[];foreach($as['providers']??[] as $pr)$prov[]=['id'=>$pr['id'],'enabled'=>false];   // keine echten KI-Aufrufe im Test
-$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Test-Assistent','knowledge'=>'Wir sind Mein Test-Radio.','stations'=>"meinradio\nlaut.fm/zweites-24",'providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
+$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Test-Assistent','knowledge'=>'Wir sind Mein Test-Radio.','providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
 t('Assistent: Einstellungen speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
-$g2=json_decode(http('GET',"$B/cms/api.php?action=get",[],$H)['body'],true)?:[];
-t('Assistent: eigene Sender gespeichert (Zeilen, laut.fm-Adresse bereinigt)',($g2['config']['assistant']['stations']??null)===['meinradio','zweites-24'],json_encode($g2['config']['assistant']['stations']??null));
-$chat=json_decode(http('POST',"$B/cms/api.php?action=assistant_chat",['__json'=>json_encode(['messages'=>[['role'=>'user','content'=>'Welche Sender gibt es bei euch?']]])],['Content-Type: application/json'])['body'],true)?:[];
-t('Assistent: antwortet ohne KI-Anbieter aus den eigenen Sendern',($chat['status']??'')==='ok'&&($chat['provider']??'')==='offline'&&str_contains((string)($chat['reply']??''),'meinradio'),json_encode($chat));
-t('Assistent: Antwort ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',(string)($chat['reply']??'')));
 /* KI-Assistent: Website-Modus, Chat-Fenster auf der Website, Modelle */
 $fr=http('GET',"$B/");
 t('Assistent: Chat-Fenster auf der Website, wenn eingeschaltet',str_contains($fr['body'],'assistant-widget.js')&&str_contains($fr['body'],'data-name="Test-Assistent"'),substr($fr['body'],-300));
 t('Assistent: Chat-Skript wird ausgeliefert',http('GET',"$B/cms/assets/assistant-widget.js")['code']===200);
-$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Berater','mode'=>'website','order_mode'=>'manual','temperature'=>0.5,'knowledge'=>'Wir sind Mein Test-Radio.','providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
-t('Assistent: Website-Modus speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
+$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Berater','order_mode'=>'manual','temperature'=>0.5,'knowledge'=>'Wir sind Mein Test-Radio.','providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
+t('Assistent: Einstellungen speichern (2)',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
 $ac=json_decode(http('GET',"$B/cms/api.php?action=get",[],$H)['body'],true)['config']['assistant']??[];
-t('Assistent: Modus, Reihenfolge und Temperatur gespeichert',($ac['mode']??'')==='website'&&($ac['order_mode']??'')==='manual'&&($ac['temperature']??0)===0.5&&($ac['name']??'')==='Berater',json_encode(array_diff_key($ac,['providers'=>1])));
+t('Assistent: Reihenfolge und Temperatur gespeichert',($ac['order_mode']??'')==='manual'&&($ac['temperature']??0)===0.5&&($ac['name']??'')==='Berater',json_encode(array_diff_key($ac,['providers'=>1])));
 $chat=json_decode(http('POST',"$B/cms/api.php?action=assistant_chat",['__json'=>json_encode(['messages'=>[['role'=>'user','content'=>'Willkommen bei euch?']]])],['Content-Type: application/json'])['body'],true)?:[];
-t('Assistent: Website-Modus antwortet aus den Beiträgen, ohne Radio-Bezug',($chat['status']??'')==='ok'&&($chat['provider']??'')==='offline'&&str_contains((string)($chat['reply']??''),'Willkommen bei Mein Test-Radio')&&!preg_match('/sendeplan|laut\.fm|ricorewi|senderwelt/i',(string)($chat['reply']??'')),json_encode($chat));
+t('Assistent: antwortet ohne KI-Anbieter aus den Beiträgen, ohne Radio-Bezug',($chat['status']??'')==='ok'&&($chat['provider']??'')==='offline'&&str_contains((string)($chat['reply']??''),'Willkommen bei Mein Test-Radio')&&!preg_match('/sendeplan|laut\.fm|ricorewi|senderwelt/i',(string)($chat['reply']??'')),json_encode($chat));
 $ml=json_decode(http('POST',"$B/cms/api.php?action=assistant_models",['__json'=>json_encode(['base_url'=>'http://evil.example.org/v1'])],array_merge($H,['Content-Type: application/json']))['body'],true)?:[];
 t('Assistent: Modellliste prüft die Adresse',($ml['status']??'')==='ok'&&($ml['ok']??null)===false,json_encode($ml));
 t('Assistent: Modellliste nur für Administratoren',in_array(http('POST',"$B/cms/api.php?action=assistant_models",['__json'=>'{}'],['Content-Type: application/json'])['code'],[401,403],true));
 $sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>false,'providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
 t('Assistent: ausgeschaltet → kein Chat-Fenster',!str_contains(http('GET',"$B/")['body'],'assistant-widget.js'));
-$sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Test-Assistent','stations'=>"meinradio\nlaut.fm/zweites-24",'providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
-$sm=http('POST',"$B/cms/api.php?action=assistant_send",['__json'=>json_encode(['name'=>'x','message'=>'Hallo Studio'])],['Content-Type: application/json']);
-t('Assistent: Studiomail des Herstellers nicht verfügbar',in_array($sm['code'],[403,503],true),(string)$sm['code']);
 
 /* Radioverzeichnis ist nicht Teil von ElvadoPress */
 foreach(['directory_admin_get'=>true,'directory_search'=>false,'directory_random'=>false] as $act=>$auth){

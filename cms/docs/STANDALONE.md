@@ -8,7 +8,6 @@ Das CMS läuft in zwei Betriebsarten. **Standard ist unverändert der bisherige 
 |---|---|---|
 | Anmeldung | lokaler Zugang **oder** Control-Center-Token | nur lokaler Zugang |
 | Anfragen an `…/control/cron.php` | ja (Berechtigung, Altdaten, News-Rückfall) | **keine** |
-| Studiomail/Voicemail des KI-Assistenten | über das Control Center | „nicht verfügbar im eigenständigen Betrieb“ |
 | Altdaten-Übernahme | möglich | nicht verfügbar |
 
 Die Einstellung steht in `cms/data/system.local.json` (wird vom CMS verwaltet, nicht ins Repository einchecken):
@@ -24,7 +23,6 @@ Fehlt die Datei oder das Feld `control_center`, gilt der bisherige Betrieb. Umsc
 Alle diese Stellen beachten den Betriebsmodus:
 
 - `cms/api.php`: `rrw_auth` (Token-Prüfung, HTTP-Berechtigung `radio_cms_access`), `rrw_control_center_json` (Altdaten-Export), `rrw_control_center_db_rows` (lokaler Lesezugriff auf die Rechte-Datenbank), einmalige Migration beim ersten Aufruf, `import_legacy`, News-Rückfall (`news_public_legacy_fallback`), Website-Zustand (`site_health`, Selbstaufruf-Probe).
-- `cms/lib/assistant.php`: `studiomail_send`, `voicemsg_send`.
 - Oberfläche (`cms/index.php`, `cms/assets/cms-app.js`): Anmeldeknopf „Mit … anmelden“, Rücklink im Kopfbereich, Stylesheet `/control/shared.css`.
 
 Nicht Teil der Verwaltung und von dieser Einstellung **nicht** berührt (öffentliche Portalseite): `assets/js/portal.js` (eingebettete Control-Center-Widgets, Voting, Wunschliste), `assets/js/assistant.js` (`voicemsg_info`), `index.html` (Voting-iframe). Diese Teile erscheinen in einer eigenständigen Installation nur, wenn ihre Widgets/Bereiche im CMS aktiv sind.

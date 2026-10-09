@@ -27,7 +27,7 @@ function rrw_brand_blank(array $o=[]): array {
         'logo'=>'','logo_dark'=>'','logo_light'=>'','favicon'=>'','touch_icon'=>'','og_image'=>'','social_image'=>'',
         'title'=>'','title_suffix'=>'','description'=>'','manifest_name'=>'','manifest_short_name'=>'',
         'colors'=>['theme'=>'','accent'=>''],
-        'canonical_mode'=>'own','canonical_base'=>'','app_prefix'=>'','directory'=>false,
+        'canonical_mode'=>'own','canonical_base'=>'','app_prefix'=>'',
         'legal'=>['imprint_mode'=>'shared','imprint_url'=>'','imprint_content'=>'','privacy_mode'=>'shared','privacy_url'=>'','privacy_content'=>''],
         'overrides'=>['portal'=>['site_name'=>'','hero_eyebrow'=>'','hero_title'=>'','hero_text'=>'','news_title'=>'','news_intro'=>'','footer_text'=>'','legal_notice'=>'']],
     ],$o);
@@ -57,8 +57,6 @@ function rrw_brands_clean($value): array {
             'title'=>mb_substr(trim((string)($b['title']??'')),0,120),'title_suffix'=>mb_substr(trim((string)($b['title_suffix']??'')),0,80),'description'=>mb_substr(trim((string)($b['description']??'')),0,400),'manifest_name'=>mb_substr(trim((string)($b['manifest_name']??'')),0,60),'manifest_short_name'=>mb_substr(trim((string)($b['manifest_short_name']??'')),0,30),
             'colors'=>['theme'=>$col($colors['theme']??''),'accent'=>$col($colors['accent']??'')],
             'app_prefix'=>preg_replace('/[^A-Za-z0-9-]/','',(string)($b['app_prefix']??'')),
-            // Radioverzeichnis (Suchfeld im Header, Verzeichnis-Seite); SenderWelt hat es standardmäßig
-            'directory'=>false,   // Radioverzeichnis ist nicht Teil von ElvadoPress
             'canonical_mode'=>in_array(($b['canonical_mode']??'own'),['own','main','custom'],true)?(string)($b['canonical_mode']??'own'):'own','canonical_base'=>preg_match('#^https://[a-z0-9.-]+$#i',(string)($b['canonical_base']??''))?strtolower((string)$b['canonical_base']):'',
             'legal'=>['imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>mb_substr(trim((string)($legal['imprint_url']??'')),0,1200),'imprint_content'=>$safe((string)($legal['imprint_content']??'')),'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>mb_substr(trim((string)($legal['privacy_url']??'')),0,1200),'privacy_content'=>$safe((string)($legal['privacy_content']??''))],
             'overrides'=>['portal'=>['site_name'=>mb_substr(trim((string)($ov['site_name']??'')),0,80),'hero_eyebrow'=>mb_substr(trim((string)($ov['hero_eyebrow']??'')),0,80),'hero_title'=>mb_substr(trim((string)($ov['hero_title']??'')),0,220),'hero_text'=>mb_substr(trim((string)($ov['hero_text']??'')),0,1200),'news_title'=>mb_substr(trim((string)($ov['news_title']??'')),0,140),'news_intro'=>mb_substr(trim((string)($ov['news_intro']??'')),0,600),'footer_text'=>mb_substr(trim((string)($ov['footer_text']??'')),0,220),'legal_notice'=>mb_substr(trim((string)($ov['legal_notice']??'')),0,2400)]],
@@ -123,7 +121,6 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
             'imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>(string)($legal['imprint_url']??''),'imprint_content'=>(string)($legal['imprint_content']??''),
             'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>(string)($legal['privacy_url']??''),'privacy_content'=>(string)($legal['privacy_content']??''),
         ],
-        'directory'=>false,
         'overrides'=>['portal'=>rrw_brand_portal_overrides($b,$isDefault)],
         'partners'=>rrw_brand_partners($reg,$id,$branding,$mainBase),
     ];
@@ -160,18 +157,7 @@ function rrw_brand_portal_overrides(array $b,bool $isDefault): array {
         'news_title'=>'Aktuelles von '.$name,
         'footer_text'=>'© '.date('Y').' '.$name.' • Alle Rechte vorbehalten',
     ];
-    if(!empty($b['directory'])){
-        $defaults['hero_eyebrow']='Dein Radioverzeichnis';
-        $defaults['hero_text']=($claim!==''?$claim.' ':'').'Finde deinen Lieblingssender in unserem Radioverzeichnis – mit Webradios von laut.fm und aus aller Welt. Im Fokus stehen unsere eigenen Sender von RicoReWi × AnMaCha. Suchen, reinhören, Favoriten speichern oder dich mit „Überrasch mich“ überraschen lassen.';
-        $defaults['legal_notice']=rrw_brand_directory_notice($name);
-    }
     return array_merge($defaults,$ov);
-}
-// Standard-Rechtshinweis für Marken mit Radioverzeichnis: laut.fm-Hinweis zu den eigenen Sendern plus Hinweis zum Verzeichnis.
-// Auszeichnung: [Text](https://…) = Link (neues Fenster), Zeilenumbruch = <br>.
-function rrw_brand_directory_notice(string $name): string {
-    // Kurz gehalten: Lizenzhinweis zu den eigenen Sendern; Details zu Fremdsendern stehen im Impressum und im Verzeichnis selbst.
-    return "Lizenzen (GEMA/GVL) für unsere eigenen Sender werden von [laut.fm](https://laut.fm) übernommen. Für Sender im Verzeichnis sind die jeweiligen Betreiber verantwortlich.";
 }
 function rrw_brand_notice_html(string $text): string {
     $e=htmlspecialchars($text,ENT_QUOTES,'UTF-8');
@@ -240,7 +226,7 @@ function rrw_brand_public_payload(array $brand): array {
     return ['brand'=>$brand['id'],'name'=>$brand['name'],'short_name'=>$brand['short_name'],'claim'=>$brand['claim'],'hostname'=>$brand['hostname'],'primary_domain'=>$brand['primary_domain'],'domains'=>$brand['domains'],'origin'=>$brand['origin'],'is_default'=>$brand['is_default'],
         'logo'=>$brand['logo'],'logo_dark'=>$brand['logo_dark'],'logo_light'=>$brand['logo_light'],'favicon'=>$brand['favicon'],'touch_icon'=>$brand['touch_icon'],'og_image'=>$brand['og_image'],'social_image'=>$brand['social_image'],
         'title'=>$brand['title'],'title_suffix'=>$brand['title_suffix'],'description'=>$brand['description'],'manifest_name'=>$brand['manifest_name'],'manifest_short_name'=>$brand['manifest_short_name'],'colors'=>$brand['colors'],
-        'canonical_mode'=>$brand['canonical_mode'],'canonical_url'=>$brand['canonical_url'],'app_prefix'=>$brand['app_prefix'],'directory'=>!empty($brand['directory']),'legal'=>$brand['legal'],'overrides'=>$brand['overrides'],'partners'=>$brand['partners']??[]];
+        'canonical_mode'=>$brand['canonical_mode'],'canonical_url'=>$brand['canonical_url'],'app_prefix'=>$brand['app_prefix'],'legal'=>$brand['legal'],'overrides'=>$brand['overrides'],'partners'=>$brand['partners']??[]];
 }
 function rrw_brand_manifest(array $brand): array {
     $icons=[];

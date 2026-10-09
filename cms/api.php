@@ -504,7 +504,6 @@ require_once __DIR__.'/lib/content.php';
 require_once __DIR__.'/lib/auth.php';
 require_once __DIR__.'/lib/mail.php';
 require_once __DIR__.'/lib/assistant.php';
-require_once __DIR__.'/lib/directory.php';
 require_once __DIR__.'/lib/apps.php';
 require_once __DIR__.'/lib/geo.php';
 require_once __DIR__.'/lib/alexa.php';
@@ -576,10 +575,8 @@ if(in_array($action,['access','get','save','media_upload','branding_upload','arc
 $rrwBrand=rrw_brand_resolve($site,(string)($_SERVER['HTTP_HOST']??''),rrw_brand_forced_from_request());
 header('Vary: Host');
 if($action==='brand')rrw_json(['status'=>'ok']+rrw_brand_public_payload($rrwBrand));
-// KI-Assistent (öffentlich): Chat, Nachricht ans Studio, Sprachnachricht – Weiterleitung an Studiomail im Control Center
+// KI-Assistent (öffentlich): Chat
 if($action==='assistant_chat'){ $r=rrw_assistant_chat($site,$rrwBrand,rrw_body(),$dataDir,$newsFile);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
-if($action==='assistant_send'){ $r=rrw_assistant_send_studiomail($site,rrw_body(),$dataDir);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
-if($action==='assistant_voice'){ $r=rrw_assistant_send_voice($site,$dataDir);$code=(int)($r['code']??200);unset($r['code']);rrw_json($r,$code); }
 // Apps: öffentliche Startabfrage der nativen Apps (Funktionen, Hinweis, Update) und Übersicht für das CMS (Admin)
 if($action==='app_config'){
     $did=rrw_apps_did_clean($_GET['did']??'');$pl=(string)($_GET['platform']??'android');$ver=(string)($_GET['version']??'');

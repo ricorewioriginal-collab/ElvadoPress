@@ -108,7 +108,7 @@ function rrw_demo_reset(): bool {
     if(basename($data)!=='data'||realpath($data)===false||realpath($data)!==realpath($cms.'/data'))return false;
     foreach([$data,$cms.'/generated',$cms.'/media',$cms.'/wp-content/uploads',$cms.'/backups',$cms.'/frontend'] as $d)rrw_demo_clear_dir($d);
     rrw_system_config(true);
-    foreach(['feeds','backup','database','seo','content','auth','mail','assistant','directory','apps','geo','alexa','tools','forms','polls','community','forum','social'] as $lib)require_once $cms.'/lib/'.$lib.'.php';
+    foreach(['feeds','backup','database','seo','content','auth','mail','assistant','apps','geo','alexa','tools','forms','polls','community','forum','social'] as $lib)require_once $cms.'/lib/'.$lib.'.php';
     require_once $cms.'/lib/publish.php';require_once $cms.'/lib/install.php';
     $ctx=['siteFile'=>$data.'/site.json','newsFile'=>$data.'/news.json','genDir'=>$cms.'/generated','root'=>dirname($cms),'activityLog'=>$data.'/activity-log.json'];
     $r=rrw_install_run(['site_name'=>$c['site_name'],'language'=>'de','timezone'=>'Europe/Berlin','username'=>$c['user'],'display_name'=>$c['display_name'],'email'=>'','password'=>$c['password'],
@@ -224,7 +224,7 @@ const RRW_DEMO_BLOCKED=[
     'database_config_save','database_test','database_push','database_pull',
     // Mailversand und Dritt-Dienste mit Zugangsdaten, Weiterleitungen auf beliebige Adressen, fremde Dateien von GitHub
     'app_build_save','app_build_start','app_build_check','app_build_download','app_build_brand_save','app_build_brand_delete',
-    'assistant_chat','assistant_send','assistant_voice','assistant_test','assistant_models','feed_test','services_status','directory_admin_save','apps_geo_update',
+    'assistant_chat','assistant_test','assistant_models','feed_test','services_status','directory_admin_save','apps_geo_update',
     'member_register','member_reset_request','member_reset','redirects_save','lovable_sync','local_auth_setup',
     // KI-Zentrale und KI-Funktionen: Schlüssel, Verbindungstests (auch zu lokalen Adressen) und Anfragen an fremde Dienste gibt es in der Demo nicht
     'admin_prefs_save','ai_config_save','ai_test','ai_models','ai_migrate_legacy','ai_generate','ai_site_plan','ai_site_images','ai_alt_suggest','ai_media_start','ai_media_status','ai_media_save','ai_dev_plan','ai_dev_install','ai_dev_check',
