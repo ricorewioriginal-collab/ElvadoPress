@@ -53,7 +53,7 @@ Dieses Repository ist die **Hauptquelle des CMS**. ElvadoPress ist unabhängig; 
 ## Entwickeln und testen
 - PHP-Syntax: `find cms scripts -name '*.php' -print0 | xargs -0 -n1 php -l`
 - Smoke-Test: `php scripts/smoke-test.php`
-- Alle Tests: `for t in scripts/test-*.php; do php "$t" | tail -1; done`
+- Alle Tests (Exit-Codes prüfen, nicht nur die letzte Zeile): `fail=0; for t in scripts/test-*.php; do php "$t" >/dev/null 2>&1 || { echo "FEHLER: $t"; fail=1; }; done; exit $fail`
 - Demo: `php scripts/make-demo.php <Kopie>`; Test: `php scripts/test-demo.php`
 - Weitere Voraussetzungen und Testhinweise: [DEVELOPMENT.md](DEVELOPMENT.md).
 
