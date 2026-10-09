@@ -190,7 +190,7 @@ function rrw_wpe_facts(Engine $e, DbConfig $db, string $dataDir, string $cmsDir)
         'opcache' => function_exists('opcache_get_status') && (bool)ini_get('opcache.enable'),
         'engine' => ['mode' => $st['mode'], 'version' => $st['version'], 'safe' => $st['safe'], 'incident' => $st['incident'], 'latest' => (string)($cache['core']['version'] ?? ''), 'latest_checked' => (string)($cache['checked_at'] ?? '')],
         'wp_updates' => is_array($cache['wp'] ?? null) ? ['plugins' => (array)($cache['wp']['plugins'] ?? []), 'themes' => (array)($cache['wp']['themes'] ?? []), 'checked_at' => (string)($cache['wp']['checked_at'] ?? '')] : [],
-        'packs' => function_exists('rrw_pack_available') ? array_values(array_filter([defined('RRW_PACK_RADIO') && rrw_pack_available(RRW_PACK_RADIO) ? RRW_PACK_RADIO : ''])) : [],
+        'packs' => [],
     ];
     // Zugangsdaten-Dateien der Engine: nicht für andere lesbar
     $bad = [];

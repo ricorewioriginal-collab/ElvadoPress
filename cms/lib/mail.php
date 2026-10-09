@@ -14,7 +14,7 @@ function rrw_cms_admin_url(array $site): string {
 }
 function rrw_mail_from(array $site): string {
     $base=(string)($site['seo']['canonical_base']??rrw_default_canonical_base());
-    $host=parse_url($base,PHP_URL_HOST)?:(rrw_pack_available()?'ricorewi-radio.de':'localhost');
+    $host=parse_url($base,PHP_URL_HOST)?:'localhost';
     $host=preg_replace('/^www\./','',$host);
     return 'noreply@'.$host;
 }

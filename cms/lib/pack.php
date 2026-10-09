@@ -1,15 +1,11 @@
 <?php
 declare(strict_types=1);
 // ---------------------------------------------------------------------------------------------
-// Design-Pakete: Ein Theme kann ein Paket mitbringen ("pack" in theme.json). Das Paket "ricorewi-radio" umfasst alles,
-// was zum RicoReWi-Radioportal gehört: die Radio-Widgets (Sender, Jetzt läuft, Sendeplan, Voting …), Alexa-Skill,
-// Radioverzeichnis, Sender-Netzwerk und die mitgelieferten Apps. Das Paket ist nur aktiv, solange das RicoReWi-Portal
-// (ein Theme mit diesem Paket) die Website ausliefert – bei einem WordPress-Theme oder ohne die Themes verschwinden die Teile.
-// Das eigenständige CMS wird ohne die RicoReWi-Themes ausgeliefert; dann ist das Paket nie aktiv.
+// Design-Pakete: Ein Theme kann ein Paket mitbringen ("pack" in theme.json); Pakete können Komponenten (cms/packs/<paket>/components.php)
+// und Verwaltungs-Skripte (cms/packs/<paket>/admin.js) beisteuern. ElvadoPress liefert selbst kein Paket aus – ohne Paket-Theme ist
+// rrw_pack_available() immer false. RRW_PACK_RADIO bleibt nur für die Verwaltungsoberfläche (window.CMS_PACKS_AVAILABLE) erhalten.
 // ---------------------------------------------------------------------------------------------
 const RRW_PACK_RADIO='ricorewi-radio';
-/** Widget-Typen des Radio-Pakets (ids wie in rrw_widget_types()). */
-const RRW_PACK_RADIO_WIDGETS=['stations','now-playing','schedule','random-station','favorites','podcast','voting','song-voting','studiomail','voicemail','wunsch','poll','social-wall','social-single'];
 
 /** Paket, das ein Theme mitbringt ('' = keines). Liest cms/themes/<id>/theme.json. */
 function rrw_pack_of_theme(string $themeId, ?string $themesDir=null): string {
@@ -20,16 +16,6 @@ function rrw_pack_of_theme(string $themeId, ?string $themesDir=null): string {
     $p=is_array($m)?(string)($m['pack']??''):'';
     return preg_match('/^[a-z0-9-]{1,40}$/',$p)?$p:'';
 }
-/** Ist das Paket aktiv? $wpFrontOn = true, wenn ein WordPress-Theme die Website ausliefert. */
-function rrw_pack_active(array $site, string $pack=RRW_PACK_RADIO, ?bool $wpFrontOn=null, ?string $themesDir=null): bool {
-    if($wpFrontOn===null)$wpFrontOn=defined('RRW_WP_DATA')?is_file(RRW_WP_DATA.'/front-on'):is_file(__DIR__.'/../data/.wp/front-on');
-    if($wpFrontOn)return false;
-    $active=(string)($site['theme']['active']??'ricorewi-neon');
-    return rrw_pack_of_theme($active,$themesDir)===$pack;
-}
-/** Zustand aller Pakete für das CMS. */
-function rrw_pack_status(array $site): array { return [RRW_PACK_RADIO=>rrw_pack_active($site,RRW_PACK_RADIO)]; }
-
 /** Gibt es das Paket in dieser Installation (ein Theme bringt es mit)? Im eigenständigen CMS ohne die RicoReWi-Themes: nein. */
 function rrw_pack_available(string $pack=RRW_PACK_RADIO, ?string $themesDir=null): bool {
     static $cache=[];
@@ -41,15 +27,14 @@ function rrw_pack_available(string $pack=RRW_PACK_RADIO, ?string $themesDir=null
     return $cache[$key];
 }
 
-/** Adresse der Hauptseite, wenn nichts eingestellt ist: mit Paket die bisherige RicoReWi-Adresse, sonst der aufgerufene Host. */
+/** Adresse der Hauptseite, wenn nichts eingestellt ist: der aufgerufene Host. */
 function rrw_default_canonical_base(): string {
-    if(rrw_pack_available())return 'https://www.ricorewi-radio.de';
     $h=preg_replace('/[^a-z0-9.:-]/i','',(string)($_SERVER['HTTP_HOST']??''));
     return $h!==''?'https://'.$h:'';
 }
 
-/** Portal-Design, wenn nichts gewählt ist: mit Paket das RicoReWi-Standarddesign, sonst keines (das eigenständige CMS liefert über ein WordPress-Theme aus). */
-function rrw_default_theme_id(): string { return rrw_pack_available()?'ricorewi-neon':''; }
+/** Portal-Design, wenn nichts gewählt ist: keines (ElvadoPress liefert über ein WordPress-Theme aus). */
+function rrw_default_theme_id(): string { return ''; }
 
 /** Öffentliche Adresse der Website (ohne Schrägstrich am Ende): Hauptdomain der Hauptmarke, sonst die eingestellte oder aufgerufene Adresse. */
 function rrw_site_origin(array $site): string {

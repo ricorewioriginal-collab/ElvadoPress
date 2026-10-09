@@ -11,8 +11,8 @@ function rrw_alexa_dir(string $dataDir): string {
     return $d;
 }
 function rrw_alexa_skill_dir(): string { return defined('RRW_ALEXA_SKILL_DIR')?rtrim((string)RRW_ALEXA_SKILL_DIR,'/'):__DIR__.'/alexa-skill'; }
-/** Baukasten-Modus (eigenständiges CMS): Der Skill gehört dem Betreiber der Website – Name, Aufrufname und Sender stammen aus seinen Einstellungen, nicht aus dem RicoReWi-Katalog. */
-function rrw_alexa_neutral(): bool { return !rrw_pack_available(); }
+/** Baukasten-Modus: Der Skill gehört dem Betreiber der Website – Name, Aufrufname und Sender stammen aus seinen Einstellungen. */
+function rrw_alexa_neutral(): bool { return true; }
 function rrw_alexa_file_catalog(): array {
     static $c=null;if($c===null)$c=json_decode((string)@file_get_contents(rrw_alexa_skill_dir().'/catalog.json'),true)?:['brand'=>[],'suffixes'=>[],'stations'=>[],'brands'=>[]];
     return $c;

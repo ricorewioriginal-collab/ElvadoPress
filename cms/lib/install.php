@@ -148,9 +148,9 @@ function rrw_install_run(array $c,array $ctx): array {
         // Veröffentlichen wie sonst im CMS (index.html-Snapshot, Seiten, RSS, SEO); ohne index.html im Webroot nur speichern
         if(is_file($ctx['root'].'/index.html'))rrw_publish($site,$ctx['siteFile'],$ctx['genDir'],$ctx['root']);
         else rrw_write_atomic($ctx['siteFile'],json_encode($site,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
-        // Ohne das RicoReWi-Portal (eigenständiges CMS) liefert ein neutrales WordPress-Theme die Website aus
-        if(!rrw_pack_available())rrw_install_default_theme();
-        $plugRes=rrw_pack_available()?null:rrw_install_plugins_run($c);   // Essentials je Installationsart (Fehler sind hier nie fatal)
+        // Ein neutrales WordPress-Theme liefert die Website aus
+        rrw_install_default_theme();
+        $plugRes=rrw_install_plugins_run($c);   // Essentials je Installationsart (Fehler sind hier nie fatal)
         ftruncate($gate,0);fwrite($gate,json_encode(['installed_at'=>$now],JSON_UNESCAPED_SLASHES)."\n");
         @flock($gate,LOCK_UN);fclose($gate);@chmod($lock,0600);
         return ['ok'=>true,'message'=>'Die Einrichtung ist abgeschlossen.','plugins'=>$plugRes];

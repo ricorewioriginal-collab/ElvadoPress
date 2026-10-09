@@ -5,5 +5,5 @@
         <div id="coreValidation" class="hint" style="margin-bottom:12px"></div>
         <div id="coreStationList"></div>
       </div>
-      <div class="danger-note"><i class="fas fa-triangle-exclamation"></i> Entfernen ist eine kritische Netzwerkaktion. Sie ist nur für Superadmins freigeschaltet, verlangt den exakten Sendernamen und die Bestätigungsphrase <b>ENTFERNEN sendername</b>.<?php if(rrw_pack_available()): ?> <b>ricorewi</b> ist als Hauptsender geschützt.<?php endif; ?></div>
+      <div class="danger-note"><i class="fas fa-triangle-exclamation"></i> Entfernen ist eine kritische Netzwerkaktion. Sie ist nur für Superadmins freigeschaltet, verlangt den exakten Sendernamen und die Bestätigungsphrase <b>ENTFERNEN sendername</b>.</div>
     </section>

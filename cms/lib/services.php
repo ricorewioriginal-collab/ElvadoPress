@@ -1,9 +1,8 @@
 <?php
 declare(strict_types=1);
 // Verbundene Dienste im eigenständigen CMS: Der Betreiber trägt seine eigenen Dienste ein (Website, Cloud, Podcast, Video, Statistik, Shop …),
-// bekommt eine Übersicht mit Links und kann die Erreichbarkeit prüfen. Mit dem RicoReWi-Paket bleibt die bisherige feste Liste (cms/lib/publish.php, Abschnitt "services").
+// bekommt eine Übersicht mit Links und kann die Erreichbarkeit prüfen.
 // Die Prüfung läuft auf dem Server, nur gegen öffentliche Adressen (SSRF-Schutz wie bei den Feeds) und folgt keinen Weiterleitungen.
-if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
 
 const RRW_SVC_KINDS=[
     'website'=>'Website','api'=>'Schnittstelle (API)','media'=>'Medien / Cloud','podcast'=>'Podcast','video'=>'Video / Livestream',

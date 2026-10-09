@@ -18,7 +18,7 @@ window.StandaloneManager=(()=>{
   if($('sysControlCenter'))$('sysControlCenter').checked=!d.standalone;
   if($('sysLanguage'))$('sysLanguage').value=d.system?.language||'';
   if($('sysTimezone'))$('sysTimezone').value=d.system?.timezone||'';
-  if($('sysInfo'))$('sysInfo').innerHTML=(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']?'Aktueller Betrieb: <b>'+(d.standalone?'eigenständig (ohne Control Center)':'mit Control-Center-Anbindung')+'</b> · ':'')+'Produkt: <b>'+esc(d.product?.name)+'</b> · Lokale Administratoren: <b>'+esc(d.local_admins)+'</b>';
+  if($('sysInfo'))$('sysInfo').innerHTML='Produkt: <b>'+esc(d.product?.name)+'</b> · Lokale Administratoren: <b>'+esc(d.local_admins)+'</b>';
   if($('sysVersion'))$('sysVersion').innerHTML='CMS-Version: <b>'+esc(d.version)+'</b>'+(d.system?.installed_at?' · eingerichtet am '+esc(d.system.installed_at.slice(0,10)):'');
  }
  async function load(){try{fill(await api('system_get'));}catch(e){if($('sysInfo'))$('sysInfo').textContent=e.message;}}

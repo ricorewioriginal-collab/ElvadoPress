@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 require_once __DIR__.'/pack.php';
 const RRW_ASSISTANT_CC_BASE='https://ricorewi-radio.de/control/';
-/** Baukasten-Modus (eigenständiges CMS): keine RicoReWi-Netzwerk-Inhalte – eigene Sender, kein Podcast/Studiomail des Herstellers. */
-function rrw_assistant_neutral(): bool { return !rrw_pack_available(); }
+/** Baukasten-Modus: eigene Sender des Betreibers, keine Netzwerk-Inhalte. */
+function rrw_assistant_neutral(): bool { return true; }
 /** Eigene Sender (laut.fm-Kennungen): mit RicoReWi-Paket das Core-Netzwerk, sonst die Sender des Betreibers (Assistent und Alexa-Skill). */
 function rrw_own_stations(array $site): array {
     if(!rrw_assistant_neutral())return (array)($site['core_network']['stations']??[]);

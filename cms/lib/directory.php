@@ -11,8 +11,8 @@ declare(strict_types=1);
 //    Betreibers als Link – keine Stream-URLs, keine Logos/Favicons (Rechte der Betreiber), keine Wiedergabe in unserem Player.
 //  - Nur eigene Sender (Kernnetzwerk laut dem CMS) spielen im Portal.
 require_once __DIR__.'/pack.php';
-// Kennung gegenüber laut.fm/radio-browser.info: mit dem RicoReWi-Paket wie bisher, sonst neutral mit der eigenen Adresse
-define('RRW_DIR_UA',rrw_pack_available()?'SenderWelt-Radioverzeichnis/1.0 (+https://senderwelt.de)':'Radioverzeichnis-CMS/1.0 (+'.(rrw_default_canonical_base()?:'https://localhost').')');
+// Kennung gegenüber laut.fm/radio-browser.info: neutral mit der eigenen Adresse
+define('RRW_DIR_UA','Radioverzeichnis-CMS/1.0 (+'.(rrw_default_canonical_base()?:'https://localhost').')');
 
 function rrw_dir_dir(string $dataDir): string { $d=$dataDir.'/.directory';if(!is_dir($d))@mkdir($d,0775,true);return $d; }
 

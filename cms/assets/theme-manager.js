@@ -1,6 +1,6 @@
 'use strict';
 window.ThemeManager=(()=>{
- let hiddenThemes=[], themes=[], themeState={active:'ricorewi-neon',variant:'default',settings:{}}, editing=null, draft=null;
+ let hiddenThemes=[], themes=[], themeState={active:'',variant:'default',settings:{}}, editing=null, draft=null;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const token=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
  async function api(action,body){
@@ -178,7 +178,7 @@ window.ThemeManager=(()=>{
   f.onload=czAttach;
   f.src='/?cms_theme_customize=1&cms_theme_preview='+encodeURIComponent(editing.id)+(previewBrand?'&rrw_brand='+encodeURIComponent(previewBrand):'')+'&t='+Date.now();
   const b=(window.CMS?.brands?.items||[]).find(x=>x.id===previewBrand);
-  document.getElementById('themePreviewUrl').textContent=(b?.primary_domain||((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'ricorewi-radio.de':location.hostname))+' · '+editing.name+(b?' · '+b.name:'');
+  document.getElementById('themePreviewUrl').textContent=(b?.primary_domain||location.hostname)+' · '+editing.name+(b?' · '+b.name:'');
  }
  function brand(id){previewBrand=id;reloadPreviewFrame();if(window.CMS_BRANDS&&window.CMS_BRANDS.current()!==id)window.CMS_BRANDS.set(id);}   // Vorschau-Auswahl und Kopf bleiben gleich
  window.addEventListener('cms:brand',e=>{   // Markenwechsel im Kopf: Vorschau des geöffneten Customizers folgt
