@@ -13,9 +13,9 @@ function rrw_product_file(): string { return defined('RRW_PRODUCT_FILE')?(string
 /** Bisherige Werte (Standard). */
 function rrw_product_defaults(): array {
     $d=[
-        'name'=>'RicoReWi CMS','slug'=>'ricorewi-cms','logo'=>'',
-        'title'=>'RicoReWi Radio CMS','heading'=>'RicoReWi Radio Verwaltung','access_name'=>'RicoReWi-Radio-CMS','generator'=>'RicoReWi Radio CMS',
-        'control_center'=>'AnMaCha Control Center',
+        'name'=>'ElvadoPress','slug'=>'elvadopress','logo'=>'',
+        'title'=>'ElvadoPress','heading'=>'ElvadoPress Verwaltung','access_name'=>'ElvadoPress','generator'=>'ElvadoPress',
+        'control_center'=>'ElvadoPress',
     ];
     // Eigenständiges Paket (z. B. ElvadoPress): cms/lib/product.default.json legt den Standard fest, den das Bauen des Pakets mitbringt
     $f=__DIR__.'/product.default.json';

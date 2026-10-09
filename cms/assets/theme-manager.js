@@ -23,7 +23,7 @@ window.ThemeManager=(()=>{
    if(r.status===401)window.cmsSessionExpired?.();
    if(!d)throw new Error('Upload fehlgeschlagen (Serverantwort '+r.status+'). Möglicherweise ist die Datei größer als das Upload-Limit des Servers.');
    if(!r.ok||d.status!=='ok')throw new Error(d.message||'Theme-Upload fehlgeschlagen');
-   const kind=d.compatibility==='wordpress+bootstrap'?'WordPress + Bootstrap':d.wordpress?'WordPress-kompatibel':d.bootstrap?'Bootstrap-kompatibel':'RicoReWi CMS';
+   const kind=d.compatibility==='wordpress+bootstrap'?'WordPress + Bootstrap':d.wordpress?'WordPress-kompatibel':d.bootstrap?'Bootstrap-kompatibel':'ElvadoPress';
    window.cmsToast?.(kind+' Theme importiert ✓');
    await load(true);
    const name=(themes.find(x=>x.id===d.id)||{}).name||d.id||'Theme';
@@ -131,7 +131,7 @@ window.ThemeManager=(()=>{
   previewBrandSelect();
   reloadPreviewFrame();
  }
- // Vorschau als Marke: dasselbe Theme lässt sich mit jeder Marke (RicoReWi Radio, SenderWelt, ...) prüfen.
+ // Vorschau als Marke: dasselbe Theme lässt sich mit jeder Marke (Marke A, Marke B, ...) prüfen.
  let previewBrand='';
  function previewBrandSelect(){
   const sel=document.getElementById('themePreviewBrand');if(!sel)return;

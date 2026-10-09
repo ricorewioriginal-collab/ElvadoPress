@@ -46,16 +46,16 @@ t('native ohne Darstellung abgelehnt', throws(fn() => Component::from(['renderer
 t('Ohne Darstellung = runtime', Component::from($ok)->renderer === 'runtime' && !Component::from($ok)->hasRenderer());
 
 // ───────── 3) Registry ─────────
-$reg = new Registry(); CoreComponents::register($reg); CoreComponents::registerRadio($reg);
-$need = ['header', 'footer', 'hero', 'navigation', 'text', 'image', 'gallery', 'button', 'container', 'columns', 'posts', 'audio', 'video', 'form', 'newsletter', 'widget_area', 'wp_block', 'wp_shortcode', 'plugin_widget', 'html', 'radio_player', 'podcast'];
+$reg = new Registry(); CoreComponents::register($reg);
+$need = ['header', 'footer', 'hero', 'navigation', 'text', 'image', 'gallery', 'button', 'container', 'columns', 'posts', 'audio', 'video', 'form', 'newsletter', 'widget_area', 'wp_block', 'wp_shortcode', 'plugin_widget', 'html'];
 t('Kern enthält die geforderten Komponenten', array_diff($need, array_keys($reg->all())) === [], json_encode(array_diff($need, array_keys($reg->all()))));
-t('Keine Produkt-/Markenkomponenten im neutralen Kern', array_intersect(['partner', 'social_wall', 'sender', 'ricorewi'], array_keys($reg->all())) === []);
+t('Keine Produkt-/Markenkomponenten im neutralen Kern', array_intersect(['partner', 'social_wall', 'sender', 'ricorewi', 'radio_player', 'podcast'], array_keys($reg->all())) === []);
 $brand = false; foreach ($reg->all() as $comp) { if (stripos(json_encode($comp->toArray()), 'ricorewi') !== false) { $brand = true; } }
 t('Keine Markeninhalte in Definitionen', !$brand);
 $cat = $reg->catalog(['admin' => false, 'features' => []]); $ids = array_column($cat['components'], 'id');
-t('Katalog Autor ohne Radio: keine Admin-Komponenten, kein Radio', !in_array('header', $ids, true) && !in_array('wp_block', $ids, true) && !in_array('radio_player', $ids, true) && in_array('text', $ids, true) && in_array('button', $ids, true));
-$cat2 = $reg->catalog(['admin' => true, 'features' => ['radio']]); $ids2 = array_column($cat2['components'], 'id');
-t('Katalog Administrator mit Radio', in_array('header', $ids2, true) && in_array('radio_player', $ids2, true) && in_array('wp_shortcode', $ids2, true));
+t('Katalog Autor: keine Admin-Komponenten', !in_array('header', $ids, true) && !in_array('wp_block', $ids, true) && in_array('text', $ids, true) && in_array('button', $ids, true));
+$cat2 = $reg->catalog(['admin' => true, 'features' => []]); $ids2 = array_column($cat2['components'], 'id');
+t('Katalog Administrator', in_array('header', $ids2, true) && in_array('wp_shortcode', $ids2, true));
 t('Katalog: Kategorien, Gruppen, keine Funktionen', isset($cat['categories']['structure']) && isset($cat['groups']['design']) && !str_contains(json_encode($cat), 'Closure') && json_decode(json_encode($cat), true) === $cat);
 $cats = array_keys($reg->byCategory()); t('Katalog nach Kategorien geordnet', $cats === array_values(array_intersect(array_keys(Component::CATEGORIES), $cats)));
 $reg->register($ok, 'plugin-x', fn($p) => '<b>' . htmlspecialchars((string)$p['title']) . '</b>');
@@ -143,8 +143,6 @@ t('CSS: Geräte-Sichtbarkeit', str_contains($css, '.ep-hide-mobile{display:none!
 $ho = $reg->get('header'); $evil = ['id' => 'x"]{}', 'props' => ['bg' => 'red;background:url(x)', 'height' => 0], 'responsive' => []];
 t('CSS: nichts Unsicheres, Null bei „skip_zero“ weglassen', !str_contains($rd->css($ho, $evil), 'url(') && !str_contains($rd->css($ho, $evil), 'min-height') && str_contains($rd->css($ho, ['id' => 'ab', 'props' => [], 'responsive' => []]), '') );
 t('CSS: Attributname nur aus Liste', str_contains($rd->css($reg->get('hero'), ['id' => 'q', 'props' => ['height' => 400]], 'data-bk'), '[data-bk="q"]{min-height:400px;}') && str_contains($rd->css($reg->get('hero'), ['id' => 'q', 'props' => ['height' => 400]], 'onclick'), '[data-ep-id="q"]'));
-$rad = $rd->render($lay->clean([['type' => 'radio_player', 'props' => ['stream' => 'https://s.de/live', 'title' => 'Sender']], ['type' => 'podcast', 'props' => ['title' => 'P', 'items' => [['title' => 'E1', 'src' => 'https://s.de/1.mp3'], ['title' => 'x', 'src' => 'javascript:x']]]]], $ctxA))['html'];
-t('Radio-Komponenten (neutral)', str_contains($rad, '<audio controls preload="none" src="https://s.de/live">') && substr_count($rad, '<li>') === 1 && !str_contains(strtolower($rad), 'ricorewi'));
 
 // ───────── 6) Layout-Speicher ─────────
 $store = new LayoutStore("$tmp/layouts", $reg);

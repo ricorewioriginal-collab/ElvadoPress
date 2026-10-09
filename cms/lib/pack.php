@@ -14,7 +14,7 @@ function rrw_pack_of_theme(string $themeId, ?string $themesDir=null): string {
     $p=is_array($m)?(string)($m['pack']??''):'';
     return preg_match('/^[a-z0-9-]{1,40}$/',$p)?$p:'';
 }
-/** Gibt es das Paket in dieser Installation (ein Theme bringt es mit)? Im eigenständigen CMS ohne die RicoReWi-Themes: nein. */
+/** Gibt es das Paket in dieser Installation (ein Theme bringt es mit)? ElvadoPress liefert kein Paket-Theme mit: nein. */
 function rrw_pack_available(string $pack, ?string $themesDir=null): bool {
     static $cache=[];
     $dir=$themesDir??dirname(__DIR__).'/themes';$key=$pack.'|'.$dir;

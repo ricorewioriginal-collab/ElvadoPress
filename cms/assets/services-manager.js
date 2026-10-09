@@ -1,7 +1,6 @@
 'use strict';
 // Verbundene Dienste (eigenständiges CMS): eigene Dienste eintragen, öffnen und die Erreichbarkeit prüfen.
 // Die Daten liegen in der Sektion "services" (items: id, name, url, kind, note, check); die Prüfung läuft serverseitig (services_status).
-// Mit dem RicoReWi-Paket bleibt die feste Liste aus cms-app.js (SERVICE_FIELDS).
 window.ServicesManager=(()=>{
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const KINDS={website:['Website','fa-globe'],api:['Schnittstelle (API)','fa-code'],media:['Medien / Cloud','fa-cloud'],podcast:['Podcast','fa-podcast'],video:['Video / Livestream','fa-video'],mail:['E-Mail / Webmail','fa-envelope'],analytics:['Statistik','fa-chart-line'],shop:['Shop','fa-bag-shopping'],docs:['Dokumentation / Wiki','fa-book'],other:['Sonstiges','fa-plug']};

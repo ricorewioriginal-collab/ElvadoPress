@@ -6,7 +6,7 @@ $fail = 0; $n = 0;
 function t(string $name, bool $ok, string $extra = ''): void { global $fail, $n; $n++; if (!$ok) { $fail++; echo "FEHLER: $name $extra\n"; } }
 function rmrf(string $d): void { if (!is_dir($d)) return; foreach (scandir($d) as $f) { if ($f === '.' || $f === '..') continue; $p = "$d/$f"; is_dir($p) && !is_link($p) ? rmrf($p) : @unlink($p); } @rmdir($d); }
 function cp(string $from, string $to, array $skip): void { @mkdir($to, 0755, true); foreach (scandir($from) as $f) { if ($f === '.' || $f === '..' || in_array($f, $skip, true)) continue; is_dir("$from/$f") ? cp("$from/$f", "$to/$f", []) : copy("$from/$f", "$to/$f"); } }
-if (is_dir(__DIR__ . '/../cms/packs')) { echo "übersprungen: Paket-Installation (eigener Einstieg index.php)\n"; exit(0); }   // z. B. RicoReWi-Portal: Auslieferung über das Portal, nicht über wp-front.php
+if (is_dir(__DIR__ . '/../cms/packs')) { echo "übersprungen: Paket-Installation (eigener Einstieg index.php)\n"; exit(0); }   // Paket mit eigenem Einstieg: Auslieferung über das Paket, nicht über wp-front.php
 if (!function_exists('proc_open')) { echo "übersprungen: proc_open nicht verfügbar\n"; exit(0); }
 
 $tmp = sys_get_temp_dir() . '/sites-front-' . bin2hex(random_bytes(4));

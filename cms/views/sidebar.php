@@ -90,7 +90,6 @@
         <div class="tab-group-body">
           <button class="tab" data-tab="apps" onclick="cmsTab('apps',this);window.AppsManager?.render?.()"><i class="fas fa-mobile-screen"></i>Apps</button>
           <button class="tab" data-tab="alexa" onclick="cmsTab('alexa',this);window.AlexaManager?.render()"><i class="fab fa-amazon"></i>Alexa-Skill</button>
-          <button class="tab" data-tab="social" onclick="cmsTab('social',this)"><i class="fas fa-share-nodes"></i>Social</button>
         </div>
       </div>
       <div id="tcMenuHost"></div>

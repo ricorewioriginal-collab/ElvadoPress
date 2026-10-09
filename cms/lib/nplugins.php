@@ -39,7 +39,7 @@ function rrw_np_tick(): void {
 
 /**
  * Bestehende Installation auf das Plugin-System heben: Die empfohlenen Essentials werden installiert, aber NICHT aktiviert – nichts ändert sich am Verhalten der Website,
- * bis der Administrator sie bewusst einschaltet (Plugins › „Empfohlene aktivieren“). Frische Installationen (Installer) und das RicoReWi-Paket sind nicht betroffen.
+ * bis der Administrator sie bewusst einschaltet (Plugins › „Empfohlene aktivieren“). Frische Installationen (Installer) sind nicht betroffen.
  * Läuft höchstens einmal (Zustandsdatei) und nur bei Aufrufen der Verwaltung.
  */
 function rrw_np_migrate(): void {
@@ -54,7 +54,7 @@ function rrw_np_migrate(): void {
 
 /**
  * Kopplung KI-Zentrale ↔ Plugin „Elvado AI“: Sobald in der KI-Zentrale ein nutzbarer Anbieter eingerichtet ist, wird das Plugin (falls nicht aktiv) installiert und aktiviert.
- * Nur einmal (Markierung im Plugin-Zustandsordner): schaltet der Administrator das Plugin später bewusst ab, bleibt es aus. Nicht im RicoReWi-Paket und nicht in der Demo.
+ * Nur einmal (Markierung im Plugin-Zustandsordner): schaltet der Administrator das Plugin später bewusst ab, bleibt es aus. Nicht in der Demo.
  * @return string Meldung für die Verwaltung ('' = nichts getan)
  */
 function rrw_np_ai_autoactivate(bool $usable,?PluginManager $mgr=null): string {

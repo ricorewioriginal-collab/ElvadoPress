@@ -107,7 +107,7 @@
           <div class="theme-preview-browser">
             <div class="theme-preview-bar">
               <span></span><span></span><span></span>
-              <div id="themePreviewUrl">ricorewi-radio.de</div>
+              <div id="themePreviewUrl"></div>
               <label class="theme-preview-brand" title="Vorschau als Marke">Vorschau als: <select id="themePreviewBrand" class="fc" onchange="ThemeManager.brand(this.value)"></select></label>
             </div>
             <iframe id="themeCustomizerFrame" title="Live Theme Vorschau"></iframe>
