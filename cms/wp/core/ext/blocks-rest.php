@@ -3,8 +3,8 @@
 // Cookie-/Anwendungspasswort-Prüfung, CORS- und Link-Header. Die Anfrageverarbeitung selbst liegt in cms/wp/rest.php.
 
 /** Header setzen (nur, wenn noch möglich) und für Prüfungen mitschreiben. */
-if(!function_exists('rrw_wp_rest_send_header')){
-function rrw_wp_rest_send_header(string $line, bool $replace=true): void { $GLOBALS['rrw_wp_rest_sent_headers'][]=$line;if(!headers_sent())@header($line,$replace); }
+if(!function_exists('elvado_wp_rest_send_header')){
+function elvado_wp_rest_send_header(string $line, bool $replace=true): void { $GLOBALS['elvado_wp_rest_sent_headers'][]=$line;if(!headers_sent())@header($line,$replace); }
 }
 
 /* ───────── Start und Standardfilter ───────── */
@@ -32,12 +32,12 @@ if(!function_exists('rest_api_loaded')){
 /** Bedient eine Anfrage mit rest_route (z. B. ?rest_route=/wp/v2/posts) und beendet danach. */
 function rest_api_loaded() {
     $route=(string)($GLOBALS['wp']->query_vars['rest_route']??($_GET['rest_route']??''));if($route==='')return;
-    require_once dirname(__DIR__,2).'/rest.php';$GLOBALS['rrw_wp_serving_rest']=true;
+    require_once dirname(__DIR__,2).'/rest.php';$GLOBALS['elvado_wp_serving_rest']=true;
     $q=$_GET;unset($q['rest_route']);
-    $r=rrw_wp_rest_dispatch((string)($_SERVER['REQUEST_METHOD']??'GET'),'/'.ltrim($route,'/'),$q,(string)file_get_contents('php://input'));
+    $r=elvado_wp_rest_dispatch((string)($_SERVER['REQUEST_METHOD']??'GET'),'/'.ltrim($route,'/'),$q,(string)file_get_contents('php://input'));
     if(!headers_sent()){ http_response_code($r['status']);foreach($r['headers'] as $k=>$v)@header($k.': '.$v); }
     echo $r['body'];
-    if(!empty($GLOBALS['rrw_wp_die_throws']))throw new RRW_WP_Die('rest',$r['status']);
+    if(!empty($GLOBALS['elvado_wp_die_throws']))throw new ELVADO_WP_Die('rest',$r['status']);
     die();
 }}
 if(!function_exists('rest_ensure_request')){
@@ -52,19 +52,19 @@ if(!function_exists('rest_handle_deprecated_function')){
 function rest_handle_deprecated_function($function_name,$replacement,$version) {
     if(!WP_DEBUG)return;
     $m=$replacement?sprintf('%1$s ist seit Version %2$s veraltet! Verwende stattdessen %3$s.',$function_name,$version,$replacement):sprintf('%1$s ist seit Version %2$s veraltet ohne Alternative.',$function_name,$version);
-    rrw_wp_rest_send_header(sprintf('X-WP-DeprecatedFunction: %s',$m));
+    elvado_wp_rest_send_header(sprintf('X-WP-DeprecatedFunction: %s',$m));
 }}
 if(!function_exists('rest_handle_deprecated_argument')){
 function rest_handle_deprecated_argument($function_name,$message,$version) {
     if(!WP_DEBUG)return;
     $m=$message?sprintf('%1$s wurde mit einem Argument aufgerufen, das seit Version %2$s veraltet ist! %3$s',$function_name,$version,$message):sprintf('%1$s wurde mit einem Argument aufgerufen, das seit Version %2$s veraltet ist ohne Alternative.',$function_name,$version);
-    rrw_wp_rest_send_header(sprintf('X-WP-DeprecatedParam: %s',$m));
+    elvado_wp_rest_send_header(sprintf('X-WP-DeprecatedParam: %s',$m));
 }}
 if(!function_exists('rest_handle_doing_it_wrong')){
 function rest_handle_doing_it_wrong($function_name,$message,$version) {
     if(!WP_DEBUG)return;
     $m=$version?sprintf('%1$s wurde falsch aufgerufen. %2$s (Seit Version %3$s.)',$function_name,$message,$version):sprintf('%1$s wurde falsch aufgerufen. %2$s',$function_name,$message);
-    rrw_wp_rest_send_header(sprintf('X-WP-DoingItWrong: %s',$m));
+    elvado_wp_rest_send_header(sprintf('X-WP-DoingItWrong: %s',$m));
 }}
 
 /* ───────── CORS, OPTIONS, Allow ───────── */
@@ -73,15 +73,15 @@ function rest_send_cors_headers($value) {
     $origin=get_http_origin();
     if($origin){
         $origin=esc_url_raw($origin);
-        rrw_wp_rest_send_header('Access-Control-Allow-Origin: '.$origin);rrw_wp_rest_send_header('Access-Control-Allow-Methods: OPTIONS, GET, POST, PUT, PATCH, DELETE');
-        rrw_wp_rest_send_header('Access-Control-Allow-Credentials: true');rrw_wp_rest_send_header('Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type');
-        rrw_wp_rest_send_header('Vary: Origin',false);
-    } elseif(($_SERVER['REQUEST_METHOD']??'')==='GET'&&!is_user_logged_in())rrw_wp_rest_send_header('Vary: Origin',false);
+        elvado_wp_rest_send_header('Access-Control-Allow-Origin: '.$origin);elvado_wp_rest_send_header('Access-Control-Allow-Methods: OPTIONS, GET, POST, PUT, PATCH, DELETE');
+        elvado_wp_rest_send_header('Access-Control-Allow-Credentials: true');elvado_wp_rest_send_header('Access-Control-Allow-Headers: Authorization, X-WP-Nonce, Content-Disposition, Content-MD5, Content-Type');
+        elvado_wp_rest_send_header('Vary: Origin',false);
+    } elseif(($_SERVER['REQUEST_METHOD']??'')==='GET'&&!is_user_logged_in())elvado_wp_rest_send_header('Vary: Origin',false);
     return $value;
 }}
 /** Methoden eines Endpunkts als Liste (die Schicht speichert „GET,POST“ als Text, WordPress als Array). */
-if(!function_exists('rrw_wp_rest_endpoint_methods')){
-function rrw_wp_rest_endpoint_methods($ep): array {
+if(!function_exists('elvado_wp_rest_endpoint_methods')){
+function elvado_wp_rest_endpoint_methods($ep): array {
     $m=$ep['methods']??'GET';
     if(is_array($m))$m=array_is_list($m)?implode(',',$m):implode(',',array_keys(array_filter($m)));
     return array_values(array_filter(array_map('trim',explode(',',strtoupper((string)$m)))));
@@ -93,7 +93,7 @@ function rest_handle_options_request($response,$handler,$request) {
     foreach(rest_get_server()->get_routes() as $key=>$eps){
         if(!@preg_match('#^'.str_replace('#','\#',$key).'/?$#i',$route))continue;
         foreach($eps as $ep){
-            $ms=rrw_wp_rest_endpoint_methods($ep);$pc=$ep['permission_callback']??null;
+            $ms=elvado_wp_rest_endpoint_methods($ep);$pc=$ep['permission_callback']??null;
             try{ $ok=$pc===null||(is_callable($pc)&&call_user_func($pc,new WP_REST_Request($ms[0]??'GET',$route,$ep))===true); }catch(Throwable $e){ $ok=false; }
             if(!$ok)continue;
             $data['methods']=array_values(array_unique(array_merge($data['methods']??[],$ms)));
@@ -111,7 +111,7 @@ function rest_send_allow_header($response,$server,$request) {
     $matched=(string)$response->get_matched_route();if($matched==='')return $response;
     $routes=$server->get_routes();$allowed=[];
     foreach((array)($routes[$matched]??[]) as $ep){
-        $pc=$ep['permission_callback']??null;$ms=rrw_wp_rest_endpoint_methods($ep);
+        $pc=$ep['permission_callback']??null;$ms=elvado_wp_rest_endpoint_methods($ep);
         try{ $ok=$pc===null||(is_callable($pc)&&call_user_func($pc,new WP_REST_Request($ms[0]??'GET',(string)$request->get_route(),$ep))===true); }catch(Throwable $e){ $ok=false; }
         if($ok)foreach($ms as $m)$allowed[$m]=true;
     }
@@ -139,8 +139,8 @@ if(!function_exists('rest_output_link_header')){
 function rest_output_link_header() {
     if(headers_sent())return;
     $r=get_rest_url();if(empty($r))return;
-    rrw_wp_rest_send_header('Link: <'.sanitize_url($r).'>; rel="https://api.w.org/"',false);
-    $res=rest_get_queried_resource_route();if($res)rrw_wp_rest_send_header('Link: <'.sanitize_url(rest_url($res)).'>; rel="alternate"; title="JSON"; type="application/json"',false);
+    elvado_wp_rest_send_header('Link: <'.sanitize_url($r).'>; rel="https://api.w.org/"',false);
+    $res=rest_get_queried_resource_route();if($res)elvado_wp_rest_send_header('Link: <'.sanitize_url(rest_url($res)).'>; rel="alternate"; title="JSON"; type="application/json"',false);
 }}
 
 /* ───────── Anmeldung: Cookie (mit Nonce) und Anwendungspasswörter ───────── */
@@ -271,8 +271,8 @@ function rest_get_allowed_schema_keywords() {
 }}
 
 /* ───────── Schema-Prüfung (vollständig, rekursiv) ───────── */
-if(!function_exists('rrw_wp_rest_type_error')){
-function rrw_wp_rest_type_error($param,$type) { return new WP_Error('rest_invalid_type',sprintf('%1$s ist nicht vom Typ %2$s.',$param,is_array($type)?implode(',',$type):$type),['param'=>$param]); }
+if(!function_exists('elvado_wp_rest_type_error')){
+function elvado_wp_rest_type_error($param,$type) { return new WP_Error('rest_invalid_type',sprintf('%1$s ist nicht vom Typ %2$s.',$param,is_array($type)?implode(',',$type):$type),['param'=>$param]); }
 }
 if(!function_exists('rest_format_combining_operation_error')){
 function rest_format_combining_operation_error($param,$error) {
@@ -285,15 +285,15 @@ function rest_find_any_matching_schema($value,$args,$param) {
     $errors=[];
     foreach((array)$args['anyOf'] as $i=>$schema){
         if(!isset($schema['type'])&&isset($args['type']))$schema['type']=$args['type'];
-        $ok=rrw_wp_rest_validate($value,$schema,$param);
+        $ok=elvado_wp_rest_validate($value,$schema,$param);
         if(!is_wp_error($ok))return $schema;
         $errors[]=['error_object'=>$ok,'schema'=>$schema,'index'=>$i];
     }
-    return rrw_wp_rest_combining_error($value,$param,$errors);
+    return elvado_wp_rest_combining_error($value,$param,$errors);
 }}
 /** Fehler, wenn keine Variante passt: Meldung der Variante mit dem passenden Typ, sonst allgemeine Meldung. */
-if(!function_exists('rrw_wp_rest_combining_error')){
-function rrw_wp_rest_combining_error($value,$param,$errors) {
+if(!function_exists('elvado_wp_rest_combining_error')){
+function elvado_wp_rest_combining_error($value,$param,$errors) {
     $types=[];foreach($errors as $e)foreach((array)($e['schema']['type']??[]) as $t)$types[$t]=true;
     $best=rest_get_best_type_for_value($value,array_keys($types));
     foreach($errors as $e)if($best!==''&&in_array($best,(array)($e['schema']['type']??[]),true))return rest_format_combining_operation_error($param,$e);
@@ -304,11 +304,11 @@ function rest_find_one_matching_schema($value,$args,$param,$stop_after_first_mat
     $matching=[];$errors=[];
     foreach((array)$args['oneOf'] as $i=>$schema){
         if(!isset($schema['type'])&&isset($args['type']))$schema['type']=$args['type'];
-        $ok=rrw_wp_rest_validate($value,$schema,$param);
+        $ok=elvado_wp_rest_validate($value,$schema,$param);
         if(!is_wp_error($ok)){ if($stop_after_first_match)return $schema;$matching[]=['schema_object'=>$schema,'index'=>$i]; }
         else $errors[]=['error_object'=>$ok,'schema'=>$schema,'index'=>$i];
     }
-    if(!$matching)return rrw_wp_rest_combining_error($value,$param,$errors);
+    if(!$matching)return elvado_wp_rest_combining_error($value,$param,$errors);
     if(count($matching)>1){
         $pos=array_column($matching,'index');
         return new WP_Error('rest_one_of_multiple_matches',sprintf('%1$s passt zu %2$s, soll aber nur zu einer Variante passen.',$param,implode(' und ',$pos)),['positions'=>$pos]);
@@ -323,23 +323,23 @@ function rest_validate_enum($value,$args,$param) {
     return new WP_Error('rest_not_in_enum',sprintf('%1$s ist keiner von %2$s.',$param,implode(', ',$enc)),['param'=>$param]);
 }}
 if(!function_exists('rest_validate_null_value_from_schema')){
-function rest_validate_null_value_from_schema($value,$param='') { return $value!==null?rrw_wp_rest_type_error($param,'null'):true; }
+function rest_validate_null_value_from_schema($value,$param='') { return $value!==null?elvado_wp_rest_type_error($param,'null'):true; }
 }
 if(!function_exists('rest_validate_boolean_value_from_schema')){
-function rest_validate_boolean_value_from_schema($value,$param='') { return !rest_is_boolean($value)?rrw_wp_rest_type_error($param,'boolean'):true; }
+function rest_validate_boolean_value_from_schema($value,$param='') { return !rest_is_boolean($value)?elvado_wp_rest_type_error($param,'boolean'):true; }
 }
 if(!function_exists('rest_validate_object_value_from_schema')){
 function rest_validate_object_value_from_schema($value,$args,$param='') {
-    if(!rest_is_object($value))return rrw_wp_rest_type_error($param,'object');
+    if(!rest_is_object($value))return elvado_wp_rest_type_error($param,'object');
     $value=rest_sanitize_object($value);
     foreach((array)($args['required']??[]) as $name)if(is_string($name)&&!array_key_exists($name,$value))return new WP_Error('rest_property_required',sprintf('%1$s ist eine Pflichteigenschaft von %2$s.',$name,$param));
     foreach($value as $prop=>$v){
-        if(isset($args['properties'][$prop])){ $ok=rrw_wp_rest_validate($v,$args['properties'][$prop],$param.'['.$prop.']');if(is_wp_error($ok))return $ok;continue; }
+        if(isset($args['properties'][$prop])){ $ok=elvado_wp_rest_validate($v,$args['properties'][$prop],$param.'['.$prop.']');if(is_wp_error($ok))return $ok;continue; }
         $ps=rest_find_matching_pattern_property_schema((string)$prop,$args);
-        if($ps!==null){ $ok=rrw_wp_rest_validate($v,$ps,$param.'['.$prop.']');if(is_wp_error($ok))return $ok;continue; }
+        if($ps!==null){ $ok=elvado_wp_rest_validate($v,$ps,$param.'['.$prop.']');if(is_wp_error($ok))return $ok;continue; }
         if(isset($args['additionalProperties'])){
             if($args['additionalProperties']===false)return new WP_Error('rest_additional_properties_forbidden',sprintf('%1$s ist keine gültige Eigenschaft des Objekts.',$prop),['property'=>$prop]);
-            if(is_array($args['additionalProperties'])){ $ok=rrw_wp_rest_validate($v,$args['additionalProperties'],$param.'['.$prop.']');if(is_wp_error($ok))return $ok; }
+            if(is_array($args['additionalProperties'])){ $ok=elvado_wp_rest_validate($v,$args['additionalProperties'],$param.'['.$prop.']');if(is_wp_error($ok))return $ok; }
         }
     }
     if(isset($args['minProperties'])&&count($value)<$args['minProperties'])return new WP_Error('rest_too_few_properties',sprintf('%1$s enthält zu wenige Eigenschaften (mindestens %2$d).',$param,$args['minProperties']));
@@ -348,9 +348,9 @@ function rest_validate_object_value_from_schema($value,$args,$param='') {
 }}
 if(!function_exists('rest_validate_array_value_from_schema')){
 function rest_validate_array_value_from_schema($value,$args,$param='') {
-    if(!rest_is_array($value))return rrw_wp_rest_type_error($param,'array');
+    if(!rest_is_array($value))return elvado_wp_rest_type_error($param,'array');
     $value=rest_sanitize_array($value);
-    if(isset($args['items']))foreach($value as $i=>$v){ $ok=rrw_wp_rest_validate($v,$args['items'],$param.'['.$i.']');if(is_wp_error($ok))return $ok; }
+    if(isset($args['items']))foreach($value as $i=>$v){ $ok=elvado_wp_rest_validate($v,$args['items'],$param.'['.$i.']');if(is_wp_error($ok))return $ok; }
     if(isset($args['minItems'])&&count($value)<$args['minItems'])return new WP_Error('rest_too_few_items',sprintf('%1$s enthält zu wenige Einträge (mindestens %2$d).',$param,$args['minItems']));
     if(isset($args['maxItems'])&&count($value)>$args['maxItems'])return new WP_Error('rest_too_many_items',sprintf('%1$s enthält zu viele Einträge (höchstens %2$d).',$param,$args['maxItems']));
     if(!empty($args['uniqueItems'])&&!rest_validate_array_contains_unique_items($value))return new WP_Error('rest_duplicate_items',sprintf('%1$s enthält doppelte Einträge.',$param));
@@ -358,7 +358,7 @@ function rest_validate_array_value_from_schema($value,$args,$param='') {
 }}
 if(!function_exists('rest_validate_number_value_from_schema')){
 function rest_validate_number_value_from_schema($value,$args,$param='') {
-    if(!is_numeric($value))return rrw_wp_rest_type_error($param,$args['type']??'number');
+    if(!is_numeric($value))return elvado_wp_rest_type_error($param,$args['type']??'number');
     $value=0+$value;
     if(isset($args['multipleOf'])&&$args['multipleOf']>0){ $q=$value/$args['multipleOf'];if(abs($q-round($q))>1e-9)return new WP_Error('rest_invalid_multiple',sprintf('%1$s muss ein Vielfaches von %2$s sein.',$param,$args['multipleOf'])); }
     if(isset($args['minimum'])&&(!empty($args['exclusiveMinimum'])?$value<=$args['minimum']:$value<$args['minimum']))return new WP_Error('rest_out_of_bounds',sprintf(!empty($args['exclusiveMinimum'])?'%1$s muss größer als %2$s sein.':'%1$s muss mindestens %2$s betragen.',$param,$args['minimum']));
@@ -368,12 +368,12 @@ function rest_validate_number_value_from_schema($value,$args,$param='') {
 if(!function_exists('rest_validate_integer_value_from_schema')){
 function rest_validate_integer_value_from_schema($value,$args,$param='') {
     $ok=rest_validate_number_value_from_schema($value,$args,$param);if(is_wp_error($ok))return $ok;
-    if(round((float)$value)!==(float)$value)return rrw_wp_rest_type_error($param,'integer');
+    if(round((float)$value)!==(float)$value)return elvado_wp_rest_type_error($param,'integer');
     return true;
 }}
 if(!function_exists('rest_validate_string_value_from_schema')){
 function rest_validate_string_value_from_schema($value,$args,$param='') {
-    if(!is_string($value))return rrw_wp_rest_type_error($param,'string');
+    if(!is_string($value))return elvado_wp_rest_type_error($param,'string');
     $len=function_exists('mb_strlen')?mb_strlen($value):strlen($value);
     if(isset($args['minLength'])&&$len<$args['minLength'])return new WP_Error('rest_too_short',sprintf('%1$s muss mindestens %2$d Zeichen lang sein.',$param,$args['minLength']));
     if(isset($args['maxLength'])&&$len>$args['maxLength'])return new WP_Error('rest_too_long',sprintf('%1$s darf höchstens %2$d Zeichen lang sein.',$param,$args['maxLength']));
@@ -389,13 +389,13 @@ function rest_validate_string_value_from_schema($value,$args,$param='') {
     return true;
 }}
 /** Gesamte Prüfung eines Werts gegen ein Schema (anyOf/oneOf, Mehrfachtypen, enum, Typ-Prüfer). */
-if(!function_exists('rrw_wp_rest_validate')){
-function rrw_wp_rest_validate($value,$args,$param='') {
+if(!function_exists('elvado_wp_rest_validate')){
+function elvado_wp_rest_validate($value,$args,$param='') {
     $args=(array)$args;
     if(isset($args['anyOf'])){ $m=rest_find_any_matching_schema($value,$args,$param);if(is_wp_error($m))return $m;if(!isset($args['type'])&&isset($m['type']))$args['type']=$m['type']; }
     if(isset($args['oneOf'])){ $m=rest_find_one_matching_schema($value,$args,$param);if(is_wp_error($m))return $m;if(!isset($args['type'])&&isset($m['type']))$args['type']=$m['type']; }
     $type=$args['type']??null;
-    if(is_array($type)){ $t=rest_handle_multi_type_schema($value,$args,$param);if($t==='')return rrw_wp_rest_type_error($param,$type);$type=$t; }
+    if(is_array($type)){ $t=rest_handle_multi_type_schema($value,$args,$param);if($t==='')return elvado_wp_rest_type_error($param,$type);$type=$t; }
     if($type===null&&!isset($args['enum']))return true;
     if(isset($args['enum'])){ $ok=rest_validate_enum($value,$args,$param);if(is_wp_error($ok))return $ok; }
     return match($type){

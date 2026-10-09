@@ -7,7 +7,7 @@ use Elvado\Ai\{AiGatewayConfig,AiGatewayService,AiGatewayException,CodeBuilder};
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function thr(callable $f,string $needle=''): ?AiGatewayException { try{ $f();return null; }catch(AiGatewayException $e){ return ($needle===''||str_contains($e->getMessage(),$needle))?$e:null; } }
-$tmp=sys_get_temp_dir().'/rrw-cb-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-cb-'.bin2hex(random_bytes(4));mkdir($tmp);
 $hdr="<?php\n/*\nPlugin Name: Hallo Plugin\nDescription: Test\nVersion: 1.0.0\nLicense: GPL-2.0-or-later\n*/\nif (!defined('ABSPATH')) { exit; }\n";
 $good=$hdr."function hallo_plugin_sc(){ return '<p>'.esc_html__('Hallo','hallo-plugin').'</p>'; }\nadd_shortcode('hallo', 'hallo_plugin_sc');\n";
 $ai=fn(string $body)=>"TITEL: Hallo Plugin\nBESCHREIBUNG: Gibt Hallo aus.\n".$body."HINWEISE:\n- Shortcode [hallo] einfügen\n- Zweiter Hinweis\n";

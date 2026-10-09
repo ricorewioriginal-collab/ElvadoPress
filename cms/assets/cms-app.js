@@ -1,9 +1,9 @@
-// Produktbezeichnungen kommen aus cms/lib/product.php (index.php setzt window.RRW_PRODUCT); Rückfall = bisherige Anzeige.
-const RRW_P=Object.assign({name:'ElvadoPress',title:'ElvadoPress',access_name:'ElvadoPress'},window.RRW_PRODUCT||{});
+// Produktbezeichnungen kommen aus cms/lib/product.php (index.php setzt window.ELVADO_PRODUCT); Rückfall = bisherige Anzeige.
+const ELVADO_P=Object.assign({name:'ElvadoPress',title:'ElvadoPress',access_name:'ElvadoPress'},window.ELVADO_PRODUCT||{});
 function cmsEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 'use strict';
 const CRON='api.php'; let CMS=null, newsMounted=false, CMS_IS_SA=false, CMS_USER='', CMS_ROLE='admin', SERVICE_STATUS=[], CURRENT_PAGE_ID=null, DRAG_BLOCK=null, DRAG_MENU=null, MENU_EDITING='top';
-document.getElementById('navbarContainer').innerHTML='<nav class="navbar navbar-custom fixed-top ep-top"><div class="container-fluid"><button type="button" class="cms-nav-toggle" aria-label="Menü" onclick="cmsToggleNav()"><i class="fas fa-bars"></i></button><a class="navbar-brand ep-top-home" href="'+'/'+'"><i class="fas fa-arrow-left me-2"></i>'+'Zur Website'+'</a><button type="button" class="ep-search" id="epTopSearch" aria-label="Suchen (Strg+K)"><i class="fas fa-magnifying-glass"></i><span>Suchen in '+cmsEsc(RRW_P.name||'ElvadoPress')+' …</span><kbd>Strg + K</kbd></button><div class="d-flex align-items-center gap-2 cms-navbar-actions"><a class="ep-site" id="epSiteChip" href="/" target="_blank" rel="noopener" title="Website öffnen"><i class="fas fa-globe"></i><b>'+cmsEsc(RRW_P.title||'Website')+'</b><span class="ep-live"><i></i>Live</span></a><a class="btn btn-sm btn-outline-light cms-navbar-website ep-open" href="/" target="_blank" rel="noopener"><span class="cms-navbar-website-label">Website öffnen</span></a><div class="ep-devs" id="epDevs" role="group" aria-label="Vorschau-Gerät"><button type="button" data-epdev="desktop" class="on" aria-label="Desktop" title="Desktop"><i class="fas fa-desktop"></i></button><button type="button" data-epdev="tablet" aria-label="Tablet" title="Tablet"><i class="fas fa-tablet-screen-button"></i></button><button type="button" data-epdev="mobile" aria-label="Mobil" title="Mobil"><i class="fas fa-mobile-screen"></i></button></div><div class="ep-bellwrap" style="position:relative"><button class="btn btn-sm btn-outline-light ep-bell" style="position:relative" aria-label="Benachrichtigungen" onclick="toggleNotifications()"><i class="fas fa-bell"></i><span id="cmsNotifBadge" style="display:none">0</span></button><div id="cmsNotifPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:420px;overflow-y:auto;background:#0f1538;border:1px solid #2b3370;border-radius:12px;box-shadow:0 20px 55px rgba(0,0,0,.4);z-index:2000;"></div></div><div class="ep-user" id="epUser"><button type="button" class="ep-user-btn" id="epUserBtn" aria-haspopup="true" aria-expanded="false"><span class="ep-avatar" id="epAvatar">?</span><span class="ep-user-txt"><b id="epUserName"></b><small id="epUserRole"></small></span><i class="fas fa-chevron-down"></i></button><div class="ep-user-pop" id="epUserPop" hidden><button type="button" data-epgo="profile"><i class="fas fa-user-gear"></i>Profil</button><button type="button" onclick="cmsLogout()"><i class="fas fa-right-from-bracket"></i>Abmelden</button></div></div><span id="cmsUserIdentity" class="cms-navbar-identity" hidden></span></div></div></nav>';
+document.getElementById('navbarContainer').innerHTML='<nav class="navbar navbar-custom fixed-top ep-top"><div class="container-fluid"><button type="button" class="cms-nav-toggle" aria-label="Menü" onclick="cmsToggleNav()"><i class="fas fa-bars"></i></button><a class="navbar-brand ep-top-home" href="'+'/'+'"><i class="fas fa-arrow-left me-2"></i>'+'Zur Website'+'</a><button type="button" class="ep-search" id="epTopSearch" aria-label="Suchen (Strg+K)"><i class="fas fa-magnifying-glass"></i><span>Suchen in '+cmsEsc(ELVADO_P.name||'ElvadoPress')+' …</span><kbd>Strg + K</kbd></button><div class="d-flex align-items-center gap-2 cms-navbar-actions"><a class="ep-site" id="epSiteChip" href="/" target="_blank" rel="noopener" title="Website öffnen"><i class="fas fa-globe"></i><b>'+cmsEsc(ELVADO_P.title||'Website')+'</b><span class="ep-live"><i></i>Live</span></a><a class="btn btn-sm btn-outline-light cms-navbar-website ep-open" href="/" target="_blank" rel="noopener"><span class="cms-navbar-website-label">Website öffnen</span></a><div class="ep-devs" id="epDevs" role="group" aria-label="Vorschau-Gerät"><button type="button" data-epdev="desktop" class="on" aria-label="Desktop" title="Desktop"><i class="fas fa-desktop"></i></button><button type="button" data-epdev="tablet" aria-label="Tablet" title="Tablet"><i class="fas fa-tablet-screen-button"></i></button><button type="button" data-epdev="mobile" aria-label="Mobil" title="Mobil"><i class="fas fa-mobile-screen"></i></button></div><div class="ep-bellwrap" style="position:relative"><button class="btn btn-sm btn-outline-light ep-bell" style="position:relative" aria-label="Benachrichtigungen" onclick="toggleNotifications()"><i class="fas fa-bell"></i><span id="cmsNotifBadge" style="display:none">0</span></button><div id="cmsNotifPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:420px;overflow-y:auto;background:#0f1538;border:1px solid #2b3370;border-radius:12px;box-shadow:0 20px 55px rgba(0,0,0,.4);z-index:2000;"></div></div><div class="ep-user" id="epUser"><button type="button" class="ep-user-btn" id="epUserBtn" aria-haspopup="true" aria-expanded="false"><span class="ep-avatar" id="epAvatar">?</span><span class="ep-user-txt"><b id="epUserName"></b><small id="epUserRole"></small></span><i class="fas fa-chevron-down"></i></button><div class="ep-user-pop" id="epUserPop" hidden><button type="button" data-epgo="profile"><i class="fas fa-user-gear"></i>Profil</button><button type="button" onclick="cmsLogout()"><i class="fas fa-right-from-bracket"></i>Abmelden</button></div></div><span id="cmsUserIdentity" class="cms-navbar-identity" hidden></span></div></div></nav>';
 const escCms=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function cmsToken(){return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}
 /* Mehrere Websites: die in der Verwaltung gewählte Website (localStorage „ep.site“) wird allen Anfragen an die CMS-Schnittstellen als Kopf „X-EP-Site“ mitgegeben;
@@ -234,7 +234,7 @@ async function cmsShowLogin(){
  document.getElementById('cmsLoginForm').dataset.mode=configured?'login':'setup';
  document.getElementById('cmsLoginTitle').textContent=configured?'Anmeldung erforderlich':'Ersten CMS-Zugang einrichten';
  document.getElementById('cmsLoginDesc').textContent=configured
-   ?'Melde dich mit deinem lokalen '+RRW_P.access_name+'-Zugang an.'
+   ?'Melde dich mit deinem lokalen '+ELVADO_P.access_name+'-Zugang an.'
    :'Es ist noch kein lokaler CMS-Zugang eingerichtet. Lege jetzt Benutzername und Passwort (mind. 8 Zeichen) fest.';
  document.getElementById('cmsLoginSubmit').innerHTML=configured?'<i class="fas fa-right-to-bracket"></i> Anmelden':'<i class="fas fa-user-plus"></i> Zugang einrichten';
  const msg=document.getElementById('cmsLoginMsg');if(msg)msg.textContent='';
@@ -257,7 +257,7 @@ async function cmsHandleLogin(ev){
 }
 // Hinweis für die Admin-Leiste auf der öffentlichen Website (enthält KEIN Token, nur Name/Rolle/Ablauf; siehe assets/js/adminbar.js)
 function cmsBarMark(on){
- try{if(on)localStorage.setItem('rrw_cms_bar',JSON.stringify({u:CMS_USER||'',r:CMS_ROLE||'',exp:Date.now()+12*3600*1000}));else localStorage.removeItem('rrw_cms_bar');}catch(e){}
+ try{if(on)localStorage.setItem('elvado_cms_bar',JSON.stringify({u:CMS_USER||'',r:CMS_ROLE||'',exp:Date.now()+12*3600*1000}));else localStorage.removeItem('elvado_cms_bar');}catch(e){}
 }
 function cmsLogout(){
  cmsBarMark(false);
@@ -333,7 +333,7 @@ function cmsFilterNav(q){
  if(window.cmsNavRefresh&&!q)cmsNavRefresh();
  const empty=document.getElementById('cmsNavEmpty'); if(empty)empty.style.display=(q&&!anyVisible)?'':'none';
 }
-function cmsTab(id,btn){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.getElementById('panel-'+id)?.classList.add('on');btn?.classList.add('on');if(id==='news'&&!newsMounted){newsMounted=true;setTimeout(()=>NewsMagazine.mount(),0)}if(id==='menus')requestAnimationFrame(()=>switchMenuEditor(sessionStorage.getItem('rrw_cms_menu_editor')||MENU_EDITING||'top'));if(id==='widgets')requestAnimationFrame(()=>renderWidgets());if(id==='architecture')loadArchitecture();if(id==='services')loadServiceStatus();if(id==='apps'&&window.AppBuild)AppBuild.load();if(id==='comments'&&window.CommentsManager)CommentsManager.load();cmsCloseNav();window.scrollTo({top:0,behavior:'smooth'})}
+function cmsTab(id,btn){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));document.getElementById('panel-'+id)?.classList.add('on');btn?.classList.add('on');if(id==='news'&&!newsMounted){newsMounted=true;setTimeout(()=>NewsMagazine.mount(),0)}if(id==='menus')requestAnimationFrame(()=>switchMenuEditor(sessionStorage.getItem('elvado_cms_menu_editor')||MENU_EDITING||'top'));if(id==='widgets')requestAnimationFrame(()=>renderWidgets());if(id==='architecture')loadArchitecture();if(id==='services')loadServiceStatus();if(id==='apps'&&window.AppBuild)AppBuild.load();if(id==='comments'&&window.CommentsManager)CommentsManager.load();cmsCloseNav();window.scrollTo({top:0,behavior:'smooth'})}
 function cmsToggleNav(){document.querySelector('.tabs')?.classList.toggle('open');document.getElementById('cmsNavBackdrop')?.classList.toggle('on')}
 function cmsCloseNav(){document.querySelector('.tabs')?.classList.remove('open');document.getElementById('cmsNavBackdrop')?.classList.remove('on')}
 async function saveSection(section,value){const scrollY=window.scrollY;try{setPublishState(true,'Speichere…');const d=await cmsApi('save',{section,value});CMS[section]=d.value;renderCms();requestAnimationFrame(()=>window.scrollTo({top:scrollY,left:0,behavior:'auto'}));const live=await verifyPublicSection(section,d.value);cmsToast(live?'Gespeichert & live veröffentlicht ✓':'Gespeichert, Live-Stand bitte prüfen',!live)}catch(e){setPublishState(false,'Speichern fehlgeschlagen');cmsToast(e.message,true)}}
@@ -388,7 +388,7 @@ function blockHtml(b,zone,i){
 function editHtmlBlock(zone,i){
  const a=blockArray(zone);if(!a[i]||!window.EPB)return;
  const upload=(file,cb)=>{if(file.size>8*1024*1024)return cmsToast('Bild darf maximal 8 MB groß sein',true);const fd=new FormData();fd.append('file',file);fetch(CRON+'?action=media_upload',{method:'POST',headers:cmsHeaders(false),body:fd}).then(r=>r.json()).then(d=>{if(d.status==='ok')cb({url:d.url,alt:''});else cmsToast(d.message||'Upload fehlgeschlagen',true)}).catch(e=>cmsToast(e.message,true))};
- EPB.modal({title:'HTML-Block bearbeiten',html:a[i].html||'',canRaw:(typeof CMS_IS_SA!=='undefined'&&!!CMS_IS_SA)&&!window.RRW_DEMO,
+ EPB.modal({title:'HTML-Block bearbeiten',html:a[i].html||'',canRaw:(typeof CMS_IS_SA!=='undefined'&&!!CMS_IS_SA)&&!window.ELVADO_DEMO,
   pickImage:cb=>{if(!window.StockMedia)return cmsToast('Bildauswahl nicht verfügbar',true);StockMedia.open({onPick:(item,info)=>cb({url:info.urlFor?info.urlFor(1600):info.url,alt:info.alt||'',caption:info.credit||''})})},
   upload:cb=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/jpeg,image/png,image/webp';inp.onchange=()=>{if(inp.files[0])upload(inp.files[0],cb)};inp.click()},
   uploadFile:upload,
@@ -415,7 +415,7 @@ function refreshNativePreview(){
  const p=currentPage(),f=document.getElementById('nativePreviewFrame');if(!p||p.type!=='system'||!f)return;
  NATIVE_TEXT_CANDIDATES=[];
  try{
-   sessionStorage.setItem('rrw_page_preview_override',JSON.stringify(p));
+   sessionStorage.setItem('elvado_page_preview_override',JSON.stringify(p));
    const portal={
      site_name:CMS.portal?.site_name||'',
      news_title:document.getElementById('cmsNewsTitle')?.value||CMS.portal?.news_title||'',
@@ -427,7 +427,7 @@ function refreshNativePreview(){
      notice_enabled:document.getElementById('cmsNoticeEnabled')?.checked??CMS.portal?.notice_enabled,
      notice_text:document.getElementById('cmsNoticeText')?.value||CMS.portal?.notice_text||''
    };
-   sessionStorage.setItem('rrw_portal_preview_override',JSON.stringify(portal));
+   sessionStorage.setItem('elvado_portal_preview_override',JSON.stringify(portal));
  }catch(e){}
  f.onload=()=>{try{const d=f.contentDocument;if(!d)return;const sc=d.getElementById('app-scroll');if(!sc)return;let target=null;if(p.system_target==='sender')target=d.getElementById('sec-sender');else if(p.system_target==='voting')target=d.getElementById('sec-voting');sc.scrollTo({top:target?Math.max(0,target.offsetTop-12):0,left:0,behavior:'auto'});}catch(e){}};
  f.src=nativePreviewUrl(p);
@@ -455,7 +455,7 @@ function nativeScanRoots(doc,target){
  return [doc.getElementById('full-view')].filter(Boolean);
 }
 window.addEventListener('message',function(e){
- const d=e.data;if(!d||d.type!=='rrw-cms-native-texts'||!Array.isArray(d.rows))return;
+ const d=e.data;if(!d||d.type!=='elvado-cms-native-texts'||!Array.isArray(d.rows))return;
  const p=currentPage();if(!p||p.type!=='system'||d.target!==p.system_target)return;
  NATIVE_TEXT_CANDIDATES=d.rows.map(r=>{const saved=(p.text_overrides||[]).find(x=>x.selector===r.selector);return {...r,text:saved?saved.text:r.original};});
  const host=document.getElementById('nativeTextEditor');if(host&&host.style.display!=='none')renderNativeTextCandidates();
@@ -524,13 +524,13 @@ function menuTargetLabel(target){
  return target||'Kein Ziel';
 }
 function currentMenuEditor(){
- const stored=sessionStorage.getItem('rrw_cms_menu_editor');
+ const stored=sessionStorage.getItem('elvado_cms_menu_editor');
  const v=stored||MENU_EDITING||document.getElementById('menuEditingSelect')?.value||'top';
  return v==='bottom'?'bottom':'top';
 }
 function switchMenuEditor(which){
  MENU_EDITING=which==='bottom'?'bottom':'top';
- sessionStorage.setItem('rrw_cms_menu_editor',MENU_EDITING);
+ sessionStorage.setItem('elvado_cms_menu_editor',MENU_EDITING);
  const sel=document.getElementById('menuEditingSelect');if(sel&&sel.value!==MENU_EDITING)sel.value=MENU_EDITING;
  renderMenuAvailablePages();
  renderMenu(MENU_EDITING);

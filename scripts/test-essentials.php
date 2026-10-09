@@ -22,7 +22,7 @@ function t(string $name,bool $ok,string $info=''): void { global $n,$fail;$n++;i
 
 /** Wegwerf-Installation: eigener cms-Ordner mit Verweisen auf lib/src/official-plugins des echten Codes, eigenen Daten-, Plugin-, Medien- und Backup-Ordnern. */
 function sandbox(string $real): array {
-    $tmp=sys_get_temp_dir().'/rrw-ess-'.bin2hex(random_bytes(4));$cms=$tmp.'/cms';
+    $tmp=sys_get_temp_dir().'/elvado-ess-'.bin2hex(random_bytes(4));$cms=$tmp.'/cms';
     foreach(['data','plugins','backups','media','themes','content'] as $d)mkdir($cms.'/'.$d,0755,true);
     foreach(['lib','src','official-plugins'] as $l)symlink($real.'/'.$l,$cms.'/'.$l);
     file_put_contents($cms.'/VERSION',trim((string)file_get_contents($real.'/VERSION'))."\n");
@@ -49,17 +49,17 @@ t('Plugins: PHP-Dateien unter cms/plugins sind per .htaccess nicht direkt aufruf
 $S=fn(string $call,array $a=[])=>$mgr->callApi('elvado-security',$call,$a,'admin');
 $mgr->saveSettings('elvado-security',['max_attempts'=>3,'lock_minutes'=>5]);
 $ip='203.0.113.77';
-t('Security: vor Fehlversuchen keine Sperre',rrw_np_filter('login_check',null,'rico',$ip)===null);
-for($i=0;$i<3;$i++)rrw_np_do('login_result','rico',false,$ip);
-$msg=rrw_np_filter('login_check',null,'rico',$ip);
+t('Security: vor Fehlversuchen keine Sperre',elvado_np_filter('login_check',null,'rico',$ip)===null);
+for($i=0;$i<3;$i++)elvado_np_do('login_result','rico',false,$ip);
+$msg=elvado_np_filter('login_check',null,'rico',$ip);
 t('Security: nach zu vielen Fehlversuchen gesperrt (Meldung mit Minuten)',is_string($msg)&&str_contains($msg,'Minute'));
-t('Security: hinter Proxy zählt standardmäßig die Verbindungsadresse; mit „Proxy vertrauen“ die Header-Adresse',(function() use($mgr){ $mgr->saveSettings('elvado-security',['trust_proxy'=>true]);$_SERVER['HTTP_X_FORWARDED_FOR']='203.0.113.77, 10.0.0.1';$a=is_string(rrw_np_filter('login_check',null,'zzz','10.9.9.9'));unset($_SERVER['HTTP_X_FORWARDED_FOR']);$mgr->saveSettings('elvado-security',['trust_proxy'=>false]);$_SERVER['HTTP_X_FORWARDED_FOR']='203.0.113.77';$b=rrw_np_filter('login_check',null,'zzz','10.9.9.9');unset($_SERVER['HTTP_X_FORWARDED_FOR']);return $a&&$b===null; })());
-t('Security: andere Adresse, anderer Benutzer bleibt frei',rrw_np_filter('login_check',null,'anna','198.51.100.9')===null);
-rrw_np_do('login_result','rico',true,'198.51.100.5');
-t('Security: erfolgreicher Login hebt die Benutzer-Sperre nicht für fremde Adresse auf, Adress-Sperre bleibt',is_string(rrw_np_filter('login_check',null,'x',$ip)));
+t('Security: hinter Proxy zählt standardmäßig die Verbindungsadresse; mit „Proxy vertrauen“ die Header-Adresse',(function() use($mgr){ $mgr->saveSettings('elvado-security',['trust_proxy'=>true]);$_SERVER['HTTP_X_FORWARDED_FOR']='203.0.113.77, 10.0.0.1';$a=is_string(elvado_np_filter('login_check',null,'zzz','10.9.9.9'));unset($_SERVER['HTTP_X_FORWARDED_FOR']);$mgr->saveSettings('elvado-security',['trust_proxy'=>false]);$_SERVER['HTTP_X_FORWARDED_FOR']='203.0.113.77';$b=elvado_np_filter('login_check',null,'zzz','10.9.9.9');unset($_SERVER['HTTP_X_FORWARDED_FOR']);return $a&&$b===null; })());
+t('Security: andere Adresse, anderer Benutzer bleibt frei',elvado_np_filter('login_check',null,'anna','198.51.100.9')===null);
+elvado_np_do('login_result','rico',true,'198.51.100.5');
+t('Security: erfolgreicher Login hebt die Benutzer-Sperre nicht für fremde Adresse auf, Adress-Sperre bleibt',is_string(elvado_np_filter('login_check',null,'x',$ip)));
 $S('action_clear_lockouts');
-t('Security: Sperren aufheben',rrw_np_filter('login_check',null,'rico',$ip)===null);
-rrw_np_do('login_result','mein-geheimes-Passwort 123!',false,'2001:db8:abcd:12::1');
+t('Security: Sperren aufheben',elvado_np_filter('login_check',null,'rico',$ip)===null);
+elvado_np_do('login_result','mein-geheimes-Passwort 123!',false,'2001:db8:abcd:12::1');
 $log=file_get_contents($cms.'/data/.plugins/data/elvado-security/login.jsonl');
 t('Security: Protokoll enthält weder Passwörter noch vollständige Adressen',!str_contains($log,'geheimes')&&!str_contains($log,'203.0.113.77')&&str_contains($log,'203.0.113.0')&&str_contains($log,'(ungültig)')&&str_contains($log,'2001:db8:abcd::'));
 file_put_contents($cms.'/probe.php',"<?php echo 1;\n");
@@ -78,22 +78,22 @@ t('Redirects: Kette A→B→C wird zu A→C verkürzt',$byFrom['/a']==='/c');
 t('Redirects: Schleife X↔Y wird aufgelöst (eine Regel entfernt)',!(isset($byFrom['/x'])&&isset($byFrom['/y']))&&count($notes)>=2);
 t('Redirects: externe Ziele bleiben unverändert',$byFrom['/ext']==='https://example.org/');
 t('Redirects: Endziel/Schleife werden erkannt',Rules::resolve([['from'=>'/p','to'=>'/q'],['from'=>'/q','to'=>'/p']],'/p')['loop']===true&&Rules::resolve([['from'=>'/p','to'=>'/q']],'/p')['final']==='/q');
-$clean=rrw_redirects_clean([['from'=>'/m','to'=>'/n','code'=>301],['from'=>'/n','to'=>'/m','code'=>301]]);
-t('Redirects: Core-Speichern (rrw_redirects_clean) wird per Hook gegen Schleifen geschützt',count($clean)===1);
+$clean=elvado_redirects_clean([['from'=>'/m','to'=>'/n','code'=>301],['from'=>'/n','to'=>'/m','code'=>301]]);
+t('Redirects: Core-Speichern (elvado_redirects_clean) wird per Hook gegen Schleifen geschützt',count($clean)===1);
 file_put_contents($cms.'/data/news.json',json_encode([['id'=>1,'slug'=>'neuer-titel','published_at'=>'2025-03-04 10:00:00']]));
-rrw_np_do('slug_changed','news','alter-titel','neuer-titel');
-$rr=rrw_tools_read(rrw_tools_dir($cms.'/data').'/redirects.json',['rules'=>[]])['rules'];
+elvado_np_do('slug_changed','news','alter-titel','neuer-titel');
+$rr=elvado_tools_read(elvado_tools_dir($cms.'/data').'/redirects.json',['rules'=>[]])['rules'];
 t('Redirects: geänderter Slug erzeugt automatisch eine 301-Weiterleitung',count($rr)===1&&$rr[0]['from']==='/alter-titel/'&&$rr[0]['to']==='/neuer-titel/'&&$rr[0]['code']===301);
-rrw_np_do('slug_changed','news','neuer-titel','alter-titel');
-$rr=rrw_tools_read(rrw_tools_dir($cms.'/data').'/redirects.json',['rules'=>[]])['rules'];
+elvado_np_do('slug_changed','news','neuer-titel','alter-titel');
+$rr=elvado_tools_read(elvado_tools_dir($cms.'/data').'/redirects.json',['rules'=>[]])['rules'];
 t('Redirects: Rückänderung des Slugs erzeugt keine Schleife',count($rr)===1&&$rr[0]['from']==='/neuer-titel/'&&$rr[0]['to']==='/alter-titel/');
-$mgr->saveSettings('elvado-redirects',['auto_slug'=>false]);rrw_np_do('slug_changed','news','a1','b1');
-t('Redirects: automatische Weiterleitung lässt sich ausschalten',count(rrw_tools_read(rrw_tools_dir($cms.'/data').'/redirects.json',['rules'=>[]])['rules'])===1);
-rrw_404_log($cms.'/data','/verschwunden/','');rrw_404_log($cms.'/data','/verschwunden/','');
+$mgr->saveSettings('elvado-redirects',['auto_slug'=>false]);elvado_np_do('slug_changed','news','a1','b1');
+t('Redirects: automatische Weiterleitung lässt sich ausschalten',count(elvado_tools_read(elvado_tools_dir($cms.'/data').'/redirects.json',['rules'=>[]])['rules'])===1);
+elvado_404_log($cms.'/data','/verschwunden/','');elvado_404_log($cms.'/data','/verschwunden/','');
 $o=$mgr->callApi('elvado-redirects','overview',[],'admin');
 t('Redirects: 404-Monitor zeigt häufige Adressen mit Aktion',(function() use($o){ foreach($o['blocks'] as $b)if($b['type']==='table'&&$b['rows']&&$b['rows'][0]['cells'][0]==='/verschwunden/'&&$b['rows'][0]['cells'][1]==='2')return true;return false; })());
 $r2=$mgr->callApi('elvado-redirects','create',['from'=>'/verschwunden/','to'=>'/neu/'],'admin');
-t('Redirects: Weiterleitung aus dem 404-Monitor anlegen (Eintrag verschwindet)',$r2['ok']&&!array_filter(rrw_tools_read(rrw_tools_dir($cms.'/data').'/404.json',['items'=>[]])['items'],fn($i)=>$i['path']==='/verschwunden/'));
+t('Redirects: Weiterleitung aus dem 404-Monitor anlegen (Eintrag verschwindet)',$r2['ok']&&!array_filter(elvado_tools_read(elvado_tools_dir($cms.'/data').'/404.json',['items'=>[]])['items'],fn($i)=>$i['path']==='/verschwunden/'));
 t('Redirects: ungültige Ziele werden abgelehnt',!$mgr->callApi('elvado-redirects','create',['from'=>'/q/','to'=>'javascript:alert(1)'],'admin')['ok']&&!$mgr->callApi('elvado-redirects','create',['from'=>'/q/','to'=>'//evil.example'],'admin')['ok']);
 t('Redirects: Ketten verkürzen als Aktion',$mgr->callApi('elvado-redirects','action_flatten',[],'admin')['ok']);
 
@@ -146,9 +146,9 @@ sleep(1);Hooks::run('tick',time());
 t('Backup: fälliges automatisches Backup läuft im Tick und merkt sich den Lauf',count(glob($cms.'/backups/elvado-backup_*.zip'))===$before+1&&!empty(json_decode(file_get_contents($cms.'/data/.plugins/data/elvado-backup/schedule.json'),true)['last_ok']));
 $before=count(glob($cms.'/backups/elvado-backup_*.zip'));Hooks::run('tick',time());
 t('Backup: nicht doppelt am selben Tag',count(glob($cms.'/backups/elvado-backup_*.zip'))===$before);
-t('Backup: der Core-Bereich „Backups“ nutzt die Plugin-Engine',(function() use($cms){ $x=rrw_backup_create($cms.'/..',false);return str_starts_with($x['name'],'elvado-backup_'); })());
+t('Backup: der Core-Bereich „Backups“ nutzt die Plugin-Engine',(function() use($cms){ $x=elvado_backup_create($cms.'/..',false);return str_starts_with($x['name'],'elvado-backup_'); })());
 $cur=glob($cms.'/backups/elvado-backup_*.zip');copy(end($cur),$cms.'/backups/kaputt.zip');$z=new ZipArchive();$z->open($cms.'/backups/kaputt.zip');$z->addFromString('cms/data/news.json','MANIPULIERT');$z->close();
-t('Backup: Core-Wiederherstellung nutzt die Plugin-Engine (Prüfung greift, kein Rückfall auf das alte Verfahren)',(function() use($cms){ try{ rrw_backup_restore('kaputt.zip',$cms.'/..');return false; }catch(Throwable $e){ return str_contains($e->getMessage(),'beschädigt'); } })());
+t('Backup: Core-Wiederherstellung nutzt die Plugin-Engine (Prüfung greift, kein Rückfall auf das alte Verfahren)',(function() use($cms){ try{ elvado_backup_restore('kaputt.zip',$cms.'/..');return false; }catch(Throwable $e){ return str_contains($e->getMessage(),'beschädigt'); } })());
 
 // ---------- Elvado Performance
 $h='<html><head><link rel="x"><img src="no.png"></head><body><img src="a.jpg" alt="x"><p>t</p><img src="b.jpg"><img src="c.jpg" loading="eager"><noscript><img src="n.jpg"></noscript><iframe src="https://e.example"></iframe><img src="d.jpg" /></body></html>';
@@ -160,15 +160,15 @@ $_SERVER['REQUEST_URI']='/seite/';$_SERVER['REQUEST_METHOD']='GET';$_SERVER['HTT
 $page='<html><head><title>T</title></head><body><img src="a.jpg"><img src="b.jpg"><p>Hallo Welt</p></body></html>';
 $mgr->saveSettings('elvado-performance',['cache'=>true,'ttl_minutes'=>10,'lazy'=>true,'skip_first'=>1,'minify'=>false]);
 $_SERVER['REQUEST_URI']='/seite/';$_SERVER['REQUEST_METHOD']='GET';$_SERVER['HTTP_HOST']='t.example';$_GET=[];$_COOKIE=[];$_SERVER['HTTP_USER_AGENT']='Mozilla';
-$out=rrw_np_filter('front_output',$page,200);
+$out=elvado_np_filter('front_output',$page,200);
 t('Performance: Ausgabe wird optimiert (Lazy Loading) und im Cache abgelegt',str_contains($out,'loading="lazy"')&&count(glob($cms.'/data/.plugins/data/elvado-performance/cache/*.html'))===1);
 function child(string $cms,string $uri,array $env=[],string $cookie=''): string {
     $f=$cms.'/child.php';
-    file_put_contents($f,'<?php define("RRW_DATA_DIR",'.var_export($cms.'/data',true).');require '.var_export($GLOBALS['real'].'/lib/nplugins.php',true).';
-$ver=trim((string)file_get_contents('.var_export($cms.'/VERSION',true).'));rrw_np('.var_export($cms,true).','.var_export($cms.'/data',true).',$ver,true);rrw_np_boot();
+    file_put_contents($f,'<?php define("ELVADO_DATA_DIR",'.var_export($cms.'/data',true).');require '.var_export($GLOBALS['real'].'/lib/nplugins.php',true).';
+$ver=trim((string)file_get_contents('.var_export($cms.'/VERSION',true).'));elvado_np('.var_export($cms,true).','.var_export($cms.'/data',true).',$ver,true);elvado_np_boot();
 $_SERVER["REQUEST_URI"]='.var_export($uri,true).';$_SERVER["REQUEST_METHOD"]="GET";$_SERVER["HTTP_HOST"]="t.example";$_SERVER["HTTP_USER_AGENT"]="Mozilla";foreach('.var_export($env,true).' as $k=>$v)$_SERVER[$k]=$v;'.($cookie!==''?'$_COOKIE='.$cookie.';':'').'
 $q=[];parse_str((string)parse_url('.var_export($uri,true).',PHP_URL_QUERY),$q);$_GET=$q;
-rrw_np_do("front_request",'.var_export($uri,true).',(string)parse_url('.var_export($uri,true).',PHP_URL_PATH),"GET");echo "NOCACHE";');
+elvado_np_do("front_request",'.var_export($uri,true).',(string)parse_url('.var_export($uri,true).',PHP_URL_PATH),"GET");echo "NOCACHE";');
     return (string)shell_exec('php '.escapeshellarg($f).' 2>&1');
 }
 $real_nplugins=$real.'/lib/nplugins.php';
@@ -176,16 +176,16 @@ $hit=child($cms,'/seite/');
 t('Performance: zweite Anfrage wird aus dem Cache beantwortet (ohne WordPress)',str_contains($hit,'Hallo Welt')&&!str_contains($hit,'NOCACHE'),substr($hit,0,200));
 t('Performance: Anfragen mit Parametern werden nicht aus dem Cache bedient',str_contains(child($cms,'/seite/?s=x'),'NOCACHE'));
 t('Performance: Tracking-Parameter (utm_*) stören den Cache nicht',str_contains(child($cms,'/seite/?utm_source=a'),'Hallo Welt'));
-t('Performance: angemeldete Personen (Sitzungs-Cookie) bekommen nie Cache-Seiten',str_contains(child($cms,'/seite/',[],'["rrw_wp_sess"=>"x"]'),'NOCACHE'));
+t('Performance: angemeldete Personen (Sitzungs-Cookie) bekommen nie Cache-Seiten',str_contains(child($cms,'/seite/',[],'["elvado_wp_sess"=>"x"]'),'NOCACHE'));
 t('Performance: Verwaltungs- und API-Adressen werden nie gecacht',str_contains(child($cms,'/cms/api.php'),'NOCACHE')&&str_contains(child($cms,'/wp-json/x'),'NOCACHE'));
 t('Performance: App-Anfragen (App-Modus) werden nicht gecacht',str_contains(child($cms,'/seite/',['HTTP_USER_AGENT'=>'Mozilla ElvadoPressApp/1.0 (brand=abc; platform=android)']),'NOCACHE'));
-rrw_np_do('content_saved','news');
+elvado_np_do('content_saved','news');
 t('Performance: Inhaltsänderung leert den Cache',glob($cms.'/data/.plugins/data/elvado-performance/cache/*.html')===[]&&str_contains(child($cms,'/seite/'),'NOCACHE'));
-$_SERVER['REQUEST_URI']='/form/';rrw_np_filter('front_output','<html><body><form data-elvado-nocache></form></body></html>',200);
+$_SERVER['REQUEST_URI']='/form/';elvado_np_filter('front_output','<html><body><form data-elvado-nocache></form></body></html>',200);
 t('Performance: Seiten mit Markierung data-elvado-nocache werden nie gespeichert',glob($cms.'/data/.plugins/data/elvado-performance/cache/*.html')===[]);
-$_SERVER['REQUEST_URI']='/e/';rrw_np_filter('front_output',$page,404);
+$_SERVER['REQUEST_URI']='/e/';elvado_np_filter('front_output',$page,404);
 t('Performance: Fehlerseiten (404) werden nicht gecacht',glob($cms.'/data/.plugins/data/elvado-performance/cache/*.html')===[]);
-$mgr->saveSettings('elvado-performance',['exclude_paths'=>"/warenkorb/\n/kasse"]);$_SERVER['REQUEST_URI']='/warenkorb/artikel';rrw_np_filter('front_output',$page,200);
+$mgr->saveSettings('elvado-performance',['exclude_paths'=>"/warenkorb/\n/kasse"]);$_SERVER['REQUEST_URI']='/warenkorb/artikel';elvado_np_filter('front_output',$page,200);
 t('Performance: eigene Ausschlüsse werden beachtet',glob($cms.'/data/.plugins/data/elvado-performance/cache/*.html')===[]);
 t('Performance: Übersicht liefert Kennzahlen und Serverprüfung',(function() use($mgr){ $o=$mgr->callApi('elvado-performance','overview',[],'admin');return $o['status']==='ok'&&$o['blocks'][0]['type']==='stats'&&$o['blocks'][1]['type']==='checks'; })());
 // .htaccess
@@ -215,7 +215,7 @@ t('Analytics: Aufrufe und eindeutige Besucher werden gezählt',$t['v']===3&&$t['
 t('Analytics: Herkunft (Host ohne www) und Gerät werden erfasst',$t['r']['google.com']===3&&$t['d']['desktop']===3);
 $hit(['HTTP_USER_AGENT'=>'Googlebot/2.1 (+http://www.google.com/bot.html)'],'/bot/');
 $hit(['HTTP_DNT'=>'1'],'/dnt/');$hit(['HTTP_SEC_GPC'=>'1'],'/gpc/');
-$hit([],'/editor/',['rrw_wp_sess'=>'x']);$hit([],'/cms/api.php');$hit(['REQUEST_METHOD'=>'POST'],'/post/');
+$hit([],'/editor/',['elvado_wp_sess'=>'x']);$hit([],'/cms/api.php');$hit(['REQUEST_METHOD'=>'POST'],'/post/');
 $A->count(404,'/nix/','text/html');$A->count(200,'/feed.json','application/json');
 $t=Stats::sum($A->days(1));
 t('Analytics: Bots, Do-Not-Track, Global Privacy Control, Redakteure, Verwaltung, POST, 404 und Nicht-HTML werden nicht gezählt',$t['v']===3&&!isset($t['p']['/bot/'])&&!isset($t['p']['/dnt/'])&&!isset($t['p']['/gpc/'])&&!isset($t['p']['/editor/'])&&!isset($t['p']['/nix/']));
@@ -230,16 +230,16 @@ t('Analytics: Aufbewahrung löscht alte Tage; Übersicht mit Balken, Tabellen un
 // externe Dienste
 $page='<html><head></head><body><p>x</p></body></html>';$_COOKIE=[];
 $mgr->saveSettings('elvado-analytics',['matomo_url'=>'https://matomo.example.org/','matomo_site_id'=>5,'ga_id'=>'G-ABC123XYZ9','ack'=>false]);
-t('Analytics: externe Dienste werden ohne Bestätigung („ack“) NICHT ausgeliefert',!str_contains(rrw_np_filter('front_output',$page,200),'matomo')&&!str_contains(rrw_np_filter('front_output',$page,200),'googletagmanager'));
+t('Analytics: externe Dienste werden ohne Bestätigung („ack“) NICHT ausgeliefert',!str_contains(elvado_np_filter('front_output',$page,200),'matomo')&&!str_contains(elvado_np_filter('front_output',$page,200),'googletagmanager'));
 $mgr->saveSettings('elvado-analytics',['ack'=>true]);
-$o=rrw_np_filter('front_output',$page,200);
+$o=elvado_np_filter('front_output',$page,200);
 t('Analytics: nach Bestätigung kommen Matomo und GA (clientseitig mit DNT-/Einwilligungsprüfung)',str_contains($o,'matomo.example.org')&&str_contains($o,'G-ABC123XYZ9')&&str_contains($o,'doNotTrack')&&str_contains($o,'"consent":""'));
 $mgr->saveSettings('elvado-analytics',['consent_cookie'=>'cookie_consent']);
-t('Analytics: Einwilligungs-Cookie wird in die Prüfung übernommen',str_contains(rrw_np_filter('front_output',$page,200),'"consent":"cookie_consent"'));
+t('Analytics: Einwilligungs-Cookie wird in die Prüfung übernommen',str_contains(elvado_np_filter('front_output',$page,200),'"consent":"cookie_consent"'));
 $mgr->saveSettings('elvado-analytics',['ga_id'=>'G-<script>alert(1)</script>','matomo_url'=>'https://matomo.example.org/','matomo_site_id'=>0]);
-t('Analytics: ungültige IDs (Skript-Einschleusung) und Matomo-ID 0 liefern nichts aus',!str_contains(rrw_np_filter('front_output',$page,200),'script>alert')&&!str_contains(rrw_np_filter('front_output',$page,200),'googletagmanager')&&!str_contains(rrw_np_filter('front_output',$page,200),'matomo.js'));
-$mgr->saveSettings('elvado-analytics',['matomo_site_id'=>5,'ga_id'=>'']);$_COOKIE=['rrw_wp_sess'=>'x'];
-t('Analytics: Redakteure (angemeldet) werden nicht von externen Diensten erfasst',!str_contains(rrw_np_filter('front_output',$page,200),'matomo.js')&&!str_contains(rrw_np_filter('front_output',$page,200),'matomo.example'));
+t('Analytics: ungültige IDs (Skript-Einschleusung) und Matomo-ID 0 liefern nichts aus',!str_contains(elvado_np_filter('front_output',$page,200),'script>alert')&&!str_contains(elvado_np_filter('front_output',$page,200),'googletagmanager')&&!str_contains(elvado_np_filter('front_output',$page,200),'matomo.js'));
+$mgr->saveSettings('elvado-analytics',['matomo_site_id'=>5,'ga_id'=>'']);$_COOKIE=['elvado_wp_sess'=>'x'];
+t('Analytics: Redakteure (angemeldet) werden nicht von externen Diensten erfasst',!str_contains(elvado_np_filter('front_output',$page,200),'matomo.js')&&!str_contains(elvado_np_filter('front_output',$page,200),'matomo.example'));
 $_COOKIE=[];
 t('Analytics: Standard ist ausgeschaltet (ack=false, keine IDs)',(function() use($mgr){ $d=array_column($mgr->installedManifest('elvado-analytics')[0]['settings'],'default','key');return $d['ack']===false&&$d['ga_id']===''&&(int)$d['matomo_site_id']===0&&$d['internal']===true; })());
 $mgr->callApi('elvado-analytics','action_purge',[],'admin');
@@ -340,12 +340,12 @@ t('Forms: Formular löschen (mit Daten)',$F->delete('kontakt',true)&&$F->find('k
 
 // ---------- Elvado SEO
 if(in_array('elvado-seo',$ess,true)){
-if(!class_exists('WP_Post')){ class WP_Post { public $ID=1,$post_title='',$post_content='',$post_excerpt='',$post_type='post',$post_date_gmt='2025-03-04 10:00:00',$post_modified_gmt='2025-03-05 11:00:00',$post_author=1,$post_password='',$rrw_source='news',$rrw_data=[]; }
+if(!class_exists('WP_Post')){ class WP_Post { public $ID=1,$post_title='',$post_content='',$post_excerpt='',$post_type='post',$post_date_gmt='2025-03-04 10:00:00',$post_modified_gmt='2025-03-05 11:00:00',$post_author=1,$post_password='',$elvado_source='news',$elvado_data=[]; }
 class WP_Query { public $posts=[]; function __construct($a=[]){ $this->posts=$GLOBALS['stub_posts']??[]; } } }
 $GLOBALS['stub']=['kind'=>'single','obj'=>null,'url'=>'https://t.example/mein-beitrag/'];
 foreach(['is_front_page'=>fn()=>$GLOBALS['stub']['kind']==='front','is_home'=>fn()=>false,'is_singular'=>fn()=>in_array($GLOBALS['stub']['kind'],['single','page'],true),'is_404'=>fn()=>$GLOBALS['stub']['kind']==='404','is_search'=>fn()=>$GLOBALS['stub']['kind']==='search','is_date'=>fn()=>$GLOBALS['stub']['kind']==='date','is_author'=>fn()=>false,'is_tag'=>fn()=>false,'is_category'=>fn()=>false,
   'get_queried_object'=>fn()=>$GLOBALS['stub']['obj'],'get_bloginfo'=>fn($k='name')=>'Mein Verein','home_url'=>fn($p='/')=>'https://t.example'.$p,'get_permalink'=>fn($p=null)=>$GLOBALS['stub']['url'],'get_locale'=>fn()=>'de_DE','get_post_meta'=>fn()=>'','get_userdata'=>fn()=>null,'get_term_link'=>fn($t)=>'https://t.example/category/'.$t->slug.'/','get_terms'=>fn()=>[(object)['name'=>'News','slug'=>'news','description'=>'']]] as $fn=>$impl){ if(!function_exists($fn)){ eval('function '.$fn.'(...$a){ return ($GLOBALS["stubfn"]["'.$fn.'"])(...$a); }'); } $GLOBALS['stubfn'][$fn]=$impl; }
-$mk=function(array $d,string $title='Mein Beitrag',string $src='news',string $type='post'){ $p=new WP_Post();$p->post_title=$title;$p->rrw_source=$src;$p->rrw_data=$d;$p->post_type=$type;$p->post_content='<p>Der Text des Beitrags mit genug Inhalt.</p>';return $p; };
+$mk=function(array $d,string $title='Mein Beitrag',string $src='news',string $type='post'){ $p=new WP_Post();$p->post_title=$title;$p->elvado_source=$src;$p->elvado_data=$d;$p->post_type=$type;$p->post_content='<p>Der Text des Beitrags mit genug Inhalt.</p>';return $p; };
 $Sx=new Seo(ctx($mgr,'elvado-seo'));
 $head='<html><head><title>Theme-Titel</title></head><body class="x"><p>b</p></body></html>';
 $GLOBALS['stub']=['kind'=>'single','obj'=>$mk(['seo_title'=>'Mein SEO-Titel','seo_description'=>'Beschreibung des Beitrags','image_url'=>'/cms/media/a.jpg','author'=>'Rico','category'=>'News']),'url'=>'https://t.example/mein-beitrag/'];
@@ -377,7 +377,7 @@ $p1=$mk([],'A');$p1->ID=1;$p2=$mk(['noindex'=>true],'B');$p2->ID=2;$p3=$mk([],'C
 $GLOBALS['stub_posts']=[$p1,$p2,$p3,$p4];$GLOBALS['stub']['url']='https://t.example/a-beitrag/';
 $r=$Sx->generate();$xml=(string)@file_get_contents($tmp.'/sitemap.xml');
 t('SEO: Sitemap enthält Startseite, indexierbare Beiträge und Kategorien – ohne noindex und passwortgeschützte Seiten',$r['ok']&&str_contains($xml,'<loc>https://t.example/</loc>')&&str_contains($xml,'https://t.example/category/news/')&&!str_contains($xml,'noindex')&&str_contains($xml,'Elvado SEO')&&@simplexml_load_string($xml)!==false);
-t('SEO: Sitemap wird nach Veröffentlichung sofort ersetzt, nach Beitragsänderung per Tick',(function() use($tmp){ file_put_contents($tmp.'/sitemap.xml','ALT');rrw_np_do('content_saved','site');$a=str_contains((string)file_get_contents($tmp.'/sitemap.xml'),'Elvado SEO');file_put_contents($tmp.'/sitemap.xml','ALT');rrw_np_do('content_saved','news');$b=(string)file_get_contents($tmp.'/sitemap.xml')==='ALT';Hooks::run('tick',time());return $a&&$b&&str_contains((string)file_get_contents($tmp.'/sitemap.xml'),'Elvado SEO'); })());
+t('SEO: Sitemap wird nach Veröffentlichung sofort ersetzt, nach Beitragsänderung per Tick',(function() use($tmp){ file_put_contents($tmp.'/sitemap.xml','ALT');elvado_np_do('content_saved','site');$a=str_contains((string)file_get_contents($tmp.'/sitemap.xml'),'Elvado SEO');file_put_contents($tmp.'/sitemap.xml','ALT');elvado_np_do('content_saved','news');$b=(string)file_get_contents($tmp.'/sitemap.xml')==='ALT';Hooks::run('tick',time());return $a&&$b&&str_contains((string)file_get_contents($tmp.'/sitemap.xml'),'Elvado SEO'); })());
 // Beschreibungen ergänzen
 file_put_contents($cms.'/data/news.json',json_encode([['id'=>1,'slug'=>'a','status'=>'published','title'=>'A','excerpt'=>'Teaser des Beitrags','seo_description'=>''],['id'=>2,'slug'=>'b','status'=>'published','title'=>'B','excerpt'=>'','body_html'=>'<p>Der Beginn des Textes von Beitrag B.</p>','seo_description'=>'Eigene'],['id'=>3,'slug'=>'c','status'=>'published','title'=>'C','excerpt'=>'','body_html'=>'<p>Text C ohne Beschreibung.</p>']]));
 file_put_contents($cms.'/data/site.json',json_encode(['pages'=>[['slug'=>'p','intro'=>'Intro der Seite','meta_description'=>''],['slug'=>'q','intro'=>'x','meta_description'=>'bleibt']]]));
@@ -397,7 +397,7 @@ t('AI: Übersicht weist auf fehlende Konfiguration hin',$ov['blocks'][0]['type']
 AiGatewayConfig::load($cms.'/data',[])->save(['providers'=>['openai'=>['api_key'=>'sk-test-openai-1234']]]);
 $calls=[];$reply='';
 Http::useTransport(function(string $m,string $u,array $h,?string $b,array $o) use(&$calls,&$reply): HttpResponse { $calls[]=['u'=>$u,'h'=>$h,'b'=>json_decode((string)$b,true)];return new HttpResponse(200,json_encode(['choices'=>[['message'=>['content'=>$reply]]],'usage'=>['prompt_tokens'=>1,'completion_tokens'=>1]])); });
-$GLOBALS['rrw_np_user']='tester';
+$GLOBALS['elvado_np_user']='tester';
 t('AI: Anbieter aus der KI-Zentrale sind nutzbar (kein eigener Schlüssel im Plugin)',$AI('status')['usable']===true&&$AI('status')['providers'][0]['id']==='openai'&&!str_contains(json_encode($AI('status')),'sk-test'));
 $reply='Ein verbesserter Satz.';$r=$AI('text',['action'=>'improve','text'=>'ein schlechter satz']);$c=end($calls);
 t('AI: Textwerkzeug nutzt den zentralen Gateway (Anbieter, Schlüssel nur im Header, Auftrag + Text getrennt)',$r['ok']&&$r['text']==='Ein verbesserter Satz.'&&$c['u']==='https://api.openai.com/v1/chat/completions'&&in_array('Authorization: Bearer sk-test-openai-1234',$c['h'],true)&&str_contains(json_encode($c['b']),'ein schlechter satz')&&!str_contains(json_encode($c['b']),'sk-test'));

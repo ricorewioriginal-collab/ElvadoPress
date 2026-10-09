@@ -1,7 +1,7 @@
 <?php
 // Übersetzungen: .mo-Dateien (gettext) lesen und __(), _x(), _n(), _nx() damit beantworten.
 // Sprachpakete von WordPress.org (de_DE) legt das CMS unter cms/wp-content/languages/ ab (Core: de_DE.mo, Themes: themes/<slug>-de_DE.mo, Plugins: plugins/<slug>-de_DE.mo).
-class RRW_MO {
+class ELVADO_MO {
     public array $t=[];public bool $pluralN1=true;   // pluralN1: Mehrzahl bei n != 1 (de/en/…); sonst bei n > 1 (fr/pt_BR …)
     public function load(string $file): bool {
         if(!is_file($file)||filesize($file)>8388608)return false;
@@ -21,34 +21,34 @@ class RRW_MO {
     }
     public function get(string $key): ?array { return $this->t[$key]??null; }
 }
-$GLOBALS['rrw_wp_mo']=$GLOBALS['rrw_wp_mo']??[];$GLOBALS['rrw_wp_mo_tried']=$GLOBALS['rrw_wp_mo_tried']??[];
+$GLOBALS['elvado_wp_mo']=$GLOBALS['elvado_wp_mo']??[];$GLOBALS['elvado_wp_mo_tried']=$GLOBALS['elvado_wp_mo_tried']??[];
 
-function rrw_wp_mo_merge(string $domain, string $file): bool {
-    $mo=new RRW_MO();if(!$mo->load($file))return false;
-    if(isset($GLOBALS['rrw_wp_mo'][$domain])){ $GLOBALS['rrw_wp_mo'][$domain]->t=$mo->t+$GLOBALS['rrw_wp_mo'][$domain]->t; }   // zuerst geladene Datei hat Vorrang
-    else $GLOBALS['rrw_wp_mo'][$domain]=$mo;
+function elvado_wp_mo_merge(string $domain, string $file): bool {
+    $mo=new ELVADO_MO();if(!$mo->load($file))return false;
+    if(isset($GLOBALS['elvado_wp_mo'][$domain])){ $GLOBALS['elvado_wp_mo'][$domain]->t=$mo->t+$GLOBALS['elvado_wp_mo'][$domain]->t; }   // zuerst geladene Datei hat Vorrang
+    else $GLOBALS['elvado_wp_mo'][$domain]=$mo;
     return true;
 }
-function rrw_wp_locale_active(): bool { return strncmp(get_locale(),'en',2)!==0; }
+function elvado_wp_locale_active(): bool { return strncmp(get_locale(),'en',2)!==0; }
 /** Verzeichnis für Sprachdateien (cms/wp-content/languages). */
-function rrw_wp_lang_dir(): string { return rtrim(WP_CONTENT_DIR,'/').'/languages'; }
+function elvado_wp_lang_dir(): string { return rtrim(WP_CONTENT_DIR,'/').'/languages'; }
 /** Lädt eine Textdomäne bei Bedarf selbst aus dem Sprachverzeichnis (einmal je Domäne). */
-function rrw_wp_mo_domain(string $domain): ?RRW_MO {
-    if(isset($GLOBALS['rrw_wp_mo'][$domain]))return $GLOBALS['rrw_wp_mo'][$domain];
-    if(isset($GLOBALS['rrw_wp_mo_tried'][$domain]))return null;
-    $GLOBALS['rrw_wp_mo_tried'][$domain]=true;$loc=get_locale();$dir=rrw_wp_lang_dir();
+function elvado_wp_mo_domain(string $domain): ?ELVADO_MO {
+    if(isset($GLOBALS['elvado_wp_mo'][$domain]))return $GLOBALS['elvado_wp_mo'][$domain];
+    if(isset($GLOBALS['elvado_wp_mo_tried'][$domain]))return null;
+    $GLOBALS['elvado_wp_mo_tried'][$domain]=true;$loc=get_locale();$dir=elvado_wp_lang_dir();
     $cands=$domain==='default'?[$dir.'/'.$loc.'.mo']:[$dir.'/themes/'.$domain.'-'.$loc.'.mo',$dir.'/plugins/'.$domain.'-'.$loc.'.mo',$dir.'/'.$domain.'-'.$loc.'.mo'];
-    foreach($cands as $f)if(rrw_wp_mo_merge($domain,$f))break;
-    return $GLOBALS['rrw_wp_mo'][$domain]??null;
+    foreach($cands as $f)if(elvado_wp_mo_merge($domain,$f))break;
+    return $GLOBALS['elvado_wp_mo'][$domain]??null;
 }
-function rrw_wp_tr(string $text, string $domain, ?string $ctx=null): string {
-    if(!rrw_wp_locale_active())return $text;
-    $mo=rrw_wp_mo_domain($domain===''?'default':$domain);if(!$mo)return $text;
+function elvado_wp_tr(string $text, string $domain, ?string $ctx=null): string {
+    if(!elvado_wp_locale_active())return $text;
+    $mo=elvado_wp_mo_domain($domain===''?'default':$domain);if(!$mo)return $text;
     $r=$mo->get($ctx!==null?$ctx."\x04".$text:$text);
     return $r&&$r[0]!==''?$r[0]:$text;
 }
-function rrw_wp_trn(string $single, string $plural, int $n, string $domain, ?string $ctx=null): string {
-    $mo=rrw_wp_locale_active()?rrw_wp_mo_domain($domain===''?'default':$domain):null;
+function elvado_wp_trn(string $single, string $plural, int $n, string $domain, ?string $ctx=null): string {
+    $mo=elvado_wp_locale_active()?elvado_wp_mo_domain($domain===''?'default':$domain):null;
     $isPlural=$mo&&!$mo->pluralN1?$n>1:$n!==1;
     if($mo){
         $r=$mo->get(($ctx!==null?$ctx."\x04":'').$single."\0".$plural);
@@ -57,27 +57,27 @@ function rrw_wp_trn(string $single, string $plural, int $n, string $domain, ?str
     return $n===1?$single:$plural;
 }
 
-function __($text, $domain='default') { $t=rrw_wp_tr((string)$text,(string)$domain);return apply_filters('gettext',$t,(string)$text,$domain); }
+function __($text, $domain='default') { $t=elvado_wp_tr((string)$text,(string)$domain);return apply_filters('gettext',$t,(string)$text,$domain); }
 function _e($text, $domain='default') { echo __($text,$domain); }
-function _x($text, $context, $domain='default') { $t=rrw_wp_tr((string)$text,(string)$domain,(string)$context);return apply_filters('gettext_with_context',$t,(string)$text,$context,$domain); }
+function _x($text, $context, $domain='default') { $t=elvado_wp_tr((string)$text,(string)$domain,(string)$context);return apply_filters('gettext_with_context',$t,(string)$text,$context,$domain); }
 function _ex($text, $context, $domain='default') { echo _x($text,$context,$domain); }
-function _n($single, $plural, $number, $domain='default') { $t=rrw_wp_trn((string)$single,(string)$plural,(int)$number,(string)$domain);return apply_filters('ngettext',$t,$single,$plural,$number,$domain); }
-function _nx($single, $plural, $number, $context, $domain='default') { $t=rrw_wp_trn((string)$single,(string)$plural,(int)$number,(string)$domain,(string)$context);return apply_filters('ngettext_with_context',$t,$single,$plural,$number,$context,$domain); }
+function _n($single, $plural, $number, $domain='default') { $t=elvado_wp_trn((string)$single,(string)$plural,(int)$number,(string)$domain);return apply_filters('ngettext',$t,$single,$plural,$number,$domain); }
+function _nx($single, $plural, $number, $context, $domain='default') { $t=elvado_wp_trn((string)$single,(string)$plural,(int)$number,(string)$domain,(string)$context);return apply_filters('ngettext_with_context',$t,$single,$plural,$number,$context,$domain); }
 function translate($text, $domain='default') { return __($text,$domain); }
 function translate_with_gettext_context($t, $c, $d='default') { return _x($t,$c,$d); }
 function __ngettext($s,$p,$n,$d='default') { return _n($s,$p,$n,$d); }
-function load_textdomain($domain, $mofile, $locale=null) { $ok=rrw_wp_mo_merge((string)$domain,(string)$mofile);if($ok)unset($GLOBALS['rrw_wp_mo_tried'][$domain]);return $ok; }
+function load_textdomain($domain, $mofile, $locale=null) { $ok=elvado_wp_mo_merge((string)$domain,(string)$mofile);if($ok)unset($GLOBALS['elvado_wp_mo_tried'][$domain]);return $ok; }
 function load_plugin_textdomain($domain, $deprecated=false, $plugin_rel_path=false) {
     $loc=get_locale();$ok=false;
-    if($plugin_rel_path)foreach([WP_PLUGIN_DIR.'/'.trim((string)$plugin_rel_path,'/').'/'.$domain.'-'.$loc.'.mo'] as $f)$ok=$ok||rrw_wp_mo_merge((string)$domain,$f);
-    return $ok||(bool)rrw_wp_mo_domain((string)$domain);
+    if($plugin_rel_path)foreach([WP_PLUGIN_DIR.'/'.trim((string)$plugin_rel_path,'/').'/'.$domain.'-'.$loc.'.mo'] as $f)$ok=$ok||elvado_wp_mo_merge((string)$domain,$f);
+    return $ok||(bool)elvado_wp_mo_domain((string)$domain);
 }
 function load_muplugin_textdomain($domain, $p=false) { return false; }
 function load_theme_textdomain($domain, $path=false) {
     $loc=get_locale();$ok=false;$path=$path?rtrim((string)$path,'/'):get_template_directory().'/languages';
-    foreach([$path.'/'.$loc.'.mo',$path.'/'.$domain.'-'.$loc.'.mo'] as $f)if(rrw_wp_mo_merge((string)$domain,$f)){ $ok=true;break; }
-    return $ok||(bool)rrw_wp_mo_domain((string)$domain);
+    foreach([$path.'/'.$loc.'.mo',$path.'/'.$domain.'-'.$loc.'.mo'] as $f)if(elvado_wp_mo_merge((string)$domain,$f)){ $ok=true;break; }
+    return $ok||(bool)elvado_wp_mo_domain((string)$domain);
 }
 function load_child_theme_textdomain($domain, $path=false) { return load_theme_textdomain($domain,$path?:get_stylesheet_directory().'/languages'); }
-function unload_textdomain($domain, $reloadable=false) { unset($GLOBALS['rrw_wp_mo'][$domain]);return true; }
-function is_textdomain_loaded($domain) { return isset($GLOBALS['rrw_wp_mo'][$domain]); }
+function unload_textdomain($domain, $reloadable=false) { unset($GLOBALS['elvado_wp_mo'][$domain]);return true; }
+function is_textdomain_loaded($domain) { return isset($GLOBALS['elvado_wp_mo'][$domain]); }

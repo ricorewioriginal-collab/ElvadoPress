@@ -1,4 +1,4 @@
-<?php $__fb=rtrim(rrw_default_canonical_base()?:'https://deine-domain.example','/'); ?>
+<?php $__fb=rtrim(elvado_default_canonical_base()?:'https://deine-domain.example','/'); ?>
 <section id="panel-feeds" class="panel">
       <div class="card">
         <div class="th"><div><div class="wp-page-title">Feeds & RSS</div><div class="wp-subtitle">Eigener RSS-Feed für das Magazin und externe RSS-/Atom-Quellen, die automatisch in die News-Übersicht gemischt werden.</div></div><div style="display:flex;gap:7px;flex-wrap:wrap"><a class="btn-g" href="/cms/rss.php" target="_blank" rel="noopener"><i class="fas fa-rss"></i> Live-RSS öffnen</a><a class="btn-g" href="/feed/" target="_blank" rel="noopener"><i class="fas fa-link"></i> /feed/</a><a class="btn-g" href="/rss.xml" target="_blank" rel="noopener"><i class="fas fa-file-code"></i> RSS.xml-Mirror</a><button class="btn-a" onclick="saveFeeds()"><i class="fas fa-floppy-disk"></i> Speichern</button></div></div>

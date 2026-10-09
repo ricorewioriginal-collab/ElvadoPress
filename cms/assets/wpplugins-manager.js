@@ -120,20 +120,20 @@
   }
   window.addEventListener('message',async function(e){
     var fr=$('wpFrame');if(!fr||e.source!==fr.contentWindow)return;var m=e.data||{};
-    if(m.rrw==='submit'){
+    if(m.elvado==='submit'){
       var aq=qs(m.action),b=qs('?'+m.body);var pg=aq.page||b.page||cur;
       if(m.method==='post'){delete aq.page;return openPage(pg,'POST',m.body,enc(aq))}
       return openPage(pg,'GET','',m.body);
     }
-    if(m.rrw==='nav'){var q=qs(m.href),pg=q.page||cur;delete q.page;return openPage(pg,'GET','',enc(q))}
-    if(m.rrw==='rest'){
-      try{var d2=await post('wp_admin_rest',{path:m.path,method:m.method,headers:m.headers,body:m.body});var r2=d2.result||{};fr.contentWindow.postMessage({rrw:'res',id:m.id,status:r2.status,type:r2.type,text:r2.text,headers:r2.headers},'*')}
-      catch(err){fr.contentWindow.postMessage({rrw:'res',id:m.id,status:500,type:'application/json',text:JSON.stringify({code:'rrw_bridge',message:String(err.message||err)})},'*')}
+    if(m.elvado==='nav'){var q=qs(m.href),pg=q.page||cur;delete q.page;return openPage(pg,'GET','',enc(q))}
+    if(m.elvado==='rest'){
+      try{var d2=await post('wp_admin_rest',{path:m.path,method:m.method,headers:m.headers,body:m.body});var r2=d2.result||{};fr.contentWindow.postMessage({elvado:'res',id:m.id,status:r2.status,type:r2.type,text:r2.text,headers:r2.headers},'*')}
+      catch(err){fr.contentWindow.postMessage({elvado:'res',id:m.id,status:500,type:'application/json',text:JSON.stringify({code:'elvado_bridge',message:String(err.message||err)})},'*')}
       return;
     }
-    if(m.rrw==='ajax'){
-      try{var d=await post('wp_admin_ajax',{url:m.url,method:m.method,body:m.body});var r=d.result||{};fr.contentWindow.postMessage({rrw:'res',id:m.id,status:r.status,type:r.type,text:r.text},'*')}
-      catch(err){fr.contentWindow.postMessage({rrw:'res',id:m.id,status:500,type:'text/plain',text:String(err.message||err)},'*')}
+    if(m.elvado==='ajax'){
+      try{var d=await post('wp_admin_ajax',{url:m.url,method:m.method,body:m.body});var r=d.result||{};fr.contentWindow.postMessage({elvado:'res',id:m.id,status:r.status,type:r.type,text:r.text},'*')}
+      catch(err){fr.contentWindow.postMessage({elvado:'res',id:m.id,status:500,type:'text/plain',text:String(err.message||err)},'*')}
     }
   });
   /* ── Updates ── */

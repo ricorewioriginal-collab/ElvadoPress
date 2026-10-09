@@ -1,7 +1,7 @@
 <?php
 // Ergänzende Verwaltungs-Vorlagenfunktionen (wp-admin/includes/template.php): Begriffs-Checklisten, Schnellbearbeitung, Zeitstempel-Felder,
 // Beitrags-/Medien-Status, Akkordeon, kleine Hinweise. Die Oberflächen sind schlanke Fassungen (Texte deutsch). Reine Browser-Prüfungen
-// (compression_test) sind bewusst No-ops. Hilfsfunktionen beginnen mit _rrw_m_.
+// (compression_test) sind bewusst No-ops. Hilfsfunktionen beginnen mit _elvado_m_.
 
 /* ───────── Begriffe ───────── */
 if(!function_exists('wp_terms_checklist')){ function wp_terms_checklist($post_id=0,$args=[]) {
@@ -214,7 +214,7 @@ if(!function_exists('get_media_states')){ function get_media_states($post) {
         $mh=get_post_meta($post->ID,'_wp_attachment_is_custom_header',true);$url=wp_get_attachment_url($post->ID);
         if(is_random_header_image()){ $ids=wp_list_pluck(get_uploaded_header_images(),'attachment_id');if($mh===$ss&&in_array($post->ID,$ids,true))$m[]='Kopfbild'; }
         else{ $hi=get_header_image();if(!empty($mh)&&$mh===$ss&&$url!==$hi)$m[]='Kopfbild';if($hi&&$url===$hi)$m[]='Aktuelles Kopfbild'; }
-        if(get_theme_support('custom-header')&&_rrw_m_th('custom-header','video')&&has_header_video()){ $mods=get_theme_mods();if(isset($mods['header_video'])&&(int)$post->ID===(int)$mods['header_video'])$m[]='Aktuelles Kopfvideo'; }
+        if(get_theme_support('custom-header')&&_elvado_m_th('custom-header','video')&&has_header_video()){ $mods=get_theme_mods();if(isset($mods['header_video'])&&(int)$post->ID===(int)$mods['header_video'])$m[]='Aktuelles Kopfvideo'; }
     }
     if(current_theme_supports('custom-background')&&get_post_meta($post->ID,'_wp_attachment_is_custom_background',true)===$ss){
         $m[]='Hintergrundbild';$bi=get_background_image();if($bi&&wp_get_attachment_url($post->ID)===$bi)$m[]='Aktuelles Hintergrundbild'; }

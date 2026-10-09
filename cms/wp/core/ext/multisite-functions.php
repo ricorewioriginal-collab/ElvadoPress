@@ -1,28 +1,28 @@
 <?php
 // Ergänzende WordPress-Funktionen (Bereich Multisite, Teil 2): Anmeldung neuer Benutzer/Sites, Benachrichtigungen, Speicherplatz, Netzwerk-Zähler (ms-functions).
-// Einzelseiten-Betrieb: Anmeldungen („signups“) liegen in der Option rrw_ms_signups; Benutzer-Anmeldungen lassen sich aktivieren,
+// Einzelseiten-Betrieb: Anmeldungen („signups“) liegen in der Option elvado_ms_signups; Benutzer-Anmeldungen lassen sich aktivieren,
 // Site-Anmeldungen nicht (es gibt keine weiteren Sites: wpmu_create_blog liefert einen WP_Error).
 
 /* ───────── Hilfen ───────── */
-if(!function_exists('rrw_ms_signups')){ function rrw_ms_signups(): array { $s=get_option('rrw_ms_signups');return is_array($s)?$s:[]; } }
-if(!function_exists('rrw_ms_signups_save')){ function rrw_ms_signups_save(array $s): void { update_option('rrw_ms_signups',$s,false); } }
-if(!function_exists('rrw_ms_dirsize')){
+if(!function_exists('elvado_ms_signups')){ function elvado_ms_signups(): array { $s=get_option('elvado_ms_signups');return is_array($s)?$s:[]; } }
+if(!function_exists('elvado_ms_signups_save')){ function elvado_ms_signups_save(array $s): void { update_option('elvado_ms_signups',$s,false); } }
+if(!function_exists('elvado_ms_dirsize')){
     /** Größe eines Verzeichnisses in Byte (rekursiv; fehlendes Verzeichnis = 0). */
-    function rrw_ms_dirsize(string $dir): int {
+    function elvado_ms_dirsize(string $dir): int {
         if(function_exists('get_dirsize'))return (int)get_dirsize($dir);
         if(!is_dir($dir))return 0;$n=0;
         try{ foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir,FilesystemIterator::SKIP_DOTS)) as $f)if($f->isFile())$n+=$f->getSize(); }catch(Throwable $e){}
         return $n;
     }
 }
-if(!function_exists('rrw_ms_set_role')){
+if(!function_exists('elvado_ms_set_role')){
     /** Rolle eines Datenbank-Benutzers setzen (CMS-Redakteure behalten ihre Rolle). */
-    function rrw_ms_set_role(int $user_id,string $role): bool {
-        global $wpdb;if($user_id<RRW_WP_ID_DB_MIN||!get_role($role))return false;
-        update_user_meta($user_id,$wpdb->prefix.'rrw_role',$role);rrw_wp_users_all(true);return true;
+    function elvado_ms_set_role(int $user_id,string $role): bool {
+        global $wpdb;if($user_id<ELVADO_WP_ID_DB_MIN||!get_role($role))return false;
+        update_user_meta($user_id,$wpdb->prefix.'elvado_role',$role);elvado_wp_users_all(true);return true;
     }
 }
-if(!function_exists('rrw_ms_site_name')){ function rrw_ms_site_name(): string { $n=get_option('site_name');return (string)($n?:get_option('blogname','WordPress')); } }
+if(!function_exists('elvado_ms_site_name')){ function elvado_ms_site_name(): string { $n=get_option('site_name');return (string)($n?:get_option('blogname','WordPress')); } }
 
 /* ───────── Statistik und Zuordnung ───────── */
 if(!function_exists('get_sitestats')){
@@ -40,12 +40,12 @@ if(!function_exists('get_blog_id_from_url')){
     function get_blog_id_from_url($domain,$path='/') {
         $domain=strtolower((string)$domain);$path=trailingslashit(strtolower((string)$path));
         $pre=apply_filters('pre_get_blog_id_from_url',null,$domain,$path);if($pre!==null)return (int)$pre;
-        $s=rrw_ms_site_row();return $domain===$s['domain']&&$path===strtolower($s['path'])?1:0;
+        $s=elvado_ms_site_row();return $domain===$s['domain']&&$path===strtolower($s['path'])?1:0;
     }
 }
 if(!function_exists('domain_exists')){
     function domain_exists($domain,$path,$network_id=1) {
-        $s=rrw_ms_site_row();$r=(int)$network_id===1&&strtolower((string)$domain)===$s['domain']&&trailingslashit((string)$path)===$s['path']?1:null;
+        $s=elvado_ms_site_row();$r=(int)$network_id===1&&strtolower((string)$domain)===$s['domain']&&trailingslashit((string)$path)===$s['path']?1:null;
         return apply_filters('domain_exists',$r,$domain,$path,$network_id);
     }
 }
@@ -61,7 +61,7 @@ if(!function_exists('remove_user_from_blog')){
 }
 if(!function_exists('get_most_recent_post_of_user')){
     function get_most_recent_post_of_user($user_id) {
-        global $wpdb;if(!get_blogs_of_user((int)$user_id)||!rrw_wp_db_ready())return [];
+        global $wpdb;if(!get_blogs_of_user((int)$user_id)||!elvado_wp_db_ready())return [];
         $r=$wpdb->get_row($wpdb->prepare("SELECT ID, post_date_gmt FROM {$wpdb->posts} WHERE post_author = %d AND post_type = 'post' AND post_status = 'publish' ORDER BY post_date_gmt DESC LIMIT 1",(int)$user_id),ARRAY_A);
         return $r?['blog_id'=>1,'post_id'=>(int)$r['ID'],'post_date_gmt'=>$r['post_date_gmt'],'post_gmt_ts'=>(int)strtotime($r['post_date_gmt'].' UTC')]:[];
     }
@@ -71,9 +71,9 @@ if(!function_exists('update_posts_count')){
 }
 if(!function_exists('wpmu_log_new_registrations')){
     function wpmu_log_new_registrations($blog_id,$user_id) {
-        $u=get_userdata((int)$user_id);if(!$u)return;$l=(array)get_option('rrw_ms_registration_log',[]);
+        $u=get_userdata((int)$user_id);if(!$u)return;$l=(array)get_option('elvado_ms_registration_log',[]);
         $l[]=['blog_id'=>(int)$blog_id,'email'=>$u->user_email,'IP'=>(string)($_SERVER['REMOTE_ADDR']??''),'date_registered'=>gmdate('Y-m-d H:i:s')];
-        update_option('rrw_ms_registration_log',array_slice($l,-200),false);
+        update_option('elvado_ms_registration_log',array_slice($l,-200),false);
     }
 }
 
@@ -118,7 +118,7 @@ if(!function_exists('wpmu_validate_user_signup')){
         if(is_array($limited)&&$limited){ $d=strtolower(substr((string)strrchr($user_email,'@'),1));if(!in_array($d,array_map('strtolower',$limited),true))$errors->add('user_email',__('Sorry, that email address is not allowed!')); }
         if(username_exists($user_name))$errors->add('user_name',__('Sorry, that username already exists!'));
         if(email_exists($user_email))$errors->add('user_email',__('Sorry, that email address is already used!'));
-        foreach(rrw_ms_signups() as $k=>$s){   // Offene Anmeldungen blockieren Namen/Adresse 2 Tage lang
+        foreach(elvado_ms_signups() as $k=>$s){   // Offene Anmeldungen blockieren Namen/Adresse 2 Tage lang
             if(!empty($s['active']))continue;$expired=strtotime($s['registered'].' UTC')+2*DAY_IN_SECONDS<time();
             if($s['user_login']===$user_name&&!$expired)$errors->add('user_name',__('That username is currently reserved but may be available in a couple of days.'));
             if($s['user_email']===$user_email&&!$expired)$errors->add('user_email',__('That email address has already been used. Please check your inbox for an activation email. It will become available in a couple of days if you do nothing.'));
@@ -129,7 +129,7 @@ if(!function_exists('wpmu_validate_user_signup')){
 }
 if(!function_exists('wpmu_validate_blog_signup')){
     function wpmu_validate_blog_signup($blogname,$blog_title,$user='') {
-        $net=rrw_ms_network_row();$base=$net['path'];$blog_title=strip_tags((string)$blog_title);$errors=new WP_Error();
+        $net=elvado_ms_network_row();$base=$net['path'];$blog_title=strip_tags((string)$blog_title);$errors=new WP_Error();
         $illegal=get_network_option(1,'illegal_names');if(!is_array($illegal))$illegal=['www','web','root','admin','main','invite','administrator'];
         if(!is_subdomain_install())$illegal=array_merge($illegal,get_subdirectory_reserved_names());
         if($blogname==='')$errors->add('blogname',__('Please enter a site name.'));
@@ -144,7 +144,7 @@ if(!function_exists('wpmu_validate_blog_signup')){
         else{ $domain=$net['domain'];$path=$base.$blogname.'/'; }
         if(domain_exists($domain,$path,1))$errors->add('blogname',__('Sorry, that site already exists!'));
         if(username_exists($blogname)&&(!is_object($user)||$user->user_login!==$blogname))$errors->add('blogname',__('Sorry, that site is reserved!'));
-        foreach(rrw_ms_signups() as $s){
+        foreach(elvado_ms_signups() as $s){
             if(empty($s['domain'])||$s['domain']!==$domain||$s['path']!==$path||!empty($s['active']))continue;
             if(strtotime($s['registered'].' UTC')+2*DAY_IN_SECONDS>=time())$errors->add('blogname',__('That site is currently reserved but may be available in a couple days.'));
         }
@@ -158,21 +158,21 @@ if(!function_exists('wpmu_signup_user')){
     function wpmu_signup_user($user,$user_email,$meta=[]) {
         $user=preg_replace('/\s+/','',sanitize_user((string)$user,true));$user_email=sanitize_email((string)$user_email);
         $key=substr(md5(time().wp_rand().$user_email),0,16);$meta=apply_filters('signup_user_meta',$meta,$user,$user_email,$key);
-        $s=rrw_ms_signups();$s[$key]=['domain'=>'','path'=>'','title'=>'','user_login'=>$user,'user_email'=>$user_email,'registered'=>gmdate('Y-m-d H:i:s'),'activated'=>'0000-00-00 00:00:00','active'=>0,'activation_key'=>$key,'meta'=>(array)$meta];
-        rrw_ms_signups_save($s);do_action('after_signup_user',$user,$user_email,$key,$meta);
+        $s=elvado_ms_signups();$s[$key]=['domain'=>'','path'=>'','title'=>'','user_login'=>$user,'user_email'=>$user_email,'registered'=>gmdate('Y-m-d H:i:s'),'activated'=>'0000-00-00 00:00:00','active'=>0,'activation_key'=>$key,'meta'=>(array)$meta];
+        elvado_ms_signups_save($s);do_action('after_signup_user',$user,$user_email,$key,$meta);
     }
 }
 if(!function_exists('wpmu_signup_blog')){
     function wpmu_signup_blog($domain,$path,$title,$user,$user_email,$meta=[]) {
         $key=substr(md5(time().wp_rand().$domain),0,16);$meta=apply_filters('signup_site_meta',$meta,$domain,$path,$title,$user,$user_email,$key);
-        $s=rrw_ms_signups();$s[$key]=['domain'=>(string)$domain,'path'=>(string)$path,'title'=>(string)$title,'user_login'=>(string)$user,'user_email'=>sanitize_email((string)$user_email),'registered'=>gmdate('Y-m-d H:i:s'),'activated'=>'0000-00-00 00:00:00','active'=>0,'activation_key'=>$key,'meta'=>(array)$meta];
-        rrw_ms_signups_save($s);do_action('after_signup_site',$domain,$path,$title,$user,$user_email,$key,$meta);
+        $s=elvado_ms_signups();$s[$key]=['domain'=>(string)$domain,'path'=>(string)$path,'title'=>(string)$title,'user_login'=>(string)$user,'user_email'=>sanitize_email((string)$user_email),'registered'=>gmdate('Y-m-d H:i:s'),'activated'=>'0000-00-00 00:00:00','active'=>0,'activation_key'=>$key,'meta'=>(array)$meta];
+        elvado_ms_signups_save($s);do_action('after_signup_site',$domain,$path,$title,$user,$user_email,$key,$meta);
     }
 }
 if(!function_exists('wpmu_signup_user_notification')){
     function wpmu_signup_user_notification($user_login,$user_email,$key,$meta=[]) {
         if(!apply_filters('wpmu_signup_user_notification',$user_login,$user_email,$key,$meta))return false;
-        $name=rrw_ms_site_name();$admin=get_network_option(1,'admin_email');
+        $name=elvado_ms_site_name();$admin=get_network_option(1,'admin_email');
         $h="From: \"{$name}\" <{$admin}>\nContent-Type: text/plain; charset=\"".get_option('blog_charset','UTF-8')."\"\n";
         $msg=sprintf(apply_filters('wpmu_signup_user_notification_email',__("To activate your user, please click the following link:\n\n%s\n\nAfter you activate, you will receive *another email* with your login."),$user_login,$user_email,$key,$meta),site_url("wp-activate.php?key=$key"));
         $subject=sprintf(apply_filters('wpmu_signup_user_notification_subject',__('[%1$s] Activate %2$s'),$user_login,$user_email,$key,$meta),$name,$user_login);
@@ -182,7 +182,7 @@ if(!function_exists('wpmu_signup_user_notification')){
 if(!function_exists('wpmu_signup_blog_notification')){
     function wpmu_signup_blog_notification($domain,$path,$title,$user_login,$user_email,$key,$meta=[]) {
         if(!apply_filters('wpmu_signup_blog_notification',$domain,$path,$title,$user_login,$user_email,$key,$meta))return false;
-        $name=rrw_ms_site_name();$admin=get_network_option(1,'admin_email');
+        $name=elvado_ms_site_name();$admin=get_network_option(1,'admin_email');
         $h="From: \"{$name}\" <{$admin}>\nContent-Type: text/plain; charset=\"".get_option('blog_charset','UTF-8')."\"\n";
         $msg=sprintf(apply_filters('wpmu_signup_blog_notification_email',__("To activate your site, please click the following link:\n\n%1\$s\n\nAfter you activate, you will receive *another email* with your login.\n\nAfter you activate, you can visit your site here:\n\n%2\$s"),$domain,$path,$title,$user_login,$user_email,$key,$meta),site_url("wp-activate.php?key=$key"),esc_url("http://{$domain}{$path}"));
         $subject=sprintf(apply_filters('wpmu_signup_blog_notification_subject',__('[%1$s] Activate %2$s'),$domain,$path,$title,$user_login,$user_email,$key,$meta),$name,esc_url('http://'.$domain.$path));
@@ -203,14 +203,14 @@ if(!function_exists('wpmu_create_blog')){
 }
 if(!function_exists('wpmu_activate_signup')){
     function wpmu_activate_signup($key) {
-        $all=rrw_ms_signups();$sg=$all[$key]??null;
+        $all=elvado_ms_signups();$sg=$all[$key]??null;
         if(!$sg)return new WP_Error('invalid_key',__('Invalid activation key.'));
         if(!empty($sg['active']))return new WP_Error('already_active',empty($sg['domain'])?__('The user is already active.'):__('The site is already active.'),(object)$sg);
         if(!empty($sg['domain']))return new WP_Error('multisite_unsupported',__('Creating additional sites is not supported.'),(object)$sg);
         $meta=(array)$sg['meta'];$password=wp_generate_password(12,false);$exists=username_exists($sg['user_login']);
         $user_id=$exists?:wpmu_create_user($sg['user_login'],$password,$sg['user_email']);
         if(!$user_id)return new WP_Error('create_user',__('Could not create user'),(object)$sg);
-        $all[$key]['active']=1;$all[$key]['activated']=gmdate('Y-m-d H:i:s');rrw_ms_signups_save($all);
+        $all[$key]['active']=1;$all[$key]['activated']=gmdate('Y-m-d H:i:s');elvado_ms_signups_save($all);
         if($exists)return new WP_Error('user_already_exists',__('That username is already activated.'),(object)$sg);
         do_action('wpmu_activate_user',$user_id,$password,$meta);
         return ['user_id'=>$user_id,'password'=>$password,'meta'=>$meta];
@@ -218,9 +218,9 @@ if(!function_exists('wpmu_activate_signup')){
 }
 if(!function_exists('wp_delete_signup_on_user_delete')){
     function wp_delete_signup_on_user_delete($id) {
-        $u=get_userdata((int)$id);if(!$u)return;$s=rrw_ms_signups();$n=count($s);
+        $u=get_userdata((int)$id);if(!$u)return;$s=elvado_ms_signups();$n=count($s);
         foreach($s as $k=>$r)if($r['user_login']===$u->user_login)unset($s[$k]);
-        if(count($s)!==$n)rrw_ms_signups_save($s);
+        if(count($s)!==$n)elvado_ms_signups_save($s);
     }
 }
 if(!function_exists('signup_nonce_fields')){
@@ -250,7 +250,7 @@ if(!function_exists('add_existing_user_to_blog')){
             $id=(int)($details['user_id']??0);$role=(string)($details['role']??'');
             if(!get_userdata($id))$result=new WP_Error('user_does_not_exist',__('That user does not exist.'));
             elseif(!get_role($role))$result=new WP_Error('invalid_role',__('Invalid role.'));
-            else{ rrw_ms_set_role($id,$role);$result=true; }
+            else{ elvado_ms_set_role($id,$role);$result=true; }
             do_action('added_existing_user',$id,$result);
         }
         return $result;
@@ -292,14 +292,14 @@ if(!function_exists('wpmu_new_site_admin_notification')){
         $site=WP_Site::get_instance((int)$site_id);$user=get_userdata((int)$user_id);$email=get_network_option(1,'admin_email');
         if(!$site||!$user||!$email||!apply_filters('send_new_site_email',true,$site,$user))return false;
         $msg=sprintf(__("New site created by %1\$s\n\nAddress: %2\$s\nName: %3\$s"),$user->user_login,get_site_url((int)$site_id),get_option('blogname'));
-        wp_mail($email,sprintf(__('[%s] New Site Created'),rrw_ms_site_name()),$msg,'Content-Type: text/plain; charset="'.get_option('blog_charset','UTF-8').'"');return true;
+        wp_mail($email,sprintf(__('[%s] New Site Created'),elvado_ms_site_name()),$msg,'Content-Type: text/plain; charset="'.get_option('blog_charset','UTF-8').'"');return true;
     }
 }
 if(!function_exists('welcome_user_msg_filter')){
     // Standardtext für die Willkommens-E-Mail an neue Benutzer, wenn keiner hinterlegt ist.
     function welcome_user_msg_filter($text) {
         if($text)return $text;
-        return str_replace('SITE_NAME',rrw_ms_site_name(),__("Howdy USERNAME,\n\nYour new account is set up.\n\nYou can log in with the following information:\nUsername: USERNAME\nPassword: PASSWORD\nLOGINLINK\n\nThanks!\n\n--The Team @ SITE_NAME"));
+        return str_replace('SITE_NAME',elvado_ms_site_name(),__("Howdy USERNAME,\n\nYour new account is set up.\n\nYou can log in with the following information:\nUsername: USERNAME\nPassword: PASSWORD\nLOGINLINK\n\nThanks!\n\n--The Team @ SITE_NAME"));
     }
 }
 if(!function_exists('wpmu_welcome_notification')){
@@ -309,8 +309,8 @@ if(!function_exists('wpmu_welcome_notification')){
         $t=get_network_option(1,'welcome_email');
         if(!$t)$t=__("Howdy USERNAME,\n\nYour new SITE_NAME site has been successfully set up at:\nBLOG_URL\n\nYou can log in to the administrator account with the following information:\n\nUsername: USERNAME\nPassword: PASSWORD\nLog in here: BLOG_URLwp-login.php\n\nWe hope you enjoy your new site. Thanks!\n\n--The Team @ SITE_NAME");
         $t=apply_filters('update_welcome_email',$t,$blog_id,$user_id,$password,$title,$meta);
-        $t=str_replace(['SITE_NAME','BLOG_URL','USERNAME','PASSWORD'],[rrw_ms_site_name(),trailingslashit(home_url()),$user->user_login,$password],$t);
-        $subject=apply_filters('update_welcome_subject',sprintf(__('New %1$s Site: %2$s'),rrw_ms_site_name(),wp_unslash($title)));
+        $t=str_replace(['SITE_NAME','BLOG_URL','USERNAME','PASSWORD'],[elvado_ms_site_name(),trailingslashit(home_url()),$user->user_login,$password],$t);
+        $subject=apply_filters('update_welcome_subject',sprintf(__('New %1$s Site: %2$s'),elvado_ms_site_name(),wp_unslash($title)));
         wp_mail($user->user_email,wp_specialchars_decode($subject),$t);return true;
     }
 }
@@ -320,8 +320,8 @@ if(!function_exists('wpmu_welcome_user_notification')){
         $user=get_userdata((int)$user_id);if(!$user)return false;
         $t=get_network_option(1,'welcome_user_email');$t=welcome_user_msg_filter($t);
         $t=apply_filters('update_welcome_user_email',$t,$user_id,$password,$meta);
-        $t=str_replace(['SITE_NAME','USERNAME','PASSWORD','LOGINLINK'],[rrw_ms_site_name(),$user->user_login,$password,wp_login_url()],$t);
-        $subject=apply_filters('update_welcome_user_subject',sprintf(__('New %1$s User: %2$s'),rrw_ms_site_name(),$user->user_login));
+        $t=str_replace(['SITE_NAME','USERNAME','PASSWORD','LOGINLINK'],[elvado_ms_site_name(),$user->user_login,$password,wp_login_url()],$t);
+        $subject=apply_filters('update_welcome_user_subject',sprintf(__('New %1$s User: %2$s'),elvado_ms_site_name(),$user->user_login));
         wp_mail($user->user_email,wp_specialchars_decode($subject),$t);return true;
     }
 }
@@ -332,14 +332,14 @@ if(!function_exists('update_network_option_new_admin_email')){
         update_network_option(1,'network_admin_hash',['hash'=>$hash,'newemail'=>$value]);
         $msg=sprintf(__("Howdy ###USERNAME###,\n\nYou recently requested to have the network admin email address on your network changed.\n\nIf this is correct, please click on the following link to change it:\n###ADMIN_URL###\n\nYou can safely ignore and delete this email if you do not want to take this action.\n\nThis email has been sent to ###EMAIL###"));
         $msg=str_replace(['###USERNAME###','###ADMIN_URL###','###EMAIL###'],[wp_get_current_user()->user_login??'',esc_url(network_admin_url('settings.php?network_admin_hash='.$hash)),$value],$msg);
-        wp_mail($value,sprintf(__('[%s] New Network Admin Email Address'),wp_specialchars_decode(rrw_ms_site_name())),$msg);
+        wp_mail($value,sprintf(__('[%s] New Network Admin Email Address'),wp_specialchars_decode(elvado_ms_site_name())),$msg);
     }
 }
 if(!function_exists('wp_network_admin_email_change_notification')){
     function wp_network_admin_email_change_notification($option_name,$new_email,$old_email,$network_id) {
         if(!apply_filters('send_network_admin_email_change_email',true,$old_email,$new_email,$network_id))return;
-        $msg=sprintf(__("Hi,\n\nThis notice confirms that the network admin email address was changed on %1\$s.\n\nThe new network admin email address is %2\$s.\n\nThis email has been sent to %3\$s"),rrw_ms_site_name(),$new_email,$old_email);
-        wp_mail($old_email,sprintf(__('[%s] Network Admin Email Changed'),wp_specialchars_decode(rrw_ms_site_name())),$msg);
+        $msg=sprintf(__("Hi,\n\nThis notice confirms that the network admin email address was changed on %1\$s.\n\nThe new network admin email address is %2\$s.\n\nThis email has been sent to %3\$s"),elvado_ms_site_name(),$new_email,$old_email);
+        wp_mail($old_email,sprintf(__('[%s] Network Admin Email Changed'),wp_specialchars_decode(elvado_ms_site_name())),$msg);
     }
 }
 
@@ -359,7 +359,7 @@ if(!function_exists('upload_is_file_too_big')){
     }
 }
 if(!function_exists('redirect_this_site')){
-    function redirect_this_site($deprecated='') { return (array)apply_filters('redirect_this_site',[rrw_ms_network_row()['domain']]); }
+    function redirect_this_site($deprecated='') { return (array)apply_filters('redirect_this_site',[elvado_ms_network_row()['domain']]); }
 }
 if(!function_exists('maybe_redirect_404')){
     function maybe_redirect_404() {
@@ -369,7 +369,7 @@ if(!function_exists('maybe_redirect_404')){
         wp_redirect($dest);exit;
     }
 }
-if(!function_exists('fix_phpmailer_messageid')){ function fix_phpmailer_messageid($phpmailer) { $phpmailer->Hostname=rrw_ms_network_row()['domain']; } }
+if(!function_exists('fix_phpmailer_messageid')){ function fix_phpmailer_messageid($phpmailer) { $phpmailer->Hostname=elvado_ms_network_row()['domain']; } }
 if(!function_exists('update_blog_public')){ function update_blog_public($old_value,$value) { update_blog_status(1,'public',(int)$value); } }
 if(!function_exists('users_can_register_signup_filter')){
     function users_can_register_signup_filter() { $r=get_network_option(1,'registration');return 'all'===$r||'user'===$r; }
@@ -423,7 +423,7 @@ if(!function_exists('wp_schedule_update_network_counts')){
 if(!function_exists('get_space_used')){
     function get_space_used() {
         $used=apply_filters('pre_get_space_used',false);if(false!==$used)return $used;
-        $d=wp_upload_dir(null,false);return rrw_ms_dirsize((string)$d['basedir'])/MB_IN_BYTES;
+        $d=wp_upload_dir(null,false);return elvado_ms_dirsize((string)$d['basedir'])/MB_IN_BYTES;
     }
 }
 if(!function_exists('get_space_allowed')){

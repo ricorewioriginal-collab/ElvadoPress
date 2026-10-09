@@ -17,7 +17,7 @@ final class Actor
 
     public function isAdmin(): bool { return $this->role === 'admin'; }
 
-    /** Aus dem Ergebnis von rrw_auth(): ['user'=>…, 'role'=>…]. Unbekannte Rollen gelten als Autor (kleinste Rechte). */
+    /** Aus dem Ergebnis von elvado_auth(): ['user'=>…, 'role'=>…]. Unbekannte Rollen gelten als Autor (kleinste Rechte). */
     public static function fromAuth(array $u): self
     {
         $role = (string)($u['role'] ?? 'autor');

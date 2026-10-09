@@ -1,6 +1,6 @@
 <?php
 // Prüft die Kern-Datenbankschicht (cms/src/Database, Repository): Treiberwahl per Konfiguration, Prepared Statements, schema.sql auf SQLite
-// (und – wenn RRW_TEST_MYSQL="host|port|user|passwort" gesetzt ist – auf MySQL/MariaDB), Repositories für posts, lovable_widgets, ai_logs. Aufruf: php scripts/test-core-db.php
+// (und – wenn ELVADO_TEST_MYSQL="host|port|user|passwort" gesetzt ist – auf MySQL/MariaDB), Repositories für posts, lovable_widgets, ai_logs. Aufruf: php scripts/test-core-db.php
 declare(strict_types=1);
 require __DIR__.'/../cms/src/autoload.php';
 use Elvado\Database\DatabaseConnection;use Elvado\Database\DatabaseException;use Elvado\Repository\{PostRepository,LovableWidgetRepository,AiLogRepository};
@@ -14,7 +14,7 @@ t('SQLite: Pfad mit .. abgelehnt',throws(fn()=>DatabaseConnection::fromConfig(['
 t('MySQL: ungültiger Datenbankname abgelehnt',throws(fn()=>DatabaseConnection::fromConfig(['driver'=>'mysql','database'=>'a;drop','user'=>'u']),'Datenbanknamen'));
 t('MySQL: ungültiger Host abgelehnt',throws(fn()=>DatabaseConnection::fromConfig(['driver'=>'mariadb','database'=>'db','user'=>'u','host'=>'h ost']),'Host'));
 t('MySQL: Benutzer fehlt',throws(fn()=>DatabaseConnection::fromConfig(['driver'=>'mysql','database'=>'db']),'benutzer'));
-$tmp=sys_get_temp_dir().'/rrw-core-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-core-'.bin2hex(random_bytes(4));mkdir($tmp);
 $db=DatabaseConnection::fromConfig(['driver'=>'sqlite','sqlite_path'=>$tmp.'/core.sqlite']);
 t('SQLite-Datei angelegt, Fehlermodus Exception',$db->isSqlite()&&is_file($tmp.'/core.sqlite')&&$db->pdo()->getAttribute(PDO::ATTR_ERRMODE)===PDO::ERRMODE_EXCEPTION);
 t('Schema wird einmalig angewendet',$db->migrateCore()===true&&$db->migrateCore()===false);
@@ -68,11 +68,11 @@ t('Protokoll: Bereinigung alter Einträge',$l->prune(180)===0&&$db->execute("UPD
 $c2=DatabaseConnection::fromCmsSettings($tmp.'/data');
 t('fromCmsSettings: ohne Datenbank → SQLite in cms/data',$c2->isSqlite()&&is_file($tmp.'/data/cms-core.sqlite'));
 // optional: MySQL/MariaDB
-if(($m=getenv('RRW_TEST_MYSQL'))){ [$h,$p,$u,$pw]=array_pad(explode('|',$m),4,'');
-    try{ $root=new PDO("mysql:host=$h;port=$p",$u,$pw,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$dbn='rrw_core_'.bin2hex(random_bytes(3));$root->exec("CREATE DATABASE `$dbn`");
+if(($m=getenv('ELVADO_TEST_MYSQL'))){ [$h,$p,$u,$pw]=array_pad(explode('|',$m),4,'');
+    try{ $root=new PDO("mysql:host=$h;port=$p",$u,$pw,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);$dbn='elvado_core_'.bin2hex(random_bytes(3));$root->exec("CREATE DATABASE `$dbn`");
       $my=DatabaseConnection::fromConfig(['driver'=>'mariadb','host'=>$h,'port'=>(int)$p,'user'=>$u,'password'=>$pw,'database'=>$dbn]);
       t('MySQL/MariaDB: Schema + Repositories',$my->migrateCore()&&$my->tableExists('lovable_widgets')&&(new PostRepository($my))->mirror($news)===5&&count((new PostRepository($my))->published())===2&&!$my->migrateCore());
       $root->exec("DROP DATABASE `$dbn`"); }catch(Throwable $e){ t('MySQL/MariaDB erreichbar',false,$e->getMessage()); }
-}else echo "Hinweis: MySQL-Test übersprungen (RRW_TEST_MYSQL nicht gesetzt)\n";
+}else echo "Hinweis: MySQL-Test übersprungen (ELVADO_TEST_MYSQL nicht gesetzt)\n";
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

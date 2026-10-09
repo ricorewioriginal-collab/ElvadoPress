@@ -9,7 +9,7 @@ use Elvado\Plugin\Fs;
 
 final class Perf
 {
-    private const BYPASS_COOKIES = '/^(wordpress_logged_in_|wordpress_sec_|wp-postpass_|comment_author_|rrw_wp_sess|rrw_sbx|rrw_wp_preview|rrw_wp_draft|rrw_app$)/';
+    private const BYPASS_COOKIES = '/^(wordpress_logged_in_|wordpress_sec_|wp-postpass_|comment_author_|elvado_wp_sess|elvado_sbx|elvado_wp_preview|elvado_wp_draft|elvado_app$)/';
     private const IGNORE_PARAMS = '/^(utm_[a-z]+|fbclid|gclid|msclkid|mc_[a-z]+)$/i';
     private const MARK = '# BEGIN ElvadoPress Performance';
     private const MARK_END = '# END ElvadoPress Performance';
@@ -98,8 +98,8 @@ final class Perf
         } else {
             echo $body;
         }
-        if (function_exists('rrw_np_do')) {
-            rrw_np_do('front_response', 200, $path, 'text/html');   // Statistik zählt auch Cache-Treffer
+        if (function_exists('elvado_np_do')) {
+            elvado_np_do('front_response', 200, $path, 'text/html');   // Statistik zählt auch Cache-Treffer
         }
         exit;
     }
@@ -250,7 +250,7 @@ final class Perf
             $keep[] = $m[0];
             return "\x01" . (count($keep) - 1) . "\x02";
         }, $html) ?? $html;
-        $html = preg_replace('~<!--(?!\[if|<!\[endif|\s*(noindex|/noindex)|\s*RRW).*?-->~s', '', $html) ?? $html;
+        $html = preg_replace('~<!--(?!\[if|<!\[endif|\s*(noindex|/noindex)|\s*ELVADO).*?-->~s', '', $html) ?? $html;
         $html = preg_replace('~>\s+<~', '> <', $html) ?? $html;
         $html = preg_replace('~[ \t]*\R[ \t]*~', "\n", $html) ?? $html;
         $html = preg_replace("~\n{2,}~", "\n", $html) ?? $html;

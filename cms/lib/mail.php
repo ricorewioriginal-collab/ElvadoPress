@@ -7,20 +7,20 @@ require_once __DIR__.'/pack.php';
 // bereits bedient (Absenderdomain, SPF/DKIM etc. sind dort serverseitig eingerichtet). Ein SMTP-
 // Client mit eigenen Zugangsdaten ist deshalb nicht nötig. In dieser Entwicklungsumgebung gibt es
 // keinen Mailserver, mail() liefert hier also immer false zurück – das ist erwartet und kein Fehler
-// im Code, siehe rrw_mail_from() für den lokal getesteten Teil (Absenderadresse/Header-Aufbau).
-function rrw_cms_admin_url(array $site): string {
-    $base=(string)($site['seo']['canonical_base']??rrw_default_canonical_base());
+// im Code, siehe elvado_mail_from() für den lokal getesteten Teil (Absenderadresse/Header-Aufbau).
+function elvado_cms_admin_url(array $site): string {
+    $base=(string)($site['seo']['canonical_base']??elvado_default_canonical_base());
     return rtrim($base,'/').'/cms/';
 }
-function rrw_mail_from(array $site): string {
-    $base=(string)($site['seo']['canonical_base']??rrw_default_canonical_base());
+function elvado_mail_from(array $site): string {
+    $base=(string)($site['seo']['canonical_base']??elvado_default_canonical_base());
     $host=parse_url($base,PHP_URL_HOST)?:'localhost';
     $host=preg_replace('/^www\./','',$host);
     return 'noreply@'.$host;
 }
-function rrw_send_mail(string $to,string $subject,string $body,string $fromAddress,string $fromName=''): bool {
-    if($fromName==='')$fromName=function_exists('rrw_product_title')?rrw_product_title():'ElvadoPress';
-    if(defined('RRW_DEMO')||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;   // Demo: kein Mailversand
+function elvado_send_mail(string $to,string $subject,string $body,string $fromAddress,string $fromName=''): bool {
+    if($fromName==='')$fromName=function_exists('elvado_product_title')?elvado_product_title():'ElvadoPress';
+    if(defined('ELVADO_DEMO')||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;   // Demo: kein Mailversand
     $subjectEncoded='=?UTF-8?B?'.base64_encode($subject).'?=';
     $fromNameEncoded='=?UTF-8?B?'.base64_encode($fromName).'?=';
     $headers="From: {$fromNameEncoded} <{$fromAddress}>\r\n"
@@ -29,9 +29,9 @@ function rrw_send_mail(string $to,string $subject,string $body,string $fromAddre
         ."Content-Transfer-Encoding: 8bit\r\n";
     return @mail($to,$subjectEncoded,$body,$headers);
 }
-function rrw_send_comment_notification_email(array $site,string $toEmail,string $articleTitle,string $commentName,string $commentExcerpt,string $adminUrl): void {
+function elvado_send_comment_notification_email(array $site,string $toEmail,string $articleTitle,string $commentName,string $commentExcerpt,string $adminUrl): void {
     if($toEmail==='')return;
     $subject='Neuer Kommentar zu „'.$articleTitle.'"';
-    $body="Hallo,\n\n{$commentName} hat einen Kommentar zu deinem Beitrag \"{$articleTitle}\" hinterlassen:\n\n\"{$commentExcerpt}\"\n\nIm CMS ansehen und ggf. freigeben: {$adminUrl}\n\n-- \n".(function_exists('rrw_product_title')?rrw_product_title():'ElvadoPress')." (automatische Benachrichtigung)";
-    rrw_send_mail($toEmail,$subject,$body,rrw_mail_from($site));
+    $body="Hallo,\n\n{$commentName} hat einen Kommentar zu deinem Beitrag \"{$articleTitle}\" hinterlassen:\n\n\"{$commentExcerpt}\"\n\nIm CMS ansehen und ggf. freigeben: {$adminUrl}\n\n-- \n".(function_exists('elvado_product_title')?elvado_product_title():'ElvadoPress')." (automatische Benachrichtigung)";
+    elvado_send_mail($toEmail,$subject,$body,elvado_mail_from($site));
 }

@@ -36,24 +36,24 @@ class WP_Error {
 function is_wp_error($thing) { return $thing instanceof WP_Error; }
 
 /* ───────── Protokoll ───────── */
-function rrw_wp_log(string $msg): void {
-    if(!defined('RRW_WP_DATA'))return;
-    $f=rtrim(RRW_WP_DATA,'/').'/debug.log';
-    if(!is_dir(RRW_WP_DATA)){@mkdir(RRW_WP_DATA,0775,true);rrw_wp_protect_dir(RRW_WP_DATA);}
+function elvado_wp_log(string $msg): void {
+    if(!defined('ELVADO_WP_DATA'))return;
+    $f=rtrim(ELVADO_WP_DATA,'/').'/debug.log';
+    if(!is_dir(ELVADO_WP_DATA)){@mkdir(ELVADO_WP_DATA,0775,true);elvado_wp_protect_dir(ELVADO_WP_DATA);}
     if(is_file($f)&&filesize($f)>262144)@file_put_contents($f,substr((string)file_get_contents($f),-65536));
     @file_put_contents($f,'['.gmdate('Y-m-d H:i:s').'] '.str_replace(["\r","\n"],' ',$msg)."\n",FILE_APPEND|LOCK_EX);
 }
-function rrw_wp_protect_dir(string $dir): void {
-    if(function_exists('rrw_protect_dir')){rrw_protect_dir($dir);return;}
+function elvado_wp_protect_dir(string $dir): void {
+    if(function_exists('elvado_protect_dir')){elvado_protect_dir($dir);return;}
     if(is_dir($dir)&&!is_file($dir.'/.htaccess'))@file_put_contents($dir.'/.htaccess',"Require all denied\n");
 }
-function error_log_wp($m) { rrw_wp_log((string)$m); }
+function error_log_wp($m) { elvado_wp_log((string)$m); }
 
 /* ───────── URLs ───────── */
-function rrw_wp_home_url(): string {
+function elvado_wp_home_url(): string {
     static $u=null;if($u!==null)return $u;
     $base='';
-    if(function_exists('rrw_seo_defaults')&&!empty($GLOBALS['RRW_SITE'])){$base=(string)(rrw_seo_defaults($GLOBALS['RRW_SITE'])['canonical_base']??'');}
+    if(function_exists('elvado_seo_defaults')&&!empty($GLOBALS['ELVADO_SITE'])){$base=(string)(elvado_seo_defaults($GLOBALS['ELVADO_SITE'])['canonical_base']??'');}
     if($base===''&&!empty($_SERVER['HTTP_HOST'])){$https=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https';$base=($https?'https://':'http://').preg_replace('/[^A-Za-z0-9.\-:\[\]]/','',(string)$_SERVER['HTTP_HOST']);}
     // Anfrage-Host übernehmen, wenn er zur Website gehört (kanonische Domain, Marken-Domains, lokale Entwicklung) – so stimmen Vorschau und Zweitdomains
     $rh=strtolower(preg_replace('/:\d+$/','',(string)($_SERVER['HTTP_HOST']??'')));
@@ -61,20 +61,20 @@ function rrw_wp_home_url(): string {
         $known=in_array($rh,['localhost','127.0.0.1'],true);
         $strip=fn($h)=>preg_replace('/^www\./','',strtolower((string)$h));
         $ch=(string)parse_url($base,PHP_URL_HOST);if($ch!==''&&$strip($ch)===$strip($rh))$known=true;
-        if(!$known&&function_exists('rrw_brands_registry')&&!empty($GLOBALS['RRW_SITE'])){
-            try{foreach(rrw_brands_registry($GLOBALS['RRW_SITE'])['items'] as $b)foreach(array_merge([$b['primary_domain']??''],(array)($b['domains']??[])) as $d)if($d!==''&&$strip($d)===$strip($rh))$known=true;}catch(Throwable $e){}
+        if(!$known&&function_exists('elvado_brands_registry')&&!empty($GLOBALS['ELVADO_SITE'])){
+            try{foreach(elvado_brands_registry($GLOBALS['ELVADO_SITE'])['items'] as $b)foreach(array_merge([$b['primary_domain']??''],(array)($b['domains']??[])) as $d)if($d!==''&&$strip($d)===$strip($rh))$known=true;}catch(Throwable $e){}
         }
         if($known){$https=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https';$base=($https?'https://':'http://').(string)$_SERVER['HTTP_HOST'];}
     }
     return $u=rtrim($base,'/');
 }
-function home_url($path='', $scheme=null) { return apply_filters('home_url',rrw_wp_home_url().($path!==''&&$path[0]!=='/'?'/':'').$path,$path,$scheme,null); }
-function site_url($path='', $scheme=null) { return apply_filters('site_url',rrw_wp_home_url().($path!==''&&$path[0]!=='/'?'/':'').$path,$path,$scheme,null); }
-function admin_url($path='', $scheme='admin') { $p=ltrim((string)$path,'/');$base=in_array(strtok($p,'?'),['admin-ajax.php','admin-post.php'],true)?'/wp-admin/':'/cms/';return apply_filters('admin_url',rrw_wp_home_url().$base.$p,$path,null); }
+function home_url($path='', $scheme=null) { return apply_filters('home_url',elvado_wp_home_url().($path!==''&&$path[0]!=='/'?'/':'').$path,$path,$scheme,null); }
+function site_url($path='', $scheme=null) { return apply_filters('site_url',elvado_wp_home_url().($path!==''&&$path[0]!=='/'?'/':'').$path,$path,$scheme,null); }
+function admin_url($path='', $scheme='admin') { $p=ltrim((string)$path,'/');$base=in_array(strtok($p,'?'),['admin-ajax.php','admin-post.php'],true)?'/wp-admin/':'/cms/';return apply_filters('admin_url',elvado_wp_home_url().$base.$p,$path,null); }
 function network_home_url($p='') { return home_url($p); }
 function network_site_url($p='') { return site_url($p); }
-function content_url($path='') { return rrw_wp_home_url().'/cms/wp-content'.($path!==''?'/'.ltrim($path,'/'):''); }
-function includes_url($path='') { return rrw_wp_home_url().'/cms/wp/core'.($path!==''?'/'.ltrim($path,'/'):''); }
+function content_url($path='') { return elvado_wp_home_url().'/cms/wp-content'.($path!==''?'/'.ltrim($path,'/'):''); }
+function includes_url($path='') { return elvado_wp_home_url().'/cms/wp/core'.($path!==''?'/'.ltrim($path,'/'):''); }
 function plugins_url($path='', $plugin='') {
     $base=content_url('plugins');
     if($plugin){ $pdir=wp_normalize_path(dirname((string)$plugin)); $root=wp_normalize_path(WP_PLUGIN_DIR); if(str_starts_with($pdir,$root))$base.=substr($pdir,strlen($root)); }
@@ -85,7 +85,7 @@ function get_home_url($blog_id=null, $path='', $scheme=null) { return home_url($
 function get_site_url($blog_id=null, $path='', $scheme=null) { return site_url($path,$scheme); }
 function wp_get_upload_dir() { $d=WP_CONTENT_DIR.'/uploads';return ['path'=>$d,'url'=>content_url('uploads'),'subdir'=>'','basedir'=>$d,'baseurl'=>content_url('uploads'),'error'=>false]; }
 function wp_upload_dir($time=null, $create_dir=true, $refresh_cache=false) { $u=wp_get_upload_dir();if($create_dir&&!is_dir($u['path']))@mkdir($u['path'],0775,true);return $u; }
-function is_ssl() { return (!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https'||str_starts_with(rrw_wp_home_url(),'https://'); }
+function is_ssl() { return (!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https'||str_starts_with(elvado_wp_home_url(),'https://'); }
 function set_url_scheme($url, $scheme=null) { return (string)$url; }
 function wp_get_referer() { $r=$_SERVER['HTTP_REFERER']??'';return $r!==''?esc_url_raw($r):false; }
 function wp_validate_redirect($location, $fallback_url='') {
@@ -93,14 +93,14 @@ function wp_validate_redirect($location, $fallback_url='') {
     if(str_starts_with($location,'//'))$location='http:'.$location;
     $p=parse_url($location);if(!$p)return $fallback_url;
     if(empty($p['host']))return $location;
-    $home=parse_url(rrw_wp_home_url(),PHP_URL_HOST);
+    $home=parse_url(elvado_wp_home_url(),PHP_URL_HOST);
     return strtolower($p['host'])===strtolower((string)$home)?$location:$fallback_url;
 }
 function wp_redirect($location, $status=302, $x_redirect_by='WordPress') {
     $location=apply_filters('wp_redirect',$location,$status);if(!$location)return false;
     $location=preg_replace('/[\r\n]/','',(string)$location);
     if(!headers_sent())header('Location: '.$location,true,$status);
-    if(!empty($GLOBALS['rrw_wp_is_admin'])){ $GLOBALS['rrw_wp_admin_redirect']=$location;throw new RRW_WP_Die('',$status); }   // Plugins rufen danach exit auf: stattdessen die Anfrage sauber beenden
+    if(!empty($GLOBALS['elvado_wp_is_admin'])){ $GLOBALS['elvado_wp_admin_redirect']=$location;throw new ELVADO_WP_Die('',$status); }   // Plugins rufen danach exit auf: stattdessen die Anfrage sauber beenden
     return true;
 }
 function wp_safe_redirect($location, $status=302, $x_redirect_by='WordPress') { return wp_redirect(wp_validate_redirect($location,home_url()),$status,$x_redirect_by); }
@@ -113,22 +113,22 @@ function wp_is_mobile() { $ua=$_SERVER['HTTP_USER_AGENT']??'';return $ua!==''&&(
 function wp_salt($scheme='auth') {
     static $salt=null;
     if($salt===null){
-        $f=rtrim(RRW_WP_DATA,'/').'/salt.json';
+        $f=rtrim(ELVADO_WP_DATA,'/').'/salt.json';
         $d=is_file($f)?json_decode((string)file_get_contents($f),true):null;
-        if(!is_array($d)||empty($d['s'])){$d=['s'=>bin2hex(random_bytes(32))];if(!is_dir(RRW_WP_DATA)){@mkdir(RRW_WP_DATA,0775,true);rrw_wp_protect_dir(RRW_WP_DATA);}@file_put_contents($f,json_encode($d),LOCK_EX);}
+        if(!is_array($d)||empty($d['s'])){$d=['s'=>bin2hex(random_bytes(32))];if(!is_dir(ELVADO_WP_DATA)){@mkdir(ELVADO_WP_DATA,0775,true);elvado_wp_protect_dir(ELVADO_WP_DATA);}@file_put_contents($f,json_encode($d),LOCK_EX);}
         $salt=(string)$d['s'];
     }
     return hash_hmac('sha256',(string)$scheme,$salt);
 }
 function wp_hash($data, $scheme='auth') { return hash_hmac('md5',(string)$data,wp_salt($scheme)); }
 function wp_nonce_tick() { return (int)ceil(time()/(12*3600/2)); }
-function wp_create_nonce($action=-1) { $uid=(int)get_current_user_id();return substr(wp_hash(wp_nonce_tick().'|'.$action.'|'.$uid.'|'.rrw_wp_session_token(),'nonce'),-12,10); }
+function wp_create_nonce($action=-1) { $uid=(int)get_current_user_id();return substr(wp_hash(wp_nonce_tick().'|'.$action.'|'.$uid.'|'.elvado_wp_session_token(),'nonce'),-12,10); }
 function wp_verify_nonce($nonce, $action=-1) {
     $nonce=(string)$nonce;if($nonce==='')return false;$uid=(int)get_current_user_id();$tick=wp_nonce_tick();
-    foreach([1=>$tick,2=>$tick-1] as $r=>$t){ $e=substr(wp_hash($t.'|'.$action.'|'.$uid.'|'.rrw_wp_session_token(),'nonce'),-12,10); if(hash_equals($e,$nonce))return $r; }
+    foreach([1=>$tick,2=>$tick-1] as $r=>$t){ $e=substr(wp_hash($t.'|'.$action.'|'.$uid.'|'.elvado_wp_session_token(),'nonce'),-12,10); if(hash_equals($e,$nonce))return $r; }
     return false;
 }
-function rrw_wp_session_token(): string { return (string)($GLOBALS['rrw_wp_session_token']??''); }
+function elvado_wp_session_token(): string { return (string)($GLOBALS['elvado_wp_session_token']??''); }
 function wp_nonce_field($action=-1, $name='_wpnonce', $referer=true, $display=true) {
     $f='<input type="hidden" id="'.esc_attr($name).'" name="'.esc_attr($name).'" value="'.esc_attr(wp_create_nonce($action)).'" />';
     if($referer)$f.=wp_referer_field(false);
@@ -140,11 +140,11 @@ function check_ajax_referer($action=-1, $query_arg=false, $stop=true) { $q=$quer
 function wp_nonce_ays($action) { wp_die(__('Der Link ist abgelaufen. Bitte versuche es erneut.'),__('Fehler'),['response'=>403]); }
 
 /* ───────── Beenden / JSON ───────── */
-class RRW_WP_Die extends Exception {}
+class ELVADO_WP_Die extends Exception {}
 function wp_die($message='', $title='', $args=[]) {
     if(is_wp_error($message))$message=$message->get_error_message();
     $args=wp_parse_args($args,['response'=>is_int($title)?$title:(wp_doing_ajax()?200:500),'exit'=>true]);if(is_int($title))$title='';
-    if(!empty($GLOBALS['rrw_wp_die_throws']))throw new RRW_WP_Die((string)$message,(int)$args['response']);
+    if(!empty($GLOBALS['elvado_wp_die_throws']))throw new ELVADO_WP_Die((string)$message,(int)$args['response']);
     if(!headers_sent()){http_response_code((int)$args['response']);header('Content-Type: text/html; charset=utf-8');}
     echo '<!doctype html><meta charset="utf-8"><title>'.esc_html($title?:'Fehler').'</title><body style="font:16px system-ui;max-width:640px;margin:10vh auto;padding:0 20px"><p>'.wp_kses_post((string)$message).'</p></body>';
     if($args['exit'])exit;
@@ -152,18 +152,18 @@ function wp_die($message='', $title='', $args=[]) {
 function wp_send_json($response, $status_code=null, $flags=0) {
     if(!headers_sent()){header('Content-Type: application/json; charset=utf-8');if($status_code)http_response_code((int)$status_code);}
     echo wp_json_encode($response,$flags);
-    if(!empty($GLOBALS['rrw_wp_die_throws']))throw new RRW_WP_Die('json',(int)($status_code?:200));
+    if(!empty($GLOBALS['elvado_wp_die_throws']))throw new ELVADO_WP_Die('json',(int)($status_code?:200));
     exit;
 }
 function wp_send_json_success($data=null, $status_code=null) { $r=['success'=>true];if(isset($data))$r['data']=$data;wp_send_json($r,$status_code); }
 function wp_send_json_error($data=null, $status_code=null) { $r=['success'=>false];if(isset($data))$r['data']=is_wp_error($data)?['code'=>$data->get_error_code(),'message'=>$data->get_error_message()]:$data;wp_send_json($r,$status_code); }
-function wp_doing_ajax() { return !empty($GLOBALS['rrw_wp_doing_ajax']); }
+function wp_doing_ajax() { return !empty($GLOBALS['elvado_wp_doing_ajax']); }
 function wp_doing_cron() { return false; }
 function wp_is_json_request() { return str_contains((string)($_SERVER['HTTP_ACCEPT']??''),'json'); }
 function wp_is_xml_request() { return false; }
 
 /* ───────── Remote (SSRF-Schutz: nur öffentliche Hosts) ───────── */
-function rrw_wp_host_public(string $host): bool {
+function elvado_wp_host_public(string $host): bool {
     if($host===''||strcasecmp($host,'localhost')===0)return false;
     $ips=filter_var($host,FILTER_VALIDATE_IP)?[$host]:array_merge((array)@gethostbynamel($host)?:[]);
     if(!$ips)return false;
@@ -171,10 +171,10 @@ function rrw_wp_host_public(string $host): bool {
     return true;
 }
 function wp_remote_request($url, $args=[]) {
-    $args=wp_parse_args($args,['method'=>'GET','timeout'=>8,'headers'=>[],'body'=>null,'redirection'=>3,'user-agent'=>'WordPress/6.5; '.rrw_wp_home_url()]);
+    $args=wp_parse_args($args,['method'=>'GET','timeout'=>8,'headers'=>[],'body'=>null,'redirection'=>3,'user-agent'=>'WordPress/6.5; '.elvado_wp_home_url()]);
     $pre=apply_filters('pre_http_request',false,$args,$url);if(false!==$pre)return $pre;
     $p=parse_url((string)$url);
-    if(!$p||!in_array($p['scheme']??'',['http','https'],true)||!rrw_wp_host_public((string)($p['host']??'')))return new WP_Error('http_request_failed','Ungültige oder nicht erlaubte Adresse.');
+    if(!$p||!in_array($p['scheme']??'',['http','https'],true)||!elvado_wp_host_public((string)($p['host']??'')))return new WP_Error('http_request_failed','Ungültige oder nicht erlaubte Adresse.');
     if(!function_exists('curl_init'))return new WP_Error('http_request_failed','curl fehlt.');
     $hdrs=[];foreach((array)$args['headers'] as $k=>$v)$hdrs[]=$k.': '.$v;
     $respHeaders=[];$ch=curl_init((string)$url);

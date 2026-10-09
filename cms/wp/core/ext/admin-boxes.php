@@ -74,7 +74,7 @@ if(!function_exists('post_comment_meta_box')){ function post_comment_meta_box($p
     wp_nonce_field('get-comments','add_comment_nonce',false);
     echo '<p class="hide-if-no-js" id="add-new-comment"><a role="button" href="#commentstatusdiv">Kommentar hinzufügen</a></p>';
     $total=get_comments(['post_id'=>$post->ID,'count'=>true,'orderby'=>'none']);
-    if($total){ echo '<table class="widefat comments-box"><tbody id="the-comment-list">';foreach(get_comments(['post_id'=>$post->ID,'number'=>10,'status'=>'all'])?:[] as $c)echo rrw_adm_comment_row($c);echo '</tbody></table>'; }
+    if($total){ echo '<table class="widefat comments-box"><tbody id="the-comment-list">';foreach(get_comments(['post_id'=>$post->ID,'number'=>10,'status'=>'all'])?:[] as $c)echo elvado_adm_comment_row($c);echo '</tbody></table>'; }
     else echo '<p class="hide-if-no-js">Noch keine Kommentare.</p>';
 } }
 if(!function_exists('post_slug_meta_box')){ function post_slug_meta_box($post) {
@@ -105,27 +105,27 @@ if(!function_exists('attachment_id3_data_meta_box')){ function attachment_id3_da
 if(!function_exists('register_and_do_post_meta_boxes')){ function register_and_do_post_meta_boxes($post) {   // Standard-Boxen eintragen, Plugin-Hooks auslösen und ausgeben
     $pt=$post->post_type;$obj=get_post_type_object($pt);if(!$obj)return;
     $thumb=current_theme_supports('post-thumbnails',$pt)&&post_type_supports($pt,'thumbnail');
-    if('attachment'===$pt)rrw_adm_add_box('submitdiv','Veröffentlichen','attachment_submit_meta_box',$pt,'side','core');
-    else rrw_adm_add_box('submitdiv','Veröffentlichen','post_submit_meta_box',$pt,'side','core');
-    if(current_theme_supports('post-formats')&&post_type_supports($pt,'post-formats'))rrw_adm_add_box('formatdiv','Format','post_format_meta_box',$pt,'side','core');
-    if($thumb)rrw_adm_add_box('postimagediv','Beitragsbild','post_thumbnail_meta_box',$pt,'side','low');
-    if(post_type_supports($pt,'excerpt'))rrw_adm_add_box('postexcerpt','Textauszug','post_excerpt_meta_box',$pt,'normal','core');
-    if(post_type_supports($pt,'trackbacks'))rrw_adm_add_box('trackbacksdiv','Trackbacks senden','post_trackback_meta_box',$pt);
-    if(post_type_supports($pt,'custom-fields'))rrw_adm_add_box('postcustom','Eigene Felder','post_custom_meta_box',$pt);
-    if(post_type_supports($pt,'comments'))rrw_adm_add_box('commentstatusdiv','Diskussion','post_comment_status_meta_box',$pt);
-    if(('publish'===$post->post_status||'private'===$post->post_status)&&post_type_supports($pt,'comments'))rrw_adm_add_box('commentsdiv','Kommentare','post_comment_meta_box',$pt);
-    if(!('pending'===$post->post_status&&!current_user_can($obj->cap->publish_posts)))rrw_adm_add_box('slugdiv','Titelform','post_slug_meta_box',$pt);
-    if(post_type_supports($pt,'author')&&current_user_can($obj->cap->edit_others_posts))rrw_adm_add_box('authordiv','Autor','post_author_meta_box',$pt);
-    if(post_type_supports($pt,'revisions')&&0<$post->ID&&wp_get_post_revisions($post->ID,['posts_per_page'=>1]))rrw_adm_add_box('revisionsdiv','Revisionen','post_revisions_meta_box',$pt);
-    if(post_type_supports($pt,'page-attributes'))rrw_adm_add_box('pageparentdiv','Seiten-Attribute','page_attributes_meta_box',$pt,'side','core');
+    if('attachment'===$pt)elvado_adm_add_box('submitdiv','Veröffentlichen','attachment_submit_meta_box',$pt,'side','core');
+    else elvado_adm_add_box('submitdiv','Veröffentlichen','post_submit_meta_box',$pt,'side','core');
+    if(current_theme_supports('post-formats')&&post_type_supports($pt,'post-formats'))elvado_adm_add_box('formatdiv','Format','post_format_meta_box',$pt,'side','core');
+    if($thumb)elvado_adm_add_box('postimagediv','Beitragsbild','post_thumbnail_meta_box',$pt,'side','low');
+    if(post_type_supports($pt,'excerpt'))elvado_adm_add_box('postexcerpt','Textauszug','post_excerpt_meta_box',$pt,'normal','core');
+    if(post_type_supports($pt,'trackbacks'))elvado_adm_add_box('trackbacksdiv','Trackbacks senden','post_trackback_meta_box',$pt);
+    if(post_type_supports($pt,'custom-fields'))elvado_adm_add_box('postcustom','Eigene Felder','post_custom_meta_box',$pt);
+    if(post_type_supports($pt,'comments'))elvado_adm_add_box('commentstatusdiv','Diskussion','post_comment_status_meta_box',$pt);
+    if(('publish'===$post->post_status||'private'===$post->post_status)&&post_type_supports($pt,'comments'))elvado_adm_add_box('commentsdiv','Kommentare','post_comment_meta_box',$pt);
+    if(!('pending'===$post->post_status&&!current_user_can($obj->cap->publish_posts)))elvado_adm_add_box('slugdiv','Titelform','post_slug_meta_box',$pt);
+    if(post_type_supports($pt,'author')&&current_user_can($obj->cap->edit_others_posts))elvado_adm_add_box('authordiv','Autor','post_author_meta_box',$pt);
+    if(post_type_supports($pt,'revisions')&&0<$post->ID&&wp_get_post_revisions($post->ID,['posts_per_page'=>1]))elvado_adm_add_box('revisionsdiv','Revisionen','post_revisions_meta_box',$pt);
+    if(post_type_supports($pt,'page-attributes'))elvado_adm_add_box('pageparentdiv','Seiten-Attribute','page_attributes_meta_box',$pt,'side','core');
     do_action('add_meta_boxes',$pt,$post);do_action("add_meta_boxes_{$pt}",$post);do_action('do_meta_boxes',$pt,'normal',$post);do_action('do_meta_boxes',$pt,'advanced',$post);do_action('do_meta_boxes',$pt,'side',$post);
-    foreach(['side','normal','advanced'] as $ctx){ echo '<div id="'.$ctx.'-sortables" class="meta-box-sortables">';rrw_adm_do_boxes($pt,$ctx,$post);echo '</div>'; }
+    foreach(['side','normal','advanced'] as $ctx){ echo '<div id="'.$ctx.'-sortables" class="meta-box-sortables">';elvado_adm_do_boxes($pt,$ctx,$post);echo '</div>'; }
 } }
 
 /* ───────── Navigationsmenüs ───────── */
 if(!function_exists('wp_nav_menu_setup')){ function wp_nav_menu_setup() {
     wp_nav_menu_post_type_meta_boxes();
-    rrw_adm_add_box('add-custom-links','Individuelle Links','wp_nav_menu_item_link_meta_box','nav-menus','side','default');
+    elvado_adm_add_box('add-custom-links','Individuelle Links','wp_nav_menu_item_link_meta_box','nav-menus','side','default');
     wp_nav_menu_taxonomy_meta_boxes();
     add_filter('manage_nav-menus_columns','wp_nav_menu_manage_columns');
     if(false===get_user_option('managenav-menuscolumnshidden'))update_user_option(get_current_user_id(),'managenav-menuscolumnshidden',['link-target','css-classes','xfn','description','title-attribute'],true);
@@ -140,13 +140,13 @@ if(!function_exists('wp_initial_nav_menu_meta_boxes')){ function wp_initial_nav_
 if(!function_exists('wp_nav_menu_post_type_meta_boxes')){ function wp_nav_menu_post_type_meta_boxes() {
     foreach(get_post_types(['show_in_nav_menus'=>true],'object') as $pt){
         $pt=apply_filters('nav_menu_meta_box_object',$pt);if(!$pt)continue;
-        rrw_adm_add_box('add-post-type-'.$pt->name,$pt->labels->name??$pt->name,'wp_nav_menu_item_post_type_meta_box','nav-menus','side','default',$pt);
+        elvado_adm_add_box('add-post-type-'.$pt->name,$pt->labels->name??$pt->name,'wp_nav_menu_item_post_type_meta_box','nav-menus','side','default',$pt);
     }
 } }
 if(!function_exists('wp_nav_menu_taxonomy_meta_boxes')){ function wp_nav_menu_taxonomy_meta_boxes() {
     foreach(get_taxonomies(['show_in_nav_menus'=>true],'object') as $tx){
         $tx=apply_filters('nav_menu_meta_box_object',$tx);if(!$tx)continue;
-        rrw_adm_add_box('add-'.$tx->name,$tx->labels->name??$tx->name,'wp_nav_menu_item_taxonomy_meta_box','nav-menus','side','default',$tx);
+        elvado_adm_add_box('add-'.$tx->name,$tx->labels->name??$tx->name,'wp_nav_menu_item_taxonomy_meta_box','nav-menus','side','default',$tx);
     }
 } }
 if(!function_exists('wp_nav_menu_disabled_check')){ function wp_nav_menu_disabled_check($nav_menu_selected_id, $display=true) {   // „disabled“, solange kein Menü gewählt ist

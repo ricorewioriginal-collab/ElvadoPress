@@ -179,7 +179,7 @@ Die öffentliche Konfiguration enthält keine Tokens, Passwörter oder Benutzerr
 ## Multi-Domain & Branding
 
 Eine Website, mehrere Marken (siehe `BRANDS.md`). Die wirksame Marke ergibt sich aus dem Hostname
-der Anfrage; `?rrw_brand=<kennung>` erzwingt eine Marke (Vorschau).
+der Anfrage; `?elvado_brand=<kennung>` erzwingt eine Marke (Vorschau).
 
 - `GET api.php?action=brand` – öffentliche Markeninfo: `brand`, `name`, `short_name`, `claim`,
   `hostname`, `primary_domain`, `domains`, `origin`, `logo`, `favicon`, `touch_icon`, `og_image`,
@@ -190,7 +190,7 @@ der Anfrage; `?rrw_brand=<kennung>` erzwingt eine Marke (Vorschau).
 - `POST api.php?action=brand_asset_assign` `{brand_id, kind, path|url, size}` – Asset aus dem
   Medien-Hub zuweisen; `kind` ∈ logo, logo_dark, logo_light, favicon, touch_icon, og_image, social_image.
 - `GET /manifest.php` – Manifest der Marke; `GET /` bzw. `/index.html` läuft über `index.php`
-  (brandabhängiger `<head>`, `window.__RRW_BRAND__`).
+  (brandabhängiger `<head>`, `window.__ELVADO_BRAND__`).
 
 Alle Antworten senden `Vary: Host`.
 

@@ -17,9 +17,9 @@ abstract class WP_Image_Editor {
     abstract public function flip($horz, $vert);
     abstract public function stream($mime_type=null);
     /** Passenden Editor für die Datei wählen und laden; WP_Error, wenn keiner geeignet ist. Die Schicht wählt Editoren sonst nicht selbsttätig (wp_get_image_editor meldet „kein Editor“): hier ist die Wahl ausdrücklich gewünscht. */
-    protected static function enabled($args) { return !empty($args['rrw_direct'])||(bool)apply_filters('rrw_wp_image_editor_enabled',defined('RRW_WP_IMAGE_EDITOR')&&RRW_WP_IMAGE_EDITOR); }
+    protected static function enabled($args) { return !empty($args['elvado_direct'])||(bool)apply_filters('elvado_wp_image_editor_enabled',defined('ELVADO_WP_IMAGE_EDITOR')&&ELVADO_WP_IMAGE_EDITOR); }
     public static function get_instance($path, $args=[]) {
-        $c=_wp_image_editor_choose(array_merge((array)$args,['path'=>$path,'rrw_direct'=>true]));
+        $c=_wp_image_editor_choose(array_merge((array)$args,['path'=>$path,'elvado_direct'=>true]));
         if(!$c)return new WP_Error('image_no_editor','Kein Bildeditor ist verfügbar.');
         $e=new $c($path);$l=$e->load();
         return is_wp_error($l)?$l:$e;

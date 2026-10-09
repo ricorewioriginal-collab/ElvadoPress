@@ -91,7 +91,7 @@ if(!class_exists('WP_Block_Bindings_Registry')){
 final class WP_Block_Bindings_Registry {
     private static $instance=null;
     public static function get_instance() { return self::$instance??(self::$instance=new self()); }
-    private function sources(): array { $o=[];foreach((array)($GLOBALS['rrw_wp_bindings']??[]) as $n=>$p)$o[$n]=new WP_Block_Bindings_Source($n,(array)$p);return $o; }
+    private function sources(): array { $o=[];foreach((array)($GLOBALS['elvado_wp_bindings']??[]) as $n=>$p)$o[$n]=new WP_Block_Bindings_Source($n,(array)$p);return $o; }
     public function register($source_name, array $source_properties) {
         if(!is_string($source_name)||$source_name===''||!preg_match('/^[a-z0-9-]+\/[a-z0-9-]+$/',$source_name))return false;
         if($this->is_registered($source_name))return false;
@@ -101,18 +101,18 @@ final class WP_Block_Bindings_Registry {
     public function unregister($source_name) { $s=$this->get_registered($source_name);if(!$s)return false;unregister_block_bindings_source($source_name);return $s; }
     public function get_all_registered() { return $this->sources(); }
     public function get_registered($source_name) { return $this->sources()[$source_name]??null; }
-    public function is_registered($source_name) { return isset($GLOBALS['rrw_wp_bindings'][$source_name]); }
+    public function is_registered($source_name) { return isset($GLOBALS['elvado_wp_bindings'][$source_name]); }
 }
 }
 if(!class_exists('WP_Block_Pattern_Categories_Registry')){
 final class WP_Block_Pattern_Categories_Registry {
     private static $instance=null;
     public static function get_instance() { return self::$instance??(self::$instance=new self()); }
-    public function register($category_name, $category_properties) { $GLOBALS['rrw_wp_pattern_categories'][$category_name]=array_merge(['name'=>$category_name],(array)$category_properties);return true; }
-    public function unregister($category_name) { if(!$this->is_registered($category_name))return false;unset($GLOBALS['rrw_wp_pattern_categories'][$category_name]);return true; }
-    public function get_registered($category_name) { $c=$GLOBALS['rrw_wp_pattern_categories'][$category_name]??null;return $c?array_merge(['name'=>$category_name],(array)$c):null; }
-    public function get_all_registered() { $o=[];foreach((array)($GLOBALS['rrw_wp_pattern_categories']??[]) as $n=>$c)$o[]=array_merge(['name'=>$n],(array)$c);return $o; }
-    public function is_registered($category_name) { return isset($GLOBALS['rrw_wp_pattern_categories'][$category_name]); }
+    public function register($category_name, $category_properties) { $GLOBALS['elvado_wp_pattern_categories'][$category_name]=array_merge(['name'=>$category_name],(array)$category_properties);return true; }
+    public function unregister($category_name) { if(!$this->is_registered($category_name))return false;unset($GLOBALS['elvado_wp_pattern_categories'][$category_name]);return true; }
+    public function get_registered($category_name) { $c=$GLOBALS['elvado_wp_pattern_categories'][$category_name]??null;return $c?array_merge(['name'=>$category_name],(array)$c):null; }
+    public function get_all_registered() { $o=[];foreach((array)($GLOBALS['elvado_wp_pattern_categories']??[]) as $n=>$c)$o[]=array_merge(['name'=>$n],(array)$c);return $o; }
+    public function is_registered($category_name) { return isset($GLOBALS['elvado_wp_pattern_categories'][$category_name]); }
 }
 }
 if(!class_exists('WP_Block_Templates_Registry')){
@@ -123,11 +123,11 @@ final class WP_Block_Templates_Registry {
         if(!is_string($template_name)||!preg_match('/^[a-z0-9-]+\/[a-z0-9-]+$/',$template_name)||$this->is_registered($template_name))return new WP_Error('template_name_invalid','Der Vorlagenname ist ungültig oder bereits vergeben.');
         register_block_template($template_name,(array)$args);return (object)array_merge(['name'=>$template_name,'slug'=>explode('/',$template_name)[1]],(array)$args);
     }
-    public function unregister($template_name) { if(!$this->is_registered($template_name))return false;$t=$this->get_registered($template_name);unset($GLOBALS['rrw_wp_registered_block_templates'][$template_name]);return $t; }
-    public function get_registered($template_name) { $a=$GLOBALS['rrw_wp_registered_block_templates'][$template_name]??null;return $a===null?null:(object)array_merge(['name'=>$template_name,'slug'=>explode('/',$template_name)[1]??$template_name],(array)$a); }
-    public function get_all_registered() { $o=[];foreach(array_keys((array)($GLOBALS['rrw_wp_registered_block_templates']??[])) as $n)$o[$n]=$this->get_registered($n);return $o; }
+    public function unregister($template_name) { if(!$this->is_registered($template_name))return false;$t=$this->get_registered($template_name);unset($GLOBALS['elvado_wp_registered_block_templates'][$template_name]);return $t; }
+    public function get_registered($template_name) { $a=$GLOBALS['elvado_wp_registered_block_templates'][$template_name]??null;return $a===null?null:(object)array_merge(['name'=>$template_name,'slug'=>explode('/',$template_name)[1]??$template_name],(array)$a); }
+    public function get_all_registered() { $o=[];foreach(array_keys((array)($GLOBALS['elvado_wp_registered_block_templates']??[])) as $n)$o[$n]=$this->get_registered($n);return $o; }
     public function get_by_slug($template_slug) { foreach($this->get_all_registered() as $t)if($t->slug===$template_slug)return $t;return null; }
-    public function is_registered($template_name) { return isset($GLOBALS['rrw_wp_registered_block_templates'][$template_name]); }
+    public function is_registered($template_name) { return isset($GLOBALS['elvado_wp_registered_block_templates'][$template_name]); }
 }
 }
 

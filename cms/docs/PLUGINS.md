@@ -38,13 +38,13 @@ Aktive native Plugins werden auf der Website der jeweiligen ElvadoPress-Installa
 Globale Schnittstelle:
 
 ```js
-RRWPluginAPI.on("portal:ready", payload => {
+ELVADOPluginAPI.on("portal:ready", payload => {
   console.log(payload);
 });
 
-RRWPluginAPI.emit("mein-plugin:event", { value: 1 });
+ELVADOPluginAPI.emit("mein-plugin:event", { value: 1 });
 
-const config = RRWPluginAPI.getConfig();
+const config = ELVADOPluginAPI.getConfig();
 ```
 
 ## Verfügbare Hooks

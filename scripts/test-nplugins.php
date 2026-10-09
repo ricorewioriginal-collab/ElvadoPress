@@ -15,7 +15,7 @@ t('Version: Bereich, Joker, *',Version::satisfies('1.5.0','>=1.0 <2.0')&&!Versio
 t('Version: ungültige Bedingung',!Version::validConstraint('>>1')&&!Version::satisfies('1.0.0','abc'));
 
 // ---------- Paketbibliothek für die Tests
-$tmp=sys_get_temp_dir().'/rrw-np-'.bin2hex(random_bytes(4));$lib=$tmp.'/lib';$plug=$tmp.'/plugins';$data=$tmp.'/data';
+$tmp=sys_get_temp_dir().'/elvado-np-'.bin2hex(random_bytes(4));$lib=$tmp.'/lib';$plug=$tmp.'/plugins';$data=$tmp.'/data';
 foreach([$lib,$plug,$data] as $d)mkdir($d,0755,true);
 function mk(string $lib,string $id,array $m,string $php='',array $extra=[]): void {
     $d=$lib.'/'.$id;if(!is_dir($d))mkdir($d,0755,true);

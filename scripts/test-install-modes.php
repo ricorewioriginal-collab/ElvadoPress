@@ -12,7 +12,7 @@ function http(string $method,string $url,array $headers=[],string $body=''): arr
 }
 /** Wegwerf-Kopie des CMS (ohne Laufzeitdaten) und PHP-Server darauf. */
 function site(string $real): array {
-    $tmp=sys_get_temp_dir().'/rrw-inst-'.bin2hex(random_bytes(4));mkdir($tmp,0755,true);
+    $tmp=sys_get_temp_dir().'/elvado-inst-'.bin2hex(random_bytes(4));mkdir($tmp,0755,true);
     exec('cp -a '.escapeshellarg($real.'/cms').' '.escapeshellarg($tmp.'/cms').' && cp '.escapeshellarg($real.'/index.php').' '.escapeshellarg($tmp.'/index.php'));
     foreach(['data','backups','media','plugins'] as $d){ if($d==='data'){ foreach(glob($tmp.'/cms/data/*')?:[] as $f)if(!str_ends_with($f,'.example'))rm($f); foreach(glob($tmp.'/cms/data/.[a-z]*')?:[] as $f)rm($f); } else rm($tmp.'/cms/'.$d); }
     @mkdir($tmp.'/cms/data',0755,true);@mkdir($tmp.'/cms/plugins',0755,true);
@@ -23,7 +23,7 @@ function site(string $real): array {
 }
 function install(string $base,array $extra): array {
     [$st,$ck,$html]=http('GET',$base.'/cms/install.php');
-    preg_match('/name="csrf" value="([a-f0-9]{32})"/',$html,$m);$csrf=$m[1]??'';$cookie='rrw_inst='.$csrf;
+    preg_match('/name="csrf" value="([a-f0-9]{32})"/',$html,$m);$csrf=$m[1]??'';$cookie='elvado_inst='.$csrf;
     $post=http_build_query(['csrf'=>$csrf,'do'=>'install','site_name'=>'Testseite','language'=>'de','timezone'=>'Europe/Berlin','username'=>'admin1','email'=>'a@example.org','password'=>'Sehr-gutes-Passwort-42','password2'=>'Sehr-gutes-Passwort-42','db_driver'=>'none','sample'=>'1']+$extra);
     return http('POST',$base.'/cms/install.php',['Content-Type: application/x-www-form-urlencoded','Cookie: '.$cookie],$post);
 }

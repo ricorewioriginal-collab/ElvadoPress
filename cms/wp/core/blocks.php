@@ -75,14 +75,14 @@ class WP_Block {
         $this->inner_blocks=array_map(fn($b)=>new WP_Block($b,$prov,$reg),(array)($block['innerBlocks']??[]));
     }
     public function render($options=[]) {
-        $prev=$GLOBALS['rrw_wp_current_block']??null;$GLOBALS['rrw_wp_current_block']=$this;
+        $prev=$GLOBALS['elvado_wp_current_block']??null;$GLOBALS['elvado_wp_current_block']=$this;
         try{
             $content='';$bi=0;
             foreach($this->inner_content as $part){ $content.=$part===null?(isset($this->inner_blocks[$bi])?$this->inner_blocks[$bi++]->render():''):$part; }
             if($this->block_type&&$this->block_type->is_dynamic())$out=(string)call_user_func($this->block_type->render_callback,$this->attributes,$content,$this);
             else $out=$content;
             return (string)apply_filters('render_block',$out,$this->parsed_block,$this);
-        } finally { $GLOBALS['rrw_wp_current_block']=$prev; }
+        } finally { $GLOBALS['elvado_wp_current_block']=$prev; }
     }
 }
 function render_block($parsed_block) {
@@ -105,15 +105,15 @@ function filter_block_content($text,$allowed_html='',$allowed_protocols=[]) { re
 function excerpt_remove_blocks($content) { return strip_tags(do_blocks($content)); }
 function strip_core_block_namespace($n) { return str_starts_with((string)$n,'core/')?substr($n,5):$n; }
 function get_block_wrapper_attributes($extra_attributes=[]) {
-    $b=$GLOBALS['rrw_wp_current_block']??null;$classes=[];$styles=[];$id='';
+    $b=$GLOBALS['elvado_wp_current_block']??null;$classes=[];$styles=[];$id='';
     if($b&&$b->name){
         $classes[]='wp-block-'.str_replace('/','-',strip_core_block_namespace($b->name));
-        $sup=function_exists('rrw_wp_block_supports')?rrw_wp_block_supports($b):['class'=>[],'style'=>[],'id'=>''];
+        $sup=function_exists('elvado_wp_block_supports')?elvado_wp_block_supports($b):['class'=>[],'style'=>[],'id'=>''];
         $classes=array_merge($classes,$sup['class']);$styles=$sup['style'];$id=$sup['id'];
     }
     if(!empty($extra_attributes['class']))$classes[]=$extra_attributes['class'];
     if(!empty($b->attributes['className']))$classes[]=$b->attributes['className'];
-    $st=rrw_wp_decl_css($styles);if(!empty($extra_attributes['style']))$st.=rtrim((string)$extra_attributes['style'],';').';';
+    $st=elvado_wp_decl_css($styles);if(!empty($extra_attributes['style']))$st.=rtrim((string)$extra_attributes['style'],';').';';
     $o=[];if($id!=='')$o[]='id="'.esc_attr($id).'"';
     $cl=array_unique(array_filter(array_merge(...array_map(fn($c)=>preg_split('/\s+/',trim((string)$c)),$classes?:['']))));
     if($cl)$o[]='class="'.esc_attr(implode(' ',$cl)).'"';
@@ -192,7 +192,7 @@ class WP_Filesystem_Direct extends WP_Filesystem_Base {
     public function owner($f) { return fileowner($f); } public function getchmod($f) { return substr(sprintf('%o',fileperms($f)),-3); } public function group($f) { return filegroup($f); }
     public function copy($s,$d,$overwrite=false,$mode=false) { if(!$overwrite&&file_exists($d))return false;return @copy($s,$d); }
     public function move($s,$d,$overwrite=false) { if(!$overwrite&&file_exists($d))return false;return @rename($s,$d); }
-    public function delete($file,$recursive=false,$type=false) { if(is_dir($file)){ if($recursive)rrw_wp_rmdir($file);else return @rmdir($file);return !is_dir($file); }return @unlink($file); }
+    public function delete($file,$recursive=false,$type=false) { if(is_dir($file)){ if($recursive)elvado_wp_rmdir($file);else return @rmdir($file);return !is_dir($file); }return @unlink($file); }
     public function exists($f) { return file_exists($f); } public function is_file($f) { return is_file($f); } public function is_dir($p) { return is_dir($p); } public function is_readable($f) { return is_readable($f); } public function is_writable($f) { return is_writable($f); }
     public function atime($f) { return fileatime($f); } public function mtime($f) { return filemtime($f); } public function size($f) { return filesize($f); } public function touch($f,$t=0,$a=0) { return @touch($f,$t?:time()); }
     public function mkdir($path,$chmod=false,$chown=false,$chgrp=false) { return is_dir($path)||@mkdir($path,$chmod?:0775,true); } public function rmdir($path,$recursive=false) { return $this->delete($path,$recursive); }

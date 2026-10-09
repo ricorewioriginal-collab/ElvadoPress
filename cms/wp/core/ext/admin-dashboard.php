@@ -1,14 +1,14 @@
 <?php
 // Ergänzende WordPress-Funktionen (Bereich Admin, Teil 5): Dashboard (dashboard.php) – Widgets, Aktivität, Schnellentwurf, Feeds, Hinweise.
-// Die Boxen werden direkt in $wp_meta_boxes eingetragen (add_meta_box ist im Kern ein Platzhalter) und mit rrw_adm_do_boxes() ausgegeben.
+// Die Boxen werden direkt in $wp_meta_boxes eingetragen (add_meta_box ist im Kern ein Platzhalter) und mit elvado_adm_do_boxes() ausgegeben.
 // Es gibt keinen Abruf bei wordpress.org außer den Feed-Widgets (nur beim Aufruf, 12 Stunden zwischengespeichert).
 
-if(!function_exists('rrw_adm_add_box')){ function rrw_adm_add_box($id, $title, $callback, $page, $context='advanced', $priority='default', $args=null) {   // Box in $wp_meta_boxes eintragen
+if(!function_exists('elvado_adm_add_box')){ function elvado_adm_add_box($id, $title, $callback, $page, $context='advanced', $priority='default', $args=null) {   // Box in $wp_meta_boxes eintragen
     global $wp_meta_boxes;
     if(!is_array($wp_meta_boxes))$wp_meta_boxes=[];
     $wp_meta_boxes[$page][$context][$priority][$id]=['id'=>$id,'title'=>$title,'callback'=>$callback,'args'=>$args];
 } }
-if(!function_exists('rrw_adm_do_boxes')){ function rrw_adm_do_boxes($page, $context, $object=null) {   // Boxen eines Bereichs ausgeben; liefert die Anzahl
+if(!function_exists('elvado_adm_do_boxes')){ function elvado_adm_do_boxes($page, $context, $object=null) {   // Boxen eines Bereichs ausgeben; liefert die Anzahl
     global $wp_meta_boxes;$n=0;$hidden=get_hidden_meta_boxes($page);$closed=(array)get_user_option("closedpostboxes_$page");
     foreach(['high','sorted','core','default','low'] as $prio)foreach($wp_meta_boxes[$page][$context][$prio]??[] as $b){
         if(!$b||!is_callable($b['callback']))continue;$n++;
@@ -18,19 +18,19 @@ if(!function_exists('rrw_adm_do_boxes')){ function rrw_adm_do_boxes($page, $cont
     }
     return $n;
 } }
-if(!function_exists('rrw_adm_post_link')){ function rrw_adm_post_link($post) { $p=get_post($post);return $p?admin_url('post.php?post='.(int)$p->ID.'&action=edit'):''; } }
+if(!function_exists('elvado_adm_post_link')){ function elvado_adm_post_link($post) { $p=get_post($post);return $p?admin_url('post.php?post='.(int)$p->ID.'&action=edit'):''; } }
 
 /* ───────── Aufbau ───────── */
 if(!function_exists('wp_dashboard_setup')){ function wp_dashboard_setup() {
     global $wp_dashboard_control_callbacks;
     $wp_dashboard_control_callbacks=[];$s=get_current_screen();$sid=$s&&!empty($s->id)?$s->id:'dashboard';
-    if(current_user_can('read'))rrw_adm_add_box('dashboard_right_now','Auf einen Blick','wp_dashboard_right_now',$sid,'normal','core');
-    if(current_user_can('view_site_health_checks'))rrw_adm_add_box('dashboard_site_health','Zustand der Website','wp_dashboard_site_health',$sid,'normal','core');
-    if(current_user_can('edit_posts'))rrw_adm_add_box('dashboard_activity','Aktivität','wp_dashboard_site_activity',$sid,'normal','core');
-    if(current_user_can('edit_posts'))rrw_adm_add_box('dashboard_quick_press','Schnellentwurf','wp_dashboard_quick_press',$sid,'side','core');
-    rrw_adm_add_box('dashboard_primary','WordPress-Ereignisse und -Neuigkeiten','wp_dashboard_events_news',$sid,'side','core');
+    if(current_user_can('read'))elvado_adm_add_box('dashboard_right_now','Auf einen Blick','wp_dashboard_right_now',$sid,'normal','core');
+    if(current_user_can('view_site_health_checks'))elvado_adm_add_box('dashboard_site_health','Zustand der Website','wp_dashboard_site_health',$sid,'normal','core');
+    if(current_user_can('edit_posts'))elvado_adm_add_box('dashboard_activity','Aktivität','wp_dashboard_site_activity',$sid,'normal','core');
+    if(current_user_can('edit_posts'))elvado_adm_add_box('dashboard_quick_press','Schnellentwurf','wp_dashboard_quick_press',$sid,'side','core');
+    elvado_adm_add_box('dashboard_primary','WordPress-Ereignisse und -Neuigkeiten','wp_dashboard_events_news',$sid,'side','core');
     do_action('wp_dashboard_setup');
-    foreach((array)apply_filters('wp_dashboard_widgets',[]) as $w)if(is_string($w)&&function_exists($w))rrw_adm_add_box($w,$w,$w,$sid,'normal','core');
+    foreach((array)apply_filters('wp_dashboard_widgets',[]) as $w)if(is_string($w)&&function_exists($w))elvado_adm_add_box($w,$w,$w,$sid,'normal','core');
 } }
 if(!function_exists('_wp_dashboard_control_callback')){ function _wp_dashboard_control_callback($dashboard, $meta_box) {   // Einstellungsformular eines Widgets
     echo '<form method="post" class="dashboard-widget-control-form wp-clearfix">';
@@ -48,7 +48,7 @@ if(!function_exists('wp_dashboard')){ function wp_dashboard() {   // Spalten des
     echo '<div id="dashboard-widgets-wrap"><div id="dashboard-widgets" class="metabox-holder columns-'.$cols.'">';
     foreach(['normal','side','column3','column4'] as $i=>$ctx){
         echo '<div id="postbox-container-'.($i+1).'" class="postbox-container"><div id="'.$ctx.'-sortables" class="meta-box-sortables">';
-        if(rrw_adm_do_boxes($sid,$ctx,'')===0&&$i<$cols)wp_dashboard_empty();
+        if(elvado_adm_do_boxes($sid,$ctx,'')===0&&$i<$cols)wp_dashboard_empty();
         echo '</div></div>';
     }
     echo '</div><div class="clear"></div></div>';
@@ -102,7 +102,7 @@ if(!function_exists('wp_dashboard_recent_drafts')){ function wp_dashboard_recent
     if(!$drafts)return;
     echo '<div class="drafts"><h2 class="hide-if-no-js">Deine letzten Entwürfe</h2><ul>';
     foreach($drafts as $d){ $t=_draft_or_post_title($d);
-        echo '<li><div class="draft-title"><a href="'.esc_url(rrw_adm_post_link($d)).'" aria-label="'.esc_attr(sprintf('„%s“ bearbeiten',$t)).'">'.esc_html($t).'</a><time datetime="'.esc_attr(get_the_time('c',$d)).'">'.esc_html(get_the_time('j. F Y',$d)).'</time></div>';
+        echo '<li><div class="draft-title"><a href="'.esc_url(elvado_adm_post_link($d)).'" aria-label="'.esc_attr(sprintf('„%s“ bearbeiten',$t)).'">'.esc_html($t).'</a><time datetime="'.esc_attr(get_the_time('c',$d)).'">'.esc_html(get_the_time('j. F Y',$d)).'</time></div>';
         $c=wp_trim_words($d->post_content,10);if($c)echo '<p>'.esc_html($c).'</p>';echo '</li>'; }
     echo '</ul></div>';
 } }
@@ -127,7 +127,7 @@ if(!function_exists('wp_dashboard_recent_posts')){ function wp_dashboard_recent_
     if(!$q)return false;
     echo '<div id="'.esc_attr($args['id']).'" class="activity-block"><h3>'.esc_html($args['title']).'</h3><ul>';
     foreach($q as $p){ $t=_draft_or_post_title($p);
-        echo '<li><span>'.esc_html(mysql2date('j. M, H:i',$p->post_date)).'</span> <a href="'.esc_url(rrw_adm_post_link($p)).'" aria-label="'.esc_attr(sprintf('„%s“ bearbeiten',$t)).'">'.esc_html($t).'</a></li>'; }
+        echo '<li><span>'.esc_html(mysql2date('j. M, H:i',$p->post_date)).'</span> <a href="'.esc_url(elvado_adm_post_link($p)).'" aria-label="'.esc_attr(sprintf('„%s“ bearbeiten',$t)).'">'.esc_html($t).'</a></li>'; }
     echo '</ul></div>';return true;
 } }
 if(!function_exists('wp_dashboard_recent_comments')){ function wp_dashboard_recent_comments($total_items=5) {

@@ -23,7 +23,7 @@ $mk = (string)file_get_contents("$cms/lib/.htaccess");
 t('demo-engine.json ist nicht abrufbar (.htaccess)', str_contains($mk, 'demo-engine.json') && str_contains($mk, 'Require all denied'));
 if ($real) { t('demo-engine.json nur für den Besitzer lesbar (0600)', (fileperms("$cms/lib/demo-engine.json") & 0077) === 0); }
 $api = (string)file_get_contents("$cms/engine-api.php");
-t('Gesperrte Demo-Aktionen: Aufbau von Hand, Installation, Upload, Löschen', preg_match('/RRW_DEMO_ENGINE_BLOCKED/', $api) === 1 && str_contains((string)file_get_contents("$cms/lib/demo.php"), "'ext_upload'") && str_contains((string)file_get_contents("$cms/lib/demo.php"), "'engine_db_install'"));
+t('Gesperrte Demo-Aktionen: Aufbau von Hand, Installation, Upload, Löschen', preg_match('/ELVADO_DEMO_ENGINE_BLOCKED/', $api) === 1 && str_contains((string)file_get_contents("$cms/lib/demo.php"), "'ext_upload'") && str_contains((string)file_get_contents("$cms/lib/demo.php"), "'engine_db_install'"));
 t('Zurücksetzen löscht nur Tabellen mit dem Demo-Präfix', str_contains((string)file_get_contents("$cms/lib/demo.php"), "SHOW TABLES LIKE") && str_contains((string)file_get_contents("$cms/lib/demo.php"), '$c[\'prefix\']'));
 
 $sock = stream_socket_server('tcp://127.0.0.1:0', $en, $es); $port = (int)explode(':', (string)stream_socket_get_name($sock, false))[1]; fclose($sock);

@@ -47,7 +47,7 @@ if(!function_exists('wp_dependencies_unique_hosts')){
     /** Fremde Hosts der eingereihten Skripte/Stile (für dns-prefetch). */
     function wp_dependencies_unique_hosts() {
         $hosts=[];$own=$_SERVER['SERVER_NAME']??(string)wp_parse_url(home_url(),PHP_URL_HOST);
-        foreach(['rrw_wp_scripts','rrw_wp_styles'] as $k)foreach(array_keys($GLOBALS[$k]['queue']??[]) as $h){
+        foreach(['elvado_wp_scripts','elvado_wp_styles'] as $k)foreach(array_keys($GLOBALS[$k]['queue']??[]) as $h){
             $src=$GLOBALS[$k]['reg'][$h]['src']??'';$host=is_string($src)?wp_parse_url($src,PHP_URL_HOST):'';
             if($host&&$host!==$own&&!in_array($host,$hosts,true))$hosts[]=$host;
         }
@@ -175,7 +175,7 @@ if(!function_exists('wp_nav_menu_remove_menu_item_has_children_class')){
 if(!function_exists('_wp_menu_item_classes_by_context')){
     /** Setzt „current-menu-item“, „current-menu-parent/-ancestor“ u. ä. nach dem aktuell abgefragten Objekt bzw. der Adresse. */
     function _wp_menu_item_classes_by_context(&$menu_items) {
-        $q=get_queried_object();$cur=rtrim((string)strtok(home_url($GLOBALS['rrw_wp_request']['path']??'/'),'?'),'/');$byId=[];
+        $q=get_queried_object();$cur=rtrim((string)strtok(home_url($GLOBALS['elvado_wp_request']['path']??'/'),'?'),'/');$byId=[];
         foreach($menu_items as $it){ $it->current=false;$it->current_item_parent=false;$it->current_item_ancestor=false;$it->classes=array_values(array_diff((array)$it->classes,['current-menu-item','current_page_item','current-menu-parent','current_page_parent','current-menu-ancestor','current_page_ancestor']));$byId[$it->db_id??$it->ID]=$it; }
         $add=function($it,array $c) { foreach($c as $x)if(!in_array($x,$it->classes,true))$it->classes[]=$x; };
         foreach($menu_items as $it){

@@ -148,9 +148,9 @@ window.AppsManager=(()=>{
    <label class="news-lbl">Kopf und Fuß der Website <select class="fc" onchange="AppsManager.set('${ek}','builder.chrome',this.value)"><option value="auto" ${chrome==='auto'?'selected':''}>Automatisch (Baukasten-App: ausblenden)</option><option value="hide" ${chrome==='hide'?'selected':''}>In der App ausblenden</option><option value="keep" ${chrome==='keep'?'selected':''}>In der App anzeigen</option></select></label>
    <p class="hint">Eigene Elemente: Klasse <code>elvado-hide-in-app</code> blendet in der App aus, <code>elvado-only-app</code> zeigt nur in der App.</p></div>${phoneHtml(k)}</div></div>`;
  }
- // Live-Vorschau: die Website im Handy-Rahmen mit App-Modus (?rrw_app=<Marke>) und der Tab-Leiste, wie sie die App zeigt
+ // Live-Vorschau: die Website im Handy-Rahmen mit App-Modus (?elvado_app=<Marke>) und der Tab-Leiste, wie sie die App zeigt
  function row(k){return (S.ov?S.ov.items:[]).find(r=>key(r)===k);}
- function pvUrl(r,path){const o=String(r.origin||'').replace(/\/+$/,''),pa=/^https:/i.test(path||'')?path:o+(path||'/');return pa+(pa.includes('?')?'&':'?')+'rrw_app='+encodeURIComponent(r.brand);}
+ function pvUrl(r,path){const o=String(r.origin||'').replace(/\/+$/,''),pa=/^https:/i.test(path||'')?path:o+(path||'/');return pa+(pa.includes('?')?'&':'?')+'elvado_app='+encodeURIComponent(r.brand);}
  function phoneHtml(k){
   const r=row(k);if(!r||!r.origin)return '';const t=((S.managed[k]||{}).builder||{}).tabs||[],valid=t.filter(x=>x.title&&x.url),col=r.theme_color||'#070a1c',ek=esc(k);
   const bar=(r.type==='content'&&valid.length>=2)?`<div class="pv-tabs" style="background:${esc(col)}">${valid.map((x,i)=>`<button type="button" class="${i?'':'on'}" onclick="AppsManager.pvGo('${ek}',${i},this)"><span>${esc(TAB_GLYPHS[x.icon]||TAB_GLYPHS.star)}</span><em>${esc(x.title)}</em></button>`).join('')}</div>`:'';

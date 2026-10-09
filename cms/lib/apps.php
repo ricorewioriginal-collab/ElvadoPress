@@ -2,12 +2,12 @@
 // Apps verwalten (CMS): Übersicht der gebauten Apps, Funktionsschalter je Marke/Plattform, Hinweise und Mindestversion.
 // Die nativen Apps fragen beim Start die öffentliche Schnittstelle app_config ab (Marke ergibt sich aus der Domain).
 
-const RRW_APPS_PLATFORMS=['android'=>'Android','windows'=>'Windows'];
-const RRW_APPS_FEATURES=['assistant'=>'KI-Assistent'];
+const ELVADO_APPS_PLATFORMS=['android'=>'Android','windows'=>'Windows'];
+const ELVADO_APPS_FEATURES=['assistant'=>'KI-Assistent'];
 
-function rrw_apps_key(string $brand,string $platform): string { return $brand.':'.$platform; }
+function elvado_apps_key(string $brand,string $platform): string { return $brand.':'.$platform; }
 
-function rrw_apps_entry_defaults(): array {
+function elvado_apps_entry_defaults(): array {
     return ['features'=>['assistant'=>true],
             'notice'=>['enabled'=>false,'level'=>'info','title'=>'','text'=>'','url'=>'','url_label'=>''],
             'min_version'=>'',
@@ -16,96 +16,96 @@ function rrw_apps_entry_defaults(): array {
             'blocked'=>[],      // gesperrte Versionen: Apps in genau diesen Versionen müssen aktualisieren
             'notes'=>'',        // "Was ist neu": Text im Update-Dialog
             'cert_pin'=>'',     // SHA-256 des erwarteten Signaturzertifikats (nur Android); weicht das veröffentlichte Paket ab, wird kein Update angeboten
-            'builder'=>rrw_apps_builder_defaults()];
+            'builder'=>elvado_apps_builder_defaults()];
 }
-function rrw_apps_builder_defaults(): array {
+function elvado_apps_builder_defaults(): array {
     return ['tabs'=>[],'chrome'=>'auto'];
 }
 /** Symbole der Tab-Leiste in Baukasten-Apps (die Apps zeichnen sie selbst, keine Bilddateien nötig). */
-const RRW_APPS_TAB_ICONS=['home'=>'Start','news'=>'Neuigkeiten','info'=>'Info','shop'=>'Shop','calendar'=>'Termine','phone'=>'Kontakt','map'=>'Karte','mail'=>'Nachricht','user'=>'Profil','star'=>'Favoriten','play'=>'Medien','menu'=>'Menü'];
+const ELVADO_APPS_TAB_ICONS=['home'=>'Start','news'=>'Neuigkeiten','info'=>'Info','shop'=>'Shop','calendar'=>'Termine','phone'=>'Kontakt','map'=>'Karte','mail'=>'Nachricht','user'=>'Profil','star'=>'Favoriten','play'=>'Medien','menu'=>'Menü'];
 /** Tab-Leiste einer Baukasten-App: bis zu 5 Einträge mit Titel, Symbol und Adresse (https oder Pfad auf der eigenen Website, z. B. /kontakt/). */
-function rrw_apps_tabs_clean($list,int $max=5): array {
+function elvado_apps_tabs_clean($list,int $max=5): array {
     $out=[];
     foreach(array_slice(is_array($list)?$list:[],0,20) as $t){
         if(count($out)>=$max)break;
-        if(!is_array($t))continue;$title=rrw_apps_text($t['title']??'',16);$u=trim((string)($t['url']??''));
-        $url=preg_match('~^/(?!/)[^\s"\'<>\\\\]{0,200}$~',$u)?$u:rrw_apps_url_clean($u);
+        if(!is_array($t))continue;$title=elvado_apps_text($t['title']??'',16);$u=trim((string)($t['url']??''));
+        $url=preg_match('~^/(?!/)[^\s"\'<>\\\\]{0,200}$~',$u)?$u:elvado_apps_url_clean($u);
         if($title===''||$url==='')continue;
-        $icon=(string)($t['icon']??'');if(!isset(RRW_APPS_TAB_ICONS[$icon]))$icon='star';
+        $icon=(string)($t['icon']??'');if(!isset(ELVADO_APPS_TAB_ICONS[$icon]))$icon='star';
         $out[]=['title'=>$title,'icon'=>$icon,'url'=>$url];
     }
     return $out;
 }
-function rrw_apps_color_clean($c): string { $c=strtolower(trim((string)$c));return preg_match('/^#[0-9a-f]{6}$/',$c)?$c:''; }
-function rrw_apps_text($v,int $max): string { return mb_substr(trim(strip_tags((string)$v)),0,$max); }
+function elvado_apps_color_clean($c): string { $c=strtolower(trim((string)$c));return preg_match('/^#[0-9a-f]{6}$/',$c)?$c:''; }
+function elvado_apps_text($v,int $max): string { return mb_substr(trim(strip_tags((string)$v)),0,$max); }
 // Inhalte der App bereinigen: Tab-Leiste (Baukasten-App) und Umgang mit Kopf und Fuß der Website (Website-/Baukasten-App)
-function rrw_apps_builder_clean($b): array {
+function elvado_apps_builder_clean($b): array {
     $b=is_array($b)?$b:[];
-    return ['tabs'=>rrw_apps_tabs_clean($b['tabs']??[]),'chrome'=>in_array((string)($b['chrome']??''),['hide','keep'],true)?(string)$b['chrome']:'auto'];
+    return ['tabs'=>elvado_apps_tabs_clean($b['tabs']??[]),'chrome'=>in_array((string)($b['chrome']??''),['hide','keep'],true)?(string)$b['chrome']:'auto'];
 }
-function rrw_apps_version_clean(string $v): string { return preg_match('/^\d{1,4}(\.\d{1,4}){0,3}/',trim($v),$m)?$m[0]:''; }
-function rrw_apps_url_clean(string $u): string { $u=trim($u);return preg_match('~^https://[^\s"\'<>]{3,300}$~i',$u)?$u:''; }
+function elvado_apps_version_clean(string $v): string { return preg_match('/^\d{1,4}(\.\d{1,4}){0,3}/',trim($v),$m)?$m[0]:''; }
+function elvado_apps_url_clean(string $u): string { $u=trim($u);return preg_match('~^https://[^\s"\'<>]{3,300}$~i',$u)?$u:''; }
 
-function rrw_apps_hex_clean($v,int $len=64): string { $v=strtolower(preg_replace('/[^a-f0-9]/i','',(string)$v));return strlen($v)===$len?$v:''; }
-function rrw_apps_versions_clean($v,int $max=20): array {
+function elvado_apps_hex_clean($v,int $len=64): string { $v=strtolower(preg_replace('/[^a-f0-9]/i','',(string)$v));return strlen($v)===$len?$v:''; }
+function elvado_apps_versions_clean($v,int $max=20): array {
     if(is_string($v))$v=preg_split('/[\s,;]+/',$v,-1,PREG_SPLIT_NO_EMPTY);
-    $out=[];foreach(array_slice((array)$v,0,100) as $x){$c=rrw_apps_version_clean((string)$x);if($c!==''&&!in_array($c,$out,true))$out[]=$c;if(count($out)>=$max)break;}
+    $out=[];foreach(array_slice((array)$v,0,100) as $x){$c=elvado_apps_version_clean((string)$x);if($c!==''&&!in_array($c,$out,true))$out[]=$c;if(count($out)>=$max)break;}
     return $out;
 }
 
 // Speichern: nur bekannte Schlüssel, Texte begrenzt (Ausgabe in den Apps erfolgt als reiner Text)
-function rrw_apps_clean($value): array {
+function elvado_apps_clean($value): array {
     $value=is_array($value)?$value:[];
     $tm=(array)($value['telemetry']??[]);
     $out=['android_enabled'=>!empty($value['android_enabled']),'windows_enabled'=>!empty($value['windows_enabled']),
           'telemetry'=>['usage'=>!empty($tm['usage']),'errors'=>!empty($tm['errors']),'geo'=>!array_key_exists('geo',$tm)||!empty($tm['geo'])],'managed'=>[]];
     foreach(array_slice((array)($value['managed']??[]),0,40,true) as $k=>$e){
         if(!is_string($k)||!preg_match('/^([a-z0-9_-]{1,40}):(android|windows)$/',$k)||!is_array($e))continue;
-        $d=rrw_apps_entry_defaults();$f=(array)($e['features']??[]);$n=(array)($e['notice']??[]);
+        $d=elvado_apps_entry_defaults();$f=(array)($e['features']??[]);$n=(array)($e['notice']??[]);
         $mt=(array)($e['maintenance']??[]);
-        $row=['features'=>[],'notice'=>[],'min_version'=>rrw_apps_version_clean((string)($e['min_version']??'')),
-              'maintenance'=>['enabled'=>!empty($mt['enabled']),'title'=>rrw_apps_text($mt['title']??'',80),'text'=>rrw_apps_text($mt['text']??'',600)],
+        $row=['features'=>[],'notice'=>[],'min_version'=>elvado_apps_version_clean((string)($e['min_version']??'')),
+              'maintenance'=>['enabled'=>!empty($mt['enabled']),'title'=>elvado_apps_text($mt['title']??'',80),'text'=>elvado_apps_text($mt['text']??'',600)],
               'rollout'=>max(0,min(100,(int)($e['rollout']??100))),
-              'blocked'=>rrw_apps_versions_clean($e['blocked']??[]),'notes'=>rrw_apps_text($e['notes']??'',600),'cert_pin'=>rrw_apps_hex_clean($e['cert_pin']??''),
-              'builder'=>rrw_apps_builder_clean($e['builder']??[])];
+              'blocked'=>elvado_apps_versions_clean($e['blocked']??[]),'notes'=>elvado_apps_text($e['notes']??'',600),'cert_pin'=>elvado_apps_hex_clean($e['cert_pin']??''),
+              'builder'=>elvado_apps_builder_clean($e['builder']??[])];
         foreach($d['features'] as $fk=>$def)$row['features'][$fk]=array_key_exists($fk,$f)?!empty($f[$fk]):$def;
         $row['notice']=[
             'enabled'=>!empty($n['enabled']),
             'level'=>in_array(($n['level']??''),['info','warn'],true)?(string)$n['level']:'info',
             'title'=>mb_substr(trim(strip_tags((string)($n['title']??''))),0,80),
             'text'=>mb_substr(trim(strip_tags((string)($n['text']??''))),0,600),
-            'url'=>rrw_apps_url_clean((string)($n['url']??'')),
+            'url'=>elvado_apps_url_clean((string)($n['url']??'')),
             'url_label'=>mb_substr(trim(strip_tags((string)($n['url_label']??''))),0,40),
         ];
         $out['managed'][$k]=$row;
     }
     return $out;
 }
-function rrw_apps_entry(array $site,string $brand,string $platform): array {
-    $d=rrw_apps_entry_defaults();$e=(array)($site['apps']['managed'][rrw_apps_key($brand,$platform)]??[]);
+function elvado_apps_entry(array $site,string $brand,string $platform): array {
+    $d=elvado_apps_entry_defaults();$e=(array)($site['apps']['managed'][elvado_apps_key($brand,$platform)]??[]);
     return ['features'=>array_merge($d['features'],array_map('boolval',(array)($e['features']??[]))),
             'notice'=>array_merge($d['notice'],(array)($e['notice']??[])),
-            'min_version'=>rrw_apps_version_clean((string)($e['min_version']??'')),
+            'min_version'=>elvado_apps_version_clean((string)($e['min_version']??'')),
             'maintenance'=>array_merge($d['maintenance'],(array)($e['maintenance']??[])),
             'rollout'=>array_key_exists('rollout',$e)?max(0,min(100,(int)$e['rollout'])):100,
-            'blocked'=>rrw_apps_versions_clean($e['blocked']??[]),'notes'=>rrw_apps_text($e['notes']??'',600),'cert_pin'=>rrw_apps_hex_clean($e['cert_pin']??''),
-            'builder'=>array_key_exists('builder',$e)?rrw_apps_builder_clean($e['builder']):$d['builder']];
+            'blocked'=>elvado_apps_versions_clean($e['blocked']??[]),'notes'=>elvado_apps_text($e['notes']??'',600),'cert_pin'=>elvado_apps_hex_clean($e['cert_pin']??''),
+            'builder'=>array_key_exists('builder',$e)?elvado_apps_builder_clean($e['builder']):$d['builder']];
 }
 
 // "1.9.0-dev" -> [1,9,0]; Vergleich nur über die Zahlen
-function rrw_apps_vparts(string $v): array { $v=rrw_apps_version_clean($v);return $v===''?[]:array_map('intval',explode('.',$v)); }
-function rrw_apps_vcmp(string $a,string $b): int {
-    $x=rrw_apps_vparts($a);$y=rrw_apps_vparts($b);$n=max(count($x),count($y),3);
+function elvado_apps_vparts(string $v): array { $v=elvado_apps_version_clean($v);return $v===''?[]:array_map('intval',explode('.',$v)); }
+function elvado_apps_vcmp(string $a,string $b): int {
+    $x=elvado_apps_vparts($a);$y=elvado_apps_vparts($b);$n=max(count($x),count($y),3);
     for($i=0;$i<$n;$i++){$p=$x[$i]??0;$q=$y[$i]??0;if($p!==$q)return $p<=>$q;}
     return 0;
 }
 
 // Prüfsumme der Datei auf dem Server wirklich nachrechnen (bisher stand nur die Angabe aus dem Build in der Datenbeschreibung).
 // Zwischengespeichert je Name+Größe+Änderungszeit, damit nicht bei jedem Aufruf große Dateien gelesen werden.
-function rrw_apps_sha_check(string $path,string $expected): ?bool {
+function elvado_apps_sha_check(string $path,string $expected): ?bool {
     $expected=strtolower(trim($expected));
     if(!preg_match('/^[a-f0-9]{64}$/',$expected)||!is_file($path))return null;       // unbekannt: keine Prüfsumme angegeben
-    $cf=rrw_apps_dir(defined('RRW_DATA_DIR')?rtrim((string)RRW_DATA_DIR,'/'):dirname(__DIR__).'/data').'/hashcache.json';$cache=is_file($cf)?(json_decode((string)@file_get_contents($cf),true)?:[]):[];
+    $cf=elvado_apps_dir(defined('ELVADO_DATA_DIR')?rtrim((string)ELVADO_DATA_DIR,'/'):dirname(__DIR__).'/data').'/hashcache.json';$cache=is_file($cf)?(json_decode((string)@file_get_contents($cf),true)?:[]):[];
     $key=basename($path);$sig=filesize($path).':'.filemtime($path);
     if(!isset($cache[$key])||($cache[$key]['sig']??'')!==$sig){
         $h=@hash_file('sha256',$path);if($h===false)return false;
@@ -115,7 +115,7 @@ function rrw_apps_sha_check(string $path,string $expected): ?bool {
 }
 
 // Metadaten der zuletzt gebauten App aus downloads/*.json (vom Build erzeugt) plus Prüfung, ob die Dateien auf dem Server liegen
-function rrw_apps_meta(string $root,string $brandId,string $default,string $platform): array {
+function elvado_apps_meta(string $root,string $brandId,string $default,string $platform): array {
     $suffix=$brandId===$default?'':'-'.$brandId;
     $jf=$root.'/downloads/'.$platform.'-latest'.$suffix.'.json';
     $d=is_file($jf)?json_decode((string)@file_get_contents($jf),true):null;
@@ -124,7 +124,7 @@ function rrw_apps_meta(string $root,string $brandId,string $default,string $plat
     $out['available']=true;$out['version']=(string)($d['version']??'');$out['built_at']=(string)($d['built_at']??'');
     if($platform==='android'){
         $out['package']=(string)($d['package']??'');$out['version_code']=(int)($d['version_code']??0);$out['signing']=in_array(($d['signing']??''),['stable','debug'],true)?(string)$d['signing']:'';
-        $out['cert_sha256']=rrw_apps_hex_clean($d['cert_sha256']??'');
+        $out['cert_sha256']=elvado_apps_hex_clean($d['cert_sha256']??'');
         $files=[[ 'label'=>'APK','name'=>(string)($d['filename']??''),'size'=>(int)($d['size_bytes']??0),'sha256'=>(string)($d['sha256']??'')]];
     }else{
         $files=[
@@ -137,14 +137,14 @@ function rrw_apps_meta(string $root,string $brandId,string $default,string $plat
         $p=$root.'/downloads/'.$name;$exists=is_file($p);
         $sizeOk=$exists&&($f['size']<=0||filesize($p)===$f['size']);
         $out['files'][]=['label'=>$f['label'],'name'=>$name,'size'=>$f['size'],'sha256'=>$f['sha256'],'exists'=>$exists,'size_ok'=>$sizeOk,
-            'sha_ok'=>$sizeOk?rrw_apps_sha_check($p,(string)$f['sha256']):false,'url'=>'/downloads/'.rawurlencode($name)];
+            'sha_ok'=>$sizeOk?elvado_apps_sha_check($p,(string)$f['sha256']):false,'url'=>'/downloads/'.rawurlencode($name)];
     }
     return $out;
 }
 
 // Darf die Datei als Update angeboten werden? Nur wenn sie da ist, in Größe und Prüfsumme zum Build passt und (Android) mit dem
 // stabilen, erwarteten Schlüssel signiert ist. Sonst scheitert die Installation oder sie wäre manipuliert.
-function rrw_apps_offer_ok(array $m,array $e,string $platform): bool {
+function elvado_apps_offer_ok(array $m,array $e,string $platform): bool {
     $f=$m['files'][0]??null;
     if(!$f||empty($f['exists'])||empty($f['size_ok'])||$f['sha_ok']===false||strlen((string)$f['sha256'])!==64)return false;
     if($platform==='android'){
@@ -154,7 +154,7 @@ function rrw_apps_offer_ok(array $m,array $e,string $platform): bool {
     return true;
 }
 // Probleme, die der Verwalter sehen muss (Lücken schließen, bevor Nutzer sie spüren)
-function rrw_apps_health(array $m,array $e,string $platform): array {
+function elvado_apps_health(array $m,array $e,string $platform): array {
     $h=[];$add=function(string $lv,string $code,string $t) use(&$h){$h[]=['level'=>$lv,'code'=>$code,'text'=>$t];};
     if(empty($m['available'])){$add('info','no_build','Noch keine App gebaut: keine Downloads und keine Updates.');return $h;}
     foreach(($m['files']??[]) as $f){
@@ -171,13 +171,13 @@ function rrw_apps_health(array $m,array $e,string $platform): array {
         elseif($pin==='' && $cert!=='')$add('warn','cert_unpinned','Zertifikat noch nicht festgelegt: ein Schlüsselwechsel würde nicht auffallen.');
         elseif($cert==='' )$add('warn','cert_unknown','Der Build meldet kein Zertifikat (älterer Build).');
     }
-    if($e['min_version']!==''&&rrw_apps_version_clean((string)$m['version'])!==''&&rrw_apps_vcmp((string)$m['version'],$e['min_version'])<0)
+    if($e['min_version']!==''&&elvado_apps_version_clean((string)$m['version'])!==''&&elvado_apps_vcmp((string)$m['version'],$e['min_version'])<0)
         $add('error','min_above_latest','Die Mindestversion ('.$e['min_version'].') ist höher als die neueste Version ('.$m['version'].'). Sie wird ignoriert, damit niemand ausgesperrt wird.');
     return $h;
 }
 
 // Kurze Zusammenfassung einer Änderung für das Aktivitätsprotokoll (wer hat wann was an Apps/Alexa geändert)
-function rrw_apps_change_summary(string $section,$old,$new): string {
+function elvado_apps_change_summary(string $section,$old,$new): string {
     $old=is_array($old)?$old:[];$new=is_array($new)?$new:[];$parts=[];
     $yn=fn($v)=>$v?'an':'aus';
     if($section==='apps'){
@@ -185,7 +185,7 @@ function rrw_apps_change_summary(string $section,$old,$new): string {
         if(json_encode($old['telemetry']??[])!==json_encode($new['telemetry']??[]))$parts[]='Datenschutz-Schalter geändert';
         $om=(array)($old['managed']??[]);$nm=(array)($new['managed']??[]);
         foreach(array_unique(array_merge(array_keys($om),array_keys($nm))) as $k){
-            $a=array_replace_recursive(rrw_apps_entry_defaults(),(array)($om[$k]??[]));$b=array_replace_recursive(rrw_apps_entry_defaults(),(array)($nm[$k]??[]));$a['builder']=rrw_apps_builder_clean($a['builder']??[]);$b['builder']=rrw_apps_builder_clean($b['builder']??[]);$d=[];
+            $a=array_replace_recursive(elvado_apps_entry_defaults(),(array)($om[$k]??[]));$b=array_replace_recursive(elvado_apps_entry_defaults(),(array)($nm[$k]??[]));$a['builder']=elvado_apps_builder_clean($a['builder']??[]);$b['builder']=elvado_apps_builder_clean($b['builder']??[]);$d=[];
             if(($a['rollout']??100)!==($b['rollout']??100))$d[]='Rollout '.($a['rollout']??100).' % → '.($b['rollout']??100).' %';
             if(($a['min_version']??'')!==($b['min_version']??''))$d[]='Mindestversion „'.($a['min_version']??'').'“ → „'.($b['min_version']??'').'“';
             if(!empty($a['maintenance']['enabled'])!==!empty($b['maintenance']['enabled']))$d[]='Wartungsmodus '.$yn(!empty($b['maintenance']['enabled']));
@@ -206,40 +206,40 @@ function rrw_apps_change_summary(string $section,$old,$new): string {
 
 // Übersicht für das CMS: jede aktive Marke x Plattform
 /** Eigene Apps aus dem Build-Assistenten (cms/data/.apps/build.json): Kennung → ['id','appName','type','platforms','site','icon']. */
-function rrw_apps_own(string $dataDir): array {
-    $f=rrw_apps_dir($dataDir).'/build.json';$d=is_file($f)?json_decode((string)@file_get_contents($f),true):null;$out=[];
+function elvado_apps_own(string $dataDir): array {
+    $f=elvado_apps_dir($dataDir).'/build.json';$d=is_file($f)?json_decode((string)@file_get_contents($f),true):null;$out=[];
     foreach(is_array($d)?(array)($d['brands']??[]):[] as $b){
         if(!is_array($b)||!preg_match('/^[a-z][a-z0-9]{2,19}$/',(string)($b['id']??'')))continue;
-        $pl=array_values(array_filter((array)($b['platforms']??['android']),fn($x)=>isset(RRW_APPS_PLATFORMS[$x])))?:['android'];
+        $pl=array_values(array_filter((array)($b['platforms']??['android']),fn($x)=>isset(ELVADO_APPS_PLATFORMS[$x])))?:['android'];
         $out[$b['id']]=['id'=>$b['id'],'appName'=>(string)($b['appName']??$b['id']),'type'=>($b['type']??'')==='content'?'content':'web','platforms'=>$pl,'site'=>(string)($b['site']??''),'icon'=>(string)($b['icon']??''),'themeColor'=>preg_match('/^#[0-9a-fA-F]{6}$/',(string)($b['themeColor']??''))?(string)$b['themeColor']:''];
     }
     return $out;
 }
 /** Marken-Angabe für app_config, wenn die App eine eigene App des Build-Assistenten ist (Parameter brand=<Kennung>); sonst null (Marke wie bisher aus dem Hostnamen). */
-function rrw_apps_own_brand(array $own,string $id): ?array {
+function elvado_apps_own_brand(array $own,string $id): ?array {
     $id=strtolower(trim($id));if(!isset($own[$id]))return null;
     return ['brand'=>$id,'id'=>$id,'origin'=>$own[$id]['site'],'own'=>true];
 }
-/** Übersicht der eigenen Apps des Build-Assistenten je Plattform. $own: Ergebnis von rrw_apps_own(). */
-function rrw_apps_overview(array $site,string $root,array $own=[]): array {
+/** Übersicht der eigenen Apps des Build-Assistenten je Plattform. $own: Ergebnis von elvado_apps_own(). */
+function elvado_apps_overview(array $site,string $root,array $own=[]): array {
     $rows=[];
     foreach($own as $a){
         foreach($a['platforms'] as $pk){
-            $rows[]=['brand'=>$a['id'],'brand_name'=>$a['appName'],'platform'=>$pk,'platform_name'=>RRW_APPS_PLATFORMS[$pk],
-                'origin'=>$a['site'],'meta'=>['available'=>false,'version'=>'','built_at'=>'','files'=>[]],'config'=>rrw_apps_entry($site,$a['id'],$pk),'health'=>[],
+            $rows[]=['brand'=>$a['id'],'brand_name'=>$a['appName'],'platform'=>$pk,'platform_name'=>ELVADO_APPS_PLATFORMS[$pk],
+                'origin'=>$a['site'],'meta'=>['available'=>false,'version'=>'','built_at'=>'','files'=>[]],'config'=>elvado_apps_entry($site,$a['id'],$pk),'health'=>[],
                 'shown'=>true,'own'=>true,'type'=>$a['type'],'theme_color'=>(string)($a['themeColor']??'')];
         }
     }
-    return ['status'=>'ok','items'=>$rows,'features'=>RRW_APPS_FEATURES];
+    return ['status'=>'ok','items'=>$rows,'features'=>ELVADO_APPS_FEATURES];
 }
 
 // Rollout: stabile Gruppe 0-99 je Installation (ohne ID: Gruppe 0 nur bei 100 %)
-function rrw_apps_bucket(string $did,string $salt): int { return $did===''?100:hexdec(substr(hash('sha256',$salt.'|rollout|'.$did),0,6))%100; }
+function elvado_apps_bucket(string $did,string $salt): int { return $did===''?100:hexdec(substr(hash('sha256',$salt.'|rollout|'.$did),0,6))%100; }
 
 // Öffentlich: was die App der aufgerufenen Marke beim Start wissen muss
-function rrw_apps_public(array $site,string $root,array $brand,string $platform,string $version,string $did='',string $salt='',int $code=0): array {
-    $platform=isset(RRW_APPS_PLATFORMS[$platform])?$platform:'android';
-    $reg=rrw_brands_registry($site);$id=(string)($brand['brand']??$brand['id']??$reg['default']);
+function elvado_apps_public(array $site,string $root,array $brand,string $platform,string $version,string $did='',string $salt='',int $code=0): array {
+    $platform=isset(ELVADO_APPS_PLATFORMS[$platform])?$platform:'android';
+    $reg=elvado_brands_registry($site);$id=(string)($brand['brand']??$brand['id']??$reg['default']);
     // Eine explizit aufgelöste Marke kann außerhalb der lokalen Standalone-Registry liegen (z. B. Hersteller-App in Tests/Migrationen).
     // Ist sie dort unbekannt, behandelt ihr eigener Build-Feed sie als Hauptmarke statt einen künstlichen -<brand>-Suffix zu verlangen.
     $knownIds=array_column((array)($reg['items']??[]),'id');
@@ -247,23 +247,23 @@ function rrw_apps_public(array $site,string $root,array $brand,string $platform,
     // sind dagegen bewusst eigenständig und dürfen niemals den Haupt-Build einer anderen Marke erben.
     $isOwn=!empty($brand['own']);
     $metaDefault=in_array($id,$knownIds,true)?$reg['default']:($isOwn?$reg['default']:$id);
-    $e=rrw_apps_entry($site,$id,$platform);$m=rrw_apps_meta($root,$id,$metaDefault,$platform);
+    $e=elvado_apps_entry($site,$id,$platform);$m=elvado_apps_meta($root,$id,$metaDefault,$platform);
     $features=$e['features'];
     $notice=null;$n=$e['notice'];
     if(!empty($n['enabled'])&&($n['text']!==''||$n['title']!=='')){
         $notice=['id'=>substr(md5(json_encode([$n['level'],$n['title'],$n['text'],$n['url']])),0,10),'level'=>$n['level'],'title'=>$n['title'],'text'=>$n['text'],'url'=>$n['url'],'url_label'=>$n['url_label']];
     }
-    $latest=rrw_apps_version_clean((string)$m['version']);$v=rrw_apps_version_clean($version);
+    $latest=elvado_apps_version_clean((string)$m['version']);$v=elvado_apps_version_clean($version);
     $primary=$m['files'][0]??null;$origin=trim((string)($brand['origin']??''));
     // Mindestversion nur erzwingen, wenn es eine Version gibt, auf die man aktualisieren kann (sonst Aussperren ohne Ausweg)
-    $reachable=$latest!==''&&($e['min_version']===''||rrw_apps_vcmp($latest,$e['min_version'])>=0);
-    $required=$v!==''&&$reachable&&(($e['min_version']!==''&&rrw_apps_vcmp($v,$e['min_version'])<0)||in_array($v,$e['blocked'],true)&&rrw_apps_vcmp($v,$latest)<0);
+    $reachable=$latest!==''&&($e['min_version']===''||elvado_apps_vcmp($latest,$e['min_version'])>=0);
+    $required=$v!==''&&$reachable&&(($e['min_version']!==''&&elvado_apps_vcmp($v,$e['min_version'])<0)||in_array($v,$e['blocked'],true)&&elvado_apps_vcmp($v,$latest)<0);
     $latestCode=(int)($m['version_code']??0);
     // Gleicher Versionsname, aber neuerer Build (Developer-Builds): die Versionsnummer (Code) entscheidet, wenn die App sie mitschickt
-    $newer=$v!==''&&$latest!==''&&(rrw_apps_vcmp($v,$latest)<0||(rrw_apps_vcmp($v,$latest)===0&&$code>0&&$latestCode>$code));
-    $offer=rrw_apps_offer_ok($m,$e,$platform);
+    $newer=$v!==''&&$latest!==''&&(elvado_apps_vcmp($v,$latest)<0||(elvado_apps_vcmp($v,$latest)===0&&$code>0&&$latestCode>$code));
+    $offer=elvado_apps_offer_ok($m,$e,$platform);
     // Stufenweise Freigabe: Pflicht-Updates gehen immer an alle
-    $inWave=$e['rollout']>=100||$required||($did!==''&&rrw_apps_bucket($did,$salt)<$e['rollout']);
+    $inWave=$e['rollout']>=100||$required||($did!==''&&elvado_apps_bucket($did,$salt)<$e['rollout']);
     $update=['latest'=>$latest,'min'=>$e['min_version'],
         'available'=>$newer&&$inWave&&$offer,'required'=>$required,
         'url'=>($primary&&$offer&&$origin!=='')?$origin.$primary['url']:'',
@@ -278,20 +278,20 @@ function rrw_apps_public(array $site,string $root,array $brand,string $platform,
 }
 
 // ---------- Nutzungszahlen & Fehlerberichte (nur wenn im CMS eingeschaltet) ----------
-function rrw_apps_dir(string $dataDir): string {
+function elvado_apps_dir(string $dataDir): string {
     $d=$dataDir.'/.apps';
     if(!is_dir($d)){@mkdir($d,0775,true);@file_put_contents($d.'/.htaccess',"Require all denied\n");}
     return $d;
 }
 // Zufälliges Salz je Server: macht aus der anonymen Install-ID einen nicht rückverfolgbaren Hash
-function rrw_apps_salt(string $dataDir): string {
-    $f=rrw_apps_dir($dataDir).'/salt.txt';$s=is_file($f)?trim((string)@file_get_contents($f)):'';
+function elvado_apps_salt(string $dataDir): string {
+    $f=elvado_apps_dir($dataDir).'/salt.txt';$s=is_file($f)?trim((string)@file_get_contents($f)):'';
     if(strlen($s)<32){$s=bin2hex(random_bytes(24));@file_put_contents($f,$s);}
     return $s;
 }
-function rrw_apps_did_clean($d): string { $d=strtolower(trim((string)$d));return preg_match('/^[a-f0-9-]{16,64}$/',$d)?$d:''; }
+function elvado_apps_did_clean($d): string { $d=strtolower(trim((string)$d));return preg_match('/^[a-f0-9-]{16,64}$/',$d)?$d:''; }
 // Gesperrtes Lesen-Ändern-Schreiben einer JSON-Datei
-function rrw_apps_rmw(string $file,callable $fn): bool {
+function elvado_apps_rmw(string $file,callable $fn): bool {
     $h=@fopen($file,'c+');if(!$h)return false;
     if(!flock($h,LOCK_EX)){fclose($h);return false;}
     $raw=stream_get_contents($h);$data=json_decode((string)$raw,true);if(!is_array($data))$data=[];
@@ -300,18 +300,18 @@ function rrw_apps_rmw(string $file,callable $fn): bool {
     return true;
 }
 // Zählt eine Installation einmal pro Tag (Datum + Version); gespeichert wird nur der Hash
-function rrw_apps_record_ping(string $dataDir,string $brand,string $platform,string $version,string $did,string $geo=''): void {
-    $did=rrw_apps_did_clean($did);if($did==='')return;
-    $v=rrw_apps_version_clean($version);if($v==='')$v='?';
-    $h=substr(hash('sha256',rrw_apps_salt($dataDir).'|stat|'.$did),0,16);$key=rrw_apps_key($brand,$platform);$today=gmdate('Y-m-d');
-    rrw_apps_rmw(rrw_apps_dir($dataDir).'/usage.json',function(array $d) use($key,$v,$h,$today,$geo){
+function elvado_apps_record_ping(string $dataDir,string $brand,string $platform,string $version,string $did,string $geo=''): void {
+    $did=elvado_apps_did_clean($did);if($did==='')return;
+    $v=elvado_apps_version_clean($version);if($v==='')$v='?';
+    $h=substr(hash('sha256',elvado_apps_salt($dataDir).'|stat|'.$did),0,16);$key=elvado_apps_key($brand,$platform);$today=gmdate('Y-m-d');
+    elvado_apps_rmw(elvado_apps_dir($dataDir).'/usage.json',function(array $d) use($key,$v,$h,$today,$geo){
         $old=$d['installs'][$key][$h]??[];$d['installs'][$key][$h]=['v'=>$v,'d'=>$today,'f'=>$old['f']??$today,'g'=>$geo!==''?$geo:($old['g']??'')];
         if(count($d['installs'][$key])>20000){uasort($d['installs'][$key],fn($a,$b)=>strcmp($b['d'],$a['d']));$d['installs'][$key]=array_slice($d['installs'][$key],0,20000,true);}
         return $d;
     });
 }
-function rrw_apps_usage(string $dataDir): array {
-    $f=rrw_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
+function elvado_apps_usage(string $dataDir): array {
+    $f=elvado_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
     $t7=gmdate('Y-m-d',time()-6*86400);$t30=gmdate('Y-m-d',time()-29*86400);$out=[];
     foreach((array)($d['installs']??[]) as $key=>$rows){
         $o=['total'=>count($rows),'active7'=>0,'active30'=>0,'new7'=>0,'versions'=>[]];
@@ -321,15 +321,15 @@ function rrw_apps_usage(string $dataDir): array {
             if(($r['f']??'')>=$t7n)$o['new7']++;
             if($r['d']>=$t30){$o['active30']++;$o['versions'][$r['v']]=($o['versions'][$r['v']]??0)+1;}
         }
-        uksort($o['versions'],fn($a,$b)=>rrw_apps_vcmp($b,$a));
+        uksort($o['versions'],fn($a,$b)=>elvado_apps_vcmp($b,$a));
         $out[$key]=$o;
     }
     return $out;
 }
 // Bindung: Anteil der Installationen, die mindestens 7 bzw. 30 Tage nach der ersten Meldung (f) noch gemeldet haben (zuletzt gesehen d >= f+N).
 // Nur Installationen, die alt genug sind, zählen zur Kohorte.
-function rrw_apps_retention(string $dataDir): array {
-    $f=rrw_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
+function elvado_apps_retention(string $dataDir): array {
+    $f=elvado_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
     $now=time();$out=[];
     foreach((array)($d['installs']??[]) as $key=>$rows){
         $o=['r7'=>['cohort'=>0,'kept'=>0],'r30'=>['cohort'=>0,'kept'=>0]];
@@ -345,13 +345,13 @@ function rrw_apps_retention(string $dataDir): array {
     return $out;
 }
 // Fehlerbericht aufnehmen: gleiche Fehler werden gezählt statt doppelt gespeichert (max. 200 Gruppen)
-function rrw_apps_error_add(string $dataDir,string $brand,string $platform,array $in): bool {
+function elvado_apps_error_add(string $dataDir,string $brand,string $platform,array $in): bool {
     $kind=in_array(($in['kind']??''),['player','crash','network','other'],true)?(string)$in['kind']:'other';
-    $msg=rrw_apps_text($in['message']??'',300);if($msg==='')return false;
-    $where=rrw_apps_text($in['where']??'',80);$ver=rrw_apps_version_clean((string)($in['version']??''));$os=rrw_apps_text($in['os']??'',60);
+    $msg=elvado_apps_text($in['message']??'',300);if($msg==='')return false;
+    $where=elvado_apps_text($in['where']??'',80);$ver=elvado_apps_version_clean((string)($in['version']??''));$os=elvado_apps_text($in['os']??'',60);
     $stack=mb_substr(trim(strip_tags((string)($in['stack']??''))),0,1500);
     $gid=substr(sha1($brand.'|'.$platform.'|'.$kind.'|'.$where.'|'.preg_replace('/\d+/','#',$msg)),0,12);$now=time();
-    return rrw_apps_rmw(rrw_apps_dir($dataDir).'/errors.json',function(array $d) use($gid,$brand,$platform,$kind,$msg,$where,$ver,$os,$stack,$now){
+    return elvado_apps_rmw(elvado_apps_dir($dataDir).'/errors.json',function(array $d) use($gid,$brand,$platform,$kind,$msg,$where,$ver,$os,$stack,$now){
         $g=$d['groups'][$gid]??['id'=>$gid,'brand'=>$brand,'platform'=>$platform,'kind'=>$kind,'message'=>$msg,'where'=>$where,'count'=>0,'first'=>$now,'versions'=>[],'os'=>[],'stack'=>''];
         $g['count']++;$g['last']=$now;if($ver!=='')$g['versions'][$ver]=($g['versions'][$ver]??0)+1;if($os!=='')$g['os'][$os]=($g['os'][$os]??0)+1;
         if($stack!==''&&$g['stack']==='')$g['stack']=$stack;
@@ -361,48 +361,48 @@ function rrw_apps_error_add(string $dataDir,string $brand,string $platform,array
         return $d;
     });
 }
-function rrw_apps_errors(string $dataDir): array {
-    $f=rrw_apps_dir($dataDir).'/errors.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
+function elvado_apps_errors(string $dataDir): array {
+    $f=elvado_apps_dir($dataDir).'/errors.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
     $g=array_values((array)($d['groups']??[]));usort($g,fn($a,$b)=>($b['last']??0)<=>($a['last']??0));
     return $g;
 }
-function rrw_apps_stats_clear(string $dataDir,string $what): void {
-    $dir=rrw_apps_dir($dataDir);
+function elvado_apps_stats_clear(string $dataDir,string $what): void {
+    $dir=elvado_apps_dir($dataDir);
     if($what==='errors'||$what==='all')@unlink($dir.'/errors.json');
     if($what==='usage'||$what==='all'){@unlink($dir.'/usage.json');}
     if($what==='downloads'||$what==='all')@unlink($dir.'/downloads.json');
 }
 // Kurzer Schreibschutz gegen Flut (je IP-Hash und Stunde)
-function rrw_apps_rate_ok(string $dataDir,string $bucket,int $limit): bool {
+function elvado_apps_rate_ok(string $dataDir,string $bucket,int $limit): bool {
     $ip=(string)($_SERVER['HTTP_CF_CONNECTING_IP']??$_SERVER['HTTP_X_FORWARDED_FOR']??$_SERVER['REMOTE_ADDR']??'');$ip=trim(explode(',',$ip)[0]);
-    $f=rrw_apps_dir($dataDir).'/rl_'.$bucket.'_'.substr(sha1($ip),0,16).'.json';$now=time();$ok=true;
-    rrw_apps_rmw($f,function(array $st) use($now,$limit,&$ok){
+    $f=elvado_apps_dir($dataDir).'/rl_'.$bucket.'_'.substr(sha1($ip),0,16).'.json';$now=time();$ok=true;
+    elvado_apps_rmw($f,function(array $st) use($now,$limit,&$ok){
         if(($st['start']??0)<$now-3600)$st=['start'=>$now,'count'=>0];
         if($st['count']>=$limit){$ok=false;return $st;}
         $st['count']++;return $st;
     });
-    if(random_int(1,50)===1)foreach((array)glob(rrw_apps_dir($dataDir).'/rl_*.json') as $old)if(@filemtime($old)<$now-7200)@unlink($old);
+    if(random_int(1,50)===1)foreach((array)glob(elvado_apps_dir($dataDir).'/rl_*.json') as $old)if(@filemtime($old)<$now-7200)@unlink($old);
     return $ok;
 }
 
 // ---------- Neue Installationen pro Tag + Download-Zähler ----------
 // Neue Installationen: erste Meldung eines Geräts (Feld "f" in usage.json), je Marke:Plattform und Tag der letzten $days Tage
-function rrw_apps_new_daily(string $dataDir,int $days=60): array {
-    $f=rrw_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
+function elvado_apps_new_daily(string $dataDir,int $days=60): array {
+    $f=elvado_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
     $cut=gmdate('Y-m-d',time()-($days-1)*86400);$out=[];
     foreach((array)($d['installs']??[]) as $key=>$rows)foreach($rows as $r){$first=(string)($r['f']??'');if($first!==''&&$first>=$cut)$out[$key][$first]=($out[$key][$first]??0)+1;}
     foreach($out as $k=>$v)ksort($out[$k]);
     return $out;
 }
-const RRW_APPS_DL_EXT=['apk','exe','aab','msi','zip'];
+const ELVADO_APPS_DL_EXT=['apk','exe','aab','msi','zip'];
 // Nur vorhandene Installationsdateien aus downloads/ (kein Pfad, nur bekannte Endungen)
-function rrw_apps_download_file_ok(string $root,string $f): bool {
-    return preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{2,120}$/',$f)===1&&in_array(strtolower(pathinfo($f,PATHINFO_EXTENSION)),RRW_APPS_DL_EXT,true)&&is_file($root.'/downloads/'.$f);
+function elvado_apps_download_file_ok(string $root,string $f): bool {
+    return preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{2,120}$/',$f)===1&&in_array(strtolower(pathinfo($f,PATHINFO_EXTENSION)),ELVADO_APPS_DL_EXT,true)&&is_file($root.'/downloads/'.$f);
 }
 // Zählt einen Download (gesamt + je Tag, 90 Tage); gespeichert werden nur Dateiname und Zähler
-function rrw_apps_download_add(string $dataDir,string $file): bool {
+function elvado_apps_download_add(string $dataDir,string $file): bool {
     $today=gmdate('Y-m-d');$cut=gmdate('Y-m-d',time()-90*86400);$now=time();
-    return rrw_apps_rmw(rrw_apps_dir($dataDir).'/downloads.json',function(array $d) use($file,$today,$cut,$now){
+    return elvado_apps_rmw(elvado_apps_dir($dataDir).'/downloads.json',function(array $d) use($file,$today,$cut,$now){
         if(!isset($d['since']))$d['since']=$now;
         $x=$d['files'][$file]??['total'=>0,'daily'=>[]];$x['total']++;$x['daily'][$today]=($x['daily'][$today]??0)+1;
         foreach(array_keys($x['daily']) as $k)if($k<$cut)unset($x['daily'][$k]);
@@ -412,9 +412,9 @@ function rrw_apps_download_add(string $dataDir,string $file): bool {
     });
 }
 // Auswertung: je Datei gesamt / 7 / 30 Tage und Tagesverlauf; Marke und Plattform aus der App-Übersicht (sonst nach Dateiendung)
-function rrw_apps_download_stats(string $dataDir,array $site,string $root): array {
-    $f=rrw_apps_dir($dataDir).'/downloads.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
-    $map=[];foreach(rrw_apps_overview($site,$root)['items'] as $it)foreach((array)($it['meta']['files']??[]) as $fl)if(($fl['name']??'')!=='')$map[(string)$fl['name']]=['brand'=>$it['brand'],'platform'=>$it['platform']];
+function elvado_apps_download_stats(string $dataDir,array $site,string $root): array {
+    $f=elvado_apps_dir($dataDir).'/downloads.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
+    $map=[];foreach(elvado_apps_overview($site,$root)['items'] as $it)foreach((array)($it['meta']['files']??[]) as $fl)if(($fl['name']??'')!=='')$map[(string)$fl['name']]=['brand'=>$it['brand'],'platform'=>$it['platform']];
     $t7=gmdate('Y-m-d',time()-6*86400);$t30=gmdate('Y-m-d',time()-29*86400);$files=[];
     foreach((array)($d['files']??[]) as $name=>$x){
         $ext=strtolower(pathinfo((string)$name,PATHINFO_EXTENSION));$m=$map[$name]??['brand'=>'','platform'=>($ext==='apk'||$ext==='aab')?'android':(($ext==='exe'||$ext==='msi')?'windows':'')];
@@ -425,8 +425,8 @@ function rrw_apps_download_stats(string $dataDir,array $site,string $root): arra
 }
 
 // Herkunft der aktiven Geräte (30 Tage) je App. Kleine Gruppen (< $min) werden zu "weitere" zusammengefasst.
-function rrw_apps_geo_stats(string $dataDir,int $min=3): array {
-    $f=rrw_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
+function elvado_apps_geo_stats(string $dataDir,int $min=3): array {
+    $f=elvado_apps_dir($dataDir).'/usage.json';$d=is_file($f)?(json_decode((string)@file_get_contents($f),true)?:[]):[];
     $t30=gmdate('Y-m-d',time()-29*86400);$out=[];
     foreach((array)($d['installs']??[]) as $key=>$rows){
         $c=[];$r=[];$ci=[];$unknown=0;

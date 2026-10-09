@@ -2,8 +2,8 @@
 // Prüft die ergänzenden Inhalts-Funktionen (cms/wp/core/ext/content-*.php): Beiträge, Begriffe, Meta, Optionen, Revisionen, Cron, Kategorien, Formate.
 // Aufruf: php scripts/test-wp-ext-content.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-wpxc-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-wpxc-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';
 file_put_contents($tmp.'/cms/news.json',json_encode([
  ['id'=>1,'slug'=>'erster','title'=>'Erster Beitrag','category'=>'News','tags'=>'radio','excerpt'=>'Kurz','body_html'=>'<p>Hallo</p>','status'=>'published','published_at'=>'2026-01-10 10:00:00','author'=>'Anna Autor'],
  ['id'=>2,'slug'=>'zweiter','title'=>'Zweiter','category'=>'Events','tags'=>'','excerpt'=>'','body_html'=>'<p>Konzert</p>','status'=>'published','published_at'=>'2026-02-10 10:00:00','author'=>'Ben Bauer'],
@@ -13,7 +13,7 @@ require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name\n";} }
-rrw_wp_boot(['user'=>['id'=>1,'login'=>'admin','name'=>'Admin','email'=>'a@example.test','role'=>'administrator']]);
+elvado_wp_boot(['user'=>['id'=>1,'login'=>'admin','name'=>'Admin','email'=>'a@example.test','role'=>'administrator']]);
 
 /* Alle Funktionen der Liste müssen existieren (bewusste Ausnahmen: keine) */
 $names=preg_split('/\s+/',trim(<<<'NAMES'
@@ -245,7 +245,7 @@ t('wp_set_options_autoload',wp_set_options_autoload(['x_opt','y_opt'],true)===['
 t('wp_autoload_values_to_autoload',in_array('on',wp_autoload_values_to_autoload(),true)&&!in_array('no',wp_autoload_values_to_autoload(),true));
 t('wp_determine_option_autoload_value',wp_determine_option_autoload_value('a','v','s',true)==='on'&&wp_determine_option_autoload_value('a','v','s',false)==='off'&&wp_determine_option_autoload_value('a','v','s',null)==='auto'&&wp_determine_option_autoload_value('a','v','s','yes')==='yes');
 t('wp_filter_default_autoload_value_via_option_size',wp_filter_default_autoload_value_via_option_size(null,'a','v',str_repeat('x',200000))===false&&wp_filter_default_autoload_value_via_option_size(true,'a','v','kurz')===true);
-t('wp_protect_special_option',(function(){ $GLOBALS['rrw_wp_die_throws']=true;try{ wp_protect_special_option('alloptions');return false; }catch(RRW_WP_Die $e){ return true; }finally{ unset($GLOBALS['rrw_wp_die_throws']); } })()&&(function(){ wp_protect_special_option('harmlos');return true; })());
+t('wp_protect_special_option',(function(){ $GLOBALS['elvado_wp_die_throws']=true;try{ wp_protect_special_option('alloptions');return false; }catch(ELVADO_WP_Die $e){ return true; }finally{ unset($GLOBALS['elvado_wp_die_throws']); } })()&&(function(){ wp_protect_special_option('harmlos');return true; })());
 t('form_option',(function(){ update_option('fo','a"b');ob_start();form_option('fo');return ob_get_clean()==='a&quot;b'; })());
 t('prime-Funktionen ohne Wirkung',(function(){ wp_prime_option_caches_by_group('x');wp_prime_site_option_caches(['a']);wp_prime_network_option_caches(1,['a']);wp_load_core_site_options();return true; })());
 set_transient('abgelaufen','x',60);set_transient('frisch','y',600);update_option('_transient_timeout_abgelaufen',time()-10);
@@ -277,7 +277,7 @@ t('wp_check_revisioned_meta_fields_have_changed',wp_check_revisioned_meta_fields
 wp_restore_post_revision_meta(get_post($P),$r3);t('wp_restore_post_revision_meta',get_post_meta($P,'rev_m',true)==='v1');
 $ui=wp_get_revision_ui_diff($P,$r1,$r2);$byId=array_column($ui,'diff','id');
 t('wp_get_revision_ui_diff',isset($byId['post_content'])&&str_contains($byId['post_content'],'diff-addedline')&&str_contains($byId['post_content'],'Zeile 2')&&isset($byId['post_title'])&&!isset($byId['post_excerpt'])&&wp_get_revision_ui_diff($P,0,999999999)===false);
-t('rrw_wp_x_text_diff',rrw_wp_x_text_diff("a\nb\nc","a\nc")!==''&&str_contains(rrw_wp_x_text_diff("a\nb\nc","a\nc"),'<del>b</del>')&&rrw_wp_x_text_diff('x','x')===''&&str_contains(rrw_wp_x_text_diff('x','x',true),'<td>x</td>'));
+t('elvado_wp_x_text_diff',elvado_wp_x_text_diff("a\nb\nc","a\nc")!==''&&str_contains(elvado_wp_x_text_diff("a\nb\nc","a\nc"),'<del>b</del>')&&elvado_wp_x_text_diff('x','x')===''&&str_contains(elvado_wp_x_text_diff('x','x',true),'<td>x</td>'));
 $js=wp_prepare_revisions_for_js($P,$r2);t('wp_prepare_revisions_for_js',isset($js[$P])&&$js[$P]['current']===true&&$js[$P]['restoreUrl']===false&&isset($js[$r1])&&is_string($js[$r1]['restoreUrl'])&&str_contains($js[$r1]['restoreUrl'],'revision='.$r1)&&str_starts_with($js[$r1]['timeAgo'],'vor '));
 t('wp_post_revision_title',str_contains((string)wp_post_revision_title($r1,false),'vor ')&&str_contains((string)wp_post_revision_title($P),'[Aktuelle Revision]')&&wp_post_revision_title(999999999)===null&&wp_post_revision_title($img)===false);
 t('wp_post_revision_title_expanded',str_contains((string)wp_post_revision_title_expanded($r1,false),'avatar')&&str_contains((string)wp_post_revision_title_expanded($P),'[Aktuelle Revision]'));
@@ -287,7 +287,7 @@ t('_wp_upgrade_revisions_of_post',(function() use($P,$wpdb,$r1){ $wpdb->update($
 /* Vorschau */
 t('_wp_preview_*-Filter ohne Anfrage-Daten',_wp_preview_terms_filter(['t'],$A,'post_format')===['t']&&_wp_preview_post_thumbnail_filter('v',$A,'_thumbnail_id')==='v'&&_wp_preview_meta_filter('v',$A,'k',true)==='v');
 t('_set_preview',(function() use($P){ $p=get_post($P);return _set_preview($p)===$p&&_set_preview('kein Objekt')==='kein Objekt'; })());
-t('_show_post_preview',(function() use($P){ $_GET=['preview_id'=>$P,'preview_nonce'=>wp_create_nonce('post_preview_'.$P)];_show_post_preview();$ok=has_filter('the_preview','_set_preview')!==false;$_GET=['preview_id'=>$P,'preview_nonce'=>'falsch'];$GLOBALS['rrw_wp_die_throws']=true;try{ _show_post_preview();$bad=false; }catch(RRW_WP_Die $e){ $bad=true; }unset($GLOBALS['rrw_wp_die_throws']);$_GET=[];return $ok&&$bad; })());
+t('_show_post_preview',(function() use($P){ $_GET=['preview_id'=>$P,'preview_nonce'=>wp_create_nonce('post_preview_'.$P)];_show_post_preview();$ok=has_filter('the_preview','_set_preview')!==false;$_GET=['preview_id'=>$P,'preview_nonce'=>'falsch'];$GLOBALS['elvado_wp_die_throws']=true;try{ _show_post_preview();$bad=false; }catch(ELVADO_WP_Die $e){ $bad=true; }unset($GLOBALS['elvado_wp_die_throws']);$_GET=[];return $ok&&$bad; })());
 
 /* ───────── Beitrags-Vorlagen ───────── */
 t('get_the_guid/the_guid',(function() use($A){ ob_start();the_guid($A);$o=ob_get_clean();return str_contains(get_the_guid($A),'p='.$A)&&$o===esc_url(get_the_guid($A)); })());
@@ -332,7 +332,7 @@ $tr=_wp_translate_postdata(false,['post_type'=>'post','post_title'=>'Form','cont
 t('_wp_translate_postdata',$tr['post_content']==='Inhalt'&&$tr['post_excerpt']==='Auszug'&&$tr['post_status']==='publish'&&$tr['post_parent']===4&&$tr['to_ping']==='http://t.test'&&$tr['post_author']===1);
 $td=_wp_translate_postdata(false,['post_type'=>'post','aa'=>'2030','mm'=>'05','jj'=>'06','hh'=>'07','mn'=>'08','ss'=>'09','edit_date'=>'1']);
 t('_wp_translate_postdata Datum',$td['post_date']==='2030-05-06 07:08:09'&&is_wp_error(_wp_translate_postdata(false,['post_type'=>'post','aa'=>'2030','mm'=>'02','jj'=>'31','edit_date'=>'1']))&&is_wp_error(_wp_translate_postdata(false,['post_type'=>'gibtsnicht'])));
-t('_wp_translate_postdata Rechte',(function(){ $GLOBALS['rrw_wp_user']['caps']=rrw_wp_caps_for_role('subscriber');$a=_wp_translate_postdata(false,['post_type'=>'post']);$GLOBALS['rrw_wp_user']['caps']=rrw_wp_caps_for_role('author');$b=_wp_translate_postdata(false,['post_type'=>'post','publish'=>'1']);$c=_wp_translate_postdata(false,['post_type'=>'post','post_author'=>'5']);$GLOBALS['rrw_wp_user']['caps']=rrw_wp_caps_for_role('administrator');return is_wp_error($a)&&$b['post_status']==='publish'&&is_wp_error($c); })());
+t('_wp_translate_postdata Rechte',(function(){ $GLOBALS['elvado_wp_user']['caps']=elvado_wp_caps_for_role('subscriber');$a=_wp_translate_postdata(false,['post_type'=>'post']);$GLOBALS['elvado_wp_user']['caps']=elvado_wp_caps_for_role('author');$b=_wp_translate_postdata(false,['post_type'=>'post','publish'=>'1']);$c=_wp_translate_postdata(false,['post_type'=>'post','post_author'=>'5']);$GLOBALS['elvado_wp_user']['caps']=elvado_wp_caps_for_role('administrator');return is_wp_error($a)&&$b['post_status']==='publish'&&is_wp_error($c); })());
 $_POST=['post_type'=>'post','post_title'=>'Per Formular','content'=>'Text','publish'=>'1','metakeyinput'=>'farbe2','metavalue'=>'rot','tax_input'=>['post_tag'=>'formular']];
 $W=wp_write_post();
 t('wp_write_post',is_int($W)&&$W>0&&get_post($W)->post_title==='Per Formular'&&get_post($W)->post_status==='publish'&&get_post_meta($W,'farbe2',true)==='rot'&&wp_get_post_terms($W,'post_tag',['fields'=>'names'])===['formular']);
@@ -348,7 +348,7 @@ t('add_meta Randfälle',(function() use($W){ $_POST=['metakeyselect'=>'#NONE#','
 t('edit_post',(function() use($W){ $r=edit_post(['post_ID'=>$W,'post_title'=>'Geändert','content'=>'Neuer Text','post_status'=>'draft','tax_input'=>['post_tag'=>['formular','zweit']]]);$p=get_post($W);return $r===$W&&$p->post_title==='Geändert'&&$p->post_content==='Neuer Text'&&$p->post_status==='draft'&&$p->post_type==='post'; })());
 t('edit_post: Meta, Sticky, fremde/ungültige',(function() use($W,$wpdb){ $m=add_post_meta($W,'bearb','alt');$r=edit_post(['post_ID'=>$W,'meta'=>[$m=>['key'=>'bearb','value'=>'neu']],'sticky'=>'sticky']);$ok=get_post_meta($W,'bearb',true)==='neu'&&is_sticky($W);
     edit_post(['post_ID'=>$W,'deletemeta'=>[$m=>'x']]);$del=get_post_meta($W,'bearb',true)==='';$bad=edit_post(['post_ID'=>999999999]);$cms=edit_post(['post_ID'=>1,'post_title'=>'x']);
-    $GLOBALS['rrw_wp_user']['caps']=rrw_wp_caps_for_role('subscriber');$deny=edit_post(['post_ID'=>$W,'post_title'=>'Verboten']);$GLOBALS['rrw_wp_user']['caps']=rrw_wp_caps_for_role('administrator');
+    $GLOBALS['elvado_wp_user']['caps']=elvado_wp_caps_for_role('subscriber');$deny=edit_post(['post_ID'=>$W,'post_title'=>'Verboten']);$GLOBALS['elvado_wp_user']['caps']=elvado_wp_caps_for_role('administrator');
     return $r===$W&&$ok&&$del&&$bad===0&&$cms===0&&$deny===0&&get_post($W)->post_title==='Geändert'; })());
 t('edit_post: Sichtbarkeit privat',(function() use($W){ edit_post(['post_ID'=>$W,'visibility'=>'private']);return get_post($W)->post_status==='private'; })());
 t('bulk_edit_posts',(function() use($A,$W,$P){ $r=bulk_edit_posts(['post_ID'=>[$W,$P,1,999999999],'post_type'=>'post','post_status'=>'draft','comment_status'=>-1,'post_author'=>'','sticky'=>'sticky','tax_input'=>['post_tag'=>'sammel']]);
@@ -364,8 +364,8 @@ t('wp_autosave: Nonce und Entwurf',(function() use($W,$P){ $bad=wp_autosave(['po
     $ok=wp_autosave(['post_id'=>$dr,'post_ID'=>$dr,'_wpnonce'=>wp_create_nonce('update-post_'.$dr),'post_type'=>'post','post_title'=>'Auto neu','content'=>'c']);return is_wp_error($bad)&&$ok===$dr&&get_post($dr)->post_title==='Auto neu'; })());
 t('wp_autosave_post_revisioned_meta_fields',(function() use($P){ $_POST['rev_m']='aus Formular';wp_autosave_post_revisioned_meta_fields(['ID'=>$P,'post_parent'=>$P]);$_POST=[];return get_post_meta($P,'rev_m',true)==='aus Formular'; })());
 t('post_preview (eigener Entwurf)',(function() use($W){ $dr=wp_insert_post(['post_title'=>'Vorschau','post_status'=>'draft','post_author'=>1]);$_POST=['post_ID'=>$dr,'post_title'=>'Vorschau neu','post_type'=>'post','post_status'=>'draft','content'=>'v'];$u=post_preview();$_POST=[];return is_string($u)&&get_post($dr)->post_title==='Vorschau neu'; })());
-t('redirect_post',(function() use($P){ $GLOBALS['rrw_wp_is_admin']=true;$loc=function($post) use($P){ $_POST=$post;try{ redirect_post($P); }catch(RRW_WP_Die $e){}$_POST=[];return (string)($GLOBALS['rrw_wp_admin_redirect']??''); };
-    $a=$loc(['save'=>'1']);$b=$loc([]);$c=$loc(['addmeta'=>'1']);$d=$loc(['publish'=>'1']);unset($GLOBALS['rrw_wp_is_admin'],$GLOBALS['rrw_wp_admin_redirect']);
+t('redirect_post',(function() use($P){ $GLOBALS['elvado_wp_is_admin']=true;$loc=function($post) use($P){ $_POST=$post;try{ redirect_post($P); }catch(ELVADO_WP_Die $e){}$_POST=[];return (string)($GLOBALS['elvado_wp_admin_redirect']??''); };
+    $a=$loc(['save'=>'1']);$b=$loc([]);$c=$loc(['addmeta'=>'1']);$d=$loc(['publish'=>'1']);unset($GLOBALS['elvado_wp_is_admin'],$GLOBALS['elvado_wp_admin_redirect']);
     return str_contains($a,'message=10')&&str_contains($b,'message=4')&&str_contains($c,'message=2')&&str_contains($c,'#postcustom')&&str_contains($d,'message=10'); })());
 t('taxonomy_meta_box_sanitize_cb_*',taxonomy_meta_box_sanitize_cb_checkboxes('category',['3','x'])===[3,0]&&taxonomy_meta_box_sanitize_cb_input('post_tag','Jazz, neu ,,')===[$tagJ,'neu']&&taxonomy_meta_box_sanitize_cb_input('post_tag',['Jazz',''])===[$tagJ]);
 t('_fix_attachment_links',(function() use($P,$img){ update_option('permalink_structure','/%postname%/');$c='<a href="'.home_url('/?attachment_id='.$img).'" rel="attachment wp-att-'.$img.'">Bild</a>';wp_update_post(['ID'=>$P,'post_status'=>'publish','post_content'=>$c]);$r=_fix_attachment_links($P);return $r===$P&&!str_contains(get_post($P)->post_content,'?attachment_id=')&&_fix_attachment_links(999999999)===null; })());

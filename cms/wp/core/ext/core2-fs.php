@@ -3,8 +3,8 @@
 // Eigenständig umgesetzt. FTP/SSH sind bewusst nicht unterstützt: sie melden Fehler bzw. false; das CMS schreibt Dateien direkt.
 
 /* ───────── Dateisystem-Hüllen ───────── */
-if(!class_exists('RRW_WP_Filesystem_Unsupported')){
-abstract class RRW_WP_Filesystem_Unsupported extends WP_Filesystem_Base {
+if(!class_exists('ELVADO_WP_Filesystem_Unsupported')){
+abstract class ELVADO_WP_Filesystem_Unsupported extends WP_Filesystem_Base {
     public $method='unsupported';
     public function __construct($opt='') { $this->options=is_array($opt)?$opt:[];$this->errors=new WP_Error(); }
     public function connect() { $this->errors->add('connect','Diese Verbindungsart wird nicht unterstützt; das CMS schreibt Dateien direkt.');return false; }
@@ -17,9 +17,9 @@ abstract class RRW_WP_Filesystem_Unsupported extends WP_Filesystem_Base {
     public function mkdir($path, $chmod=false, $chown=false, $chgrp=false) { return false; } public function rmdir($path, $recursive=false) { return false; } public function dirlist($path, $include_hidden=true, $recursive=false) { return false; }
 }
 }
-if(!class_exists('WP_Filesystem_SSH2')){ class WP_Filesystem_SSH2 extends RRW_WP_Filesystem_Unsupported { public $method='ssh2'; } }
-if(!class_exists('WP_Filesystem_ftpsockets')){ class WP_Filesystem_ftpsockets extends RRW_WP_Filesystem_Unsupported { public $method='ftpsockets'; } }
-if(!class_exists('WP_Filesystem_FTPext')){ class WP_Filesystem_FTPext extends RRW_WP_Filesystem_Unsupported { public $method='ftpext'; } }
+if(!class_exists('WP_Filesystem_SSH2')){ class WP_Filesystem_SSH2 extends ELVADO_WP_Filesystem_Unsupported { public $method='ssh2'; } }
+if(!class_exists('WP_Filesystem_ftpsockets')){ class WP_Filesystem_ftpsockets extends ELVADO_WP_Filesystem_Unsupported { public $method='ftpsockets'; } }
+if(!class_exists('WP_Filesystem_FTPext')){ class WP_Filesystem_FTPext extends ELVADO_WP_Filesystem_Unsupported { public $method='ftpext'; } }
 
 /* ───────── FTP-Basisklassen (nur Schnittstelle, ohne Verbindung) ───────── */
 if(!class_exists('ftp_base')){
@@ -169,9 +169,9 @@ class PclZip {
 }
 
 /* ───────── Upgrader-Skins ───────── */
-if(!class_exists('RRW_Skin_Base')){
+if(!class_exists('ELVADO_Skin_Base')){
 #[AllowDynamicProperties]
-class RRW_Skin_Base extends WP_Upgrader_Skin {
+class ELVADO_Skin_Base extends WP_Upgrader_Skin {
     public $options=[];public $messages=[];public $errors=null;public $done_header=false;public $done_footer=false;public $upgrader=null;public $result=false;
     public function __construct($args=[]) { $this->options=wp_parse_args($args,['url'=>'','nonce'=>'','title'=>'','context'=>false]);$this->errors=new WP_Error(); }
     public function set_upgrader(&$upgrader) { if(is_object($upgrader))$this->upgrader=&$upgrader; }
@@ -196,7 +196,7 @@ class RRW_Skin_Base extends WP_Upgrader_Skin {
 }
 }
 if(!class_exists('Plugin_Upgrader_Skin')){
-class Plugin_Upgrader_Skin extends RRW_Skin_Base {
+class Plugin_Upgrader_Skin extends ELVADO_Skin_Base {
     public $plugin='';public $plugin_active=false;public $plugin_network_active=false;
     public function __construct($args=[]) {
         $args=wp_parse_args($args,['url'=>'','plugin'=>'','nonce'=>'','title'=>'Plugin aktualisieren']);
@@ -207,7 +207,7 @@ class Plugin_Upgrader_Skin extends RRW_Skin_Base {
 }
 }
 if(!class_exists('Theme_Upgrader_Skin')){
-class Theme_Upgrader_Skin extends RRW_Skin_Base {
+class Theme_Upgrader_Skin extends ELVADO_Skin_Base {
     public $theme='';
     public function __construct($args=[]) {
         $args=wp_parse_args($args,['url'=>'','theme'=>'','nonce'=>'','title'=>'Theme aktualisieren']);
@@ -217,7 +217,7 @@ class Theme_Upgrader_Skin extends RRW_Skin_Base {
 }
 }
 if(!class_exists('Bulk_Plugin_Upgrader_Skin')){
-class Bulk_Plugin_Upgrader_Skin extends RRW_Skin_Base {
+class Bulk_Plugin_Upgrader_Skin extends ELVADO_Skin_Base {
     public $plugin_info=[];public $in_loop=false;public $error=false;
     public function add_strings() { $this->upgrader->strings['skin_upgrade_start']='Das Update beginnt. Das kann einen Moment dauern.'; }
     public function before($title='') { $this->in_loop=true; }
@@ -226,7 +226,7 @@ class Bulk_Plugin_Upgrader_Skin extends RRW_Skin_Base {
 }
 }
 if(!class_exists('Bulk_Theme_Upgrader_Skin')){
-class Bulk_Theme_Upgrader_Skin extends RRW_Skin_Base {
+class Bulk_Theme_Upgrader_Skin extends ELVADO_Skin_Base {
     public $theme_info=[];public $in_loop=false;public $error=false;
     public function add_strings() { $this->upgrader->strings['skin_upgrade_start']='Das Update beginnt. Das kann einen Moment dauern.'; }
     public function before($title='') { $this->in_loop=true; }
@@ -234,7 +234,7 @@ class Bulk_Theme_Upgrader_Skin extends RRW_Skin_Base {
 }
 }
 if(!class_exists('Language_Pack_Upgrader_Skin')){
-class Language_Pack_Upgrader_Skin extends RRW_Skin_Base {
+class Language_Pack_Upgrader_Skin extends ELVADO_Skin_Base {
     public $language_update=null;public $done_header=false;public $done_footer=false;public $display_footer_actions=true;
     public function __construct($args=[]) { parent::__construct(wp_parse_args($args,['url'=>'','nonce'=>'','title'=>'Übersetzungen aktualisieren','skip_header_footer'=>false]));
         $this->language_update=$this->options['language_update']??null; }

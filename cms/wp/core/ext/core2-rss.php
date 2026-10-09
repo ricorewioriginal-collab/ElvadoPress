@@ -72,14 +72,14 @@ class RSSCache {
     public function serialize($rss) { return serialize($rss); }
     public function unserialize($data) { return unserialize($data); }
     public function file_name($url) { return md5((string)$url); }
-    public function set($url, $rss) { return set_transient('rrw_magpie_'.$this->file_name($url),['t'=>time(),'d'=>$this->serialize($rss)],$this->MAX_AGE*2)?$this->file_name($url):0; }
-    public function get($url) { $c=get_transient('rrw_magpie_'.$this->file_name($url));return is_array($c)?$this->unserialize($c['d']):0; }
+    public function set($url, $rss) { return set_transient('elvado_magpie_'.$this->file_name($url),['t'=>time(),'d'=>$this->serialize($rss)],$this->MAX_AGE*2)?$this->file_name($url):0; }
+    public function get($url) { $c=get_transient('elvado_magpie_'.$this->file_name($url));return is_array($c)?$this->unserialize($c['d']):0; }
     public function check_cache($url) {
-        $c=get_transient('rrw_magpie_'.$this->file_name($url));
+        $c=get_transient('elvado_magpie_'.$this->file_name($url));
         if(!is_array($c))return 'MISS';
         return (time()-(int)$c['t'])<$this->MAX_AGE?'HIT':'STALE';
     }
-    public function cache_age($url) { $c=get_transient('rrw_magpie_'.$this->file_name($url));return is_array($c)?time()-(int)$c['t']:false; }
+    public function cache_age($url) { $c=get_transient('elvado_magpie_'.$this->file_name($url));return is_array($c)?time()-(int)$c['t']:false; }
     public function error($errormsg, $lvl=E_USER_WARNING) { $this->ERROR=$errormsg; }
 }
 }

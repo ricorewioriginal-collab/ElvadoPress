@@ -5,43 +5,43 @@
 // Die Apps selbst brauchen danach nur die Website (app_config) – keine zentrale Infrastruktur.
 // Das GitHub-Token liegt ausschließlich serverseitig (cms/data/.apps/build.json) und wird nie an den Browser geliefert.
 
-const RRW_AB_WORKFLOW='android-custom-brand.yml';   // Android (Standard-Plattform)
-const RRW_AB_WORKFLOW_WIN='windows-custom-brand.yml';
-const RRW_AB_WIN_PROJECT='windows-native/ElvadoPress.App.Windows.csproj';      // Projektdatei der Windows-App in der App-Vorlage (app-template/)
+const ELVADO_AB_WORKFLOW='android-custom-brand.yml';   // Android (Standard-Plattform)
+const ELVADO_AB_WORKFLOW_WIN='windows-custom-brand.yml';
+const ELVADO_AB_WIN_PROJECT='windows-native/ElvadoPress.App.Windows.csproj';      // Projektdatei der Windows-App in der App-Vorlage (app-template/)
 // Plattformen: Workflow-Datei, Anfang des Lauf-Titels (run-name), Muster des Release-Tags und Dateiendungen der Pakete
-const RRW_AB_PLATFORMS=['android'=>['label'=>'Android','workflow'=>RRW_AB_WORKFLOW,'title'=>'App ','tag'=>'app-%s-','tagre'=>'/^app-%s-\d+$/','ext'=>'apk|aab'],
-                        'windows'=>['label'=>'Windows','workflow'=>RRW_AB_WORKFLOW_WIN,'title'=>'Windows ','tag'=>'app-%s-win-','tagre'=>'/^app-%s-win-\d+$/','ext'=>'exe']];
-const RRW_AB_TYPES=['web'=>'Website-App','content'=>'Baukasten-App'];
-const RRW_AB_RESERVED=['debug','release','developer','main','test','android','app'];
-const RRW_AB_MAX_BRANDS=8;
-const RRW_AB_MAX_SCREENSHOTS=8;
+const ELVADO_AB_PLATFORMS=['android'=>['label'=>'Android','workflow'=>ELVADO_AB_WORKFLOW,'title'=>'App ','tag'=>'app-%s-','tagre'=>'/^app-%s-\d+$/','ext'=>'apk|aab'],
+                        'windows'=>['label'=>'Windows','workflow'=>ELVADO_AB_WORKFLOW_WIN,'title'=>'Windows ','tag'=>'app-%s-win-','tagre'=>'/^app-%s-win-\d+$/','ext'=>'exe']];
+const ELVADO_AB_TYPES=['web'=>'Website-App','content'=>'Baukasten-App'];
+const ELVADO_AB_RESERVED=['debug','release','developer','main','test','android','app'];
+const ELVADO_AB_MAX_BRANDS=8;
+const ELVADO_AB_MAX_SCREENSHOTS=8;
 
-function rrw_ab_file(string $dataDir): string { return rrw_apps_dir($dataDir).'/build.json'; }
-function rrw_ab_load(string $dataDir): array {
-    $d=json_decode((string)@file_get_contents(rrw_ab_file($dataDir)),true);$d=is_array($d)?$d:[];
+function elvado_ab_file(string $dataDir): string { return elvado_apps_dir($dataDir).'/build.json'; }
+function elvado_ab_load(string $dataDir): array {
+    $d=json_decode((string)@file_get_contents(elvado_ab_file($dataDir)),true);$d=is_array($d)?$d:[];
     return ['repo'=>(string)($d['repo']??''),'branch'=>(string)($d['branch']??'app-builder'),'token'=>(string)($d['token']??''),'brands'=>array_values(array_filter((array)($d['brands']??[]),'is_array'))];
 }
-function rrw_ab_save(string $dataDir, array $d): bool {
-    $f=rrw_ab_file($dataDir);$t=$f.'.'.bin2hex(random_bytes(3)).'.tmp';
+function elvado_ab_save(string $dataDir, array $d): bool {
+    $f=elvado_ab_file($dataDir);$t=$f.'.'.bin2hex(random_bytes(3)).'.tmp';
     if(@file_put_contents($t,json_encode($d,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),LOCK_EX)===false)return false;
     @chmod($t,0600);return @rename($t,$f);
 }
 /** Zustand für die Oberfläche – ohne Token (nur „vorhanden“ und die letzten 4 Zeichen). */
-function rrw_ab_state(string $dataDir): array {
-    $d=rrw_ab_load($dataDir);
-    return ['repo'=>$d['repo'],'branch'=>$d['branch'],'has_token'=>$d['token']!=='','token_hint'=>$d['token']!==''?'…'.substr($d['token'],-4):'','brands'=>$d['brands'],'workflow'=>RRW_AB_WORKFLOW,'max_brands'=>RRW_AB_MAX_BRANDS];
+function elvado_ab_state(string $dataDir): array {
+    $d=elvado_ab_load($dataDir);
+    return ['repo'=>$d['repo'],'branch'=>$d['branch'],'has_token'=>$d['token']!=='','token_hint'=>$d['token']!==''?'…'.substr($d['token'],-4):'','brands'=>$d['brands'],'workflow'=>ELVADO_AB_WORKFLOW,'max_brands'=>ELVADO_AB_MAX_BRANDS];
 }
 
 /* ───────── Eingaben prüfen ───────── */
-function rrw_ab_clean_repo(string $r): string { $r=trim($r);return preg_match('~^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$~',$r)?$r:''; }
-function rrw_ab_clean_branch(string $b): string { $b=trim($b);return preg_match('~^[A-Za-z0-9][A-Za-z0-9._/-]{0,60}$~',$b)&&!str_contains($b,'..')&&!str_ends_with($b,'/')&&!str_ends_with($b,'.lock')?$b:''; }
+function elvado_ab_clean_repo(string $r): string { $r=trim($r);return preg_match('~^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$~',$r)?$r:''; }
+function elvado_ab_clean_branch(string $b): string { $b=trim($b);return preg_match('~^[A-Za-z0-9][A-Za-z0-9._/-]{0,60}$~',$b)&&!str_contains($b,'..')&&!str_ends_with($b,'/')&&!str_ends_with($b,'.lock')?$b:''; }
 /** Eine Marke prüfen und bereinigen. Rückgabe [Marke|null, Fehlertext]. */
 /** Bild aus der Medienbibliothek (Pfad unter /cms/media/, keine Umwege). */
-function rrw_ab_media_url_ok(string $u): bool { return preg_match('~^/cms/media/[A-Za-z0-9_./-]+$~',$u)===1&&!str_contains($u,'..'); }
-function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
+function elvado_ab_media_url_ok(string $u): bool { return preg_match('~^/cms/media/[A-Za-z0-9_./-]+$~',$u)===1&&!str_contains($u,'..'); }
+function elvado_ab_clean_brand(array $in, string $siteOrigin=''): array {
     $id=strtolower(trim((string)($in['id']??'')));
     if(!preg_match('/^[a-z][a-z0-9]{2,19}$/',$id))return [null,'Die Marken-ID besteht aus 3–20 Kleinbuchstaben/Ziffern und beginnt mit einem Buchstaben.'];
-    if(in_array($id,RRW_AB_RESERVED,true))return [null,'Die Marken-ID „'.$id.'“ ist reserviert.'];
+    if(in_array($id,ELVADO_AB_RESERVED,true))return [null,'Die Marken-ID „'.$id.'“ ist reserviert.'];
     // Gradle verbietet Product-Flavor-Namen, die mit „test“ oder „androidTest“ beginnen (sonst bricht der Build mit „ProductFlavor names cannot start with 'test'“ ab)
     if(str_starts_with($id,'test')||str_starts_with($id,'androidtest'))return [null,'Die Marken-ID darf nicht mit „test“ oder „androidtest“ beginnen (Android-Build-Regel). Bitte eine andere ID wählen.'];
     $pkg=strtolower(trim((string)($in['applicationId']??'')));
@@ -54,26 +54,26 @@ function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
     $prefix=trim((string)($in['filePrefix']??''));if($prefix==='')$prefix=preg_replace('/[^A-Za-z0-9-]+/','-',$name);
     $prefix=trim((string)preg_replace('/-+/','-',$prefix),'-');
     if(!preg_match('/^[A-Za-z0-9-]{2,30}$/',$prefix))return [null,'Der Dateiname-Anfang besteht aus 2–30 Buchstaben, Ziffern oder Bindestrichen.'];
-    $type=(string)($in['type']??'web');if(!isset(RRW_AB_TYPES[$type]))return [null,'Unbekannter App-Typ.'];
-    $pl=array_values(array_unique(array_filter(array_map('strval',(array)($in['platforms']??['android'])),fn($x)=>isset(RRW_AB_PLATFORMS[$x]))));
+    $type=(string)($in['type']??'web');if(!isset(ELVADO_AB_TYPES[$type]))return [null,'Unbekannter App-Typ.'];
+    $pl=array_values(array_unique(array_filter(array_map('strval',(array)($in['platforms']??['android'])),fn($x)=>isset(ELVADO_AB_PLATFORMS[$x]))));
     if(!$pl)return [null,'Bitte mindestens eine Plattform wählen (Android oder Windows).'];
     $theme=trim((string)($in['themeColor']??''));if($theme!==''&&!preg_match('/^#[0-9a-fA-F]{6}$/',$theme))return [null,'Die Farbe hat die Form #112233.'];
     $icon=trim((string)($in['icon']??''));
-    if($icon!==''&&!rrw_ab_media_url_ok($icon))return [null,'Das Icon muss ein Bild aus der Medienbibliothek sein.'];
+    if($icon!==''&&!elvado_ab_media_url_ok($icon))return [null,'Das Icon muss ein Bild aus der Medienbibliothek sein.'];
     $out=['id'=>$id,'applicationId'=>$pkg,'appName'=>$name,'site'=>$site,'launchUrl'=>$site.'/','filePrefix'=>$prefix,'icon'=>$icon,'type'=>$type,'platforms'=>$pl,'themeColor'=>$theme];
     // Branding für alle App-Typen (nur gesetzte Werte werden gespeichert, bestehende Apps bleiben unverändert)
     $splash=trim((string)($in['splash']??''));
-    if($splash!==''){ if(!rrw_ab_media_url_ok($splash))return [null,'Das Startbild muss ein Bild aus der Medienbibliothek sein.'];$out['splash']=$splash; }
+    if($splash!==''){ if(!elvado_ab_media_url_ok($splash))return [null,'Das Startbild muss ein Bild aus der Medienbibliothek sein.'];$out['splash']=$splash; }
     $hl=trim((string)($in['headerLogo']??''));
-    if($hl!==''){ if(!rrw_ab_media_url_ok($hl))return [null,'Das Kopfzeilen-Logo muss ein Bild aus der Medienbibliothek sein.'];$out['headerLogo']=$hl; }
+    if($hl!==''){ if(!elvado_ab_media_url_ok($hl))return [null,'Das Kopfzeilen-Logo muss ein Bild aus der Medienbibliothek sein.'];$out['headerLogo']=$hl; }
     $bg=trim((string)($in['iconBg']??''));
     if($bg!==''){ if(!preg_match('/^#[0-9a-fA-F]{6}$/',$bg))return [null,'Die Icon-Hintergrundfarbe hat die Form #112233.'];$out['iconBg']=strtolower($bg); }
-    $shots=[];foreach(array_slice((array)($in['screenshots']??[]),0,RRW_AB_MAX_SCREENSHOTS*2) as $u){
+    $shots=[];foreach(array_slice((array)($in['screenshots']??[]),0,ELVADO_AB_MAX_SCREENSHOTS*2) as $u){
         $u=trim((string)$u);if($u==='')continue;
-        if(!rrw_ab_media_url_ok($u))return [null,'Screenshots müssen Bilder aus der Medienbibliothek sein.'];
+        if(!elvado_ab_media_url_ok($u))return [null,'Screenshots müssen Bilder aus der Medienbibliothek sein.'];
         if(!in_array($u,$shots,true))$shots[]=$u;
     }
-    if(count($shots)>RRW_AB_MAX_SCREENSHOTS)return [null,'Es sind höchstens '.RRW_AB_MAX_SCREENSHOTS.' Screenshots möglich.'];
+    if(count($shots)>ELVADO_AB_MAX_SCREENSHOTS)return [null,'Es sind höchstens '.ELVADO_AB_MAX_SCREENSHOTS.' Screenshots möglich.'];
     if($shots)$out['screenshots']=$shots;
     $short=mb_substr(trim(strip_tags((string)($in['shortDescription']??''))),0,80);if($short!=='')$out['shortDescription']=$short;
     $full=mb_substr(trim(strip_tags((string)($in['fullDescription']??''))),0,4000);if($full!=='')$out['fullDescription']=$full;
@@ -81,9 +81,9 @@ function rrw_ab_clean_brand(array $in, string $siteOrigin=''): array {
 }
 
 /* ───────── GitHub ───────── */
-/** HTTP-Anfrage an die GitHub-API (feste Domain). Für Tests kann $GLOBALS['rrw_ab_http'] die Anfrage ersetzen. */
-function rrw_ab_http(string $method, string $path, string $token, ?array $json=null, array $extra=[], int $timeout=25): array {
-    if(isset($GLOBALS['rrw_ab_http'])&&is_callable($GLOBALS['rrw_ab_http']))return ($GLOBALS['rrw_ab_http'])($method,$path,$token,$json,$extra);
+/** HTTP-Anfrage an die GitHub-API (feste Domain). Für Tests kann $GLOBALS['elvado_ab_http'] die Anfrage ersetzen. */
+function elvado_ab_http(string $method, string $path, string $token, ?array $json=null, array $extra=[], int $timeout=25): array {
+    if(isset($GLOBALS['elvado_ab_http'])&&is_callable($GLOBALS['elvado_ab_http']))return ($GLOBALS['elvado_ab_http'])($method,$path,$token,$json,$extra);
     $url='https://api.github.com'.$path;$body=$json!==null?json_encode($json,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES):null;
     $h=array_merge(['Accept: application/vnd.github+json','X-GitHub-Api-Version: 2022-11-28','User-Agent: ElvadoPress-App-Builder','Authorization: Bearer '.$token],$extra);
     if($body!==null)$h[]='Content-Type: application/json';
@@ -100,55 +100,55 @@ function rrw_ab_http(string $method, string $path, string $token, ?array $json=n
     foreach((array)($http_response_header??[]) as $l){ if(preg_match('#^HTTP/\S+\s+(\d{3})#',$l,$m))$code=(int)$m[1];elseif(str_contains($l,':')){ [$k,$v]=explode(':',$l,2);$hdr[strtolower(trim($k))]=trim($v); } }
     return ['code'=>$code,'body'=>(string)$raw,'headers'=>$hdr,'error'=>$raw===false?'request failed':''];
 }
-function rrw_ab_msg(array $r): string {
+function elvado_ab_msg(array $r): string {
     $j=json_decode($r['body'],true);$m=is_array($j)?(string)($j['message']??''):'';
     return match(true){ $r['code']===0=>'GitHub ist gerade nicht erreichbar.',$r['code']===401=>'GitHub lehnt das Token ab (ungültig oder abgelaufen).',$r['code']===403=>'GitHub verweigert den Zugriff (Token-Rechte oder Limit). '.$m,$r['code']===404=>'Nicht gefunden – Repository, Branch oder Token-Rechte prüfen.',$r['code']===422=>'GitHub hat die Anfrage abgelehnt: '.$m,default=>'GitHub-Fehler '.$r['code'].($m!==''?': '.$m:'') };
 }
-function rrw_ab_enc(string $path): string { return implode('/',array_map('rawurlencode',explode('/',$path))); }
+function elvado_ab_enc(string $path): string { return implode('/',array_map('rawurlencode',explode('/',$path))); }
 
 /** Repository prüfen: Zugriff, Schreibrecht, App-Quellen und Workflow vorhanden? Rückgabe ['ok'=>bool,'checks'=>[[ok,Text]…]]. */
-function rrw_ab_check(string $dataDir): array {
-    $d=rrw_ab_load($dataDir);$c=[];
+function elvado_ab_check(string $dataDir): array {
+    $d=elvado_ab_load($dataDir);$c=[];
     if($d['repo']===''||$d['token']==='')return ['ok'=>false,'checks'=>[[false,'Repository und Token eintragen und speichern.']]];
-    $r=rrw_ab_http('GET','/repos/'.$d['repo'],$d['token']);
-    if($r['code']!==200)return ['ok'=>false,'checks'=>[[false,rrw_ab_msg($r)]]];
+    $r=elvado_ab_http('GET','/repos/'.$d['repo'],$d['token']);
+    if($r['code']!==200)return ['ok'=>false,'checks'=>[[false,elvado_ab_msg($r)]]];
     $j=json_decode($r['body'],true);$c[]=[true,'Repository gefunden: '.(string)($j['full_name']??$d['repo']).(!empty($j['private'])?' (privat)':' (öffentlich)')];
     $push=!empty($j['permissions']['push']);$c[]=[$push,$push?'Schreibrecht vorhanden':'Das Token darf nicht schreiben (Contents: Read and write nötig).'];
     $def=(string)($j['default_branch']??'main');
     $ok=$push;
     $needWin=false;foreach($d['brands'] as $b)if(in_array('windows',(array)($b['platforms']??[]),true))$needWin=true;
-    $files=['android/brands.json'=>'App-Quellen (android/)','.github/workflows/'.RRW_AB_WORKFLOW=>'Workflow „'.RRW_AB_WORKFLOW.'“ (Android)'];
-    if($needWin)$files+=[RRW_AB_WIN_PROJECT=>'Windows-Quellen (windows-native/)','.github/workflows/'.RRW_AB_WORKFLOW_WIN=>'Workflow „'.RRW_AB_WORKFLOW_WIN.'“ (Windows)'];
+    $files=['android/brands.json'=>'App-Quellen (android/)','.github/workflows/'.ELVADO_AB_WORKFLOW=>'Workflow „'.ELVADO_AB_WORKFLOW.'“ (Android)'];
+    if($needWin)$files+=[ELVADO_AB_WIN_PROJECT=>'Windows-Quellen (windows-native/)','.github/workflows/'.ELVADO_AB_WORKFLOW_WIN=>'Workflow „'.ELVADO_AB_WORKFLOW_WIN.'“ (Windows)'];
     foreach($files as $p=>$label){
-        $x=rrw_ab_http('GET','/repos/'.$d['repo'].'/contents/'.rrw_ab_enc($p).'?ref='.rawurlencode($def),$d['token']);
+        $x=elvado_ab_http('GET','/repos/'.$d['repo'].'/contents/'.elvado_ab_enc($p).'?ref='.rawurlencode($def),$d['token']);
         $has=$x['code']===200;$c[]=[$has,$label.($has?' vorhanden':' fehlt – das Repository muss auf der App-Vorlage von ElvadoPress (Ordner app-template/) beruhen.')];$ok=$ok&&$has;
     }
     return ['ok'=>$ok,'checks'=>$c,'default_branch'=>$def];
 }
 /** Branch sicherstellen (aus dem Standard-Branch anlegen). Rückgabe Fehlertext oder null. */
-function rrw_ab_ensure_branch(array $d): ?string {
+function elvado_ab_ensure_branch(array $d): ?string {
     $repo='/repos/'.$d['repo'];
-    $r=rrw_ab_http('GET',$repo.'/git/ref/heads/'.rrw_ab_enc($d['branch']),$d['token']);
+    $r=elvado_ab_http('GET',$repo.'/git/ref/heads/'.elvado_ab_enc($d['branch']),$d['token']);
     if($r['code']===200)return null;
-    if($r['code']!==404)return rrw_ab_msg($r);
-    $info=json_decode(rrw_ab_http('GET',$repo,$d['token'])['body'],true);$def=(string)($info['default_branch']??'main');
-    $base=rrw_ab_http('GET',$repo.'/git/ref/heads/'.rrw_ab_enc($def),$d['token']);
-    $sha=(string)(json_decode($base['body'],true)['object']['sha']??'');if($base['code']!==200||$sha==='')return rrw_ab_msg($base);
-    $c=rrw_ab_http('POST',$repo.'/git/refs',$d['token'],['ref'=>'refs/heads/'.$d['branch'],'sha'=>$sha]);
-    return $c['code']===201?null:rrw_ab_msg($c);
+    if($r['code']!==404)return elvado_ab_msg($r);
+    $info=json_decode(elvado_ab_http('GET',$repo,$d['token'])['body'],true);$def=(string)($info['default_branch']??'main');
+    $base=elvado_ab_http('GET',$repo.'/git/ref/heads/'.elvado_ab_enc($def),$d['token']);
+    $sha=(string)(json_decode($base['body'],true)['object']['sha']??'');if($base['code']!==200||$sha==='')return elvado_ab_msg($base);
+    $c=elvado_ab_http('POST',$repo.'/git/refs',$d['token'],['ref'=>'refs/heads/'.$d['branch'],'sha'=>$sha]);
+    return $c['code']===201?null:elvado_ab_msg($c);
 }
 /** Datei im Branch anlegen/ersetzen. Rückgabe Fehlertext oder null. */
-function rrw_ab_put_file(array $d, string $path, string $content, string $message): ?string {
-    $p='/repos/'.$d['repo'].'/contents/'.rrw_ab_enc($path);
-    $cur=rrw_ab_http('GET',$p.'?ref='.rawurlencode($d['branch']),$d['token']);$sha=$cur['code']===200?(string)(json_decode($cur['body'],true)['sha']??''):'';
+function elvado_ab_put_file(array $d, string $path, string $content, string $message): ?string {
+    $p='/repos/'.$d['repo'].'/contents/'.elvado_ab_enc($path);
+    $cur=elvado_ab_http('GET',$p.'?ref='.rawurlencode($d['branch']),$d['token']);$sha=$cur['code']===200?(string)(json_decode($cur['body'],true)['sha']??''):'';
     $body=['message'=>$message,'content'=>base64_encode($content),'branch'=>$d['branch']];if($sha!=='')$body['sha']=$sha;
-    $r=rrw_ab_http('PUT',$p,$d['token'],$body);
-    return in_array($r['code'],[200,201],true)?null:rrw_ab_msg($r);
+    $r=elvado_ab_http('PUT',$p,$d['token'],$body);
+    return in_array($r['code'],[200,201],true)?null:elvado_ab_msg($r);
 }
 /** brands.json im Branch lesen und die Marke ersetzen/ergänzen (andere Marken bleiben unberührt). Rückgabe [neuer Inhalt|null, Fehler]. */
-function rrw_ab_merge_brands(array $d, array $brand): array {
-    $cur=rrw_ab_http('GET','/repos/'.$d['repo'].'/contents/android/brands.json?ref='.rawurlencode($d['branch']),$d['token']);
-    if($cur['code']!==200)return [null,rrw_ab_msg($cur)];
+function elvado_ab_merge_brands(array $d, array $brand): array {
+    $cur=elvado_ab_http('GET','/repos/'.$d['repo'].'/contents/android/brands.json?ref='.rawurlencode($d['branch']),$d['token']);
+    if($cur['code']!==200)return [null,elvado_ab_msg($cur)];
     $j=json_decode($cur['body'],true);$list=json_decode((string)base64_decode((string)($j['content']??''),true),true);
     if(!is_array($list))return [null,'android/brands.json im Repository ist unlesbar.'];
     $entry=['id'=>$brand['id'],'applicationId'=>$brand['applicationId'],'appName'=>$brand['appName'],'launchUrl'=>$brand['launchUrl'],'site'=>$brand['site'],'filePrefix'=>$brand['filePrefix']];
@@ -162,7 +162,7 @@ function rrw_ab_merge_brands(array $d, array $brand): array {
     return [json_encode($out,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n",''];
 }
 /** Bild aus der Medienbibliothek als PNG. $square: auf ein Quadrat einpassen (transparent aufgefüllt); sonst nur verkleinern. Rückgabe [PNG-Bytes|null, Fehler]. */
-function rrw_ab_image_png(string $root, string $url, int $max=512, bool $square=true, int $min=96, string $label='Das Bild', string $bg=''): array {
+function elvado_ab_image_png(string $root, string $url, int $max=512, bool $square=true, int $min=96, string $label='Das Bild', string $bg=''): array {
     if($url==='')return ['',''];
     $base=realpath($root.'/cms/media');$file=realpath($root.$url);
     if(!$base||!$file||!str_starts_with($file,$base.DIRECTORY_SEPARATOR)||!is_file($file))return [null,$label.' wurde in der Medienbibliothek nicht gefunden.'];
@@ -185,75 +185,75 @@ function rrw_ab_image_png(string $root, string $url, int $max=512, bool $square=
     return [$png,''];
 }
 /** Icon aus der Medienbibliothek als PNG (max. 512 px, quadratisch). Rückgabe [PNG-Bytes|null, Fehler]. */
-function rrw_ab_icon_png(string $root, string $url, string $bg=''): array { return rrw_ab_image_png($root,$url,512,true,96,'Das gewählte Icon',$bg); }
+function elvado_ab_icon_png(string $root, string $url, string $bg=''): array { return elvado_ab_image_png($root,$url,512,true,96,'Das gewählte Icon',$bg); }
 /** Store-Texte (Markdown) für Play Store / Microsoft Store aus den Angaben der App. */
-function rrw_ab_listing_md(array $brand): string {
+function elvado_ab_listing_md(array $brand): string {
     $md='# '.$brand['appName']."\n\n";
     if(!empty($brand['shortDescription']))$md.="## Kurzbeschreibung\n\n".$brand['shortDescription']."\n\n";
     if(!empty($brand['fullDescription']))$md.="## Beschreibung\n\n".$brand['fullDescription']."\n\n";
     return rtrim($md)."\n";
 }
 /** Marke ins Repository schreiben und den Build starten. $platform: android | windows | all (= alle für die App gewählten Plattformen). Rückgabe ['ok'=>bool,'message'=>…]. */
-function rrw_ab_start(string $dataDir, string $root, string $id, string $platform='android'): array {
-    $d=rrw_ab_load($dataDir);$brand=null;foreach($d['brands'] as $b)if(($b['id']??'')===$id)$brand=$b;
+function elvado_ab_start(string $dataDir, string $root, string $id, string $platform='android'): array {
+    $d=elvado_ab_load($dataDir);$brand=null;foreach($d['brands'] as $b)if(($b['id']??'')===$id)$brand=$b;
     if(!$brand)return ['ok'=>false,'message'=>'Diese App gibt es nicht.'];
-    $have=array_values(array_filter((array)($brand['platforms']??['android']),fn($x)=>isset(RRW_AB_PLATFORMS[$x])))?:['android'];
+    $have=array_values(array_filter((array)($brand['platforms']??['android']),fn($x)=>isset(ELVADO_AB_PLATFORMS[$x])))?:['android'];
     $targets=$platform==='all'?$have:[$platform];
-    foreach($targets as $t)if(!isset(RRW_AB_PLATFORMS[$t])||!in_array($t,$have,true))return ['ok'=>false,'message'=>'Diese Plattform ist für die App nicht ausgewählt.'];
+    foreach($targets as $t)if(!isset(ELVADO_AB_PLATFORMS[$t])||!in_array($t,$have,true))return ['ok'=>false,'message'=>'Diese Plattform ist für die App nicht ausgewählt.'];
     if($d['repo']===''||$d['token']==='')return ['ok'=>false,'message'=>'Bitte zuerst Repository und Token eintragen.'];
-    [$png,$err]=rrw_ab_icon_png($root,(string)($brand['icon']??''),(string)($brand['iconBg']??''));if($png===null)return ['ok'=>false,'message'=>$err];
-    $e=rrw_ab_ensure_branch($d);if($e!==null)return ['ok'=>false,'message'=>$e];
-    [$json,$err]=rrw_ab_merge_brands($d,$brand);if($json===null)return ['ok'=>false,'message'=>$err];
+    [$png,$err]=elvado_ab_icon_png($root,(string)($brand['icon']??''),(string)($brand['iconBg']??''));if($png===null)return ['ok'=>false,'message'=>$err];
+    $e=elvado_ab_ensure_branch($d);if($e!==null)return ['ok'=>false,'message'=>$e];
+    [$json,$err]=elvado_ab_merge_brands($d,$brand);if($json===null)return ['ok'=>false,'message'=>$err];
     $msg='App-Builder: '.$brand['appName'];
-    if(($e=rrw_ab_put_file($d,'android/brands.json',$json,$msg))!==null)return ['ok'=>false,'message'=>$e];
-    if($png!==''&&($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/app_logo.png',$png,$msg.' (Icon)'))!==null)return ['ok'=>false,'message'=>$e];
+    if(($e=elvado_ab_put_file($d,'android/brands.json',$json,$msg))!==null)return ['ok'=>false,'message'=>$e];
+    if($png!==''&&($e=elvado_ab_put_file($d,'brands/'.$brand['id'].'/app_logo.png',$png,$msg.' (Icon)'))!==null)return ['ok'=>false,'message'=>$e];
     // Branding (alle App-Typen): Startbild, Store-Screenshots und -Texte; nur wenn angegeben
     if(!empty($brand['splash'])){
-        [$sp,$err]=rrw_ab_image_png($root,(string)$brand['splash'],1080,false,200,'Das Startbild');if($sp===null)return ['ok'=>false,'message'=>$err];
-        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/startscreen.png',$sp,$msg.' (Startbild)'))!==null)return ['ok'=>false,'message'=>$e];
+        [$sp,$err]=elvado_ab_image_png($root,(string)$brand['splash'],1080,false,200,'Das Startbild');if($sp===null)return ['ok'=>false,'message'=>$err];
+        if(($e=elvado_ab_put_file($d,'brands/'.$brand['id'].'/startscreen.png',$sp,$msg.' (Startbild)'))!==null)return ['ok'=>false,'message'=>$e];
     }
     if(!empty($brand['headerLogo'])){   // Logo in der Kopfzeile der App (logo-lockup.png, Android und Windows)
-        [$hl,$err]=rrw_ab_image_png($root,(string)$brand['headerLogo'],1000,false,64,'Das Kopfzeilen-Logo');if($hl===null)return ['ok'=>false,'message'=>$err];
-        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/logo-lockup.png',$hl,$msg.' (Kopfzeilen-Logo)'))!==null)return ['ok'=>false,'message'=>$e];
+        [$hl,$err]=elvado_ab_image_png($root,(string)$brand['headerLogo'],1000,false,64,'Das Kopfzeilen-Logo');if($hl===null)return ['ok'=>false,'message'=>$err];
+        if(($e=elvado_ab_put_file($d,'brands/'.$brand['id'].'/logo-lockup.png',$hl,$msg.' (Kopfzeilen-Logo)'))!==null)return ['ok'=>false,'message'=>$e];
     }
     foreach(array_values((array)($brand['screenshots']??[])) as $i=>$u){
-        [$sh,$err]=rrw_ab_image_png($root,(string)$u,1600,false,200,'Der Screenshot '.($i+1));if($sh===null)return ['ok'=>false,'message'=>$err];
-        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/store/screenshot-'.($i+1).'.png',$sh,$msg.' (Screenshot '.($i+1).')'))!==null)return ['ok'=>false,'message'=>$e];
+        [$sh,$err]=elvado_ab_image_png($root,(string)$u,1600,false,200,'Der Screenshot '.($i+1));if($sh===null)return ['ok'=>false,'message'=>$err];
+        if(($e=elvado_ab_put_file($d,'brands/'.$brand['id'].'/store/screenshot-'.($i+1).'.png',$sh,$msg.' (Screenshot '.($i+1).')'))!==null)return ['ok'=>false,'message'=>$e];
     }
     if(!empty($brand['shortDescription'])||!empty($brand['fullDescription'])){
-        if(($e=rrw_ab_put_file($d,'brands/'.$brand['id'].'/store/listing-de.md',rrw_ab_listing_md($brand),$msg.' (Store-Texte)'))!==null)return ['ok'=>false,'message'=>$e];
+        if(($e=elvado_ab_put_file($d,'brands/'.$brand['id'].'/store/listing-de.md',elvado_ab_listing_md($brand),$msg.' (Store-Texte)'))!==null)return ['ok'=>false,'message'=>$e];
     }
     $started=[];
     foreach($targets as $t){
-        $wf=RRW_AB_PLATFORMS[$t]['workflow'];
-        $r=rrw_ab_http('POST','/repos/'.$d['repo'].'/actions/workflows/'.$wf.'/dispatches',$d['token'],['ref'=>$d['branch'],'inputs'=>['brand'=>$brand['id']]]);
-        if($r['code']!==204)return ['ok'=>false,'message'=>($r['code']===404?'Der Workflow „'.$wf.'“ fehlt im Branch „'.$d['branch'].'“. Branch löschen und neu bauen lassen, damit er aus dem Standard-Branch neu entsteht.':rrw_ab_msg($r)).($started?' (Bereits gestartet: '.implode(', ',$started).')':'')];
-        $started[]=RRW_AB_PLATFORMS[$t]['label'];
+        $wf=ELVADO_AB_PLATFORMS[$t]['workflow'];
+        $r=elvado_ab_http('POST','/repos/'.$d['repo'].'/actions/workflows/'.$wf.'/dispatches',$d['token'],['ref'=>$d['branch'],'inputs'=>['brand'=>$brand['id']]]);
+        if($r['code']!==204)return ['ok'=>false,'message'=>($r['code']===404?'Der Workflow „'.$wf.'“ fehlt im Branch „'.$d['branch'].'“. Branch löschen und neu bauen lassen, damit er aus dem Standard-Branch neu entsteht.':elvado_ab_msg($r)).($started?' (Bereits gestartet: '.implode(', ',$started).')':'')];
+        $started[]=ELVADO_AB_PLATFORMS[$t]['label'];
     }
     return ['ok'=>true,'message'=>'Build gestartet für '.implode(' und ',$started).' (dauert etwa 5–10 Minuten).'];
 }
 /** Läufe und fertige Pakete (GitHub-Releases „app-<marke>-<nr>“ bzw. „app-<marke>-win-<nr>“) einer Marke, je Plattform. */
-function rrw_ab_status(string $dataDir, string $id): array {
-    $d=rrw_ab_load($dataDir);if($d['repo']===''||$d['token']===''||!preg_match('/^[a-z][a-z0-9]{2,19}$/',$id))return ['ok'=>false,'message'=>'Nicht eingerichtet.'];
+function elvado_ab_status(string $dataDir, string $id): array {
+    $d=elvado_ab_load($dataDir);if($d['repo']===''||$d['token']===''||!preg_match('/^[a-z][a-z0-9]{2,19}$/',$id))return ['ok'=>false,'message'=>'Nicht eingerichtet.'];
     $brand=null;foreach($d['brands'] as $b)if(($b['id']??'')===$id)$brand=$b;
-    $plats=$brand?array_values(array_filter((array)($brand['platforms']??['android']),fn($x)=>isset(RRW_AB_PLATFORMS[$x]))):['android'];if(!$plats)$plats=['android'];
+    $plats=$brand?array_values(array_filter((array)($brand['platforms']??['android']),fn($x)=>isset(ELVADO_AB_PLATFORMS[$x]))):['android'];if(!$plats)$plats=['android'];
     $runs=[];$files=[];
     foreach($plats as $pk){
-        $P=RRW_AB_PLATFORMS[$pk];
-        $r=rrw_ab_http('GET','/repos/'.$d['repo'].'/actions/workflows/'.$P['workflow'].'/runs?per_page=20&branch='.rawurlencode($d['branch']),$d['token']);
+        $P=ELVADO_AB_PLATFORMS[$pk];
+        $r=elvado_ab_http('GET','/repos/'.$d['repo'].'/actions/workflows/'.$P['workflow'].'/runs?per_page=20&branch='.rawurlencode($d['branch']),$d['token']);
         if($r['code']===404)continue;   // Workflow dieser Plattform existiert (noch) nicht im Branch
-        if($r['code']!==200)return ['ok'=>false,'message'=>rrw_ab_msg($r)];
+        if($r['code']!==200)return ['ok'=>false,'message'=>elvado_ab_msg($r)];
         $n=0;foreach((array)(json_decode($r['body'],true)['workflow_runs']??[]) as $w){
             if(($w['display_title']??'')!==$P['title'].$id)continue;
             $runs[]=['platform'=>$pk,'id'=>(int)$w['id'],'status'=>(string)$w['status'],'conclusion'=>(string)($w['conclusion']??''),'created'=>(string)($w['created_at']??''),'url'=>(string)($w['html_url']??'')];
             if(++$n>=3)break;
         }
     }
-    $rel=rrw_ab_http('GET','/repos/'.$d['repo'].'/releases?per_page=40',$d['token']);
+    $rel=elvado_ab_http('GET','/repos/'.$d['repo'].'/releases?per_page=40',$d['token']);
     if($rel['code']===200)foreach((array)json_decode($rel['body'],true) as $x){
         $tag=(string)($x['tag_name']??'');
         foreach($plats as $pk){
-            $P=RRW_AB_PLATFORMS[$pk];if(!preg_match(sprintf($P['tagre'],preg_quote($id,'/')),$tag))continue;
+            $P=ELVADO_AB_PLATFORMS[$pk];if(!preg_match(sprintf($P['tagre'],preg_quote($id,'/')),$tag))continue;
             foreach((array)($x['assets']??[]) as $a)if(preg_match('/\.('.$P['ext'].')$/i',(string)$a['name']))$files[]=['platform'=>$pk,'asset'=>(int)$a['id'],'name'=>(string)$a['name'],'size'=>(int)$a['size'],'created'=>(string)($a['created_at']??''),'tag'=>$tag];
         }
         if(count($files)>=10)break;
@@ -261,11 +261,11 @@ function rrw_ab_status(string $dataDir, string $id): array {
     return ['ok'=>true,'runs'=>$runs,'files'=>$files];
 }
 /** Paket über das CMS ausliefern (auch aus privaten Repositories). Der Token wird nie an den Speicher-Host weitergegeben. */
-function rrw_ab_download(string $dataDir, string $id, int $assetId): void {
-    $d=rrw_ab_load($dataDir);$st=rrw_ab_status($dataDir,$id);
+function elvado_ab_download(string $dataDir, string $id, int $assetId): void {
+    $d=elvado_ab_load($dataDir);$st=elvado_ab_status($dataDir,$id);
     $asset=null;if($st['ok'])foreach($st['files'] as $f)if($f['asset']===$assetId)$asset=$f;
     if(!$asset||$d['token']===''){ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Paket nicht gefunden.';return; }
-    $r=rrw_ab_http('GET','/repos/'.$d['repo'].'/releases/assets/'.$assetId,$d['token'],null,['Accept: application/octet-stream'],20);
+    $r=elvado_ab_http('GET','/repos/'.$d['repo'].'/releases/assets/'.$assetId,$d['token'],null,['Accept: application/octet-stream'],20);
     $loc=$r['headers']['location']??'';
     if(!in_array($r['code'],[301,302,303,307],true)||!preg_match('~^https://[a-z0-9.-]+\.(githubusercontent\.com|github\.com|blob\.core\.windows\.net)/~i',$loc)){ http_response_code(502);header('Content-Type: text/plain; charset=utf-8');echo 'Download bei GitHub nicht möglich.';return; }
     $name=preg_replace('/[^A-Za-z0-9._-]/','_',$asset['name']);

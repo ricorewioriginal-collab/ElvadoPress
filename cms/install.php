@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';rrw_demo_boot(); }   // Demo-Betrieb (nur mit cms/lib/demo.json)
+if(is_file(__DIR__.'/lib/demo.json')){ require_once __DIR__.'/lib/demo.php';elvado_demo_boot(); }   // Demo-Betrieb (nur mit cms/lib/demo.json)
 
 // Einrichtungsassistent (Ersteinrichtung). Erscheint nur auf einer frischen Installation, siehe
-// rrw_install_needed() in lib/system.php. Danach ist die Seite über install.lock gesperrt und
+// elvado_install_needed() in lib/system.php. Danach ist die Seite über install.lock gesperrt und
 // verarbeitet keinerlei Eingaben mehr. Keine externen Ressourcen, keine Ausgabe von Zugangsdaten.
 
 require_once __DIR__.'/lib/publish.php';
@@ -21,43 +21,43 @@ header('Referrer-Policy: no-referrer');
 header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 
 $h=fn(string $s)=>htmlspecialchars($s,ENT_QUOTES,'UTF-8');
-$product=rrw_product_name();
+$product=elvado_product_name();
 
 // Gesperrt oder nicht nötig: sofort beenden, ohne $_GET/$_POST/$_COOKIE auszuwerten.
-if(!rrw_install_needed()){
+if(!elvado_install_needed()){
     http_response_code(404);
     echo '<!doctype html><html lang="de"><meta charset="utf-8"><meta name="robots" content="noindex"><title>'.$h($product).'</title><body style="font-family:system-ui;background:#0b0b12;color:#eee;padding:40px"><h1>Nicht verfügbar</h1><p>Die Einrichtung ist abgeschlossen oder auf dieser Installation nicht vorgesehen.</p><p><a style="color:#7cc4ff" href="index.php">Zur Verwaltung</a></p></body></html>';
     exit;
 }
 
-$data=rrw_data_dir();
+$data=elvado_data_dir();
 $ctx=['siteFile'=>$data.'/site.json','newsFile'=>$data.'/news.json','genDir'=>__DIR__.'/generated','root'=>dirname(__DIR__),'activityLog'=>$data.'/activity-log.json'];
 $https=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||(($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https');
 
 // CSRF: zufälliger Wert im Cookie, derselbe Wert als verstecktes Formularfeld
-$csrf=(string)($_COOKIE['rrw_inst']??'');
+$csrf=(string)($_COOKIE['elvado_inst']??'');
 if(!preg_match('/^[a-f0-9]{32}$/',$csrf)){
     $csrf=bin2hex(random_bytes(16));
-    setcookie('rrw_inst',$csrf,['expires'=>0,'path'=>'/','secure'=>$https,'httponly'=>true,'samesite'=>'Strict']);
+    setcookie('elvado_inst',$csrf,['expires'=>0,'path'=>'/','secure'=>$https,'httponly'=>true,'samesite'=>'Strict']);
 }
 
 $errors=[];$notice='';$done=false;$val=[];
 if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
     $host=(string)($_SERVER['HTTP_HOST']??'');$origin=(string)($_SERVER['HTTP_ORIGIN']??'');
     $sameOrigin=$origin===''||strcasecmp((string)parse_url($origin,PHP_URL_HOST).(($p=parse_url($origin,PHP_URL_PORT))?':'.$p:''),$host)===0;
-    if(!$sameOrigin||!rrw_install_csrf_ok((string)($_COOKIE['rrw_inst']??''),(string)($_POST['csrf']??''))){
+    if(!$sameOrigin||!elvado_install_csrf_ok((string)($_COOKIE['elvado_inst']??''),(string)($_POST['csrf']??''))){
         http_response_code(403);$errors['_']='Die Sitzung ist ungültig oder abgelaufen. Bitte die Seite neu laden.';
-    }elseif(!rrw_install_rate_ok($data.'/.install-rate.json',(string)($_SERVER['REMOTE_ADDR']??'')) ){
+    }elseif(!elvado_install_rate_ok($data.'/.install-rate.json',(string)($_SERVER['REMOTE_ADDR']??'')) ){
         http_response_code(429);$errors['_']='Zu viele Versuche. Bitte in einigen Minuten erneut versuchen.';
     }else{
-        [$clean,$errors]=rrw_install_clean($_POST);
+        [$clean,$errors]=elvado_install_clean($_POST);
         $val=$_POST;unset($val['password'],$val['password2'],$val['db_password'],$val['csrf']);
         if(($_POST['do']??'')==='test_db'){
             unset($errors['site_name'],$errors['username'],$errors['email'],$errors['password'],$errors['password2']);
             if($clean['db']['driver']==='none')$notice='Keine Datenbank gewählt: das CMS arbeitet dann nur mit Dateien.';
-            elseif(!isset($errors['db'])){$t=rrw_db_test($clean['db'],!empty($clean['db_create']));if($t['ok'])$notice='Datenbank: '.$t['message'];else $errors['db']=$t['message'];}
+            elseif(!isset($errors['db'])){$t=elvado_db_test($clean['db'],!empty($clean['db_create']));if($t['ok'])$notice='Datenbank: '.$t['message'];else $errors['db']=$t['message'];}
         }elseif(!$errors){
-            $r=rrw_install_run($clean,$ctx);
+            $r=elvado_install_run($clean,$ctx);
             if($r['ok'])$done=true;else $errors['_']=$r['message'];
         }
     }
@@ -66,7 +66,7 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
 $g=fn(string $k,string $d='')=>$h((string)($val[$k]??$d));
 $sel=fn(string $k,string $v,string $d='')=>((string)($val[$k]??$d)===$v)?' selected':'';
 $err=fn(string $k)=>isset($errors[$k])?'<div class="err">'.$h($errors[$k]).'</div>':'';
-$drivers=rrw_db_drivers();
+$drivers=elvado_db_drivers();
 $tzs=['Europe/Berlin','Europe/Vienna','Europe/Zurich','Europe/London','Europe/Paris','Europe/Madrid','Europe/Rome','America/New_York','America/Chicago','America/Los_Angeles','Asia/Tokyo','UTC'];
 $checks=[
     ['PHP '.PHP_VERSION,version_compare(PHP_VERSION,'8.1.0','>=')],
@@ -76,7 +76,7 @@ $checks=[
 ?><!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title><?=$h($product)?> – Einrichtung</title>
-<?php $__lg=rrw_product_logo();if($__lg!==''): ?><link rel="icon" href="<?=$h($__lg)?>"><?php endif; ?>
+<?php $__lg=elvado_product_logo();if($__lg!==''): ?><link rel="icon" href="<?=$h($__lg)?>"><?php endif; ?>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#06060a;color:#eeeef2;line-height:1.45}
 main{max-width:720px;margin:0 auto;padding:28px 16px 60px}h1{font-size:1.6rem;margin:0 0 4px}h2{font-size:1.05rem;margin:0 0 12px;color:#fff}
@@ -117,7 +117,7 @@ ul{padding-left:18px;margin:6px 0}.mode,.plug{display:flex;gap:10px;align-items:
 <label for="email">E-Mail (optional, für Benachrichtigungen)</label><input id="email" name="email" type="email" maxlength="120" value="<?=$g('email')?>"><?=$err('email')?>
 <div class="row"><div><label for="password">Passwort</label><input id="password" name="password" type="password" autocomplete="new-password" required><?=$err('password')?></div>
 <div><label for="password2">Passwort wiederholen</label><input id="password2" name="password2" type="password" autocomplete="new-password" required><?=$err('password2')?></div></div>
-<div class="hint">Mindestens <?=RRW_INSTALL_PW_MIN?> Zeichen mit Buchstaben und Ziffern oder Sonderzeichen. Das Passwort wird nie angezeigt oder erneut ausgegeben.</div></div>
+<div class="hint">Mindestens <?=ELVADO_INSTALL_PW_MIN?> Zeichen mit Buchstaben und Ziffern oder Sonderzeichen. Das Passwort wird nie angezeigt oder erneut ausgegeben.</div></div>
 
 <div class="card"><h2>3. Datenbank (optional)</h2>
 <div class="hint" style="margin:0 0 6px">Das CMS arbeitet mit Dateien. Eine Datenbank dient als zusätzlicher Spiegel und für die WordPress-Schicht.</div>
@@ -132,9 +132,9 @@ ul{padding-left:18px;margin:6px 0}.mode,.plug{display:flex;gap:10px;align-items:
 <?=$err('db')?>
 <div class="actions"><button class="g" type="submit" name="do" value="test_db" formnovalidate>Verbindung testen</button></div></div>
 
-<?php $mode=(string)($val['install_mode']??'recommended');if(!isset(RRW_INSTALL_MODES[$mode]))$mode='recommended';$choices=rrw_install_plugin_choices();$picked=(array)($val['plugins']??[]); ?>
+<?php $mode=(string)($val['install_mode']??'recommended');if(!isset(ELVADO_INSTALL_MODES[$mode]))$mode='recommended';$choices=elvado_install_plugin_choices();$picked=(array)($val['plugins']??[]); ?>
 <div class="card"><h2>4. Installationsart</h2>
-<?php foreach(RRW_INSTALL_MODES as $k=>$m): ?><label class="mode"><input type="radio" name="install_mode" value="<?=$h($k)?>"<?=$mode===$k?' checked':''?> onchange="modeToggle()"><span><b><?=$h($m['label'])?></b><small><?=$h($m['text'])?></small></span></label><?php endforeach; ?>
+<?php foreach(ELVADO_INSTALL_MODES as $k=>$m): ?><label class="mode"><input type="radio" name="install_mode" value="<?=$h($k)?>"<?=$mode===$k?' checked':''?> onchange="modeToggle()"><span><b><?=$h($m['label'])?></b><small><?=$h($m['text'])?></small></span></label><?php endforeach; ?>
 <div id="m_recommended" class="sumry"><b>Das wird eingerichtet:</b><ul><?php foreach($choices as $c): if(!$c['recommended']||$c['status']!=='available')continue; ?><li><b><?=$h($c['name'])?></b> – <?=$h($c['description'])?></li><?php endforeach; ?></ul>
 <small>Externe Statistik-Dienste (Matomo, Google Analytics) bleiben ausgeschaltet. KI-Anbieter, die einen Schlüssel brauchen, sind erst nach deiner Eingabe in der KI-Zentrale nutzbar. Du kannst alles später unter Plugins ändern.</small></div>
 <div id="m_custom" class="sumry" style="display:none"><b>Plugins auswählen:</b>

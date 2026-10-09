@@ -5,7 +5,7 @@
 // Aufruf aus cms/api.php (wp_settings, wp_settings_save).
 
 /** Felder je Bereich: type text|email|int|bool|enum, label, help, min/max (int), options (enum), default. */
-function rrw_wps_schema(): array {
+function elvado_wps_schema(): array {
     $tz=['Europe/Berlin'=>'Berlin (Europa/Berlin)'];foreach(DateTimeZone::listIdentifiers() as $z)$tz[$z]=$z;
     $dates=['d.m.Y'=>'05.10.2026','j. F Y'=>'5. Oktober 2026','Y-m-d'=>'2026-10-05','D, d.m.Y'=>'Mo, 05.10.2026'];
     $times=['H:i'=>'14:30','H:i:s'=>'14:30:00','g:i a'=>'2:30 pm'];
@@ -21,8 +21,8 @@ function rrw_wps_schema(): array {
             'start_of_week'=>['type'=>'enum','label'=>'Woche beginnt am','options'=>['1'=>'Montag','2'=>'Dienstag','3'=>'Mittwoch','4'=>'Donnerstag','5'=>'Freitag','6'=>'Samstag','0'=>'Sonntag']],
         ]],
         'writing'=>['title'=>'Schreiben','fields'=>[
-            'rrw_default_category'=>['type'=>'text','label'=>'Standardkategorie','help'=>'Für Beiträge, die ohne Kategorie angelegt werden (z. B. Import, Schnellentwurf).','max'=>80,'default'=>'News'],
-            'rrw_default_status'=>['type'=>'enum','label'=>'Standardstatus neuer Beiträge','options'=>['draft'=>'Entwurf','published'=>'Veröffentlicht'],'default'=>'draft','help'=>'Gilt für Beiträge, die über Import oder Schnellentwurf entstehen.'],
+            'elvado_default_category'=>['type'=>'text','label'=>'Standardkategorie','help'=>'Für Beiträge, die ohne Kategorie angelegt werden (z. B. Import, Schnellentwurf).','max'=>80,'default'=>'News'],
+            'elvado_default_status'=>['type'=>'enum','label'=>'Standardstatus neuer Beiträge','options'=>['draft'=>'Entwurf','published'=>'Veröffentlicht'],'default'=>'draft','help'=>'Gilt für Beiträge, die über Import oder Schnellentwurf entstehen.'],
         ]],
         'reading'=>['title'=>'Lesen','fields'=>[
             'posts_per_page'=>['type'=>'int','label'=>'Beiträge pro Seite','min'=>1,'max'=>100],
@@ -48,20 +48,20 @@ function rrw_wps_schema(): array {
 }
 
 /** Optionen, die in den CMS-Daten liegen (site.json / Betrieb), kommen von dort – alle anderen aus der WordPress-Ablage. */
-function rrw_wps_bridged(string $name): bool { return isset(RRW_WP_BRIDGE_OPTS[$name])||isset(RRW_WP_BRIDGE_TYPED[$name])||isset(RRW_WP_BRIDGE_SYS[$name]); }
-function rrw_wps_read(string $name, $def) {
-    if(rrw_wps_bridged($name)){
-        $site=rrw_wp_cms_data()['site']??[];
-        if(isset(RRW_WP_BRIDGE_OPTS[$name])){ [$g,$k]=RRW_WP_BRIDGE_OPTS[$name];return (string)($site[$g][$k]??''); }
-        if(isset(RRW_WP_BRIDGE_TYPED[$name]))return rrw_wp_bridge_typed_get($name,$site);
-        $v=rrw_wp_bridge_sys_read($name);return $v!==''?$v:($name==='WPLANG'?'de_DE':'Europe/Berlin');
+function elvado_wps_bridged(string $name): bool { return isset(ELVADO_WP_BRIDGE_OPTS[$name])||isset(ELVADO_WP_BRIDGE_TYPED[$name])||isset(ELVADO_WP_BRIDGE_SYS[$name]); }
+function elvado_wps_read(string $name, $def) {
+    if(elvado_wps_bridged($name)){
+        $site=elvado_wp_cms_data()['site']??[];
+        if(isset(ELVADO_WP_BRIDGE_OPTS[$name])){ [$g,$k]=ELVADO_WP_BRIDGE_OPTS[$name];return (string)($site[$g][$k]??''); }
+        if(isset(ELVADO_WP_BRIDGE_TYPED[$name]))return elvado_wp_bridge_typed_get($name,$site);
+        $v=elvado_wp_bridge_sys_read($name);return $v!==''?$v:($name==='WPLANG'?'de_DE':'Europe/Berlin');
     }
     return get_option($name,$def);
 }
 
 /** Wert eines Feldes im Klartext (bool als 0/1). */
-function rrw_wps_value(string $name, array $f) {
-    $def=$f['default']??false;$v=rrw_wps_read($name,$def);
+function elvado_wps_value(string $name, array $f) {
+    $def=$f['default']??false;$v=elvado_wps_read($name,$def);
     switch($f['type']){
         case 'bool': return isset($f['on'])?($v===$f['on']?1:0):((int)$v?1:0);
         case 'int': return (int)$v;
@@ -70,10 +70,10 @@ function rrw_wps_value(string $name, array $f) {
     }
 }
 
-function rrw_wps_get(string $group): ?array {
-    $s=rrw_wps_schema();if(!isset($s[$group]))return null;$out=[];
+function elvado_wps_get(string $group): ?array {
+    $s=elvado_wps_schema();if(!isset($s[$group]))return null;$out=[];
     foreach($s[$group]['fields'] as $name=>$f){
-        $row=['name'=>$name,'type'=>$f['type'],'label'=>$f['label'],'value'=>rrw_wps_value($name,$f)];
+        $row=['name'=>$name,'type'=>$f['type'],'label'=>$f['label'],'value'=>elvado_wps_value($name,$f)];
         foreach(['help','check','min','max'] as $k)if(isset($f[$k]))$row[$k]=$f[$k];
         if(isset($f['options'])){ $o=[];foreach($f['options'] as $k=>$l)$o[]=['value'=>(string)$k,'label'=>(string)$l];$row['options']=$o; }
         if($f['type']==='enum'&&isset($f['options'])&&!isset($f['options'][$row['value']])&&$row['value']!==''){ $row['options'][]=['value'=>(string)$row['value'],'label'=>(string)$row['value']]; }
@@ -83,8 +83,8 @@ function rrw_wps_get(string $group): ?array {
 }
 
 /** Speichert die übergebenen Felder des Bereichs (unbekannte Felder werden ignoriert). Rückgabe ['ok'=>bool,'message'=>…]. */
-function rrw_wps_save(string $group, array $in): array {
-    $s=rrw_wps_schema();if(!isset($s[$group]))return ['ok'=>false,'message'=>'Unbekannter Einstellungsbereich.'];
+function elvado_wps_save(string $group, array $in): array {
+    $s=elvado_wps_schema();if(!isset($s[$group]))return ['ok'=>false,'message'=>'Unbekannter Einstellungsbereich.'];
     $set=[];
     foreach($s[$group]['fields'] as $name=>$f){
         if(!array_key_exists($name,$in))continue;$v=$in[$name];
@@ -114,15 +114,15 @@ function rrw_wps_save(string $group, array $in): array {
         $set[$name]=$v;
     }
     foreach($set as $k=>$v){
-        if(rrw_wps_bridged($k)){ if(!rrw_wp_bridge_option_write($k,$v))return ['ok'=>false,'message'=>'„'.$k.'“ konnte nicht gespeichert werden.']; }
+        if(elvado_wps_bridged($k)){ if(!elvado_wp_bridge_option_write($k,$v))return ['ok'=>false,'message'=>'„'.$k.'“ konnte nicht gespeichert werden.']; }
         else update_option($k,$v);
     }
-    return ['ok'=>true]+(rrw_wps_get($group)??[]);
+    return ['ok'=>true]+(elvado_wps_get($group)??[]);
 }
 
 /** Standardwerte für Beiträge ohne Kategorie bzw. Status – liest die Option direkt (auch ohne gestartete WordPress-Schicht). */
-function rrw_wps_default(string $name, string $fallback, ?string $optionsFile=null): string {
-    $file=$optionsFile??(defined('RRW_WP_DATA')?RRW_WP_DATA:__DIR__.'/../data/.wp').'/options.json';
+function elvado_wps_default(string $name, string $fallback, ?string $optionsFile=null): string {
+    $file=$optionsFile??(defined('ELVADO_WP_DATA')?ELVADO_WP_DATA:__DIR__.'/../data/.wp').'/options.json';
     $all=is_file($file)?json_decode((string)@file_get_contents($file),true):null;
     if(is_array($all)&&isset($all[$name]['v'])){ $v=@unserialize((string)$all[$name]['v']);if(is_string($v)&&$v!=='')return $v; }
     return $fallback;

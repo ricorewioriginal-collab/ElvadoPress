@@ -5,7 +5,7 @@ declare(strict_types=1);
 // Nur Produkttexte.
 
 /** Abschnitte der Startseite (Format des Homepage-Baukastens, Option elvado_bk_layout). */
-function rrw_demo_layout(array $c): array {
+function elvado_demo_layout(array $c): array {
     $u=htmlspecialchars($c['user'],ENT_QUOTES);$p=htmlspecialchars($c['password'],ENT_QUOTES);$min=(int)$c['minutes'];
     return [
         ['id'=>'hero','type'=>'hero','props'=>['title'=>'ElvadoPress','text'=>'Das erweiterbare CMS für Websites aller Art: WordPress-kompatibel, mit eigenem Homepage-Baukasten, fünf Themes, freien Bildquellen, KI-Assistent und Updates mit automatischem Rückschritt.','overlay'=>false,'btn_label'=>'Verwaltung live ausprobieren','btn_url'=>'/cms/?demo=1','height'=>520]],
@@ -19,7 +19,7 @@ function rrw_demo_layout(array $c): array {
         ['id'=>'builder','type'=>'image_text','props'=>['title'=>'Dein Design, deine Regeln','text'=>'<p>Der <strong>Homepage-Baukasten</strong> setzt Startseiten aus Abschnitten zusammen: Hero, Karten, Bild + Text, Beiträge, Aufruf, eigenes HTML. Per Drag & Drop sortieren, ausblenden, mit Live-Vorschau speichern – ohne eine Zeile Code. Farben, Schrift, Breiten und die Seitenleiste stellst du im Customizer ein.</p><p>Wer lieber programmiert, nutzt Plugin-Haken, Shortcodes und eigene Themes.</p>','image'=>'/cms/assets/demo/homepage-builder.svg','reverse'=>false,'btn_label'=>'Themes ansehen','btn_url'=>'/themes/','bg'=>'default']],
         ['id'=>'try','type'=>'text','props'=>['title'=>'Probier es selbst aus','align'=>'center','bg'=>'alt','body'=>'<p>Diese Website ist eine <strong>Live-Demo</strong> – und sie ist selbst mit ElvadoPress gebaut. Nahezu alle Funktionen sind freigeschaltet; nach <strong>'.$min.' Minuten</strong> wird alles automatisch auf den Ausgangszustand zurückgesetzt, du kannst also nichts kaputt machen.</p><p><a class="btn" href="/cms/?demo=1">Mit einem Klick in die Verwaltung</a></p><p>Zugang (falls manuell): Benutzer <code>'.$u.'</code> · Passwort <code>'.$p.'</code></p><p>Tipp: Unter <em>Design → Homepage-Baukasten</em> kannst du diese Startseite sofort umbauen.</p>']],
         ['id'=>'uses','type'=>'features','props'=>['title'=>'Für jeden Zweck das passende Design','columns'=>'2','bg'=>'default','items'=>[
-            ['title'=>'Radio & Podcast','text'=>'Player, Jetzt läuft, Sendeplan; laut.fm, Icecast oder Shoutcast; Alexa-Skill und App-Baukasten.'],
+            ['title'=>'Vereine, Shops & Firmen','text'=>'Startseite aus Abschnitten, Beiträge, Formulare, Alexa-Skill und App-Baukasten.'],
             ['title'=>'Bands & Musiker','text'=>'Tourdaten, Releases, Videos, Presse-Kit und Booking – im Poster-Stil.'],
             ['title'=>'Creator & Influencer','text'=>'Link-in-Bio, Empfehlungen mit Rabattcodes, Drops mit Countdown und Mediakit.'],
             ['title'=>'Blogs & Firmen','text'=>'Beiträge, Seiten, Formulare, Kommentare, Community und SEO – alles eingebaut.']]]],
@@ -32,8 +32,8 @@ function rrw_demo_layout(array $c): array {
     ];
 }
 
-/** Seiten der Demo-Website (Rohformat für rrw_clean_section('pages')). */
-function rrw_demo_pages(array $c): array {
+/** Seiten der Demo-Website (Rohformat für elvado_clean_section('pages')). */
+function elvado_demo_pages(array $c): array {
     $u=htmlspecialchars($c['user'],ENT_QUOTES);$p=htmlspecialchars($c['password'],ENT_QUOTES);$min=(int)$c['minutes'];
     $page=fn(string $id,string $title,string $html)=>['id'=>$id,'slug'=>$id,'title'=>$title,'type'=>'custom','enabled'=>true,'blocks_before'=>[['type'=>'html','html'=>$html]],'blocks_after'=>[]];
     return [
@@ -43,8 +43,7 @@ function rrw_demo_pages(array $c): array {
             .'<h2>KI, Entwicklung, Betrieb</h2><ul><li>KI-Assistent mit mehreren Anbietern für Texte, Übersetzungen und Layouts</li><li>Lovable-Bridge und GitHub-Synchronisation für React-Oberflächen</li><li>Datenbank-Spiegel (MySQL/MariaDB/SQLite), Backups, SEO, Sitemap</li><li><strong>CMS-Update über GitHub</strong> mit Sicherung, Gesundheitsprüfung, automatischem Rückschritt und Downgrade</li></ul>'),
         $page('themes','Themes','<p>Jedes Theme sieht anders aus und bringt – sobald es aktiv ist – sein eigenes Konfigurationsmenü in die Verwaltung mit. Wechsle unter <em>Design → Themes</em> und sieh dir die Startseite an.</p>'
             .'<h3>Baukasten</h3><p>Das freie Theme: Startseite aus beliebigen Abschnitten (Hero, Karten, Bild + Text, Beiträge, Aufruf …). Genau damit ist diese Website gebaut.</p>'
-            .'<h3>Radio</h3><p>Für Webradios: Player-Leiste, „Jetzt läuft“, Sendeplan, Sender mit laut.fm, Icecast oder Shoutcast – inklusive Alexa-Anbindung.</p>'
-            .'<h3>Band</h3><p>Für Musiker und Bands: Poster-Optik, Tourdaten, Releases, Videos, Presse und Booking.</p>'
+                        .'<h3>Band</h3><p>Für Musiker und Bands: Poster-Optik, Tourdaten, Releases, Videos, Presse und Booking.</p>'
             .'<h3>Creator</h3><p>Für Influencer: Profil mit Zahlen, Link-in-Bio-Seite, Empfehlungen mit Werbekennzeichnung, Drops mit Countdown, Mediakit.</p>'
             .'<h3>Klassisch</h3><p>Das schlichte Standard-Theme für Blogs und Magazine.</p>'),
         $page('demo','Demo-Anleitung','<h2>So testest du</h2><ol><li>Öffne die <a href="/cms/?demo=1">Verwaltung</a> (Anmeldung automatisch, sonst Benutzer <code>'.$u.'</code>, Passwort <code>'.$p.'</code>).</li><li>Baue die Startseite um: <em>Design → Homepage-Baukasten</em>.</li><li>Wechsle das Theme: <em>Design → Themes</em> – im Menü erscheinen die passenden Einstellungen.</li><li>Schreibe einen Beitrag und füge ein freies Bild aus der Mediathek ein.</li><li>Probiere den KI-Assistenten (mit eigenem Schlüssel) und die übrigen Menüs.</li></ol>'
@@ -57,14 +56,14 @@ function rrw_demo_pages(array $c): array {
     ];
 }
 
-/** Hauptmenü der Demo-Website (Rohformat für rrw_clean_section('menus')). */
-function rrw_demo_menu(): array {
+/** Hauptmenü der Demo-Website (Rohformat für elvado_clean_section('menus')). */
+function elvado_demo_menu(): array {
     $i=0;$m=function(string $label,string $target)use(&$i){ $i++;return ['id'=>'m'.$i,'label'=>$label,'target'=>$target,'enabled'=>true,'parent_id'=>'']; };
     return ['top'=>[$m('Start','system:start'),$m('Funktionen','page:funktionen'),$m('Themes','page:themes'),$m('Demo-Anleitung','page:demo'),$m('Selbst betreiben','page:selbst-betreiben'),$m('Verwaltung','/cms/?demo=1')],'bottom'=>[]];
 }
 
 /** Beispielbeiträge: [Titel, Kategorie, Auszug, HTML, Schlagwörter]. */
-function rrw_demo_posts(): array {
+function elvado_demo_posts(): array {
     return [
         ['Neu: CMS-Update über GitHub mit Rückschritt','Entwicklung','Neue Versionen suchen, einspielen und bei Problemen automatisch zurückrollen.','<p>Unter <strong>System → Version &amp; Update</strong> zeigt ElvadoPress immer die installierte und die neueste Version. Updates kommen aus GitHub (Release, Beta oder Branch), werden vor dem Einspielen geprüft und gesichert – und wenn die Gesundheitsprüfung fehlschlägt, spielt das CMS die alte Version automatisch zurück.</p>','Updates, GitHub, Sicherheit'],
         ['Freie Bilder direkt in der Mediathek','Medien','Pixabay, Pexels, Unsplash, Openverse und Wikimedia Commons – mit Bildnachweis.','<p>Die Mediathek durchsucht fünf freie Bildquellen. Ein Klick übernimmt das Bild in deine Mediathek; Urheber, Quelle und Lizenz werden automatisch als Bildnachweis gespeichert und beim Einfügen als Bildunterschrift gesetzt.</p>','Medien, Bilder, Lizenzen'],
@@ -75,7 +74,7 @@ function rrw_demo_posts(): array {
 }
 
 /** Widgets der Seitenleiste (WordPress-Widget-Optionen) und ihre Reihenfolge: [ 'sidebars'=>[…ids], 'options'=>[ 'widget_text'=>[…], … ] ]. */
-function rrw_demo_widgets(array $c): array {
+function elvado_demo_widgets(array $c): array {
     $u=htmlspecialchars($c['user'],ENT_QUOTES);$p=htmlspecialchars($c['password'],ENT_QUOTES);$min=(int)$c['minutes'];
     $text=fn(string $title,string $html)=>['title'=>$title,'text'=>$html,'filter'=>false];
     $texts=[

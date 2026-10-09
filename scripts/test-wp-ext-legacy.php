@@ -1,17 +1,17 @@
 <?php
 // Prüft die veralteten WordPress-Funktionen der Kompatibilitätsschicht (cms/wp/core/ext/legacy-*.php):
 // Vorhandensein aller Listenfunktionen/-klassen, Hook deprecated_function_run, Delegation an Ersatzfunktionen, Randfälle. Aufruf: php scripts/test-wp-ext-legacy.php
-$tmp=sys_get_temp_dir().'/rrw-xl-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');define('RRW_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-xl-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');define('ELVADO_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
 file_put_contents($tmp.'/cms/news.json',json_encode([['id'=>1,'slug'=>'erster','title'=>'Erster Beitrag','category'=>'News','status'=>'published','published_at'=>'2026-01-10 10:00:00','author'=>'Anna Autor','body_html'=>'<p>Hallo</p>']]));
 file_put_contents($tmp.'/cms/site.json',json_encode(['comments'=>['enabled'=>true,'require_approval'=>true]]));
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
-$GLOBALS['rrw_wp_die_throws']=true;
-function as_user(int $id,string $login,string $role): void { $GLOBALS['rrw_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>rrw_wp_caps_for_role($role)]; }
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
+$GLOBALS['elvado_wp_die_throws']=true;
+function as_user(int $id,string $login,string $role): void { $GLOBALS['elvado_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>elvado_wp_caps_for_role($role)]; }
 
 /* ───────── Alle Funktionen und Klassen der Liste vorhanden ───────── */
 $list=file('/tmp/claude-0/lists/G1-legacy.txt')?:[];
@@ -26,7 +26,7 @@ t('alle Klassen der Liste vorhanden',!$missingC,implode(',',$missingC));
 /* ───────── Hinweis-Hook ───────── */
 $dep=[];add_action('deprecated_function_run',function($f,$r,$v) use(&$dep){ $dep[]=[$f,$r,$v]; },10,3);
 t('get_settings liefert Option',(function() use(&$dep){ update_option('blogname','Testradio');$v=get_settings('blogname');return $v==='Testradio'&&end($dep)[0]==='get_settings'&&end($dep)[1]==='get_option()'&&end($dep)[2]==='2.1.0'; })());
-t('Hinweis ohne WP_DEBUG still',(function(){ ob_start();rrw_ext_lg_dep('x_test','1.0','y()');return ob_get_clean()===''; })());
+t('Hinweis ohne WP_DEBUG still',(function(){ ob_start();elvado_ext_lg_dep('x_test','1.0','y()');return ob_get_clean()===''; })());
 
 /* ───────── Autoren-Funktionen ───────── */
 $bob=wp_create_user('bob','geheim-123','bob@example.test');
@@ -121,7 +121,7 @@ t('wp_no_robots / wp_sensitive_page_meta',(function(){ ob_start();wp_no_robots()
 t('get_comments_popup_template ohne Datei leer',get_comments_popup_template()==='');
 t('wp_explain_nonce',is_string(wp_explain_nonce('x')));
 t('url-Funktion get_shortcut_link per Filter',(function(){ add_filter('shortcut_link',$f=fn()=>'x');$r=get_shortcut_link();remove_filter('shortcut_link',$f);return $r==='x'; })());
-t('Press-This-Handler melden Fehler (JSON)',(function(){ ob_start();try{ wp_ajax_press_this_save_post(); }catch(RRW_WP_Die $e){} $o=ob_get_clean();return str_contains($o,'Press This'); })());
+t('Press-This-Handler melden Fehler (JSON)',(function(){ ob_start();try{ wp_ajax_press_this_save_post(); }catch(ELVADO_WP_Die $e){} $o=ob_get_clean();return str_contains($o,'Press This'); })());
 
 /* ───────── Anhänge / Bilder ───────── */
 $f=$tmp.'/b.png';file_put_contents($f,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='));

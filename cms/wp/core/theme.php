@@ -2,35 +2,35 @@
 // WordPress-kompatible Theme-API (Grundlagen): aktives Theme, Pfade/URLs, Theme-Daten (style.css-Header), Theme-Support, Theme-Mods.
 // WordPress-Themes liegen in cms/wp-content/themes/<slug>; die eingebauten CMS-Themes (cms/themes/<id>) erscheinen als Themes ohne PHP-Vorlagen.
 
-function get_theme_root($stylesheet_or_template='') { return apply_filters('theme_root',defined('RRW_WP_SANDBOX_THEMES')?RRW_WP_SANDBOX_THEMES:WP_CONTENT_DIR.'/themes'); }
-function get_theme_root_uri($stylesheet_or_template='', $theme_root='') { return apply_filters('theme_root_uri',defined('RRW_WP_SANDBOX_THEMES')?rrw_wp_home_url().'/cms/wp-sandbox/themes':content_url('themes')); }
+function get_theme_root($stylesheet_or_template='') { return apply_filters('theme_root',defined('ELVADO_WP_SANDBOX_THEMES')?ELVADO_WP_SANDBOX_THEMES:WP_CONTENT_DIR.'/themes'); }
+function get_theme_root_uri($stylesheet_or_template='', $theme_root='') { return apply_filters('theme_root_uri',defined('ELVADO_WP_SANDBOX_THEMES')?elvado_wp_home_url().'/cms/wp-sandbox/themes':content_url('themes')); }
 /** Theme-Verzeichnisse in Suchreihenfolge. In der Sandbox zuerst deren eigenes Verzeichnis, danach die Themes der Live-Seite (nur lesend), zuletzt die mitgelieferten. */
-function rrw_wp_theme_roots(): array {
-    $r=[];$h=rrw_wp_home_url();
-    if(defined('RRW_WP_SANDBOX_THEMES'))$r[]=['dir'=>RRW_WP_SANDBOX_THEMES,'url'=>$h.'/cms/wp-sandbox/themes','rel'=>'wp-sandbox/themes','kind'=>'sandbox'];
+function elvado_wp_theme_roots(): array {
+    $r=[];$h=elvado_wp_home_url();
+    if(defined('ELVADO_WP_SANDBOX_THEMES'))$r[]=['dir'=>ELVADO_WP_SANDBOX_THEMES,'url'=>$h.'/cms/wp-sandbox/themes','rel'=>'wp-sandbox/themes','kind'=>'sandbox'];
     $r[]=['dir'=>WP_CONTENT_DIR.'/themes','url'=>$h.'/cms/wp-content/themes','rel'=>'wp-content/themes','kind'=>'live'];
-    $r[]=['dir'=>RRW_WP_NATIVE_THEMES,'url'=>$h.'/cms/themes','rel'=>'themes','kind'=>'native'];
+    $r[]=['dir'=>ELVADO_WP_NATIVE_THEMES,'url'=>$h.'/cms/themes','rel'=>'themes','kind'=>'native'];
     return $r;
 }
 function get_raw_theme_root($s, $skip_cache=false) { return '/themes'; }
 function get_stylesheet() { return apply_filters('stylesheet',(string)get_option('stylesheet','default')); }
 function get_template() { return apply_filters('template',(string)get_option('template',get_stylesheet())); }
-function _rrw_wp_theme_dir(string $slug): string {
+function _elvado_wp_theme_dir(string $slug): string {
     $slug=preg_replace('/[^A-Za-z0-9_.-]/','',$slug);$wp=get_theme_root().'/'.$slug;
     if($slug!==''&&is_dir($wp))return $wp;
-    if($slug!==''&&defined('RRW_WP_SANDBOX_THEMES')&&is_dir(WP_CONTENT_DIR.'/themes/'.$slug))return WP_CONTENT_DIR.'/themes/'.$slug;   // Sandbox: Themes der Live-Seite
-    $native=RRW_WP_NATIVE_THEMES.'/'.$slug;return $slug!==''&&is_dir($native)?$native:$wp;
+    if($slug!==''&&defined('ELVADO_WP_SANDBOX_THEMES')&&is_dir(WP_CONTENT_DIR.'/themes/'.$slug))return WP_CONTENT_DIR.'/themes/'.$slug;   // Sandbox: Themes der Live-Seite
+    $native=ELVADO_WP_NATIVE_THEMES.'/'.$slug;return $slug!==''&&is_dir($native)?$native:$wp;
 }
-function get_stylesheet_directory($stylesheet_or_template=false, $theme_root=false) { return apply_filters('stylesheet_directory',_rrw_wp_theme_dir($stylesheet_or_template?:get_stylesheet()),get_stylesheet(),get_theme_root()); }
-function get_template_directory($template=false, $theme_root=false) { return apply_filters('template_directory',_rrw_wp_theme_dir($template?:get_template()),get_template(),get_theme_root()); }
-function _rrw_wp_theme_uri(string $dir): string {
+function get_stylesheet_directory($stylesheet_or_template=false, $theme_root=false) { return apply_filters('stylesheet_directory',_elvado_wp_theme_dir($stylesheet_or_template?:get_stylesheet()),get_stylesheet(),get_theme_root()); }
+function get_template_directory($template=false, $theme_root=false) { return apply_filters('template_directory',_elvado_wp_theme_dir($template?:get_template()),get_template(),get_theme_root()); }
+function _elvado_wp_theme_uri(string $dir): string {
     $dir=wp_normalize_path($dir);$wp=wp_normalize_path(get_theme_root());
     if(str_starts_with($dir,$wp))return get_theme_root_uri().substr($dir,strlen($wp));
-    if(defined('RRW_WP_SANDBOX_THEMES')){ $lv=wp_normalize_path(WP_CONTENT_DIR.'/themes');if(str_starts_with($dir,$lv))return rrw_wp_home_url().'/cms/wp-content/themes'.substr($dir,strlen($lv)); }
-    $nat=wp_normalize_path(RRW_WP_NATIVE_THEMES);return str_starts_with($dir,$nat)?home_url('/cms/themes').substr($dir,strlen($nat)):get_theme_root_uri().'/'.basename($dir);
+    if(defined('ELVADO_WP_SANDBOX_THEMES')){ $lv=wp_normalize_path(WP_CONTENT_DIR.'/themes');if(str_starts_with($dir,$lv))return elvado_wp_home_url().'/cms/wp-content/themes'.substr($dir,strlen($lv)); }
+    $nat=wp_normalize_path(ELVADO_WP_NATIVE_THEMES);return str_starts_with($dir,$nat)?home_url('/cms/themes').substr($dir,strlen($nat)):get_theme_root_uri().'/'.basename($dir);
 }
-function get_stylesheet_directory_uri($s=false, $r=false) { return apply_filters('stylesheet_directory_uri',_rrw_wp_theme_uri(get_stylesheet_directory($s)),get_stylesheet(),get_theme_root_uri()); }
-function get_template_directory_uri($t=false, $r=false) { return apply_filters('template_directory_uri',_rrw_wp_theme_uri(get_template_directory($t)),get_template(),get_theme_root_uri()); }
+function get_stylesheet_directory_uri($s=false, $r=false) { return apply_filters('stylesheet_directory_uri',_elvado_wp_theme_uri(get_stylesheet_directory($s)),get_stylesheet(),get_theme_root_uri()); }
+function get_template_directory_uri($t=false, $r=false) { return apply_filters('template_directory_uri',_elvado_wp_theme_uri(get_template_directory($t)),get_template(),get_theme_root_uri()); }
 function get_stylesheet_uri() { $d=get_stylesheet_directory();$u=is_file($d.'/style.css')?get_stylesheet_directory_uri().'/style.css':(is_file($d.'/theme.css')?get_stylesheet_directory_uri().'/theme.css':'');return apply_filters('stylesheet_uri',$u,get_stylesheet_directory_uri()); }
 function get_locale_stylesheet_uri() { return ''; }
 function is_child_theme() { return get_template()!==get_stylesheet(); }
@@ -43,7 +43,7 @@ if(!class_exists('WP_Theme')){
 class WP_Theme implements ArrayAccess {
     private $headers=[];private $dir;private $slug;private $parentSlug='';
     public function __construct($slug, $theme_root=null) {
-        $this->slug=(string)$slug;$this->dir=_rrw_wp_theme_dir($this->slug);
+        $this->slug=(string)$slug;$this->dir=_elvado_wp_theme_dir($this->slug);
         $css=$this->dir.'/style.css';$h=is_file($css)?get_file_data($css,['Name'=>'Theme Name','ThemeURI'=>'Theme URI','Description'=>'Description','Author'=>'Author','AuthorURI'=>'Author URI','Version'=>'Version','Template'=>'Template','Status'=>'Status','Tags'=>'Tags','TextDomain'=>'Text Domain','DomainPath'=>'Domain Path','RequiresWP'=>'Requires at least','RequiresPHP'=>'Requires PHP']):[];
         if(!$h||$h['Name']===''){ $j=is_file($this->dir.'/theme.json')?json_decode((string)file_get_contents($this->dir.'/theme.json'),true):null; $h=['Name'=>is_array($j)?(string)($j['name']??$this->slug):$this->slug,'ThemeURI'=>'','Description'=>is_array($j)?(string)($j['description']??''):'','Author'=>is_array($j)?(string)($j['author']??''):'','AuthorURI'=>'','Version'=>is_array($j)?(string)($j['version']??''):'','Template'=>'','Status'=>'publish','Tags'=>'','TextDomain'=>'','DomainPath'=>'','RequiresWP'=>'','RequiresPHP'=>'']; }
         $this->headers=$h;$this->parentSlug=(string)$h['Template'];
@@ -54,13 +54,13 @@ class WP_Theme implements ArrayAccess {
     public function get_stylesheet() { return $this->slug; }
     public function get_template() { return $this->parentSlug!==''?$this->parentSlug:$this->slug; }
     public function get_stylesheet_directory() { return $this->dir; }
-    public function get_template_directory() { return _rrw_wp_theme_dir($this->get_template()); }
-    public function get_stylesheet_directory_uri() { return _rrw_wp_theme_uri($this->dir); }
-    public function get_template_directory_uri() { return _rrw_wp_theme_uri($this->get_template_directory()); }
+    public function get_template_directory() { return _elvado_wp_theme_dir($this->get_template()); }
+    public function get_stylesheet_directory_uri() { return _elvado_wp_theme_uri($this->dir); }
+    public function get_template_directory_uri() { return _elvado_wp_theme_uri($this->get_template_directory()); }
     public function get_theme_root() { return dirname($this->dir); }
     public function get_theme_root_uri() { return get_theme_root_uri(); }
     public function parent() { return $this->parentSlug!==''?new WP_Theme($this->parentSlug):false; }
-    public function get_screenshot($uri='uri') { foreach(['screenshot.png','screenshot.jpg','screenshot.jpeg','screenshot.webp','screenshot.gif'] as $f)if(is_file($this->dir.'/'.$f))return $uri==='relative'?$f:_rrw_wp_theme_uri($this->dir).'/'.$f;return false; }
+    public function get_screenshot($uri='uri') { foreach(['screenshot.png','screenshot.jpg','screenshot.jpeg','screenshot.webp','screenshot.gif'] as $f)if(is_file($this->dir.'/'.$f))return $uri==='relative'?$f:_elvado_wp_theme_uri($this->dir).'/'.$f;return false; }
     public function get_page_templates($post=null, $post_type='page') { return []; }
     public function is_block_theme() { return is_file($this->dir.'/templates/index.html')||is_file($this->dir.'/block-templates/index.html'); }
     public function errors() { return false; }
@@ -74,7 +74,7 @@ class WP_Theme implements ArrayAccess {
 }
 function wp_get_theme($stylesheet='', $theme_root='') { return new WP_Theme($stylesheet!==''?(string)$stylesheet:get_stylesheet()); }
 function wp_get_themes($args=[]) {
-    $out=[];foreach(array_column(rrw_wp_theme_roots(),'dir') as $root){
+    $out=[];foreach(array_column(elvado_wp_theme_roots(),'dir') as $root){
         if(!is_dir($root))continue;
         foreach(scandir($root)?:[] as $e){ if($e[0]==='.'||!is_dir($root.'/'.$e)||isset($out[$e]))continue; $t=new WP_Theme($e);if($t->exists())$out[$e]=$t; }
     }

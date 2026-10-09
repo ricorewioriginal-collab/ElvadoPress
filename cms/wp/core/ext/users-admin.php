@@ -3,12 +3,12 @@
 // Reine Oberflächen-Helfer geben HTML aus oder liefern Standardwerte; die Daten gehen über wp_insert_user/wp_update_user und $wpdb.
 
 /** Kommentar per ID aus der Tabelle wp_comments (zuerst), sonst CMS-Kommentar; Objekte werden durchgereicht. */
-function rrw_wpx_comment($c) {
+function elvado_wpx_comment($c) {
     global $wpdb;
     if($c instanceof WP_Comment)return $c;
     if(is_object($c))return new WP_Comment($c);
     $id=(int)($c?:($GLOBALS['comment']->comment_ID??0));if($id<=0)return null;
-    if(rrw_wp_db_ready()){ $r=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->comments} WHERE comment_ID = %d LIMIT 1",$id));if($r)return new WP_Comment($r); }
+    if(elvado_wp_db_ready()){ $r=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->comments} WHERE comment_ID = %d LIMIT 1",$id));if($r)return new WP_Comment($r); }
     return get_comment($id);
 }
 
@@ -52,8 +52,8 @@ if(!function_exists('edit_user')){
             $id=wp_update_user($user);
             if(!is_wp_error($id)){ global $wpdb;
                 foreach(['first_name','last_name','nickname','description','rich_editing','syntax_highlighting','admin_color','show_admin_bar_front','use_ssl'] as $k)if(isset($user->$k))update_user_meta($id,$k,$user->$k);
-                if(isset($user->role)&&$id>=RRW_WP_ID_DB_MIN)update_user_meta($id,$wpdb->prefix.'rrw_role',$user->role);
-                rrw_wp_users_all(true); }
+                if(isset($user->role)&&$id>=ELVADO_WP_ID_DB_MIN)update_user_meta($id,$wpdb->prefix.'elvado_role',$user->role);
+                elvado_wp_users_all(true); }
             return $id;
         }
         $id=wp_insert_user($user);
@@ -66,7 +66,7 @@ if(!function_exists('get_user_to_edit')){
 }
 if(!function_exists('get_users_drafts')){
     function get_users_drafts($user_id) {
-        global $wpdb;if(!rrw_wp_db_ready())return [];
+        global $wpdb;if(!elvado_wp_db_ready())return [];
         $q=$wpdb->prepare("SELECT ID, post_title FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status = 'draft' AND post_author = %d ORDER BY post_modified DESC",(int)$user_id);
         return $wpdb->get_results((string)apply_filters('get_users_drafts',$q));
     }
@@ -75,7 +75,7 @@ if(!function_exists('wp_revoke_user')){
     /** Nimmt einem Benutzer der Tabelle wp_users die Rolle (Rolle „none“: nur Leserecht, kein Eintrag mehr in Rollenlisten). */
     function wp_revoke_user($id) {
         global $wpdb;$id=(int)$id;
-        if($id>=RRW_WP_ID_DB_MIN&&rrw_wp_db_ready()){ update_user_meta($id,$wpdb->prefix.'rrw_role','none');rrw_wp_users_all(true); }
+        if($id>=ELVADO_WP_ID_DB_MIN&&elvado_wp_db_ready()){ update_user_meta($id,$wpdb->prefix.'elvado_role','none');elvado_wp_users_all(true); }
         do_action('wp_revoke_user',$id);
     }
 }
@@ -139,7 +139,7 @@ if(!function_exists('wp_is_authorize_application_password_request_valid')){
 if(!function_exists('comment_exists')){
     /** Beitrags-ID des Kommentars mit diesem Autor und Zeitpunkt (Blogzeit), sonst null. */
     function comment_exists($comment_author, $comment_date, $timezone='blog') {
-        global $wpdb;if(!rrw_wp_db_ready())return null;
+        global $wpdb;if(!elvado_wp_db_ready())return null;
         $col=$timezone==='gmt'?'comment_date_gmt':'comment_date';
         return $wpdb->get_var($wpdb->prepare("SELECT comment_post_ID FROM {$wpdb->comments} WHERE comment_author = %s AND {$col} = %s LIMIT 1",stripslashes((string)$comment_author),stripslashes((string)$comment_date)));
     }
@@ -158,7 +158,7 @@ if(!function_exists('edit_comment')){
 }
 if(!function_exists('get_comment_to_edit')){
     function get_comment_to_edit($id) {
-        $src=rrw_wpx_comment($id);if(!$src)return false;$c=clone $src;
+        $src=elvado_wpx_comment($id);if(!$src)return false;$c=clone $src;
         $c->comment_ID=(int)$c->comment_ID;$c->comment_post_ID=(int)$c->comment_post_ID;
         $c->comment_content=esc_textarea((string)apply_filters('comment_edit_pre',$c->comment_content));
         $c->comment_author=esc_attr((string)apply_filters('comment_author_edit_pre',$c->comment_author));
@@ -172,7 +172,7 @@ if(!function_exists('get_pending_comments_num')){
     function get_pending_comments_num($post_id) {
         global $wpdb;$single=!is_array($post_id);$ids=array_values(array_unique(array_map('intval',(array)$post_id)));
         $out=array_fill_keys($ids,0);
-        if($ids&&rrw_wp_db_ready()){
+        if($ids&&elvado_wp_db_ready()){
             $rows=$wpdb->get_results("SELECT comment_post_ID, COUNT(comment_ID) AS num_comments FROM {$wpdb->comments} WHERE comment_post_ID IN (".implode(',',$ids).") AND comment_approved = '0' GROUP BY comment_post_ID",ARRAY_A);
             foreach((array)$rows as $r)$out[(int)$r['comment_post_ID']]=absint($r['num_comments']);
         }

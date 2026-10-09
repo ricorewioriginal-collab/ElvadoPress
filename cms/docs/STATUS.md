@@ -1,30 +1,22 @@
-# Projektstand ElvadoPress / ricorewi-radio (05.10.2026)
-
-Übergabe zum späteren Weiterarbeiten.
+# Projektstand ElvadoPress
 
 ## Aufbau
-- **Hauptquelle des CMS ist ElvadoPress** (Repository `ricorewioriginal-collab/ElvadoPress`). `ricorewi-radio` (RicoReWi-Portal) und Senderwelt werden seit Oktober 2026 unabhängig entwickelt; es gibt keinen Sync mehr. Regeln: `CLAUDE.md`, Ablauf: `cms/docs/ELVADOPRESS.md`.
-- **Pack-Konzept** (`cms/lib/pack.php`): nur noch ein generischer Mechanismus für Theme-Pakete (`rrw_pack_available($pack)`: Komponenten, `admin.js`). ElvadoPress liefert kein Paket aus; RicoReWi-spezifische Schalter in Oberfläche und JavaScript sind entfernt.
-- **Tests:** `scripts/test-*.php` und `scripts/smoke-test.php` (ElvadoPress-CI führt alle aus).
+- **Hauptquelle des CMS ist ElvadoPress** (Repository `ricorewioriginal-collab/ElvadoPress`); kein Sync mit anderen Projekten. Regeln: `CLAUDE.md`, Ablauf: `cms/docs/ELVADOPRESS.md`.
+- **Pack-Konzept** (`cms/lib/pack.php`): nur ein generischer Mechanismus für Theme-Pakete (`elvado_pack_available($pack)`: Komponenten, `admin.js`). ElvadoPress liefert kein Paket aus.
+- **Tests:** `scripts/test-*.php` und `scripts/smoke-test.php` (die CI führt alle aus).
 
 ## Was läuft
 | Was | Wo | Wie |
 |---|---|---|
-| Live-Seite RicoReWi | ricorewi-radio.de | serverseitiges AnMaCha Universal Deploy im Projekt `ricorewi-radio` |
-| Öffentliche Demo | https://elvadopress.ricorewi-radio.de (Info `/demo/`, Verwaltung `/cms/?demo=1`) | serverseitiges AnMaCha Universal Deploy (`elvadopress`) |
-| CMS-Stand in ricorewi-radio | – | Sync eingestellt (seit Oktober 2026 unabhängig) |
+| Öffentliche Demo | https://elvadopress.ricorewi-radio.de (Info `/demo/`, Verwaltung `/cms/?demo=1`) | serverseitiges Deploy bei Änderung in `main` (Projekt `elvadopress`) |
 
-Die Demo nutzt Benutzer `demo`, setzt alle 10 Minuten zurück und sperrt riskante Aktionen (`RRW_DEMO_BLOCKED` in `cms/lib/demo.php`). Sie liegt bewusst auf einer eigenen Subdomain (Wurzelpfade des CMS, Anmeldedaten pro Domain).
-
-## Secrets (ricorewi-radio → Settings → Secrets → Actions)
-`DEPLOY_SSH_*` (vorhanden), `ELVADOPRESS_DEMO_PATH` (Webordner der Demo-Subdomain).
+Die Demo nutzt Benutzer `demo`, setzt alle 10 Minuten zurück und sperrt riskante Aktionen (`ELVADO_DEMO_BLOCKED` in `cms/lib/demo.php`). Sie liegt bewusst auf einer eigenen Subdomain (Wurzelpfade des CMS, Anmeldedaten pro Domain).
 
 ## Offen (nur der Inhaber kann es tun)
-1. (erledigt) App-Vorlage liegt im Ordner `app-template/` dieses Repositories; `scripts/export-app-template.sh` erzeugt Ordner/ZIP, das Release hängt `app-template.zip` an. Ein eigenes Repository `elvadopress-app-template` ist nicht nötig.
-2. Zwei offengelegte KI-Schlüssel rotieren.
-3. Echter SMTP-Test mit einem Formular-Plugin.
+1. Zwei offengelegte KI-Schlüssel rotieren.
+2. Echter SMTP-Test mit einem Formular-Plugin.
 
 ## Nächste Entwicklungsschritte
-- App-Baukasten/Alexa: eigene App-Inhalte, eigener Alexa-Skill (Website-Skill mit Themen und Neuigkeiten), eigene Branding-Dateien, ausführlichere Verwaltung.
-- Umbenennung interner `rrw_`-Namen (groß, nur bei Bedarf).
+- Optionales Plugin „Elvado Radio / Audio“ (nicht im Kern).
+- App-Baukasten/Alexa: eigene App-Inhalte, eigene Branding-Dateien, ausführlichere Verwaltung.
 - Unterordner-Betrieb des CMS (Wurzelpfade `/cms/`, `/wp-admin/`) ist nicht unterstützt; bei Bedarf als eigene Aufgabe.

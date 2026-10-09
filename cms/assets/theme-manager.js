@@ -59,7 +59,7 @@ window.ThemeManager=(()=>{
  function render(){
   const h=document.getElementById('themeGrid');if(!h)return;
   const hb=document.getElementById('themeHidden');if(hb){hb.hidden=!hiddenThemes.length;hb.innerHTML=hiddenThemes.length?'<b>Ausgeblendete Themes</b> <span class="hint">(liegen im Code)</span>'+hiddenThemes.map(function(x){return '<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><span>'+esc(x.name)+'</span><button type="button" class="btn-g" onclick="ThemeManager.unhide(\''+esc(x.id)+'\')">Zurückholen</button></div>'}).join(''):''}
-  h.innerHTML=themes.map((t,i)=>'<article class="theme-card '+(t.active?'active':'')+'"><div class="theme-shot">'+(t.screenshot?'<img src="'+esc(t.screenshot)+'?v='+Date.now()+'" alt="">':'<div class="theme-placeholder"><i class="fas fa-brush"></i><span>'+esc(t.name)+'</span></div>')+'</div><div class="theme-copy"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(t.name)+'</b>'+(t.active?'<span class="theme-active">AKTIV</span>':'')+'</div><div class="hint">'+esc(t.description||'')+'</div><div class="hint" style="margin-top:4px;color:var(--dim)"><i class="fas fa-table-columns" style="margin-right:4px"></i>'+esc(layoutSummary(t))+(modsSaved.includes(t.id)&&!t.active?' · <i class="fas fa-floppy-disk"></i> eigene Anpassungen gespeichert':'')+'</div><div class="hint" style="margin-top:4px">'+esc(t.license||'Free Theme')+' · '+(t.compatibility==='wordpress+bootstrap'?'WordPress + Bootstrap':t.wordpress?'WordPress-Kompatibilität':t.bootstrap?'Bootstrap-Kompatibilität':RRW_P.name+' Theme')+'</div><div class="theme-actions"><button class="btn-g" onclick="ThemeManager.customize('+i+')"><i class="fas fa-sliders"></i> Live anpassen</button>'+(t.active?'':'<button class="btn-a" onclick="ThemeManager.activate('+i+')"><i class="fas fa-check"></i> Aktivieren</button>')+(t.active||t.default?'':'<button class="btn-d" title="'+(t.builtin?'Ausblenden (liegt im Code)':'Löschen')+'" onclick="ThemeManager.remove('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div></article>').join('')||'<div class="empty">Keine Themes vorhanden.</div>';
+  h.innerHTML=themes.map((t,i)=>'<article class="theme-card '+(t.active?'active':'')+'"><div class="theme-shot">'+(t.screenshot?'<img src="'+esc(t.screenshot)+'?v='+Date.now()+'" alt="">':'<div class="theme-placeholder"><i class="fas fa-brush"></i><span>'+esc(t.name)+'</span></div>')+'</div><div class="theme-copy"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(t.name)+'</b>'+(t.active?'<span class="theme-active">AKTIV</span>':'')+'</div><div class="hint">'+esc(t.description||'')+'</div><div class="hint" style="margin-top:4px;color:var(--dim)"><i class="fas fa-table-columns" style="margin-right:4px"></i>'+esc(layoutSummary(t))+(modsSaved.includes(t.id)&&!t.active?' · <i class="fas fa-floppy-disk"></i> eigene Anpassungen gespeichert':'')+'</div><div class="hint" style="margin-top:4px">'+esc(t.license||'Free Theme')+' · '+(t.compatibility==='wordpress+bootstrap'?'WordPress + Bootstrap':t.wordpress?'WordPress-Kompatibilität':t.bootstrap?'Bootstrap-Kompatibilität':ELVADO_P.name+' Theme')+'</div><div class="theme-actions"><button class="btn-g" onclick="ThemeManager.customize('+i+')"><i class="fas fa-sliders"></i> Live anpassen</button>'+(t.active?'':'<button class="btn-a" onclick="ThemeManager.activate('+i+')"><i class="fas fa-check"></i> Aktivieren</button>')+(t.active||t.default?'':'<button class="btn-d" title="'+(t.builtin?'Ausblenden (liegt im Code)':'Löschen')+'" onclick="ThemeManager.remove('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div></article>').join('')||'<div class="empty">Keine Themes vorhanden.</div>';
   if(window.DesignHub)DesignHub.refresh();
  }
  function mergedDraft(t){
@@ -114,9 +114,9 @@ window.ThemeManager=(()=>{
  function openMatch(re){const i=czGroups.findIndex(g=>re.test(g.title));openSection(i>=0?i:0)}
  function togglePanel(){const c=document.getElementById('themeCustomizer');const hid=c.classList.toggle('hide-panel');const b=document.getElementById('czHide');if(b)b.innerHTML=hid?'<i class="fas fa-eye"></i> Einblenden':'<i class="fas fa-eye-slash"></i> Ausblenden'}
  function previewPayload(){
-  try{sessionStorage.setItem('rrw_theme_customizer',JSON.stringify(draft))}catch(e){}
+  try{sessionStorage.setItem('elvado_theme_customizer',JSON.stringify(draft))}catch(e){}
   const f=document.getElementById('themeCustomizerFrame');
-  if(f?.contentWindow)f.contentWindow.postMessage({type:'rrw-theme-customizer-update',theme:draft},location.origin);
+  if(f?.contentWindow)f.contentWindow.postMessage({type:'elvado-theme-customizer-update',theme:draft},location.origin);
   const st=document.getElementById('themeCustomizerState');if(st)st.textContent='Nicht veröffentlicht';
  }
  function customize(i){
@@ -126,7 +126,7 @@ window.ThemeManager=(()=>{
   renderCustomizer();
   const shell=document.getElementById('themeCustomizer');shell.style.display='grid';
   document.body.style.overflow='hidden';
-  try{sessionStorage.setItem('rrw_theme_customizer',JSON.stringify(draft))}catch(e){}
+  try{sessionStorage.setItem('elvado_theme_customizer',JSON.stringify(draft))}catch(e){}
   const f=document.getElementById('themeCustomizerFrame');
   previewBrandSelect();
   reloadPreviewFrame();
@@ -176,7 +176,7 @@ window.ThemeManager=(()=>{
   if(!editing)return;
   const f=document.getElementById('themeCustomizerFrame');
   f.onload=czAttach;
-  f.src='/?cms_theme_customize=1&cms_theme_preview='+encodeURIComponent(editing.id)+(previewBrand?'&rrw_brand='+encodeURIComponent(previewBrand):'')+'&t='+Date.now();
+  f.src='/?cms_theme_customize=1&cms_theme_preview='+encodeURIComponent(editing.id)+(previewBrand?'&elvado_brand='+encodeURIComponent(previewBrand):'')+'&t='+Date.now();
   const b=(window.CMS?.brands?.items||[]).find(x=>x.id===previewBrand);
   document.getElementById('themePreviewUrl').textContent=(b?.primary_domain||location.hostname)+' · '+editing.name+(b?' · '+b.name:'');
  }
@@ -203,7 +203,7 @@ window.ThemeManager=(()=>{
  function closeCustomizer(){
   if(window.WpThemes?.czActive?.())return WpThemes.czClose();
   document.getElementById('themeCustomizer').style.display='none';document.body.style.overflow='';
-  try{sessionStorage.removeItem('rrw_theme_customizer')}catch(e){};editing=null;draft=null;
+  try{sessionStorage.removeItem('elvado_theme_customizer')}catch(e){};editing=null;draft=null;
  }
  function device(mode,btn){
   document.querySelectorAll('.theme-customizer-devices .btn-g').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');
@@ -234,7 +234,7 @@ window.ThemeManager=(()=>{
  async function unhide(id){try{await api('theme_unhide',{id});window.cmsToast?.('Theme wieder eingeblendet');await load(true)}catch(e){window.cmsToast?.(e.message,true)}}
  async function load(force=false){
   bind();
-  try{const d=await api('themes_list');themes=d.themes||[];hiddenThemes=d.hidden_themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'rrw-classic',variant:'default',settings:{}};render()}
+  try{const d=await api('themes_list');themes=d.themes||[];hiddenThemes=d.hidden_themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'elvado-classic',variant:'default',settings:{}};render()}
   catch(e){const h=document.getElementById('themeGrid');if(h)h.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
  return {hl:czHl,pick:czPick,openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,unhide,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};

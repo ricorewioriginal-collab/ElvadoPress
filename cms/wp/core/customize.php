@@ -50,14 +50,14 @@ class WP_Customize_Manager {
     public function sections() { return $this->sections; } public function controls() { return $this->controls; } public function settings() { return $this->settings; }
 }
 /** Manager einmal aufbauen: customize_register auslösen (Fehler eines Themes stoppen die Seite nicht). */
-function rrw_wp_customizer(): WP_Customize_Manager {
+function elvado_wp_customizer(): WP_Customize_Manager {
     static $m=null;if($m)return $m;
     $m=new WP_Customize_Manager();$GLOBALS['wp_customize']=$m;
     // Kerneinstellungen, auf die Themes zugreifen (z. B. get_setting('blogname')->transport = …)
     foreach(['title_tagline'=>'Website-Informationen','colors'=>'Farben','header_image'=>'Headerbild','background_image'=>'Hintergrundbild','static_front_page'=>'Startseite'] as $sid=>$t)$m->add_section($sid,['title'=>$t]);
     foreach(['blogname'=>['option',get_option('blogname','')],'blogdescription'=>['option',get_option('blogdescription','')],'site_icon'=>['option',''],'custom_logo'=>['theme_mod',''],'header_image'=>['theme_mod',''],'header_textcolor'=>['theme_mod','#000000'],'background_color'=>['theme_mod','ffffff'],'background_image'=>['theme_mod',''],'nav_menu_locations'=>['theme_mod',[]]] as $id=>[$ty,$df])$m->add_setting($id,['type'=>$ty,'default'=>$df]);
     foreach(['blogname'=>['Titel der Website','title_tagline','text'],'blogdescription'=>['Untertitel','title_tagline','text'],'custom_logo'=>['Logo','title_tagline','image'],'site_icon'=>['Website-Icon','title_tagline','image'],'header_textcolor'=>['Textfarbe der Kopfzeile','colors','color'],'background_color'=>['Hintergrundfarbe','colors','color'],'header_image'=>['Headerbild','header_image','image'],'background_image'=>['Hintergrundbild','background_image','image']] as $id=>[$lb,$sec,$ty])$m->add_control($id,['label'=>$lb,'section'=>$sec,'type'=>$ty,'settings'=>$id]);
-    try{ do_action('customize_register',$m); }catch(Throwable $e){ rrw_wp_log('customize_register: '.get_class($e).': '.$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')'); }
+    try{ do_action('customize_register',$m); }catch(Throwable $e){ elvado_wp_log('customize_register: '.get_class($e).': '.$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')'); }
     return $m;
 }
 function wp_get_custom_css($stylesheet='') { return (string)get_theme_mod('custom_css_post_id_text',''); }

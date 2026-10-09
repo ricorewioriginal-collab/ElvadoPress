@@ -17,8 +17,8 @@ if(!class_exists('WP_Connector_Registry')){ class WP_Connector_Registry {
 } }
 
 if(!function_exists('_wp_connectors_init')){ function _wp_connectors_init() {   // einmalig: Registry anlegen, Standardanbieter eintragen, Action wp_connectors_init auslösen
-    if(isset($GLOBALS['rrw_wp_connectors'])&&$GLOBALS['rrw_wp_connectors'] instanceof WP_Connector_Registry)return $GLOBALS['rrw_wp_connectors'];
-    $reg=$GLOBALS['rrw_wp_connectors']=new WP_Connector_Registry();
+    if(isset($GLOBALS['elvado_wp_connectors'])&&$GLOBALS['elvado_wp_connectors'] instanceof WP_Connector_Registry)return $GLOBALS['elvado_wp_connectors'];
+    $reg=$GLOBALS['elvado_wp_connectors']=new WP_Connector_Registry();
     _wp_connectors_register_default_ai_providers($reg);
     do_action('wp_connectors_init',$reg);
     return $reg;

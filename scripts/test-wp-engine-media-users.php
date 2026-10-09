@@ -17,9 +17,9 @@ function mk(string $dir, string $name, string $bytes): string { $f = "$dir/$name
 // ───────── Kindprozess: echtes WordPress ─────────
 if (($argv[1] ?? '') === '--child') {
     $tmp = (string)$argv[2];
-    $GLOBALS['rrw_wpe_engine'] = new Engine("$tmp/cms", "$tmp/cms/data");
-    $GLOBALS['rrw_wpe_db'] = new DbConfig($GLOBALS['rrw_wpe_engine']);
-    $GLOBALS['rrw_wpe_opts'] = ['installing' => true];
+    $GLOBALS['elvado_wpe_engine'] = new Engine("$tmp/cms", "$tmp/cms/data");
+    $GLOBALS['elvado_wpe_db'] = new DbConfig($GLOBALS['elvado_wpe_engine']);
+    $GLOBALS['elvado_wpe_opts'] = ['installing' => true];
     $_SERVER['HTTP_HOST'] = 'example.test';
     require __DIR__ . '/../cms/wp-engine-boot.php';
     $r = Bridge::installSchema('Test', 'test@example.invalid');
@@ -94,7 +94,7 @@ $adm = new Actor('chef', 'admin'); $aut = new Actor('schreiber', 'autor');
 t('Rechte Administrator', $adm->can('users') && $adm->can('content_any') && $adm->can('engine') && $adm->can('terms_write'));
 t('Rechte Autor', $aut->can('content_write') && $aut->can('media_write') && !$aut->can('content_any') && !$aut->can('users') && !$aut->can('terms_write') && !$aut->can('unbekannt'));
 t('Unbekannte Rolle abgelehnt', throws(fn() => new Actor('x', 'root'), InvalidArgumentException::class));
-t('Aus rrw_auth: unbekannte Rolle = Autor', Actor::fromAuth(['user' => 'a', 'role' => 'superuser'])->role === 'autor' && Actor::fromAuth(['user' => 'a', 'role' => 'admin'])->isAdmin() && Actor::fromAuth([])->role === 'autor');
+t('Aus elvado_auth: unbekannte Rolle = Autor', Actor::fromAuth(['user' => 'a', 'role' => 'superuser'])->role === 'autor' && Actor::fromAuth(['user' => 'a', 'role' => 'admin'])->isAdmin() && Actor::fromAuth([])->role === 'autor');
 t('Rollenzuordnung', Roles::toWp('admin') === 'administrator' && Roles::toWp('autor') === 'author' && Roles::toWp('x') === 'author' && Roles::fromWp(['editor', 'administrator']) === 'admin' && Roles::fromWp(['author']) === 'autor' && Roles::fromWp([]) === 'autor');
 
 // ───────── 2) MediaService mit Aufzeichnungs-Adapter ─────────

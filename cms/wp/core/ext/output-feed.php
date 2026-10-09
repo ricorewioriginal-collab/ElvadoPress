@@ -52,19 +52,19 @@ if(!function_exists('get_the_category_rss')){
     }
 }
 if(!function_exists('the_category_rss')){ function the_category_rss($type=null) { echo get_the_category_rss($type); } }
-if(!function_exists('rrw_ext_enclosures')){
+if(!function_exists('elvado_ext_enclosures')){
     /** Anhänge aus dem Beitrags-Meta „enclosure“ (je Eintrag: URL⏎Länge⏎Typ) als [url,length,type]. */
-    function rrw_ext_enclosures() {
+    function elvado_ext_enclosures() {
         $p=get_post();$o=[];if(!$p||post_password_required())return $o;
         foreach((array)get_post_meta($p->ID,'enclosure',false) as $enc){ $e=explode("\n",(string)$enc);if(count($e)<3)continue;$t=preg_split('/[ \t]/',trim($e[2]));$o[]=[trim($e[0]),absint(trim($e[1])),$t[0]]; }
         return $o;
     }
 }
 if(!function_exists('rss_enclosure')){
-    function rss_enclosure() { foreach(rrw_ext_enclosures() as [$u,$l,$t])echo apply_filters('rss_enclosure','<enclosure url="'.esc_url($u).'" length="'.$l.'" type="'.esc_attr($t).'" />'."\n"); }
+    function rss_enclosure() { foreach(elvado_ext_enclosures() as [$u,$l,$t])echo apply_filters('rss_enclosure','<enclosure url="'.esc_url($u).'" length="'.$l.'" type="'.esc_attr($t).'" />'."\n"); }
 }
 if(!function_exists('atom_enclosure')){
-    function atom_enclosure() { foreach(rrw_ext_enclosures() as [$u,$l,$t])echo apply_filters('atom_enclosure','<link href="'.esc_url($u).'" rel="enclosure" length="'.$l.'" type="'.esc_attr($t).'" />'."\n"); }
+    function atom_enclosure() { foreach(elvado_ext_enclosures() as [$u,$l,$t])echo apply_filters('atom_enclosure','<link href="'.esc_url($u).'" rel="enclosure" length="'.$l.'" type="'.esc_attr($t).'" />'."\n"); }
 }
 if(!function_exists('prep_atom_text_construct')){
     /** Art („text“, „xhtml“, „html“) und passend verpackter Inhalt für Atom-Felder. */
@@ -99,18 +99,18 @@ if(!function_exists('get_feed_build_date')){
 }
 
 /* ───────── fetch_feed ───────── */
-if(!class_exists('RRW_WP_Feed_Item')){
+if(!class_exists('ELVADO_WP_Feed_Item')){
     /** Eintrag eines gelesenen Feeds (SimplePie-ähnliche Getter). */
-    class RRW_WP_Feed_Item {
+    class ELVADO_WP_Feed_Item {
         public $d;public function __construct(array $d) { $this->d=$d; }
         public function get_title() { return $this->d['title']; } public function get_permalink() { return $this->d['link']; } public function get_link() { return $this->d['link']; }
         public function get_description() { return $this->d['desc']; } public function get_content() { return $this->d['content']?:$this->d['desc']; } public function get_id() { return $this->d['id']?:$this->d['link']; }
         public function get_date($f='U') { $t=strtotime($this->d['date']);return $t?($f==='U'?(string)$t:gmdate($f,$t)):''; }
     }
 }
-if(!class_exists('RRW_WP_Feed')){
+if(!class_exists('ELVADO_WP_Feed')){
     /** Gelesener Feed (RSS 2.0 / Atom) mit den üblichen SimplePie-Gettern. */
-    class RRW_WP_Feed {
+    class ELVADO_WP_Feed {
         public $title='';public $link='';public $desc='';public $items=[];
         public function get_title() { return $this->title; } public function get_permalink() { return $this->link; } public function get_link() { return $this->link; } public function get_description() { return $this->desc; }
         public function get_items($start=0, $length=0) { return $length?array_slice($this->items,$start,$length):array_slice($this->items,$start); }
@@ -121,24 +121,24 @@ if(!class_exists('RRW_WP_Feed')){
             $f=new self();$ns=$x->getNamespaces(true);
             if(isset($x->channel)){   // RSS
                 $c=$x->channel;$f->title=(string)$c->title;$f->link=(string)$c->link;$f->desc=(string)$c->description;
-                foreach($c->item as $i){ $ce=isset($ns['content'])?(string)$i->children($ns['content'])->encoded:'';$f->items[]=new RRW_WP_Feed_Item(['title'=>(string)$i->title,'link'=>(string)$i->link,'desc'=>(string)$i->description,'content'=>$ce,'id'=>(string)$i->guid,'date'=>(string)$i->pubDate]); }
+                foreach($c->item as $i){ $ce=isset($ns['content'])?(string)$i->children($ns['content'])->encoded:'';$f->items[]=new ELVADO_WP_Feed_Item(['title'=>(string)$i->title,'link'=>(string)$i->link,'desc'=>(string)$i->description,'content'=>$ce,'id'=>(string)$i->guid,'date'=>(string)$i->pubDate]); }
             } elseif($x->getName()==='feed'){   // Atom
                 $f->title=(string)$x->title;$f->desc=(string)$x->subtitle;foreach($x->link as $l)if(!isset($l['rel'])||(string)$l['rel']==='alternate'){ $f->link=(string)$l['href'];break; }
                 foreach($x->entry as $e){ $lk='';foreach($e->link as $l)if(!isset($l['rel'])||(string)$l['rel']==='alternate'){ $lk=(string)$l['href'];break; }
-                    $f->items[]=new RRW_WP_Feed_Item(['title'=>(string)$e->title,'link'=>$lk,'desc'=>(string)$e->summary,'content'=>(string)$e->content,'id'=>(string)$e->id,'date'=>(string)($e->updated?:$e->published)]); }
+                    $f->items[]=new ELVADO_WP_Feed_Item(['title'=>(string)$e->title,'link'=>$lk,'desc'=>(string)$e->summary,'content'=>(string)$e->content,'id'=>(string)$e->id,'date'=>(string)($e->updated?:$e->published)]); }
             } else return null;
             return $f;
         }
     }
 }
 if(!function_exists('fetch_feed')){
-    /** Feed holen und lesen (RSS/Atom); statt SimplePie liefert die Schicht ein RRW_WP_Feed-Objekt mit gleichen Gettern. Fehler als WP_Error. */
+    /** Feed holen und lesen (RSS/Atom); statt SimplePie liefert die Schicht ein ELVADO_WP_Feed-Objekt mit gleichen Gettern. Fehler als WP_Error. */
     function fetch_feed($url) {
         $pre=apply_filters('pre_fetch_feed',null,$url);if($pre!==null)return $pre;
         if(!is_string($url)||!preg_match('#^https?://#i',$url))return new WP_Error('simplepie-error','Ungültige Feed-Adresse.');
         $r=wp_remote_get($url,['timeout'=>10]);if(is_wp_error($r))return new WP_Error('simplepie-error',$r->get_error_message());
         if((int)wp_remote_retrieve_response_code($r)>=400)return new WP_Error('simplepie-error','Feed nicht erreichbar.');
-        $f=RRW_WP_Feed::parse(wp_remote_retrieve_body($r));
+        $f=ELVADO_WP_Feed::parse(wp_remote_retrieve_body($r));
         return $f?:new WP_Error('simplepie-error','Der Feed konnte nicht gelesen werden.');
     }
 }

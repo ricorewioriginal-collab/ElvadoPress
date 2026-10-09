@@ -35,10 +35,10 @@ if(!function_exists('gallery_shortcode')){ function gallery_shortcode($attr) {
     $atts=shortcode_atts(['order'=>'ASC','orderby'=>'menu_order ID','id'=>$post?$post->ID:0,'itemtag'=>$html5?'figure':'dl','icontag'=>$html5?'div':'dt','captiontag'=>$html5?'figcaption':'dd','columns'=>3,'size'=>'thumbnail','include'=>'','exclude'=>'','link'=>''],$attr,'gallery');
     $pid=(int)$atts['id'];$base=['post_status'=>'inherit','post_type'=>'attachment','post_mime_type'=>'image','order'=>$atts['order'],'orderby'=>$atts['orderby']];
     if(!empty($atts['include'])){ $att=[];foreach(get_posts($base+['include'=>$atts['include']]) as $p)$att[$p->ID]=$p; }
-    elseif(!empty($atts['exclude']))$att=_rrw_m_by_id(get_children($base+['post_parent'=>$pid,'exclude'=>$atts['exclude']]));
-    else $att=_rrw_m_by_id(get_children($base+['post_parent'=>$pid]));
+    elseif(!empty($atts['exclude']))$att=_elvado_m_by_id(get_children($base+['post_parent'=>$pid,'exclude'=>$atts['exclude']]));
+    else $att=_elvado_m_by_id(get_children($base+['post_parent'=>$pid]));
     if(empty($att))return '';
-    if(is_feed()){ $o="\n";foreach($att as $aid=>$a)$o.=_rrw_m_attachment_link($aid,$atts['size'],true)."\n";return $o; }
+    if(is_feed()){ $o="\n";foreach($att as $aid=>$a)$o.=_elvado_m_attachment_link($aid,$atts['size'],true)."\n";return $o; }
     $itemtag=tag_escape($atts['itemtag']);$icontag=tag_escape($atts['icontag']);$captiontag=tag_escape($atts['captiontag']);
     // ungültige Tags auf Standardwerte zurücksetzen
     if(!in_array($itemtag,['dl','figure','div','section','article','p','ul','li'],true))$itemtag=$html5?'figure':'dl';
@@ -54,9 +54,9 @@ if(!function_exists('gallery_shortcode')){ function gallery_shortcode($attr) {
     $i=0;
     foreach($att as $aid=>$a){
         $at=trim((string)$a->post_excerpt)?['aria-describedby'=>"$sel-$aid"]:'';
-        if(!empty($atts['link'])&&$atts['link']==='file')$img=_rrw_m_attachment_link($aid,$atts['size'],false,false,false,$at);
-        elseif(!empty($atts['link'])&&$atts['link']==='none')$img=_rrw_m_attachment_image($aid,$atts['size'],false,$at);
-        else $img=_rrw_m_attachment_link($aid,$atts['size'],true,false,false,$at);
+        if(!empty($atts['link'])&&$atts['link']==='file')$img=_elvado_m_attachment_link($aid,$atts['size'],false,false,false,$at);
+        elseif(!empty($atts['link'])&&$atts['link']==='none')$img=_elvado_m_attachment_image($aid,$atts['size'],false,$at);
+        else $img=_elvado_m_attachment_link($aid,$atts['size'],true,false,false,$at);
         $m=wp_get_attachment_metadata($aid);$ori='';if(isset($m['height'],$m['width']))$ori=$m['height']>$m['width']?'portrait':'landscape';
         $o.="<{$itemtag} class='gallery-item'><{$icontag} class='gallery-icon {$ori}'>$img</{$icontag}>";
         if($captiontag&&trim((string)$a->post_excerpt))$o.="<{$captiontag} class='wp-caption-text gallery-caption' id='$sel-$aid'>".wptexturize($a->post_excerpt)."</{$captiontag}>";
@@ -143,10 +143,10 @@ if(!function_exists('wp_playlist_shortcode')){ function wp_playlist_shortcode($a
     $id=(int)$atts['id'];if($atts['type']!=='audio')$atts['type']='video';
     $args=['post_status'=>'inherit','post_type'=>'attachment','post_mime_type'=>$atts['type'],'order'=>$atts['order'],'orderby'=>$atts['orderby']];
     if(!empty($atts['include'])){ $att=[];foreach(get_posts($args+['include'=>$atts['include']]) as $p)$att[$p->ID]=$p; }
-    elseif(!empty($atts['exclude']))$att=_rrw_m_by_id(get_children($args+['post_parent'=>$id,'exclude'=>$atts['exclude']]));
-    else $att=_rrw_m_by_id(get_children($args+['post_parent'=>$id]));
+    elseif(!empty($atts['exclude']))$att=_elvado_m_by_id(get_children($args+['post_parent'=>$id,'exclude'=>$atts['exclude']]));
+    else $att=_elvado_m_by_id(get_children($args+['post_parent'=>$id]));
     if(empty($att))return '';
-    if(is_feed()){ $o="\n";foreach($att as $aid=>$a)$o.=_rrw_m_attachment_link($aid)."\n";return $o; }
+    if(is_feed()){ $o="\n";foreach($att as $aid=>$a)$o.=_elvado_m_attachment_link($aid)."\n";return $o; }
     $dw=640;$dh=360;$tw=empty($content_width)?$dw:$content_width-22;$th=empty($content_width)?$dh:round(($dh*$tw)/$dw);
     $data=['type'=>$atts['type'],'tracklist'=>wp_validate_boolean($atts['tracklist']),'tracknumbers'=>wp_validate_boolean($atts['tracknumbers']),'images'=>wp_validate_boolean($atts['images']),'artists'=>wp_validate_boolean($atts['artists']),'tracks'=>[]];
     foreach($att as $a){
@@ -167,7 +167,7 @@ if(!function_exists('wp_playlist_shortcode')){ function wp_playlist_shortcode($a
     if($atts['type']==='audio')echo '<div class="wp-playlist-current-item"></div>';
     echo '<'.$ty.' controls="controls" preload="none" width="'.(int)$tw.'"'.($ty==='video'?' height="'.(int)$th.'"':'').'></'.$ty.'>';
     echo '<div class="wp-playlist-next"></div><div class="wp-playlist-prev"></div><noscript><ol>';
-    foreach($att as $aid=>$a)printf('<li>%s</li>',_rrw_m_attachment_link($aid));
+    foreach($att as $aid=>$a)printf('<li>%s</li>',_elvado_m_attachment_link($aid));
     echo '</ol></noscript><script type="application/json" class="wp-playlist-script">'.wp_json_encode($data).'</script></div>';
     return ob_get_clean();
 } }
@@ -240,10 +240,10 @@ if(!function_exists('wp_underscore_video_template')){ function wp_underscore_vid
 <?php } }
 
 /** Standard-Haken wie in WordPress: [gallery]/[playlist] eintragen (nur wenn nicht belegt), Playlist-Skripte, Bildunterschrift, Datenschutz-Export. */
-if(!function_exists('_rrw_m_media_boot')){ function _rrw_m_media_boot() {
+if(!function_exists('_elvado_m_media_boot')){ function _elvado_m_media_boot() {
     foreach(['gallery'=>'gallery_shortcode','playlist'=>'wp_playlist_shortcode'] as $t=>$cb)if(!shortcode_exists($t))add_shortcode($t,$cb);
     add_action('wp_playlist_scripts','wp_playlist_scripts');
     add_filter('image_send_to_editor','image_add_caption',20,8);
     add_filter('wp_privacy_personal_data_exporters','wp_register_media_personal_data_exporter',10);
 }
-if(function_exists('add_action'))add_action('init','_rrw_m_media_boot',1); }
+if(function_exists('add_action'))add_action('init','_elvado_m_media_boot',1); }

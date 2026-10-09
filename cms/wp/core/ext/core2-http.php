@@ -133,7 +133,7 @@ class WP_HTTP_Fsockopen {
         $d=['method'=>'GET','timeout'=>5,'redirection'=>5,'headers'=>[],'body'=>null,'user-agent'=>'WordPress','decompress'=>true];
         $r=wp_parse_args($args,$d);$p=parse_url((string)$url);
         if(!$p||empty($p['host'])||!in_array($p['scheme']??'http',['http','https'],true))return new WP_Error('http_request_failed','Ungültige Adresse.');
-        if(!rrw_wp_host_public($p['host']))return new WP_Error('http_request_failed','Der Zielhost ist nicht erlaubt.');
+        if(!elvado_wp_host_public($p['host']))return new WP_Error('http_request_failed','Der Zielhost ist nicht erlaubt.');
         $ssl=($p['scheme']??'http')==='https';$port=(int)($p['port']??($ssl?443:80));
         $fp=@stream_socket_client(($ssl?'ssl://':'tcp://').$p['host'].':'.$port,$en,$es,(float)$r['timeout']);
         if(!$fp)return new WP_Error('http_request_failed',$es?:'Verbindung fehlgeschlagen.');

@@ -30,7 +30,7 @@ function toast(m,kind){window.cmsToast?.(m,kind==='err');}
 function say(m,t){try{toast(m,t==='error'?'err':t==='success'?'ok':'inf');}catch(e){alert(m);}}
 
 /* Block-Editor des Beitragstexts */
-function canRawHtml(){return (typeof CMS_IS_SA!=='undefined'&&!!CMS_IS_SA)&&!window.RRW_DEMO}
+function canRawHtml(){return (typeof CMS_IS_SA!=='undefined'&&!!CMS_IS_SA)&&!window.ELVADO_DEMO}
 function pickBlockImage(cb){
   if(!window.StockMedia){const u=prompt('Bild-Adresse (https://…)');if(u)cb({url:u.trim()});return}
   StockMedia.open({onPick:(item,info)=>{cb({url:info.urlFor?info.urlFor(1024):info.url,alt:info.alt||'',caption:info.credit||''});if(info.attribution&&!info.credit)say('Bitte den Bildnachweis ergänzen.','info')}});
@@ -411,7 +411,7 @@ function mount(){
   if(mounted){load();return;} mounted=true;
   const host=document.getElementById('newsMagazineHost'); if(!host)return;
   host.innerHTML=`<div class="th"><div><div class="tt"><i class="fas fa-newspaper" style="color:var(--accent)"></i>News & Magazin</div><div style="font-size:.72rem;color:var(--muted);margin-top:3px">Beiträge werden direkt unter <code>/cms/data/news.json</code> gespeichert.</div></div><div class="d-flex gap-2"><a class="btn-g" href="/rss.php" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-rss"></i> RSS</a><a class="btn-g" href="/#news" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-eye"></i> News ansehen</a><a class="btn-g" href="api.php?action=news_export&_tok=${encodeURIComponent(cmsNewsToken())}" style="text-decoration:none"><i class="fas fa-file-export"></i> Exportieren</a><button id="newsImportBtn" class="btn-g" onclick="NewsMagazine.importPrompt()" title="Beiträge aus einer Exportdatei (JSON) übernehmen"><i class="fas fa-file-import"></i> Importieren</button><button id="newsTrashToggle" class="btn-g" onclick="NewsMagazine.toggleTrash()"><i class="fas fa-trash"></i> Papierkorb</button><button id="newsNewBtn" class="btn-a" onclick="NewsMagazine.newArticle()"><i class="fas fa-plus"></i> Neuer Beitrag</button></div></div>
-  <div class="card"><div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:38px;height:38px;border-radius:10px;background:rgba(255,206,0,.1);display:grid;place-items:center;color:var(--accent)"><i class="fas fa-bullhorn"></i></div><div><b style="color:#fff">${esc(RRW_P.name+' Redaktion')}</b><div style="color:var(--dim);font-size:.78rem;line-height:1.55;margin-top:3px;">Beiträge hier erstellen, als Entwurf vorbereiten oder veröffentlichen. Veröffentlichte Meldungen erscheinen automatisch ${'auf deiner Website und im Feed'}.</div></div></div></div>
+  <div class="card"><div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:38px;height:38px;border-radius:10px;background:rgba(255,206,0,.1);display:grid;place-items:center;color:var(--accent)"><i class="fas fa-bullhorn"></i></div><div><b style="color:#fff">${esc(ELVADO_P.name+' Redaktion')}</b><div style="color:var(--dim);font-size:.78rem;line-height:1.55;margin-top:3px;">Beiträge hier erstellen, als Entwurf vorbereiten oder veröffentlichen. Veröffentlichte Meldungen erscheinen automatisch ${'auf deiner Website und im Feed'}.</div></div></div></div>
   ${categoryManagerHtml()}
   ${editorHtml()}
   <div class="card" style="padding:0;overflow:hidden"><div style="padding:13px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between"><b style="color:#fff"><i class="fas fa-layer-group" style="color:var(--accent);margin-right:6px"></i>Beiträge</b><button class="btn-g" onclick="NewsMagazine.reload()"><i class="fas fa-rotate"></i></button></div>${filterBarHtml()}${bulkBarHtml()}<div id="newsList"></div><div id="newsPagination"></div></div>
@@ -489,7 +489,7 @@ async function sendCommentReply(parentId,articleId){
   try{await api('comment_reply',{article_id:articleId,parent_id:parentId,text});say('Antwort gesendet','success');loadCommentsAdmin();}catch(e){say(e.message,'error');}
 }
 let autosaveTimer=null;
-function autosaveKey(){ return 'rrw_news_autosave_'+(currentId||'new'); }
+function autosaveKey(){ return 'elvado_news_autosave_'+(currentId||'new'); }
 function autosaveTick(){
   const data=collectFormData();
   if(!data.title.trim()&&!data.body_html.trim())return;

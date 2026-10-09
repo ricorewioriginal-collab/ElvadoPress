@@ -26,13 +26,13 @@ foreach(['README.md','ANLEITUNG.md','.gitignore','icon-512.png','android/build.g
          'scripts/create-developer-keystore.sh','scripts/create-developer-keystore.ps1','brands/.gitkeep'] as $f)
     t("Datei vorhanden: $f",is_file($T.'/'.$f));
 // Zusammenspiel mit dem Build-Assistenten
-t('Workflows des Build-Assistenten sind enthalten',is_file($T.'/.github/workflows/'.RRW_AB_WORKFLOW)&&is_file($T.'/.github/workflows/'.RRW_AB_WORKFLOW_WIN));
-t('Windows-Projektdatei liegt dort, wo das CMS sie prüft',is_file($T.'/'.RRW_AB_WIN_PROJECT));
-$wa=(string)file_get_contents($T.'/.github/workflows/'.RRW_AB_WORKFLOW);$ww=(string)file_get_contents($T.'/.github/workflows/'.RRW_AB_WORKFLOW_WIN);
+t('Workflows des Build-Assistenten sind enthalten',is_file($T.'/.github/workflows/'.ELVADO_AB_WORKFLOW)&&is_file($T.'/.github/workflows/'.ELVADO_AB_WORKFLOW_WIN));
+t('Windows-Projektdatei liegt dort, wo das CMS sie prüft',is_file($T.'/'.ELVADO_AB_WIN_PROJECT));
+$wa=(string)file_get_contents($T.'/.github/workflows/'.ELVADO_AB_WORKFLOW);$ww=(string)file_get_contents($T.'/.github/workflows/'.ELVADO_AB_WORKFLOW_WIN);
 t('Workflows nehmen die Marken-ID als Eingabe „brand“ und lesen android/brands.json',str_contains($wa,'brand:')&&str_contains($ww,'brand:')&&str_contains($wa,'android/brands.json')&&str_contains($ww,'android/brands.json'));
 t('Pre-Release-Namen passen zu dem, was das CMS sucht (app-<id>-<nr>, app-<id>-win-<nr>)',str_contains($wa,'TAG="app-$BRAND-$GITHUB_RUN_NUMBER"')&&(bool)preg_match('/app-\$env:BRAND-win-\$env:GITHUB_RUN_NUMBER|app-\$\(\$env:BRAND\)-win-/',$ww)
-    &&preg_match(sprintf(RRW_AB_PLATFORMS['android']['tagre'],'meinapp'),'app-meinapp-12')===1&&preg_match(sprintf(RRW_AB_PLATFORMS['windows']['tagre'],'meinapp'),'app-meinapp-win-12')===1);
-t('Windows-Workflow verweist auf die Projektdatei der Vorlage',str_contains($ww,basename(RRW_AB_WIN_PROJECT)));
+    &&preg_match(sprintf(ELVADO_AB_PLATFORMS['android']['tagre'],'meinapp'),'app-meinapp-12')===1&&preg_match(sprintf(ELVADO_AB_PLATFORMS['windows']['tagre'],'meinapp'),'app-meinapp-win-12')===1);
+t('Windows-Workflow verweist auf die Projektdatei der Vorlage',str_contains($ww,basename(ELVADO_AB_WIN_PROJECT)));
 foreach(['icon-512.png','android-app/assets/config/app_icon.png','android-app/assets/config/logo-lockup.png','android-app/assets/config/startscreen.png'] as $f)
     t("Standardbild wird von den Workflows benutzt und existiert: $f",str_contains($wa.$ww,basename($f))&&is_file($T.'/'.$f));
 // Felder, die das CMS in android/brands.json schreibt, kennt der Build
@@ -58,7 +58,7 @@ $doc=(string)file_get_contents($T.'/ANLEITUNG.md');
 foreach(['Apps → Eigene App bauen','Apps verwalten','Wartungsmodus','brands.json','create-developer-keystore','Fehlersuche','Website-App','Baukasten-App'] as $w)t("Anleitung behandelt: $w",str_contains($doc,$w));
 t('Anleitung nennt jedes Feld des Formulars (CMS: app-build.js)',(function() use($doc){ $js=(string)file_get_contents(__DIR__.'/../cms/assets/app-build.js');foreach(['App-Typ','Plattformen','App-Name','Marken-ID','Paketname','Website','Dateiname-Anfang','Farbe','App-Icon','Startbild','Kopfzeile','Screenshots'] as $l)if(!str_contains($js,$l)||!str_contains($doc,$l))return false;return true; })());
 // Katalog der Vorlagen
-$cat=json_decode((string)file_get_contents($T.'/templates.json'),true);$ctypes=array_column($cat['vorlagen']??[],'type');sort($ctypes);$ktypes=array_keys(RRW_AB_TYPES);sort($ktypes);
+$cat=json_decode((string)file_get_contents($T.'/templates.json'),true);$ctypes=array_column($cat['vorlagen']??[],'type');sort($ctypes);$ktypes=array_keys(ELVADO_AB_TYPES);sort($ktypes);
 t('templates.json listet genau die App-Typen des CMS',$ctypes===$ktypes,implode(',',$ctypes).' vs '.implode(',',$ktypes));
 $vor=(string)file_get_contents($T.'/VORLAGEN.md');
 t('VORLAGEN.md und README nennen jede Vorlage',(function() use($cat,$vor){ $rd=(string)file_get_contents(__DIR__.'/../app-template/README.md');foreach($cat['vorlagen'] as $v)if(!str_contains($vor,$v['name'])||!str_contains($rd,$v['name']))return false;return true; })());
@@ -66,6 +66,6 @@ t('Android und Windows kennen den Typ „content“ (Baukasten-App)',str_contain
 t('Baukasten-App: Tab-Leiste in Android und Windows, Tests vorhanden',str_contains((string)file_get_contents($jdir.'/WebShellActivity.java'),'setTabs')&&str_contains((string)file_get_contents($T.'/windows-native/WebShellWindow.cs'),'SetTabs')&&str_contains((string)file_get_contents($T.'/windows-native/tests/RuntimeCheck/Program.cs'),'tabs'));
 t('Tab-Vorlagen des Katalogs gibt es in der Oberfläche',(function() use($cat){ $js=(string)file_get_contents(__DIR__.'/../cms/assets/apps-manager.js');foreach($cat['vorlagen'] as $v)foreach($v['vorlagen_tabs']??[] as $p)if(!str_contains($js,$p.':{label'))return false;return true; })());
 t('Apps melden sich der Website mit dem User-Agent des App-Modus (Format passt zu cms/lib/appmode.php)',(function() use($T,$jdir){ require_once __DIR__.'/../cms/lib/appmode.php';
-    $ua='ElvadoPressApp/1.0 (brand=demo; platform=android)';$_GET=[];$_COOKIE=[];$_SERVER['HTTP_USER_AGENT']=$ua;$a=rrw_appmode_detect();
+    $ua='ElvadoPressApp/1.0 (brand=demo; platform=android)';$_GET=[];$_COOKIE=[];$_SERVER['HTTP_USER_AGENT']=$ua;$a=elvado_appmode_detect();
     return $a!==null&&str_contains((string)file_get_contents($jdir.'/WebShellActivity.java'),'" ElvadoPressApp/1.0 (brand=" + BuildConfig.FLAVOR + "; platform=android)"')&&str_contains((string)file_get_contents($T.'/windows-native/WebShellWindow.cs'),'" ElvadoPressApp/1.0 (brand=" + Brand.Id + "; platform=windows)"'); })());
 echo $fail?"$fail von $n Prüfungen fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

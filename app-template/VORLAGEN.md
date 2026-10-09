@@ -16,7 +16,7 @@ Beide gibt es für Android und Windows.
 
 ## Eine neue Vorlage ergänzen
 
-1. **CMS:** Typ in `RRW_AB_TYPES` (`cms/lib/appbuild.php`) und in der Typ-Auswahl (`cms/assets/app-build.js`) eintragen; `rrw_ab_merge_brands` schreibt den Typ nach `brands.json`.
+1. **CMS:** Typ in `ELVADO_AB_TYPES` (`cms/lib/appbuild.php`) und in der Typ-Auswahl (`cms/assets/app-build.js`) eintragen; `elvado_ab_merge_brands` schreibt den Typ nach `brands.json`.
 2. **Android:** `APP_TYPE` in `android/app/build.gradle` und Start-Activity in `SplashActivity.java` (alle Typen = `WebShellActivity`).
 3. **Windows:** Typ in `Brand.cs` (`IsWeb`/`IsContent`) und im Workflow `windows-custom-brand.yml`.
 4. **Einstellungen im Betrieb:** Felder in `cms/lib/apps.php` (Bereinigung und `app_config`) und Oberfläche in `cms/assets/apps-manager.js`.

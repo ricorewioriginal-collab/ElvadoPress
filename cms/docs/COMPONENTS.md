@@ -20,7 +20,7 @@ $registry->register([
 | `preview` | Selektor, mit dem die Vorschau die Komponente findet (`[data-ep-id="{id}"]`) |
 | `feature` | Komponente erscheint im Katalog nur, wenn das Merkmal aktiv ist (z. B. `radio`) |
 
-**Neutral bleibt neutral:** Der Kern registriert nur allgemeine Komponenten. Produkt-/Markenspezifisches (z. B. Partner, Social Wall, Sender) registriert eine Erweiterung über den Hook `components_register` (`rrw_np_do('components_register', $registry)`), nicht der Kern. Eine Erweiterung kann Kern-Komponenten nicht überschreiben.
+**Neutral bleibt neutral:** Der Kern registriert nur allgemeine Komponenten. Produkt-/Markenspezifisches (z. B. Partner, Social Wall, Sender) registriert eine Erweiterung über den Hook `components_register` (`elvado_np_do('components_register', $registry)`), nicht der Kern. Eine Erweiterung kann Kern-Komponenten nicht überschreiben.
 
 ## Instanzen und Layouts
 `{ id, type, hidden, locked, props{…}, responsive{tablet{…},mobile{…}}, visibility{devices[…],audience,from,until}, children[…] }`
@@ -28,7 +28,7 @@ $registry->register([
 - **Unbekannte Typen** (z. B. Plugin abgeschaltet) bleiben mit ihren Werten als `missing` erhalten und werden nicht ausgegeben – mit dem Plugin kommen sie zurück.
 - **Responsive:** nur Felder mit `responsive`; Tablet und Mobil überschreiben die Grundwerte (Mobil erbt von Tablet). Ausgabe als `@media`-Regeln (Tablet ≤ 1024 px, Mobil ≤ 640 px).
 - **Sichtbarkeit:** je Gerät (CSS-Klassen `ep-hide-desktop|tablet|mobile`), Zielgruppe (alle/Besucher/Angemeldete) und Zeitfenster (von/bis).
-- **HTML-Felder:** durch `rrw_html_sanitize` bereinigt; Roh-HTML-Blöcke nur für Administratoren.
+- **HTML-Felder:** durch `elvado_html_sanitize` bereinigt; Roh-HTML-Blöcke nur für Administratoren.
 
 ## Darstellung
 `Renderer::render($layout, $ctx)` liefert `html` und `css`. Native Komponenten werden selbst ausgegeben (alle Werte maskiert, nur harmlose Adressen); andere über `ctx['renderers'][typ]` (Host) oder als Platzhalter.
@@ -48,9 +48,9 @@ Tests: `scripts/test-components.php`, `scripts/test-baukasten.php`.
 Pakete (z. B. ein Projekt-Paket mit eigenem Portal) können ihre **bestehenden** Seitenbereiche im Live Builder steuerbar machen, ohne sie neu zu rendern.
 
 - Eine Komponente mit `'bind' => '#selektor'` (Kennung oder Klasse, z. B. `#main-header`) hat die Rendering-Art **`bound`**: die Website behält ihr HTML, ElvadoPress steuert nur **Gestaltung** (Felder mit `css`-Zuordnung, optional `target` für Teilbereiche), **Teile ein-/ausblenden** (`'css' => ['hide' => '#teil', 'when' => 'off'|'on']` an einem Schalterfeld) **Ansichten wechseln** (Auswahlfeld mit `'css' => ['variants' => ['wert' => [['teilselektor', 'prop:wert;prop:wert'], …]]]` – nur die Regeln des gewählten Werts werden ausgegeben, Standardwert = keine Regeln, themeunabhängig) und **Sichtbarkeit** (ausgeblendet, Zeitplan, Geräte). Vorgaben erzeugen kein CSS – ohne Änderung bleibt die Seite bytegleich.
-- Das Paket liegt unter `cms/packs/<paket>/components.php` und liefert `['register' => fn(Registry $r, string $source): void, 'target' => ['id','label','scope' => 'site:<name>','preview' => '/']]` (oder `'targets' => [ … ]` mit mehreren Zielen, z. B. je Marke; die Vorschau-Adresse darf Parameter tragen, z. B. `/?rrw_brand=<marke>`). `rrw_components_packs()` lädt es nur, wenn `rrw_pack_available('<paket>')` gilt; im eigenständigen CMS gibt es den Ordner nicht. Quelle der Komponenten: `pack:<paket>`.
-- Der Live Builder zeigt für Ziele eine Auswahl „Bearbeiten“; dort sind Bereiche nur ausblendbar/gestaltbar (nicht verschieb- oder löschbar). Entwurf, Veröffentlichen, Verlauf, Planung und Rollback laufen über dieselben `layout_*`-Aktionen (Bereich `site:<name>`, nur Administratoren). Die Vorschau holt `layout_preview` (signierter, 15 Minuten gültiger Schlüssel `?rrw_ep_preview=…`) und setzt die Vorschau-Brücke ein; Klicks auf Bereiche der Website wählen die Komponente aus.
-- Die Website bindet die Gestaltung mit `rrw_components_inject($html, $scope, $_GET)` ein (`<style id="ep-bound-css">` vor `</head>`; mit gültigem Schlüssel Entwurf + Brücke + `noindex`). Ohne veröffentlichtes Layout und ohne Schlüssel bleibt `$html` unverändert; Fehler lassen es ebenfalls unverändert.
+- Das Paket liegt unter `cms/packs/<paket>/components.php` und liefert `['register' => fn(Registry $r, string $source): void, 'target' => ['id','label','scope' => 'site:<name>','preview' => '/']]` (oder `'targets' => [ … ]` mit mehreren Zielen, z. B. je Marke; die Vorschau-Adresse darf Parameter tragen, z. B. `/?elvado_brand=<marke>`). `elvado_components_packs()` lädt es nur, wenn `elvado_pack_available('<paket>')` gilt; im eigenständigen CMS gibt es den Ordner nicht. Quelle der Komponenten: `pack:<paket>`.
+- Der Live Builder zeigt für Ziele eine Auswahl „Bearbeiten“; dort sind Bereiche nur ausblendbar/gestaltbar (nicht verschieb- oder löschbar). Entwurf, Veröffentlichen, Verlauf, Planung und Rollback laufen über dieselben `layout_*`-Aktionen (Bereich `site:<name>`, nur Administratoren). Die Vorschau holt `layout_preview` (signierter, 15 Minuten gültiger Schlüssel `?elvado_ep_preview=…`) und setzt die Vorschau-Brücke ein; Klicks auf Bereiche der Website wählen die Komponente aus.
+- Die Website bindet die Gestaltung mit `elvado_components_inject($html, $scope, $_GET)` ein (`<style id="ep-bound-css">` vor `</head>`; mit gültigem Schlüssel Entwurf + Brücke + `noindex`). Ohne veröffentlichtes Layout und ohne Schlüssel bleibt `$html` unverändert; Fehler lassen es ebenfalls unverändert.
 - Test: `php scripts/test-components-packs.php`.
 
 ## Erkannte Bereiche (Seitenstruktur live)

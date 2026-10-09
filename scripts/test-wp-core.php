@@ -1,8 +1,8 @@
 <?php
 // Prüft die WordPress-Kompatibilitätsschicht (cms/wp): Hooks, Shortcodes, Optionen, Formatierung, Plugins. Aufruf: php scripts/test-wp-core.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-wp-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/data');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/data/.wp');$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-wp-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/data');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/data/.wp');$_SERVER['HTTP_HOST']='example.test';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name\n";} }
@@ -103,8 +103,8 @@ t('__ und esc_html__',__('Hallo')==='Hallo'&&esc_html__('<a>')==='&lt;a&gt;');
 t('_n',_n('Stück','Stücke',1)==='Stück'&&_n('Stück','Stücke',2)==='Stücke');
 t('WP_Error',(function(){ $e=new WP_Error('c','m','d'); return is_wp_error($e)&&$e->get_error_message()==='m'&&$e->get_error_data()==='d'&&!is_wp_error('x'); })());
 t('home_url',home_url('/x')==='http://example.test/x');
-t('Systemziel ohne Seite → Anker',rrw_wp_system_url('gibtsnicht')==='http://example.test/#gibtsnicht');
-t('Systemziel mit Seite → Datei',rrw_wp_system_url('sender')==='http://example.test/sender.html'||!is_file(rrw_wp_cms_root().'/sender.html'));
+t('Systemziel ohne Seite → Anker',elvado_wp_system_url('gibtsnicht')==='http://example.test/#gibtsnicht');
+t('Systemziel mit Seite → Datei',elvado_wp_system_url('sender')==='http://example.test/sender.html'||!is_file(elvado_wp_cms_root().'/sender.html'));
 t('wp_remote_get blockt interne Adresse',is_wp_error(wp_remote_get('http://127.0.0.1/')));
 t('wp_remote_get blockt Schema',is_wp_error(wp_remote_get('file:///etc/passwd')));
 t('wp_validate_redirect fremder Host',wp_validate_redirect('https://evil.test/x','/ok')==='/ok'&&wp_validate_redirect('/lokal','/ok')==='/lokal');
@@ -138,30 +138,30 @@ $r=activate_plugin('kaputt/kaputt.php');t('Fehler beim Aktivieren → WP_Error, 
 $r=activate_plugin('syntax/syntax.php');t('Syntaxfehler → WP_Error',is_wp_error($r)&&!is_plugin_active('syntax/syntax.php'));
 activate_plugin('einzeln.php');
 update_option('active_plugins',['gut/gut.php','kaputt/kaputt.php','einzeln.php','nix/nix.php']);
-$errs=rrw_wp_boot();
+$errs=elvado_wp_boot();
 t('Laufzeit: defekte Plugins werden übersprungen und deaktiviert',isset($errs['kaputt/kaputt.php'])&&isset($errs['nix/nix.php'])&&!is_plugin_active('kaputt/kaputt.php')&&is_plugin_active('gut/gut.php')&&is_plugin_active('einzeln.php'));
-t('rrw_wp_expand_content',rrw_wp_expand_content('a [einz] b')==='a EINZ b<!--gut-->');
-t('ohne [ keine Verarbeitung',rrw_wp_expand_content('nur Text')==='nur Text');
-t('eingebauter Shortcode erzeugt Widget-Platzhalter',str_contains(do_shortcode('[forum]'),'data-rrw-widget'));
+t('elvado_wp_expand_content',elvado_wp_expand_content('a [einz] b')==='a EINZ b<!--gut-->');
+t('ohne [ keine Verarbeitung',elvado_wp_expand_content('nur Text')==='nur Text');
+t('eingebauter Shortcode erzeugt Widget-Platzhalter',str_contains(do_shortcode('[forum]'),'data-elvado-widget'));
 t('eingebauter Shortcode: Widget-Name geprüft',do_shortcode('[widget type=""]')===''||true);
 deactivate_plugins('einzeln.php');t('Deaktivieren',!is_plugin_active('einzeln.php'));
 t('Aktives Plugin nicht löschbar',is_wp_error(delete_plugins(['gut/gut.php'])));
 deactivate_plugins('gut/gut.php');t('Plugin löschen',delete_plugins(['gut/gut.php'])===true&&!is_dir($pd.'/gut'));
 t('current_user_can ohne Anmeldung',!current_user_can('manage_options'));
-$GLOBALS['rrw_wp_user']=['id'=>1,'login'=>'a','role'=>'administrator','caps'=>rrw_wp_caps_for_role('administrator')];
+$GLOBALS['elvado_wp_user']=['id'=>1,'login'=>'a','role'=>'administrator','caps'=>elvado_wp_caps_for_role('administrator')];
 t('Admin-Rechte',current_user_can('manage_options')&&is_user_logged_in()&&get_current_user_id()===1);
-$GLOBALS['rrw_wp_user']=['id'=>2,'login'=>'b','role'=>'author','caps'=>rrw_wp_caps_for_role('author')];
+$GLOBALS['elvado_wp_user']=['id'=>2,'login'=>'b','role'=>'author','caps'=>elvado_wp_caps_for_role('author')];
 t('Autor ohne manage_options',!current_user_can('manage_options')&&current_user_can('edit_posts'));
 
 /* Echter Absturz (nicht abfangbar): doppelt deklarierte Funktion → Plugin wird beim nächsten Lauf automatisch deaktiviert */
 mkdir($pd.'/dupe');file_put_contents($pd.'/dupe/dupe.php',"<?php\n/*\nPlugin Name: Doppelt\n*/\nfunction esc_html(\$x){ return 'x'; }\n");
 update_option('active_plugins',['dupe/dupe.php']);
-file_put_contents($tmp.'/child.php',"<?php\ndefine('WP_CONTENT_DIR','$tmp/wp-content');define('RRW_WP_DATA','$tmp/data/.wp');\$_SERVER['HTTP_HOST']='example.test';\nrequire '".__DIR__."/../cms/wp/load.php';\nrrw_wp_boot();\necho 'OK';\n");
+file_put_contents($tmp.'/child.php',"<?php\ndefine('WP_CONTENT_DIR','$tmp/wp-content');define('ELVADO_WP_DATA','$tmp/data/.wp');\$_SERVER['HTTP_HOST']='example.test';\nrequire '".__DIR__."/../cms/wp/load.php';\nelvado_wp_boot();\necho 'OK';\n");
 $out=shell_exec('php '.escapeshellarg($tmp.'/child.php').' 2>/dev/null');
-rrw_wp_opts_load(true);
+elvado_wp_opts_load(true);
 t('Absturz-Lauf endet nicht mit OK',trim((string)$out)!=='OK');
 t('Abgestürztes Plugin ist danach deaktiviert',!in_array('dupe/dupe.php',get_option_active_plugins(),true));
-$pe=(array)get_option('rrw_wp_plugin_errors',[]);t('Fehlergrund gespeichert',isset($pe['dupe/dupe.php']));
+$pe=(array)get_option('elvado_wp_plugin_errors',[]);t('Fehlergrund gespeichert',isset($pe['dupe/dupe.php']));
 $out2=shell_exec('php '.escapeshellarg($tmp.'/child.php').' 2>/dev/null');
 t('Nächster Lauf funktioniert wieder',trim((string)$out2)==='OK');
 system('rm -rf '.escapeshellarg($tmp));

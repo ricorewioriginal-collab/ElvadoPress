@@ -1,19 +1,19 @@
 <?php
 // Prüft die ergänzenden Benutzer-/Kommentar-Funktionen der WordPress-Schicht (cms/wp/core/ext/users-*.php):
 // Anmeldung, Passwörter, Zurücksetzen, Sitzungen, Datenschutzanfragen, Kommentarprüfung/-status/-zähler, Vorlagen-Funktionen. Aufruf: php scripts/test-wp-ext-users.php
-$tmp=sys_get_temp_dir().'/rrw-xu-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');define('RRW_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-xu-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');define('ELVADO_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
 file_put_contents($tmp.'/cms/news.json',json_encode([['id'=>1,'slug'=>'erster','title'=>'Erster Beitrag','category'=>'News','status'=>'published','published_at'=>'2026-01-10 10:00:00','author'=>'Anna Autor','body_html'=>'<p>Hallo</p>']]));
 file_put_contents($tmp.'/cms/site.json',json_encode(['comments'=>['enabled'=>true,'require_approval'=>true]]));
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
-$GLOBALS['rrw_wp_die_throws']=true;
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
+$GLOBALS['elvado_wp_die_throws']=true;
 update_option('admin_email','chef@example.test');update_option('blogname','Testradio');
 $mails=[];add_filter('pre_wp_mail',function($pre,$atts) use(&$mails){ $mails[]=$atts;return true; },10,2);
-function as_user(int $id,string $login,string $role): void { $GLOBALS['rrw_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>rrw_wp_caps_for_role($role)]; }
+function as_user(int $id,string $login,string $role): void { $GLOBALS['elvado_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>elvado_wp_caps_for_role($role)]; }
 
 /* ───────── Alle Funktionen der Liste vorhanden ───────── */
 $names='wp_signon wp_authenticate_username_password wp_authenticate_email_password wp_authenticate_cookie wp_authenticate_application_password wp_validate_application_password wp_authenticate_spam_check wp_validate_logged_in_cookie count_user_posts count_many_users_posts get_user wp_list_users get_blogs_of_user get_user_count wp_maybe_update_user_counts wp_update_user_counts wp_schedule_update_user_counts wp_is_large_user_count setup_userdata wp_dropdown_users sanitize_user_field update_user_caches clean_user_cache _get_additional_user_keys wp_get_user_contact_methods _wp_get_user_contactmethods check_password_reset_key retrieve_password reset_password register_new_user wp_send_new_user_notifications wp_get_session_token wp_get_all_sessions wp_destroy_current_session wp_destroy_other_sessions wp_destroy_all_sessions wp_get_users_with_no_role _wp_get_current_user send_confirmation_on_profile_email new_user_email_admin_notice _wp_privacy_action_request_types wp_register_user_personal_data_exporter wp_user_personal_data_exporter _wp_privacy_account_request_confirmed _wp_privacy_send_request_confirmation_notification _wp_privacy_send_erasure_fulfillment_notification _wp_privacy_account_request_confirmed_message wp_create_user_request wp_user_request_action_description wp_send_user_request wp_generate_user_request_key wp_validate_user_request_key wp_get_user_request wp_register_persisted_preferences_meta wp_cache_set_users_last_changed wp_is_password_reset_allowed_for_user '
@@ -36,7 +36,7 @@ t('phpass-Hash (Testvektor)',wp_check_password('test12345','$P$9IQRaTwmfeRo7ud9F
 
 /* ───────── Anmeldung ───────── */
 $bob=wp_create_user('bob','geheim-123','bob@example.test');
-t('Benutzer angelegt (ID aus wp_users)',is_int($bob)&&$bob>=RRW_WP_ID_DB_MIN);
+t('Benutzer angelegt (ID aus wp_users)',is_int($bob)&&$bob>=ELVADO_WP_ID_DB_MIN);
 $failed=[];add_action('wp_login_failed',function($u,$e) use(&$failed){ $failed[]=$e->get_error_code(); },10,2);
 $logged=[];add_action('wp_login',function($l,$u) use(&$logged){ $logged[]=$l; },10,2);
 $u=wp_signon(['user_login'=>'bob','user_password'=>'geheim-123']);
@@ -78,7 +78,7 @@ preg_match('/key=([A-Za-z0-9]+)&action=rp/',$mails[0]['message'],$m);$rk=$m[1]??
 t('Reset-Schlüssel gültig',check_password_reset_key($rk,'bob') instanceof WP_User);
 t('Reset-Schlüssel falsch/unbekannt',check_password_reset_key('falsch','bob')->get_error_code()==='invalid_key'&&check_password_reset_key($rk,'niemand')->get_error_code()==='invalid_key');
 $bu=get_userdata($bob);
-global $wpdb;$wpdb->update($wpdb->users,['user_activation_key'=>(time()-3*DAY_IN_SECONDS).':'.explode(':',$bu->user_activation_key,2)[1]],['ID'=>$bob]);rrw_wp_users_all(true);
+global $wpdb;$wpdb->update($wpdb->users,['user_activation_key'=>(time()-3*DAY_IN_SECONDS).':'.explode(':',$bu->user_activation_key,2)[1]],['ID'=>$bob]);elvado_wp_users_all(true);
 t('Reset-Schlüssel abgelaufen',check_password_reset_key($rk,'bob')->get_error_code()==='expired_key');
 $mails=[];retrieve_password('bob@example.test');preg_match('/key=([A-Za-z0-9]+)&action=rp/',$mails[0]['message'],$m);$rk=$m[1];
 reset_password(check_password_reset_key($rk,'bob'),'neues-pw-456');
@@ -192,7 +192,7 @@ t('get_comment_count: wartend',$cnt['awaiting_moderation']===1&&$cnt['approved']
 t('get_pending_comments_num',get_pending_comments_num($p2)===1&&get_pending_comments_num([$p1,$p2])===[$p1=>0,$p2=>1]);
 $trans=[];add_action('transition_comment_status',function($n,$o,$c) use(&$trans){ $trans[]="$o>$n"; },10,3);
 add_action('comment_unapproved_to_approved',function($c) use(&$trans){ $trans[]='spezifisch'; });
-wp_transition_comment_status('approve','hold',rrw_wpx_comment($c2));
+wp_transition_comment_status('approve','hold',elvado_wpx_comment($c2));
 t('wp_transition_comment_status: Hooks und Namen',$trans===['unapproved>approved','spezifisch']);
 wp_set_comment_status($c2,'approve');
 t('Status freigegeben; Zähler',wp_get_comment_status($c2)==='approved'&&get_comment_count($p2)['approved']===1&&get_pending_comments_num($p2)===0);
@@ -230,7 +230,7 @@ update_option('moderation_notify',1);
 $mails=[];t('wp_new_comment_notify_postauthor: nur freigegebene',wp_new_comment_notify_postauthor($cm)===false&&wp_new_comment_notify_postauthor($ca)===true&&count($mails)===1);
 
 /* ───────── Kommentare absenden ───────── */
-update_option('require_name_email',1);unset($GLOBALS['rrw_wp_user']);   // Besucher ohne Anmeldung
+update_option('require_name_email',1);unset($GLOBALS['elvado_wp_user']);   // Besucher ohne Anmeldung
 $_SERVER['REMOTE_ADDR']='5.5.5.5';
 $hc=fn(array $d)=>wp_handle_comment_submission($d);
 t('Absenden: Beitrag fehlt',$hc(['comment_post_ID'=>424242,'author'=>'A','email'=>'a@example.test','comment'=>'x'])->get_error_code()==='comment_id_not_found');
@@ -239,7 +239,7 @@ t('Absenden: zu lang',$hc(['comment_post_ID'=>$p1,'author'=>str_repeat('a',300),
 $posted=[];add_action('comment_post',function($id,$ap) use(&$posted){ $posted[]=$ap; },10,2);
 $res=$hc(['comment_post_ID'=>$p1,'author'=>'Heidi','email'=>'heidi@example.test','comment'=>'Mein <script>x</script>Kommentar']);
 t('Absenden: Kommentar gespeichert und gezählt',$res instanceof WP_Comment&&$res->comment_author==='Heidi'&&!str_contains($res->comment_content,'<script>')&&$res->comment_approved==='0'&&$posted===[0]);
-$wpdb->update($wpdb->posts,['comment_status'=>'closed'],['ID'=>$p2]);rrw_wp_post_cache_clear($p2);
+$wpdb->update($wpdb->posts,['comment_status'=>'closed'],['ID'=>$p2]);elvado_wp_post_cache_clear($p2);
 t('Absenden: Kommentare geschlossen',$hc(['comment_post_ID'=>$p2,'author'=>'A','email'=>'a@example.test','comment'=>'x'])->get_error_code()==='comment_closed');
 $ns=$hc(['comment_post_ID'=>1,'author'=>'Ina','email'=>'ina@example.test','comment'=>'Zum CMS-Beitrag']);
 t('Absenden: CMS-Beitrag über den CMS-Speicher',$ns instanceof WP_Comment&&$ns->comment_author==='Ina'&&$ns->comment_approved==='0'&&is_file($tmp.'/cms/comments.json'));
@@ -329,7 +329,7 @@ t('Hinweis zur E-Mail-Änderung',(function() use($o){ $_SERVER['PHP_SELF']='/wp-
 t('Kommentar-Cookies bereinigt',(function(){ $_COOKIE['comment_author_'.COOKIEHASH]='<x>"';$_COOKIE['comment_author_url_'.COOKIEHASH]='javascript:x';sanitize_comment_cookies();return !str_contains($_COOKIE['comment_author_'.COOKIEHASH],'<')&&$_COOKIE['comment_author_url_'.COOKIEHASH]===''; })());
 t('Persistente Einstellungen registriert',(function(){ wp_register_persisted_preferences_meta();return true; })());
 t('wp_set_comment_cookies ohne Ausgabe',(function(){ wp_set_comment_cookies((object)['comment_author'=>'a','comment_author_email'=>'b','comment_author_url'=>'c'],new WP_User(0),true);return true; })());
-t('Mail-Adresse des unfreigegebenen Kommentators',wp_get_unapproved_comment_author_email()===''&&(function() use($cm){ $_GET['unapproved']=$cm;$_GET['moderation-hash']=wp_hash(rrw_wpx_comment($cm)->comment_date_gmt);$r=wp_get_unapproved_comment_author_email();$_GET=[];return $r==='n@example.test'; })());
+t('Mail-Adresse des unfreigegebenen Kommentators',wp_get_unapproved_comment_author_email()===''&&(function() use($cm){ $_GET['unapproved']=$cm;$_GET['moderation-hash']=wp_hash(elvado_wpx_comment($cm)->comment_date_gmt);$r=wp_get_unapproved_comment_author_email();$_GET=[];return $r==='n@example.test'; })());
 t('Kommentar-Aktualisierung (Meta)',(function() use($ids){ wp_lazyload_comment_meta([(object)['comment_ID'=>$ids[1]]]);return true; })());
 t('Hotkeys-Skript ohne Einstellung wirkungslos',(function(){ enqueue_comment_hotkeys_js();return !wp_script_is('jquery-table-hotkeys','enqueued'); })());
 t('__clear_multi_author_cache',(function(){ set_transient('is_multi_author',1);__clear_multi_author_cache();return get_transient('is_multi_author')===false; })());

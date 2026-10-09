@@ -21,9 +21,9 @@ file_put_contents("$cms/data/local-auth.local.php", '<?php return ' . var_export
 // Hauptwebsite mit Beispielinhalten; zweite Website als Kopie, danach eigene Inhalte
 file_put_contents("$cms/data/site.json", json_encode(['portal' => ['site_name' => 'Hauptseite', 'news_title' => 'Haupt-News']], JSON_UNESCAPED_UNICODE));
 file_put_contents("$cms/data/news.json", json_encode([['id' => 1, 'slug' => 'haupt', 'title' => 'Haupt-Beitrag', 'category' => 'x', 'body_html' => '<p>x</p>', 'status' => 'published', 'published_at' => '2026-01-01T00:00:00+00:00']]));
-define('RRW_SITES_BASE', $cms);
+define('ELVADO_SITES_BASE', $cms);
 require __DIR__ . '/../cms/lib/sites.php';
-rrw_site_create(['name' => 'Zweite', 'domains' => ['zweite.test'], 'enabled' => true, 'copy_from' => 'main']);
+elvado_site_create(['name' => 'Zweite', 'domains' => ['zweite.test'], 'enabled' => true, 'copy_from' => 'main']);
 $z = "$cms/sites/zweite/data";
 file_put_contents("$z/site.json", json_encode(['portal' => ['site_name' => 'Zweite Seite', 'news_title' => 'Zweite-News']], JSON_UNESCAPED_UNICODE));
 file_put_contents("$z/news.json", '[]');
@@ -90,7 +90,7 @@ t('sites_update: Domain einer anderen Website → 400, unbekannte Website → 40
 $ui = (string)file_get_contents(__DIR__ . '/../cms/assets/cms-app.js') . (string)file_get_contents(__DIR__ . '/../cms/assets/sites-manager.js') . (string)file_get_contents(__DIR__ . '/../cms/assets/shell.js') . (string)file_get_contents(__DIR__ . '/../cms/views/sidebar.php') . (string)file_get_contents(__DIR__ . '/../cms/index.php');
 t('Oberfläche: Website-Kopf in allen Anfragen, Umschalter, Bereich „Websites“, Seitenleiste', str_contains($ui, 'X-EP-Site') && str_contains($ui, 'epSiteBtn') && str_contains($ui, 'SitesManager?.load()') && str_contains($ui, 'panel-sites.php') && str_contains($ui, 'sites-manager.js'));
 // 5) Deaktivieren: Domain fällt auf die Hauptwebsite zurück
-$it = rrw_sites_registry(true); foreach ($it as $k => $x) { $it[$k]['enabled'] = false; } rrw_sites_save($it);
+$it = elvado_sites_registry(true); foreach ($it as $k => $x) { $it[$k]['enabled'] = false; } elvado_sites_save($it);
 t('Deaktivierte Website: Domain zeigt die Hauptwebsite', name(http('GET', $P, null, null, ['Host: zweite.test'])) === 'Haupt geändert');
 @unlink("$cms/data/sites.json");
 t('Ohne Registry: alles wie bisher', name(http('GET', $P, null, null, ['Host: zweite.test'])) === 'Haupt geändert' && name(http('GET', $P, $admin, null, ['X-EP-Site: zweite'])) === 'Haupt geändert');

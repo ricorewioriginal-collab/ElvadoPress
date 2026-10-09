@@ -2,7 +2,7 @@
 // Ergänzende WordPress-Funktionen (Bereich Admin, Teil 7): Linkverwaltung (bookmark.php) – Links in der Tabelle wp_links, Kategorien als Taxonomie link_category.
 // Die Eingaben werden wie bei WordPress als „geslasht“ erwartet ($_POST) und hier entslasht.
 
-if(!function_exists('rrw_adm_link_row')){ function rrw_adm_link_row($id, $out=OBJECT) {   // Linkzeile aus der Datenbank (null, wenn es sie nicht gibt)
+if(!function_exists('elvado_adm_link_row')){ function elvado_adm_link_row($id, $out=OBJECT) {   // Linkzeile aus der Datenbank (null, wenn es sie nicht gibt)
     global $wpdb;$id=(int)$id;if($id<=0)return null;
     $r=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->links} WHERE link_id = %d LIMIT 1",$id),ARRAY_A);
     if(!$r)return null;
@@ -21,7 +21,7 @@ if(!function_exists('get_default_link_to_edit')){ function get_default_link_to_e
     $l->link_visible='Y';return $l;
 } }
 if(!function_exists('get_link_to_edit')){ function get_link_to_edit($link) {   // Link für das Bearbeitungsformular (Textfelder maskiert)
-    $r=rrw_adm_link_row(is_object($link)?($link->link_id??0):$link);if(!$r)return null;
+    $r=elvado_adm_link_row(is_object($link)?($link->link_id??0):$link);if(!$r)return null;
     foreach(['link_name','link_description','link_notes','link_rel','link_rss','link_image','link_target'] as $f)$r->$f=format_to_edit((string)$r->$f);
     $r->link_url=esc_url((string)$r->link_url);return $r;
 } }
@@ -49,7 +49,7 @@ if(!function_exists('wp_insert_link')){ function wp_insert_link($linkdata, $wp_e
         'link_rating'=>max(0,min(10,(int)($a['link_rating']??0))),'link_rel'=>sanitize_text_field((string)($a['link_rel']??'')),'link_notes'=>wp_kses_post((string)($a['link_notes']??'')),'link_rss'=>esc_url_raw((string)($a['link_rss']??''))];
     $data=apply_filters('wp_insert_link_data',$data,$a,$update);
     if($update){
-        if(!rrw_adm_link_row($id))return $wp_error?new WP_Error('invalid_link','Ungültige Link-ID.'):0;
+        if(!elvado_adm_link_row($id))return $wp_error?new WP_Error('invalid_link','Ungültige Link-ID.'):0;
         if(false===$wpdb->update($wpdb->links,$data,['link_id'=>$id]))return $wp_error?new WP_Error('db_update_error','Der Link konnte nicht aktualisiert werden.',$wpdb->last_error):0;
     } else {
         $data['link_updated']=gmdate('Y-m-d H:i:s');
@@ -62,12 +62,12 @@ if(!function_exists('wp_insert_link')){ function wp_insert_link($linkdata, $wp_e
     return $id;
 } }
 if(!function_exists('wp_update_link')){ function wp_update_link($linkdata) {   // vorhandene Felder bleiben, wenn sie nicht übergeben werden
-    $id=(int)($linkdata['link_id']??0);$old=rrw_adm_link_row($id,ARRAY_A);if(!$old)return 0;
+    $id=(int)($linkdata['link_id']??0);$old=elvado_adm_link_row($id,ARRAY_A);if(!$old)return 0;
     $old=wp_slash($old);$old['link_category']=wp_get_link_cats($id);
     return wp_insert_link(array_merge($old,wp_parse_args($linkdata)));
 } }
 if(!function_exists('wp_delete_link')){ function wp_delete_link($link_id) {
-    global $wpdb;$link_id=(int)$link_id;if(!rrw_adm_link_row($link_id))return false;
+    global $wpdb;$link_id=(int)$link_id;if(!elvado_adm_link_row($link_id))return false;
     do_action('delete_link',$link_id);
     wp_delete_object_term_relationships($link_id,'link_category');
     $wpdb->delete($wpdb->links,['link_id'=>$link_id]);

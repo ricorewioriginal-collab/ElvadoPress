@@ -2,21 +2,21 @@
 // Prüft die ergänzenden Admin-Funktionen der WordPress-Schicht (cms/wp/core/ext/admin-*.php): Ajax-Handler (wp_ajax_*), Installation/Aktualisierung,
 // Dashboard, Meta-Boxen, Menüs, Links, Bildeditor, Datenschutz-Werkzeuge, Plugin-/Theme-Oberflächen. Aufruf: php scripts/test-wp-ext-admin.php
 // (Nicht zu verwechseln mit scripts/test-wp-admin.php, das Seiten/Einstellungen der Plugin-Verwaltung prüft.)
-$tmp=sys_get_temp_dir().'/rrw-xa-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/themes');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');define('RRW_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-xa-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/themes');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');define('ELVADO_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
 file_put_contents($tmp.'/cms/news.json','[]');
 file_put_contents($tmp.'/cms/site.json',json_encode(['comments'=>['enabled'=>true,'require_approval'=>false],'menus'=>['top'=>[['id'=>'m1','label'=>'Start','target'=>'system:start','enabled'=>true]]]]));
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';require __DIR__.'/../cms/wp/router.php';require __DIR__.'/../cms/wp/admin.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
-$GLOBALS['rrw_wp_die_throws']=true;$GLOBALS['rrw_wp_is_admin']=true;
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
+$GLOBALS['elvado_wp_die_throws']=true;$GLOBALS['elvado_wp_is_admin']=true;
 update_option('admin_email','chef@example.test');update_option('blogname','Testradio');
 $mails=[];add_filter('pre_wp_mail',function($pre,$atts) use(&$mails){ $mails[]=$atts;return true; },10,2);
-function as_user(int $id,string $login,string $role): void { $GLOBALS['rrw_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>rrw_wp_caps_for_role($role)]; }
+function as_user(int $id,string $login,string $role): void { $GLOBALS['elvado_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>elvado_wp_caps_for_role($role)]; }
 /** Ajax-Aufruf über den Router-Baustein: action in der Query, Felder im Rumpf. */
-function aj(string $action,array $post=[],bool $login=true,array $get=[]): array { return rrw_wp_ajax('POST',http_build_query(array_merge(['action'=>$action],$get)),http_build_query($post),$login); }
+function aj(string $action,array $post=[],bool $login=true,array $get=[]): array { return elvado_wp_ajax('POST',http_build_query(array_merge(['action'=>$action],$get)),http_build_query($post),$login); }
 function out(callable $f): string { ob_start(); try { $f(); } finally { $s=ob_get_clean(); } return $s; }
 function js(array $r) { return json_decode($r['text'],true); }
 
@@ -86,13 +86,13 @@ t('rest-nonce gültig für wp_rest',(bool)wp_verify_nonce(aj('rest-nonce')['text
 t('date_format: Y-m-d',(bool)preg_match('/^\d{4}-\d\d-\d\d$/',aj('date_format',['date'=>'Y-m-d'])['text']));
 t('time_format: H:i',(bool)preg_match('/^\d\d:\d\d$/',aj('time_format',['date'=>'H:i'])['text']));
 $r=aj('heartbeat',['_nonce'=>wp_create_nonce('heartbeat-nonce'),'screen_id'=>'front']);t('heartbeat: server_time',isset(js($r)['server_time']));
-add_filter('heartbeat_received',function($resp,$data){ if(isset($data['rrw-ping']))$resp['rrw-pong']=$data['rrw-ping'];return $resp; },10,2);
-$r=aj('heartbeat',['_nonce'=>wp_create_nonce('heartbeat-nonce'),'data'=>['rrw-ping'=>'x']]);t('heartbeat: Filter heartbeat_received',(js($r)['rrw-pong']??'')==='x');
+add_filter('heartbeat_received',function($resp,$data){ if(isset($data['elvado-ping']))$resp['elvado-pong']=$data['elvado-ping'];return $resp; },10,2);
+$r=aj('heartbeat',['_nonce'=>wp_create_nonce('heartbeat-nonce'),'data'=>['elvado-ping'=>'x']]);t('heartbeat: Filter heartbeat_received',(js($r)['elvado-pong']??'')==='x');
 t('heartbeat: falsches Nonce → nonces_expired',!empty(js(aj('heartbeat',['_nonce'=>'falsch']))['nonces_expired']));
 t('heartbeat ohne Nonce → Fehler',js(aj('heartbeat'))['success']===false);
 add_filter('heartbeat_nopriv_send',function($r){ $r['front']='ja';return $r; });
 t('heartbeat nopriv (Besucher)',(js(aj('heartbeat',['_nonce'=>'x'],false))['front']??'')==='ja');
-t('dismiss-wp-pointer: erstes Mal 1, dann 0',aj('dismiss-wp-pointer',['pointer'=>'rrw_p1'])['text']==='1'&&aj('dismiss-wp-pointer',['pointer'=>'rrw_p1'])['text']==='0');
+t('dismiss-wp-pointer: erstes Mal 1, dann 0',aj('dismiss-wp-pointer',['pointer'=>'elvado_p1'])['text']==='1'&&aj('dismiss-wp-pointer',['pointer'=>'elvado_p1'])['text']==='0');
 t('dismiss-wp-pointer: ungültiger Name → 0',aj('dismiss-wp-pointer',['pointer'=>'Bad Name!'])['text']==='0');
 $r=aj('closed-postboxes',['closedpostboxesnonce'=>wp_create_nonce('closedpostboxes'),'page'=>'post','closed'=>'a,b','hidden'=>'c']);
 t('closed-postboxes speichert Benutzeroption',$r['text']==='1'&&get_user_option('closedpostboxes_post')===['a','b']&&get_user_option('metaboxhidden_post')===['c']);
@@ -116,13 +116,13 @@ $pid=wp_insert_post(['post_title'=>'Testbeitrag','post_content'=>'Inhalt','post_
 t('Testbeitrag angelegt',is_int($pid)&&$pid>0);
 $cid=wp_insert_comment(['comment_post_ID'=>$pid,'comment_author'=>'Gast','comment_author_email'=>'gast@example.test','comment_content'=>'Hallo','comment_approved'=>1]);
 $r=aj('delete-comment',['id'=>$cid,'trash'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);
-t('delete-comment (trash): XML und Status',str_contains($r['text'],'<wp_ajax>')&&rrw_adm_cstatus($cid)==='trash',$r['text']);
-$r=aj('delete-comment',['id'=>$cid,'untrash'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);t('delete-comment (untrash)',rrw_adm_cstatus($cid)==='approved');
-$r=aj('delete-comment',['id'=>$cid,'spam'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);t('delete-comment (spam)',rrw_adm_cstatus($cid)==='spam');
-$r=aj('delete-comment',['id'=>$cid,'unspam'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);t('delete-comment (unspam)',rrw_adm_cstatus($cid)==='approved');
+t('delete-comment (trash): XML und Status',str_contains($r['text'],'<wp_ajax>')&&elvado_adm_cstatus($cid)==='trash',$r['text']);
+$r=aj('delete-comment',['id'=>$cid,'untrash'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);t('delete-comment (untrash)',elvado_adm_cstatus($cid)==='approved');
+$r=aj('delete-comment',['id'=>$cid,'spam'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);t('delete-comment (spam)',elvado_adm_cstatus($cid)==='spam');
+$r=aj('delete-comment',['id'=>$cid,'unspam'=>1,'_ajax_nonce'=>wp_create_nonce("delete-comment_$cid")]);t('delete-comment (unspam)',elvado_adm_cstatus($cid)==='approved');
 t('delete-comment ohne Nonce → 403',aj('delete-comment',['id'=>$cid,'trash'=>1])['status']===403);
-$r=aj('dim-comment',['id'=>$cid,'new'=>'unapproved','_ajax_nonce'=>wp_create_nonce("approve-comment_$cid")]);t('dim-comment: zurückstellen',rrw_adm_cstatus($cid)==='unapproved',$r['text']);
-$r=aj('dim-comment',['id'=>$cid,'new'=>'approved','_ajax_nonce'=>wp_create_nonce("approve-comment_$cid")]);t('dim-comment: freigeben',rrw_adm_cstatus($cid)==='approved');
+$r=aj('dim-comment',['id'=>$cid,'new'=>'unapproved','_ajax_nonce'=>wp_create_nonce("approve-comment_$cid")]);t('dim-comment: zurückstellen',elvado_adm_cstatus($cid)==='unapproved',$r['text']);
+$r=aj('dim-comment',['id'=>$cid,'new'=>'approved','_ajax_nonce'=>wp_create_nonce("approve-comment_$cid")]);t('dim-comment: freigeben',elvado_adm_cstatus($cid)==='approved');
 $r=aj('replyto-comment',['comment_post_ID'=>$pid,'comment_ID'=>$cid,'content'=>'Antwort','_ajax_nonce-replyto-comment'=>wp_create_nonce('replyto-comment')]);
 global $wpdb;$reply=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->comments} WHERE comment_parent = %d",$cid));
 t('replyto-comment legt Antwort an',$reply&&$reply->comment_content==='Antwort'&&str_contains($r['text'],'<wp_ajax>'),$r['text']);
@@ -140,7 +140,7 @@ $r=aj('add-category',['action'=>'add-category','newcategory'=>'Musik','_ajax_non
 t('add-category (hierarchisch): Begriff + XML',term_exists('Musik','category')&&str_contains($r['text'],'Musik'),$r['text']);
 $r=aj('add-link-category',['newcat'=>'Freunde','_ajax_nonce'=>wp_create_nonce('add-link-category')]);t('add-link-category',term_exists('Freunde','link_category')&&str_contains($r['text'],'Freunde'),$r['text']);
 $lid=wp_insert_link(['link_name'=>'Radio','link_url'=>'https://radio.example.test/']);
-$r=aj('delete-link',['id'=>$lid,'_ajax_nonce'=>wp_create_nonce("delete-bookmark_$lid")]);t('delete-link',$r['text']==='1'&&!rrw_adm_link_row($lid),$r['text']);
+$r=aj('delete-link',['id'=>$lid,'_ajax_nonce'=>wp_create_nonce("delete-bookmark_$lid")]);t('delete-link',$r['text']==='1'&&!elvado_adm_link_row($lid),$r['text']);
 $r=aj('add-meta',['post_id'=>$pid,'metakeyinput'=>'farbe','metavalue'=>'blau','_ajax_nonce-add-meta'=>wp_create_nonce('add-meta')]);
 t('add-meta: Feld gespeichert',get_post_meta($pid,'farbe',true)==='blau'&&str_contains($r['text'],'<wp_ajax>'),$r['text']);
 $mid=$wpdb->get_var($wpdb->prepare("SELECT meta_id FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = 'farbe'",$pid));
@@ -183,7 +183,7 @@ $sw=wp_get_sidebars_widgets();$sw['wp_inactive_widgets']=['search-9'];wp_set_sid
 $r=aj('delete-inactive-widgets',['removeinactivewidgets'=>wp_create_nonce('remove-inactive-widgets')]);t('delete-inactive-widgets',$r['text']==='deleted'&&(wp_get_sidebars_widgets()['wp_inactive_widgets']??[])===[]);
 
 /* ───────── Ajax: Medien ───────── */
-$up=wp_upload_dir();wp_mkdir_p($up['path']);$png=$up['path'].'/rrw-test.png';
+$up=wp_upload_dir();wp_mkdir_p($up['path']);$png=$up['path'].'/elvado-test.png';
 $has_gd=function_exists('imagecreatetruecolor');
 if($has_gd){ $im=imagecreatetruecolor(40,20);imagefill($im,0,0,imagecolorallocate($im,200,30,30));imagepng($im,$png); }
 else file_put_contents($png,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='));
@@ -225,18 +225,18 @@ $r=aj('wp-link-ajax',['search'=>'Vollbild','_ajax_linking_nonce'=>wp_create_nonc
 /* ───────── Ajax: Plugins, Themes, Datenschutz, Website-Zustand ───────── */
 t('install-plugin ohne Slug → JSON-Fehler',js(aj('install-plugin',['_ajax_nonce'=>wp_create_nonce('updates')]))['success']===false);
 t('install-plugin ohne Nonce → 403',aj('install-plugin',['slug'=>'x'])['status']===403);
-mkdir(WP_PLUGIN_DIR.'/rrw-demo');file_put_contents(WP_PLUGIN_DIR.'/rrw-demo/rrw-demo.php',"<?php\n/*\nPlugin Name: RRW Demo\nVersion: 1.0\n*/\n");
-$r=aj('activate-plugin',['plugin'=>'rrw-demo/rrw-demo.php','slug'=>'rrw-demo','_ajax_nonce'=>wp_create_nonce('updates')]);t('activate-plugin',js($r)['success']===true&&in_array('rrw-demo/rrw-demo.php',(array)get_option('active_plugins'),true),$r['text']);
-$r=aj('delete-plugin',['plugin'=>'rrw-demo/rrw-demo.php','slug'=>'rrw-demo','_ajax_nonce'=>wp_create_nonce('updates')]);t('delete-plugin: aktives Plugin bleibt',js($r)['success']===false&&is_dir(WP_PLUGIN_DIR.'/rrw-demo'),$r['text']);
-deactivate_plugins('rrw-demo/rrw-demo.php',true);
-$r=aj('delete-plugin',['plugin'=>'rrw-demo/rrw-demo.php','slug'=>'rrw-demo','_ajax_nonce'=>wp_create_nonce('updates')]);t('delete-plugin: inaktives Plugin wird gelöscht',js($r)['success']===true&&!is_dir(WP_PLUGIN_DIR.'/rrw-demo'),$r['text']);
+mkdir(WP_PLUGIN_DIR.'/elvado-demo');file_put_contents(WP_PLUGIN_DIR.'/elvado-demo/elvado-demo.php',"<?php\n/*\nPlugin Name: ELVADO Demo\nVersion: 1.0\n*/\n");
+$r=aj('activate-plugin',['plugin'=>'elvado-demo/elvado-demo.php','slug'=>'elvado-demo','_ajax_nonce'=>wp_create_nonce('updates')]);t('activate-plugin',js($r)['success']===true&&in_array('elvado-demo/elvado-demo.php',(array)get_option('active_plugins'),true),$r['text']);
+$r=aj('delete-plugin',['plugin'=>'elvado-demo/elvado-demo.php','slug'=>'elvado-demo','_ajax_nonce'=>wp_create_nonce('updates')]);t('delete-plugin: aktives Plugin bleibt',js($r)['success']===false&&is_dir(WP_PLUGIN_DIR.'/elvado-demo'),$r['text']);
+deactivate_plugins('elvado-demo/elvado-demo.php',true);
+$r=aj('delete-plugin',['plugin'=>'elvado-demo/elvado-demo.php','slug'=>'elvado-demo','_ajax_nonce'=>wp_create_nonce('updates')]);t('delete-plugin: inaktives Plugin wird gelöscht',js($r)['success']===true&&!is_dir(WP_PLUGIN_DIR.'/elvado-demo'),$r['text']);
 t('update-plugin ohne Installer → JSON-Fehler',js(aj('update-plugin',['plugin'=>'a/a.php','slug'=>'a','_ajax_nonce'=>wp_create_nonce('updates')]))['success']===false);
 mkdir($tmp.'/wp-content/themes/altes');file_put_contents($tmp.'/wp-content/themes/altes/style.css',"/*\nTheme Name: Altes\n*/");file_put_contents($tmp.'/wp-content/themes/altes/index.php','<?php');
 $r=aj('delete-theme',['slug'=>'altes','_ajax_nonce'=>wp_create_nonce('updates')]);t('delete-theme',js($r)['success']===true&&!is_dir($tmp.'/wp-content/themes/altes'),$r['text']);
 t('delete-theme: aktives Theme bleibt',js(aj('delete-theme',['slug'=>get_stylesheet(),'_ajax_nonce'=>wp_create_nonce('updates')]))['success']===false);
 t('install-theme ohne Slug → Fehler',js(aj('install-theme',['_ajax_nonce'=>wp_create_nonce('updates')]))['success']===false);
-$r=aj('toggle-auto-updates',['type'=>'plugin','asset'=>'rrw-demo/rrw-demo.php','state'=>'enable','_ajax_nonce'=>wp_create_nonce('updates')]);t('toggle-auto-updates (ein)',js($r)['success']===true&&in_array('rrw-demo/rrw-demo.php',(array)get_option('auto_update_plugins'),true));
-aj('toggle-auto-updates',['type'=>'plugin','asset'=>'rrw-demo/rrw-demo.php','state'=>'disable','_ajax_nonce'=>wp_create_nonce('updates')]);t('toggle-auto-updates (aus)',!in_array('rrw-demo/rrw-demo.php',(array)get_option('auto_update_plugins'),true));
+$r=aj('toggle-auto-updates',['type'=>'plugin','asset'=>'elvado-demo/elvado-demo.php','state'=>'enable','_ajax_nonce'=>wp_create_nonce('updates')]);t('toggle-auto-updates (ein)',js($r)['success']===true&&in_array('elvado-demo/elvado-demo.php',(array)get_option('auto_update_plugins'),true));
+aj('toggle-auto-updates',['type'=>'plugin','asset'=>'elvado-demo/elvado-demo.php','state'=>'disable','_ajax_nonce'=>wp_create_nonce('updates')]);t('toggle-auto-updates (aus)',!in_array('elvado-demo/elvado-demo.php',(array)get_option('auto_update_plugins'),true));
 t('toggle-auto-updates: ungültiger Zustand → Fehler',js(aj('toggle-auto-updates',['type'=>'plugin','asset'=>'x','state'=>'?','_ajax_nonce'=>wp_create_nonce('updates')]))['success']===false);
 $r=aj('edit-theme-plugin-file',['theme'=>'x','file'=>'style.css','nonce'=>wp_create_nonce('edit-theme_x_style.css'),'newcontent'=>'a']);t('edit-theme-plugin-file: bei DISALLOW_FILE_EDIT abgelehnt',js($r)['success']===false,$r['text']);
 $hc=['nonce'=>wp_create_nonce('health-check-site-status')];
@@ -244,8 +244,8 @@ foreach(['health-check-dotorg-communication','health-check-background-updates','
 $r=aj('health-check-site-status-result',['counts'=>['good'=>5,'recommended'=>1,'critical'=>0],'_ajax_nonce'=>$hc['nonce']]);t('health-check-site-status-result speichert',js($r)['success']===true&&(json_decode((string)get_transient('health-check-site-status-result'),true)['good']??0)===5);
 $r=aj('health-check-get-sizes',['_ajax_nonce'=>$hc['nonce']]);t('health-check-get-sizes: Größen',isset(js($r)['data']['total_size']['raw']),$r['text']);
 t('health-check ohne Nonce → 403',aj('health-check-get-sizes')['status']===403);
-add_filter('wp_privacy_personal_data_exporters',function($e){ $e['rrw']=['exporter_friendly_name'=>'Test','callback'=>function($email,$page){ return ['data'=>[['group_id'=>'g1','group_label'=>'Gruppe','item_id'=>'i1','data'=>[['name'=>'Name','value'=>'Wert']]]],'done'=>true]; }];return $e; });
-add_filter('wp_privacy_personal_data_erasers',function($e){ $e['rrw']=['eraser_friendly_name'=>'Test','callback'=>function($email,$page){ return ['items_removed'=>true,'items_retained'=>false,'messages'=>['ok'],'done'=>true]; }];return $e; });
+add_filter('wp_privacy_personal_data_exporters',function($e){ $e['elvado']=['exporter_friendly_name'=>'Test','callback'=>function($email,$page){ return ['data'=>[['group_id'=>'g1','group_label'=>'Gruppe','item_id'=>'i1','data'=>[['name'=>'Name','value'=>'Wert']]]],'done'=>true]; }];return $e; });
+add_filter('wp_privacy_personal_data_erasers',function($e){ $e['elvado']=['eraser_friendly_name'=>'Test','callback'=>function($email,$page){ return ['items_removed'=>true,'items_retained'=>false,'messages'=>['ok'],'done'=>true]; }];return $e; });
 $rq=wp_create_user_request('person@example.test','export_personal_data');
 $nex=count(apply_filters('wp_privacy_personal_data_exporters',[]));$r=['text'=>''];
 for($i=1;$i<=$nex;$i++)$r=aj('wp-privacy-export-personal-data',['id'=>$rq,'exporter'=>$i,'page'=>1,'sendAsEmail'=>'true','security'=>wp_create_nonce('wp-privacy-export-personal-data-'.$rq)]);
@@ -263,7 +263,7 @@ t('translate_level_to_role',translate_level_to_role(10)==='administrator'&&trans
 t('deslash entfernt Backslashes',deslash("a\\'b\\\\c")==="a'b\\c");
 t('__get_option liest aus der Datenbank',__get_option('blogname')==='Testradio'&&__get_option('gibt_es_nicht')===false);
 t('get_alloptions_110 enthält blogname',(get_alloptions_110()['blogname']??'')==='Testradio');
-t('drop_index/add_clean_index liefern true',drop_index($wpdb->posts,'rrw_nix')===true&&add_clean_index($wpdb->posts,'post_author')===true);
+t('drop_index/add_clean_index liefern true',drop_index($wpdb->posts,'elvado_nix')===true&&add_clean_index($wpdb->posts,'post_author')===true);
 t('wp_should_upgrade_global_tables',wp_should_upgrade_global_tables()===true);
 wp_check_mysql_version();t('wp_check_mysql_version stirbt nicht',true);
 global $wp_db_version;update_option('db_version',100);$GLOBALS['wp_current_db_version']=100;upgrade_all();
@@ -276,20 +276,20 @@ t('populate_options ergänzt Fehlendes, lässt Vorhandenes',get_option('default_
 populate_options(['posts_per_rss'=>33]);t('populate_options mit eigenen Werten (nur wenn fehlt)',(int)get_option('posts_per_rss')===10);
 populate_roles();t('populate_roles: Administrator behält Rechte',get_role('administrator')->has_cap('manage_options')&&get_role('administrator')->has_cap('edit_theme_options'));
 install_network();t('populate_network: kein Netzwerk (WP_Error)',is_wp_error(populate_network()));
-populate_network_meta(1,['rrw_meta'=>'ja']);t('populate_network_meta schreibt Site-Option',get_site_option('rrw_meta')==='ja');
-populate_site_meta(1,['a'=>1]);t('populate_site_meta (Site 1)',(get_option('rrw_site_meta')['a']??0)===1);
+populate_network_meta(1,['elvado_meta'=>'ja']);t('populate_network_meta schreibt Site-Option',get_site_option('elvado_meta')==='ja');
+populate_site_meta(1,['a'=>1]);t('populate_site_meta (Site 1)',(get_option('elvado_site_meta')['a']??0)===1);
 t('make_site_theme* sind Standardwerte (false)',make_site_theme()===false&&make_site_theme_from_default('a','b')===false&&make_site_theme_from_oldschool('a','b')===false);
 update_option('active_plugins',['widgets.php','x/x.php']);maybe_disable_automattic_widgets();t('maybe_disable_automattic_widgets',get_option('active_plugins')===['x/x.php']);update_option('active_plugins',[]);
 $GLOBALS['wp_current_db_version']=30000;update_option('link_manager_enabled',1);maybe_disable_link_manager();t('maybe_disable_link_manager (keine Links → aus)',(int)get_option('link_manager_enabled')===0);
 t('update_core: nicht unterstützt (WP_Error)',is_wp_error(update_core('/a','/b')));
-$gd=$tmp.'/wp-content/plugins/rrw-gen/genericons';mkdir($gd,0775,true);file_put_contents($gd.'/example.html','<html>genericons</html>');
-t('_upgrade_422_find_genericons_files_in_folder findet example.html',count(_upgrade_422_find_genericons_files_in_folder($tmp.'/wp-content/plugins/rrw-gen'))===1);
+$gd=$tmp.'/wp-content/plugins/elvado-gen/genericons';mkdir($gd,0775,true);file_put_contents($gd.'/example.html','<html>genericons</html>');
+t('_upgrade_422_find_genericons_files_in_folder findet example.html',count(_upgrade_422_find_genericons_files_in_folder($tmp.'/wp-content/plugins/elvado-gen'))===1);
 _upgrade_422_remove_genericons();t('_upgrade_422_remove_genericons löscht die Datei',!is_file($gd.'/example.html'));
 mkdir(WP_PLUGIN_DIR.'/hoch');file_put_contents(WP_PLUGIN_DIR.'/hoch/hoch.php',"<?php\n/*\nPlugin Name: Hoch\nRequires at least: 99.0\n*/\n");update_option('active_plugins',['hoch/hoch.php']);
 t('_upgrade_core_deactivate_incompatible_plugins schaltet zu neue Anforderung ab',_upgrade_core_deactivate_incompatible_plugins()===['hoch/hoch.php']&&!in_array('hoch/hoch.php',(array)get_option('active_plugins'),true)&&isset(get_option('wp_force_deactivated_plugins')['hoch/hoch.php']));
 t('_upgrade_440_… delegiert',_upgrade_440_force_deactivate_incompatible_plugins()===[]);
 _preload_old_requests_classes_and_interfaces('6.8');
-$ok=false;try{ _redirect_to_about_wordpress('6.8'); }catch(RRW_WP_Die $e){ $ok=$e->getCode()===302; }t('_redirect_to_about_wordpress leitet um',$ok);
+$ok=false;try{ _redirect_to_about_wordpress('6.8'); }catch(ELVADO_WP_Die $e){ $ok=$e->getCode()===302; }t('_redirect_to_about_wordpress leitet um',$ok);
 
 /* ───────── PclZip-Hilfen, Danksagungen, Sprachen, Importer, Bildschirmhilfen ───────── */
 t('PclZipUtilPathReduction',PclZipUtilPathReduction('a/b/../c')==='a/c'&&PclZipUtilPathReduction('a/./b/')==='a/b/'&&PclZipUtilPathReduction('../a')==='../a'&&PclZipUtilPathReduction('/x/y/../z')==='/x/z'&&PclZipUtilPathReduction('')===''&&PclZipUtilPathReduction('a/../../b')==='../b');
@@ -312,12 +312,12 @@ $pop=wp_get_popular_importers();t('wp_get_popular_importers',isset($pop['wordpre
 t('add_cssclass',add_cssclass('b','')==='b'&&add_cssclass('b','a')==='a b');
 $menu=[0=>['Dashboard','read','index.php','','menu-top'],4=>['','read','sep','','wp-menu-separator'],5=>['Beiträge','edit_posts','edit.php','','menu-top'],6=>['Medien','upload_files','upload.php','','menu-top']];
 $mc=add_menu_classes($menu);t('add_menu_classes: first/last',str_contains($mc[0][4],'menu-top-first')&&str_contains($mc[5][4],'menu-top-first')&&str_contains($mc[6][4],'menu-top-last')&&str_contains($mc[0][4],'menu-top-last'));
-register_column_headers('rrw-liste',['cb'=>'x','title'=>'Titel','autor'=>'Autor']);
-t('register_column_headers/print_column_headers',str_contains(out(fn()=>print_column_headers('rrw-liste')),'column-title')&&str_contains(out(fn()=>print_column_headers('rrw-liste')),'check-column'));
-update_user_option(1,'manage'.'rrw-listecolumnshidden',['autor'],true);
-t('print_column_headers blendet versteckte Spalten aus (hidden)',(bool)preg_match('/column-autor[^"]*hidden/',out(fn()=>print_column_headers('rrw-liste'))));
-rrw_adm_add_box('rrw-box','Meine Box','__return_empty_string','rrw-seite','normal');
-t('get_hidden_meta_boxes liefert Array, meta_box_prefs gibt Kontrollkästchen aus',is_array(get_hidden_meta_boxes('rrw-seite'))&&str_contains(out(fn()=>meta_box_prefs('rrw-seite')),'rrw-box-hide'));
+register_column_headers('elvado-liste',['cb'=>'x','title'=>'Titel','autor'=>'Autor']);
+t('register_column_headers/print_column_headers',str_contains(out(fn()=>print_column_headers('elvado-liste')),'column-title')&&str_contains(out(fn()=>print_column_headers('elvado-liste')),'check-column'));
+update_user_option(1,'manage'.'elvado-listecolumnshidden',['autor'],true);
+t('print_column_headers blendet versteckte Spalten aus (hidden)',(bool)preg_match('/column-autor[^"]*hidden/',out(fn()=>print_column_headers('elvado-liste'))));
+elvado_adm_add_box('elvado-box','Meine Box','__return_empty_string','elvado-seite','normal');
+t('get_hidden_meta_boxes liefert Array, meta_box_prefs gibt Kontrollkästchen aus',is_array(get_hidden_meta_boxes('elvado-seite'))&&str_contains(out(fn()=>meta_box_prefs('elvado-seite')),'elvado-box-hide'));
 
 /* ───────── Dashboard ───────── */
 wp_dashboard_setup();
@@ -340,9 +340,9 @@ set_transient('dash_v2_'.md5('dashboard_primary_'.get_user_locale()),'<p>NEWS-CA
 t('wp_dashboard_primary/-cached_rss_widget nutzen den Zwischenspeicher (ohne Netz)',str_contains(out(fn()=>wp_dashboard_primary()),'NEWS-CACHE')&&str_contains(out(fn()=>wp_dashboard_events_news()),'NEWS-CACHE'));
 t('wp_print_community_events_markup/-templates',str_contains(out(fn()=>wp_print_community_events_markup()),'community-events')&&str_contains(out(fn()=>wp_print_community_events_templates()),'tmpl-community-events'));
 t('wp_dashboard_primary_output ohne Feeds leer',out(fn()=>wp_dashboard_primary_output('x',[]))==='');
-t('wp_dashboard_rss_output/-control',is_string(out(fn()=>wp_dashboard_rss_control('rrw_feed')))&&str_contains(out(fn()=>wp_dashboard_rss_control('rrw_feed')),'widget-rss'));
-$GLOBALS['wp_dashboard_control_callbacks']=['rrw_w'=>function(){ echo 'STEUERUNG'; }];
-t('wp_dashboard_trigger_widget_control + _wp_dashboard_control_callback',str_contains(out(fn()=>_wp_dashboard_control_callback('',['id'=>'rrw_w'])),'STEUERUNG')&&str_contains(out(fn()=>wp_dashboard_trigger_widget_control('rrw_w')),'STEUERUNG'));
+t('wp_dashboard_rss_output/-control',is_string(out(fn()=>wp_dashboard_rss_control('elvado_feed')))&&str_contains(out(fn()=>wp_dashboard_rss_control('elvado_feed')),'widget-rss'));
+$GLOBALS['wp_dashboard_control_callbacks']=['elvado_w'=>function(){ echo 'STEUERUNG'; }];
+t('wp_dashboard_trigger_widget_control + _wp_dashboard_control_callback',str_contains(out(fn()=>_wp_dashboard_control_callback('',['id'=>'elvado_w'])),'STEUERUNG')&&str_contains(out(fn()=>wp_dashboard_trigger_widget_control('elvado_w')),'STEUERUNG'));
 
 /* ───────── Meta-Boxen ───────── */
 $post=get_post($pid);
@@ -352,7 +352,7 @@ t('post_excerpt/slug/trackback/comment_status-Boxen',str_contains(out(fn()=>post
 t('post_author_meta_box: Auswahlliste',str_contains(out(fn()=>post_author_meta_box($post)),'post_author_override'));
 $pgp=get_post(wp_insert_post(['post_title'=>'Attr','post_type'=>'page','post_status'=>'publish','post_author'=>1]));
 t('page_attributes_meta_box (Seite): übergeordnet + Reihenfolge',str_contains(out(fn()=>page_attributes_meta_box($pgp)),'menu_order')&&str_contains(out(fn()=>page_attributes_meta_box($pgp)),'parent_id'));
-update_post_meta($pid,'rrw_feld','Wert1');t('post_custom_meta_box: listet Felder',str_contains(out(fn()=>post_custom_meta_box(get_post($pid))),'rrw_feld'));
+update_post_meta($pid,'elvado_feld','Wert1');t('post_custom_meta_box: listet Felder',str_contains(out(fn()=>post_custom_meta_box(get_post($pid))),'elvado_feld'));
 t('post_comment_meta_box + _thead',str_contains(out(fn()=>post_comment_meta_box(get_post($pid))),'comment-'.$cid)&&post_comment_meta_box_thead(['cb'=>'x','author'=>'A','response'=>'R'])===['author'=>'A']);
 t('post_thumbnail_meta_box',is_string(out(fn()=>post_thumbnail_meta_box(get_post($pid)))));
 t('post_revisions_meta_box/post_format_meta_box laufen leer durch',is_string(out(fn()=>post_revisions_meta_box(get_post($pid))))&&out(fn()=>post_format_meta_box(get_post($pid),[]))==='');
@@ -385,19 +385,19 @@ t('_wp_ajax_menu_quick_search: get-post-item (JSON)',str_contains(out(fn()=>_wp_
 
 /* ───────── Linkverwaltung ───────── */
 $l1=wp_insert_link(['link_name'=>'Sender','link_url'=>'https://sender.example.test/','link_rating'=>4,'link_category'=>[]]);
-t('wp_insert_link: ID und Felder',$l1>0&&rrw_adm_link_row($l1)->link_rating==4&&rrw_adm_link_row($l1)->link_visible==='Y');
+t('wp_insert_link: ID und Felder',$l1>0&&elvado_adm_link_row($l1)->link_rating==4&&elvado_adm_link_row($l1)->link_visible==='Y');
 t('wp_insert_link: Standard-Linkkategorie',wp_get_link_cats($l1)===[(int)get_option('default_link_category')]);
 t('wp_insert_link: ohne URL → 0 / WP_Error',wp_insert_link(['link_name'=>'x'])===0&&is_wp_error(wp_insert_link(['link_name'=>'x'],true))&&wp_insert_link(['link_url'=>'https://nur-url.example.test/'])>0);
 $cat=wp_insert_term('Partner','link_category');wp_set_link_cats($l1,[$cat['term_id']]);t('wp_set_link_cats/wp_get_link_cats',wp_get_link_cats($l1)===[(int)$cat['term_id']]);
-wp_update_link(['link_id'=>$l1,'link_name'=>'Sender neu']);$row=rrw_adm_link_row($l1);
+wp_update_link(['link_id'=>$l1,'link_name'=>'Sender neu']);$row=elvado_adm_link_row($l1);
 t('wp_update_link: ändert Name, behält URL, Wertung und Kategorie',$row->link_name==='Sender neu'&&$row->link_url==='https://sender.example.test/'&&$row->link_rating==4&&wp_get_link_cats($l1)===[(int)$cat['term_id']]);
 $ed=get_link_to_edit($l1);t('get_link_to_edit',$ed->link_name==='Sender neu'&&get_link_to_edit(99999999)===null);
 $_GET['linkurl']='https://x.test/';$d=get_default_link_to_edit();t('get_default_link_to_edit',$d->link_visible==='Y'&&str_contains($d->link_url,'x.test'));$_GET=[];
-$_POST=['link_name'=>'Per Formular','link_url'=>'https://form.example.test/','link_description'=>'Beschreibung'];$l2=add_link();t('add_link/edit_link aus $_POST',$l2>0&&rrw_adm_link_row($l2)->link_description==='Beschreibung');
-$_POST=['link_name'=>'Per Formular 2','link_url'=>'https://form.example.test/'];$l3=edit_link($l2);t('edit_link (vorhandener Link)',$l3===$l2&&rrw_adm_link_row($l2)->link_name==='Per Formular 2');$_POST=[];
-t('wp_delete_link',wp_delete_link($l2)===true&&rrw_adm_link_row($l2)===null&&wp_delete_link($l2)===false);
+$_POST=['link_name'=>'Per Formular','link_url'=>'https://form.example.test/','link_description'=>'Beschreibung'];$l2=add_link();t('add_link/edit_link aus $_POST',$l2>0&&elvado_adm_link_row($l2)->link_description==='Beschreibung');
+$_POST=['link_name'=>'Per Formular 2','link_url'=>'https://form.example.test/'];$l3=edit_link($l2);t('edit_link (vorhandener Link)',$l3===$l2&&elvado_adm_link_row($l2)->link_name==='Per Formular 2');$_POST=[];
+t('wp_delete_link',wp_delete_link($l2)===true&&elvado_adm_link_row($l2)===null&&wp_delete_link($l2)===false);
 $GLOBALS['pagenow']='index.php';wp_link_manager_disabled_message();t('wp_link_manager_disabled_message: andere Seite → nichts',true);
-$GLOBALS['pagenow']='link-manager.php';$ok=false;try{ wp_link_manager_disabled_message(); }catch(RRW_WP_Die $e){ $ok=$e->getCode()===403; }t('wp_link_manager_disabled_message: Linkverwaltung aus → 403',$ok);$GLOBALS['pagenow']='index.php';
+$GLOBALS['pagenow']='link-manager.php';$ok=false;try{ wp_link_manager_disabled_message(); }catch(ELVADO_WP_Die $e){ $ok=$e->getCode()===403; }t('wp_link_manager_disabled_message: Linkverwaltung aus → 403',$ok);$GLOBALS['pagenow']='index.php';
 
 /* ───────── Bildeditor (GD) ───────── */
 t('_image_get_preview_ratio',_image_get_preview_ratio(1200,600)===0.5&&_image_get_preview_ratio(300,200)===1);
@@ -427,7 +427,7 @@ t('_wp_privacy_completed_request',_wp_privacy_completed_request($rq3)===$rq3&&wp
 $g=['group_label'=>'Konto','group_description'=>'Daten','items'=>['a'=>[['name'=>'Seite','value'=>'https://x.test/'],['name'=>'Name','value'=>'Anna <b>X</b>']],'b'=>[['name'=>'Mail','value'=>'a@b.test']]]];
 $gh=wp_privacy_generate_personal_data_export_group_html($g,'k',2);
 t('wp_privacy_generate_personal_data_export_group_html: Titel, Zähler, Link, Nach-oben',str_contains($gh,'<h2 id="konto-k">Konto <span class="count">(2)</span></h2>')&&str_contains($gh,'<a href="https://x.test/">')&&str_contains($gh,'return-to-top'));
-$old=wp_create_user_request('alt@example.test','export_personal_data');_wp_privacy_completed_request($old);$wpdb->update($wpdb->posts,['post_modified_gmt'=>gmdate('Y-m-d H:i:s',time()-40*DAY_IN_SECONDS)],['ID'=>$old]);rrw_wp_post_cache_clear($old);
+$old=wp_create_user_request('alt@example.test','export_personal_data');_wp_privacy_completed_request($old);$wpdb->update($wpdb->posts,['post_modified_gmt'=>gmdate('Y-m-d H:i:s',time()-40*DAY_IN_SECONDS)],['ID'=>$old]);elvado_wp_post_cache_clear($old);
 _wp_personal_data_cleanup_requests();t('_wp_personal_data_cleanup_requests löscht alte erledigte Anfragen',!get_post($old)&&(bool)get_post($rq3));
 t('wp_privacy_generate_personal_data_export_file: ungültige Anfrage → Fehler',is_wp_error(wp_privacy_generate_personal_data_export_file(999999999)));
 t('wp_privacy_send_personal_data_export_email: ohne Datei → Text',is_string(wp_privacy_send_personal_data_export_email($rq3)));

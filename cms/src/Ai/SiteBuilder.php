@@ -288,7 +288,7 @@ final class SiteBuilder
 
     // ---- Seiten
 
-    /** @return list<array<string,mixed>> Blöcke im Format der CMS-Seiten (rrw_clean_blocks) */
+    /** @return list<array<string,mixed>> Blöcke im Format der CMS-Seiten (elvado_clean_blocks) */
     private static function pageBlocks(mixed $raw): array
     {
         $out = [];

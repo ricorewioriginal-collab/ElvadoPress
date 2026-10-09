@@ -9,22 +9,22 @@ use Elvado\Wp\Adapter\NativeAdapter;
 require_once __DIR__ . '/../src/autoload.php';
 
 /** Gemeinsame Engine dieser Anfrage. $cmsDir/$dataDir nur in Tests setzen. */
-function rrw_wpe(?string $cmsDir = null, ?string $dataDir = null, bool $fresh = false): Engine
+function elvado_wpe(?string $cmsDir = null, ?string $dataDir = null, bool $fresh = false): Engine
 {
     static $e = null;
     if ($e === null || $fresh) {
         $cms = $cmsDir ?? dirname(__DIR__);
-        if ($dataDir === null && !defined('RRW_DATA_DIR') && is_file($cms . '/lib/sites.php')) {   // weitere Website: eigener Engine-Zustand (state/db/keys) unter ihren Daten
+        if ($dataDir === null && !defined('ELVADO_DATA_DIR') && is_file($cms . '/lib/sites.php')) {   // weitere Website: eigener Engine-Zustand (state/db/keys) unter ihren Daten
             require_once $cms . '/lib/sites.php';
-            $dataDir = rrw_site_current() !== '' ? rrw_site_dir('data') : null;
+            $dataDir = elvado_site_current() !== '' ? elvado_site_dir('data') : null;
         }
-        $e = new Engine($cms, $dataDir ?? (defined('RRW_DATA_DIR') ? (string)RRW_DATA_DIR : $cms . '/data'));
+        $e = new Engine($cms, $dataDir ?? (defined('ELVADO_DATA_DIR') ? (string)ELVADO_DATA_DIR : $cms . '/data'));
     }
     return $e;
 }
 
 /** Zustand für die Verwaltung (ohne Geheimnisse). */
-function rrw_wpe_status(Engine $e, DbConfig $db): array
+function elvado_wpe_status(Engine $e, DbConfig $db): array
 {
     $s = $e->state();
     $req = Requirements::check($e);
@@ -39,7 +39,7 @@ function rrw_wpe_status(Engine $e, DbConfig $db): array
 }
 
 /** Aktuelle WordPress-Version und Systemprüfung mit deren Mindestanforderungen (fragt wordpress.org). */
-function rrw_wpe_prepare(Engine $e): array
+function elvado_wpe_prepare(Engine $e): array
 {
     $l = CoreSource::latest();
     $req = Requirements::check($e, $l['ok'] ? ['php' => $l['php'], 'mysql' => $l['mysql']] : []);
@@ -48,7 +48,7 @@ function rrw_wpe_prepare(Engine $e): array
 }
 
 /** Aktuellen WordPress-Core laden, prüfen und einspielen (Prüfsumme, Sicherheitsprüfung, atomar). */
-function rrw_wpe_install_core(Engine $e, string $version, string $localZip = ''): array
+function elvado_wpe_install_core(Engine $e, string $version, string $localZip = ''): array
 {
     $fail = fn(string $m): array => ['ok' => false, 'message' => $m, 'version' => ''];
     if ($localZip !== '') {   // vom Betreiber bereitgestelltes ZIP (z. B. Demo ohne Internet): Version und Prüfsumme kommen aus dem Archiv; Sicherheitsprüfung und atomares Einspielen wie sonst
@@ -97,7 +97,7 @@ function rrw_wpe_install_core(Engine $e, string $version, string $localZip = '')
 }
 
 /** Vor dem Anlegen der Tabellen: Core vorhanden, Datenbank erreichbar und ohne vorhandene WordPress-Tabellen; Angaben speichern. */
-function rrw_wpe_pre_install(Engine $e, DbConfig $db, array $cfg): array
+function elvado_wpe_pre_install(Engine $e, DbConfig $db, array $cfg): array
 {
     if ($e->corePath() === null) {
         return ['ok' => false, 'message' => 'WordPress ist noch nicht eingespielt.', 'prefix' => '', 'server' => ''];
@@ -118,7 +118,7 @@ function rrw_wpe_pre_install(Engine $e, DbConfig $db, array $cfg): array
 }
 
 /** Engine entfernen: Core-Dateien, Zugangsdaten und Zustand. Die Datenbank-Tabellen bleiben unangetastet. */
-function rrw_wpe_remove(Engine $e): array
+function elvado_wpe_remove(Engine $e): array
 {
     $i = new CoreInstaller($e);
     foreach (glob($e->coreRoot() . '/core-*', GLOB_ONLYDIR) ?: [] as $d) {
@@ -133,7 +133,7 @@ function rrw_wpe_remove(Engine $e): array
 }
 
 /** Antworten, die WordPress selbst beendet (z. B. Datenbankfehler als HTML), als JSON ausgeben. */
-function rrw_wpe_guard_output(): void
+function elvado_wpe_guard_output(): void
 {
     // Schwerer Fehler (z. B. in einem Plugin): sauberer JSON-Fehler statt leerer oder HTML-Seite; der nächste Aufruf startet abgesichert (Bridge::onShutdown/recover)
     register_shutdown_function(static function (): void {
@@ -158,13 +158,13 @@ function rrw_wpe_guard_output(): void
 }
 
 /** Nach dem Start von WordPress: ein zuvor abgestürzter Plugin-/Theme-Wechsel wird rückgängig gemacht. @return array{when:string,what:string}|null */
-function rrw_wpe_after_boot(Engine $e): ?array
+function elvado_wpe_after_boot(Engine $e): ?array
 {
     return \Elvado\Wp\Bridge::recovering() ? \Elvado\Wp\Bridge::recover($e) : null;
 }
 
 /** Tatsachen für Systemstatus und Update-Übersicht sammeln (kein Start von WordPress; Ergebnisse der letzten Update-Suche kommen aus dem Zwischenspeicher). @return array<string,mixed> */
-function rrw_wpe_facts(Engine $e, DbConfig $db, string $dataDir, string $cmsDir): array
+function elvado_wpe_facts(Engine $e, DbConfig $db, string $dataDir, string $cmsDir): array
 {
     $ini = static function (string $v): int {
         $v = trim($v);
@@ -178,7 +178,7 @@ function rrw_wpe_facts(Engine $e, DbConfig $db, string $dataDir, string $cmsDir)
     $cache = is_file($e->stateDir() . '/updates.json') ? json_decode((string)@file_get_contents($e->stateDir() . '/updates.json'), true) : null;
     $cache = is_array($cache) ? $cache : [];
     $f = [
-        'cms_version' => function_exists('rrw_cms_version') ? rrw_cms_version() : '',
+        'cms_version' => function_exists('elvado_cms_version') ? elvado_cms_version() : '',
         'php' => PHP_VERSION, 'memory_limit' => $ini((string)ini_get('memory_limit')),
         'disk_free' => ($d = @disk_free_space($dataDir)) === false ? null : (int)$d,
         'data_writable' => is_dir($dataDir) && is_writable($dataDir),

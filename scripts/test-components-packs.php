@@ -2,7 +2,7 @@
 // Prüft die Paket-Erweiterung der Komponenten: gebundene Bereiche („bind“), CSS dafür, Paket-Lader, Bearbeitungsziele, Vorschau-Schlüssel und das Einsetzen in fremdes HTML.
 // Aufruf: php scripts/test-components-packs.php
 declare(strict_types=1);
-function rrw_pack_available(string $pack = 'demo-pack', ?string $d = null): bool { return $pack === 'demo-pack'; }   // nur dieses Paket „ist vorhanden“
+function elvado_pack_available(string $pack = 'demo-pack', ?string $d = null): bool { return $pack === 'demo-pack'; }   // nur dieses Paket „ist vorhanden“
 require __DIR__ . '/../cms/lib/components.php';
 use Elvado\Components\{Registry, Component, Layout, Renderer, LayoutStore};
 use Elvado\Wp\Actor;
@@ -65,49 +65,49 @@ mkdir("$tmp/packs/demo-pack", 0755, true); mkdir("$tmp/packs/other-pack", 0755, 
 file_put_contents("$tmp/packs/demo-pack/components.php", '<?php return ["register" => function ($r, $src) { $r->register(["id" => "pk_one", "name" => "Eins", "bind" => "#one"], $src); }, "target" => ["id" => "demo", "label" => "Demo-Portal", "scope" => "site:demo", "preview" => "/"]];');
 file_put_contents("$tmp/packs/other-pack/components.php", '<?php return function ($r, $src) { $r->register(["id" => "pk_other", "name" => "Anderes"], $src); };');
 file_put_contents("$tmp/packs/BAD_NAME/components.php", '<?php return function ($r, $src) { $r->register(["id" => "pk_bad", "name" => "x"], $src); };');
-$pr = new Registry(); rrw_components_packs($pr, "$tmp/packs");
+$pr = new Registry(); elvado_components_packs($pr, "$tmp/packs");
 t('Nur vorhandene Pakete laden', $pr->has('pk_one') && !$pr->has('pk_other') && !$pr->has('pk_bad'));
 t('Paket-Komponenten tragen die Quelle „pack:<paket>“', $pr->get('pk_one')->source === 'pack:demo-pack' && $pr->get('pk_one')->bind === '#one');
-t('Bearbeitungsziel wird gemeldet', ($GLOBALS['rrw_components_targets']['demo']['scope'] ?? '') === 'site:demo' && $GLOBALS['rrw_components_targets']['demo']['source'] === 'pack:demo-pack');
+t('Bearbeitungsziel wird gemeldet', ($GLOBALS['elvado_components_targets']['demo']['scope'] ?? '') === 'site:demo' && $GLOBALS['elvado_components_targets']['demo']['source'] === 'pack:demo-pack');
 // Mehrere Ziele je Paket (z. B. eine Marke je Ziel)
-file_put_contents("$tmp/packs/demo-pack/components.php", '<?php return ["register" => function ($r, $src) { $r->register(["id" => "pk_one", "name" => "Eins", "bind" => "#one"], $src); }, "targets" => [["id" => "m1", "label" => "Marke 1", "scope" => "site:m1", "preview" => "/", "brand" => "marke-1"], ["id" => "m2", "label" => "Marke 2", "scope" => "site:m2", "preview" => "/?rrw_brand=m2"], ["id" => "bad id", "scope" => "site:x"], ["id" => "m3", "scope" => "ungueltig"]]];');
-$pm = new Registry(); rrw_components_packs($pm, "$tmp/packs");
-t('Mehrere Ziele eines Pakets werden gemeldet, ungültige verworfen', ($GLOBALS['rrw_components_targets']['m1']['scope'] ?? '') === 'site:m1' && ($GLOBALS['rrw_components_targets']['m2']['preview'] ?? '') === '/?rrw_brand=m2' && !isset($GLOBALS['rrw_components_targets']['m3']) && count($GLOBALS['rrw_components_targets']) === 2 && ($GLOBALS['rrw_components_targets']['m1']['brand'] ?? '') === 'marke-1' && ($GLOBALS['rrw_components_targets']['m2']['brand'] ?? 'x') === '');
+file_put_contents("$tmp/packs/demo-pack/components.php", '<?php return ["register" => function ($r, $src) { $r->register(["id" => "pk_one", "name" => "Eins", "bind" => "#one"], $src); }, "targets" => [["id" => "m1", "label" => "Marke 1", "scope" => "site:m1", "preview" => "/", "brand" => "marke-1"], ["id" => "m2", "label" => "Marke 2", "scope" => "site:m2", "preview" => "/?elvado_brand=m2"], ["id" => "bad id", "scope" => "site:x"], ["id" => "m3", "scope" => "ungueltig"]]];');
+$pm = new Registry(); elvado_components_packs($pm, "$tmp/packs");
+t('Mehrere Ziele eines Pakets werden gemeldet, ungültige verworfen', ($GLOBALS['elvado_components_targets']['m1']['scope'] ?? '') === 'site:m1' && ($GLOBALS['elvado_components_targets']['m2']['preview'] ?? '') === '/?elvado_brand=m2' && !isset($GLOBALS['elvado_components_targets']['m3']) && count($GLOBALS['elvado_components_targets']) === 2 && ($GLOBALS['elvado_components_targets']['m1']['brand'] ?? '') === 'marke-1' && ($GLOBALS['elvado_components_targets']['m2']['brand'] ?? 'x') === '');
 file_put_contents("$tmp/packs/demo-pack/components.php", '<?php throw new RuntimeException("kaputt");');
-$pr2 = new Registry(); rrw_components_packs($pr2, "$tmp/packs");
+$pr2 = new Registry(); elvado_components_packs($pr2, "$tmp/packs");
 t('Fehler in einem Paket stoppt nichts', !$pr2->has('pk_one'));
-$pr3 = new Registry(); rrw_components_packs($pr3, "$tmp/gibt-es-nicht");
-t('Ohne Paketordner (eigenständiges CMS) entsteht nichts', $pr3->all() === [] && ($GLOBALS['rrw_components_targets'] ?? []) === []);
+$pr3 = new Registry(); elvado_components_packs($pr3, "$tmp/gibt-es-nicht");
+t('Ohne Paketordner (eigenständiges CMS) entsteht nichts', $pr3->all() === [] && ($GLOBALS['elvado_components_targets'] ?? []) === []);
 
 // ───────── 4) Vorschau-Schlüssel ─────────
 $d = "$tmp/data"; $now = 1_800_000_000;
-$tok = rrw_components_preview_token('site:demo', 900, $d, $now);
-t('Schlüssel gültig für Bereich und Zeit', rrw_components_preview_ok($tok, 'site:demo', $d, $now + 100));
-t('Schlüssel gilt nicht für anderen Bereich', !rrw_components_preview_ok($tok, 'site:andere', $d, $now + 100));
-t('Schlüssel läuft ab', !rrw_components_preview_ok($tok, 'site:demo', $d, $now + 901));
+$tok = elvado_components_preview_token('site:demo', 900, $d, $now);
+t('Schlüssel gültig für Bereich und Zeit', elvado_components_preview_ok($tok, 'site:demo', $d, $now + 100));
+t('Schlüssel gilt nicht für anderen Bereich', !elvado_components_preview_ok($tok, 'site:andere', $d, $now + 100));
+t('Schlüssel läuft ab', !elvado_components_preview_ok($tok, 'site:demo', $d, $now + 901));
 [$exp, $sig] = explode('.', $tok);
-t('Manipulierter Schlüssel abgelehnt', !rrw_components_preview_ok(($exp + 9999) . '.' . $sig, 'site:demo', $d, $now) && !rrw_components_preview_ok($exp . '.' . strrev($sig), 'site:demo', $d, $now) && !rrw_components_preview_ok('', 'site:demo', $d) && !rrw_components_preview_ok('abc', 'site:demo', $d));
+t('Manipulierter Schlüssel abgelehnt', !elvado_components_preview_ok(($exp + 9999) . '.' . $sig, 'site:demo', $d, $now) && !elvado_components_preview_ok($exp . '.' . strrev($sig), 'site:demo', $d, $now) && !elvado_components_preview_ok('', 'site:demo', $d) && !elvado_components_preview_ok('abc', 'site:demo', $d));
 t('Geheimnis geschützt gespeichert', (fileperms("$d/.preview-secret") & 0777) === 0600 && strlen(trim((string)file_get_contents("$d/.preview-secret"))) === 64);
 
 // ───────── 5) Einsetzen in fremdes HTML ─────────
-$shared = rrw_components();   // gemeinsame Registry dieser Anfrage: gebundene Test-Komponenten ergänzen
+$shared = elvado_components();   // gemeinsame Registry dieser Anfrage: gebundene Test-Komponenten ergänzen
 $bound($shared);
-define('RRW_DATA_DIR', $d);
+define('ELVADO_DATA_DIR', $d);
 $page = "<html><head><title>x</title></head><body><header id=\"main-header\"></header></body></html>";
-t('Ohne Layout und Schlüssel: Ausgabe bytegleich', rrw_components_inject($page, 'site:demo', [], $d) === $page);
-t('Ungültiger Scope: unverändert', rrw_components_inject($page, "evil'; x", [], $d) === $page);
-$store = rrw_components_store($d); $admin = new Actor('a', 'admin');
+t('Ohne Layout und Schlüssel: Ausgabe bytegleich', elvado_components_inject($page, 'site:demo', [], $d) === $page);
+t('Ungültiger Scope: unverändert', elvado_components_inject($page, "evil'; x", [], $d) === $page);
+$store = elvado_components_store($d); $admin = new Actor('a', 'admin');
 $store->saveDraft('site:demo', [['id' => 'h1', 'type' => 'demo_header', 'props' => ['bg' => '#abcdef']]], $admin);
-t('Nur Entwurf: öffentliche Seite bleibt unverändert', rrw_components_inject($page, 'site:demo', [], $d) === $page);
-$pv = rrw_components_inject($page, 'site:demo', ['rrw_ep_preview' => rrw_components_preview_token('site:demo', 900, $d)], $d);
+t('Nur Entwurf: öffentliche Seite bleibt unverändert', elvado_components_inject($page, 'site:demo', [], $d) === $page);
+$pv = elvado_components_inject($page, 'site:demo', ['elvado_ep_preview' => elvado_components_preview_token('site:demo', 900, $d)], $d);
 t('Vorschau (gültiger Schlüssel): Entwurf als <style> im Kopf + Brücke vor </body>', str_contains($pv, '<style id="ep-bound-css">html body #main-header{background-color:#abcdef!important;}</style></head>') && str_contains($pv, '<script src="/cms/assets/preview-bridge.js?v=2" defer></script></body>'), $pv);
-t('Vorschau mit falschem Schlüssel: wie öffentlich', rrw_components_inject($page, 'site:demo', ['rrw_ep_preview' => '1.' . str_repeat('a', 64)], $d) === $page);
+t('Vorschau mit falschem Schlüssel: wie öffentlich', elvado_components_inject($page, 'site:demo', ['elvado_ep_preview' => '1.' . str_repeat('a', 64)], $d) === $page);
 $store->publish('site:demo', $admin);
-$pub = rrw_components_inject($page, 'site:demo', [], $d);
+$pub = elvado_components_inject($page, 'site:demo', [], $d);
 t('Veröffentlicht: CSS öffentlich, keine Brücke', str_contains($pub, '#main-header{background-color:#abcdef!important;}') && !str_contains($pub, 'preview-bridge'));
 $store->saveDraft('site:demo', [['id' => 'h1', 'type' => 'demo_header', 'props' => ['bg' => '#000001']]], $admin);
-t('Entwurf neben Veröffentlichtem: Besucher sehen die veröffentlichte Fassung, die Vorschau den Entwurf', str_contains(rrw_components_inject($page, 'site:demo', [], $d), '#abcdef') && str_contains(rrw_components_inject($page, 'site:demo', ['rrw_ep_preview' => rrw_components_preview_token('site:demo', 900, $d)], $d), '#000001'));
-t('Ohne </head>/</body> wird trotzdem eingefügt', str_contains(rrw_components_inject('<div id="main-header"></div>', 'site:demo', [], $d), '<style id="ep-bound-css">'));
+t('Entwurf neben Veröffentlichtem: Besucher sehen die veröffentlichte Fassung, die Vorschau den Entwurf', str_contains(elvado_components_inject($page, 'site:demo', [], $d), '#abcdef') && str_contains(elvado_components_inject($page, 'site:demo', ['elvado_ep_preview' => elvado_components_preview_token('site:demo', 900, $d)], $d), '#000001'));
+t('Ohne </head>/</body> wird trotzdem eingefügt', str_contains(elvado_components_inject('<div id="main-header"></div>', 'site:demo', [], $d), '<style id="ep-bound-css">'));
 t('Nur Administratoren speichern Layouts des Bereichs', throws(fn() => $store->saveDraft('site:demo', [], new Actor('autor1', 'autor')), \Elvado\Wp\PermissionException::class));
 
 // ───────── 5b) Ansicht wählen (css.variants) ─────────
@@ -124,7 +124,7 @@ t('Variante: Standard und unbekannter Wert erzeugen keine Regeln', $rend->css($v
 
 // ───────── 6) Verdrahtung ─────────
 $api = (string)file_get_contents(__DIR__ . '/../cms/components-api.php');
-t('API: Vorschau-Aktion nur für Administratoren und Ziele', str_contains($api, "'layout_preview'") && str_contains($api, '!$rrwCActor->isAdmin()'));
+t('API: Vorschau-Aktion nur für Administratoren und Ziele', str_contains($api, "'layout_preview'") && str_contains($api, '!$elvadoCActor->isAdmin()'));
 $js = (string)file_get_contents(__DIR__ . '/../cms/assets/live-builder.js');
 t('Builder: Bereiche der Website nur ausblenden/gestalten (kein Verschieben/Löschen)', str_contains($js, "target&&op!=='hide'") && str_contains($js, 'function move(loc,to){if(target)return;'));
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";

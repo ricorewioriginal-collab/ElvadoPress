@@ -1,7 +1,7 @@
 <?php
 // Ergänzende Medien-Funktionen für die Verwaltung (wp-admin/includes/media.php): Upload-Reiter, Einfügen in den Editor, Anhangsfelder,
 // Mediathek-Formulare, Metadaten aus Audio-/Videodateien. Die Oberflächen sind schlanke Fassungen (Texte deutsch); das Hochladen selbst
-// läuft über die CMS-Medien (media_handle_upload meldet das). Hilfsfunktionen beginnen mit _rrw_m_.
+// läuft über die CMS-Medien (media_handle_upload meldet das). Hilfsfunktionen beginnen mit _elvado_m_.
 
 /* ───────── Reiter und Adressen ───────── */
 if(!function_exists('media_upload_tabs')){ function media_upload_tabs() { return apply_filters('media_upload_tabs',['type'=>'Vom Computer','type_url'=>'Von URL','gallery'=>'Galerie','library'=>'Mediathek']); } }
@@ -131,7 +131,7 @@ if(!function_exists('get_attachment_fields_to_edit')){ function get_attachment_f
 } }
 
 /** Tabellenzeilen für Anhangsfelder (Hilfsfunktion der Medien-Formulare). */
-if(!function_exists('_rrw_m_field_rows')){ function _rrw_m_field_rows($post,array $fields,array $skip=[]) {
+if(!function_exists('_elvado_m_field_rows')){ function _elvado_m_field_rows($post,array $fields,array $skip=[]) {
     $o='';
     foreach($fields as $id=>$f){ if(in_array($id,$skip,true)||!is_array($f)||(!isset($f['label'])&&!isset($f['html'])))continue;
         $f+=['input'=>'text','required'=>false,'value'=>'','label'=>$id];$name="attachments[{$post->ID}][$id]";
@@ -151,14 +151,14 @@ if(!function_exists('get_media_item')){ function get_media_item($attachment_id,$
     $thumb='';if(wp_attachment_is_image($id)&&($t=wp_get_attachment_image_src($id,'thumbnail')))$thumb="<img class='pinkynail' src='".esc_url($t[0])."' alt='' />";
     $o=$thumb.($args['show_title']?"<div class='filename new'><span class='title'>".($title!==''?$title:$filename)."</span></div>":'');
     $fields=get_attachment_fields_to_edit($post,$args['errors']);
-    $o.="<table class='slidetoggle describe startclosed'><tbody>\n".(wp_attachment_is_image($id)?'':'').'<tr><th scope="row" class="label"><span class="alignleft">Dateiname</span></th><td class="field">'.$filename."</td></tr>\n"._rrw_m_field_rows($post,$fields)."\t<tr class='submit'><td></td><td class='savesend'>";
+    $o.="<table class='slidetoggle describe startclosed'><tbody>\n".(wp_attachment_is_image($id)?'':'').'<tr><th scope="row" class="label"><span class="alignleft">Dateiname</span></th><td class="field">'.$filename."</td></tr>\n"._elvado_m_field_rows($post,$fields)."\t<tr class='submit'><td></td><td class='savesend'>";
     if($args['send'])$o.='<input type="submit" class="button" name="send['.$id.']" value="In Beitrag einfügen" />';
     if($args['delete']&&current_user_can('delete_post',$id))$o.=' <a href="'.esc_url(wp_nonce_url(admin_url('post.php?action=delete&post='.$id),'delete-post_'.$id)).'" class="delete">Endgültig löschen</a>';
     return $o."</td></tr></tbody></table>\n";
 } }
 if(!function_exists('get_media_items')){ function get_media_items($post_id,$errors) {
     $att=[];
-    if($post_id){ $p=get_post($post_id);$att=$p&&$p->post_type==='attachment'?[$p->ID=>$p]:_rrw_m_by_id(get_children(['post_parent'=>$post_id,'post_type'=>'attachment','orderby'=>'menu_order ID','order'=>'DESC'])); }
+    if($post_id){ $p=get_post($post_id);$att=$p&&$p->post_type==='attachment'?[$p->ID=>$p]:_elvado_m_by_id(get_children(['post_parent'=>$post_id,'post_type'=>'attachment','orderby'=>'menu_order ID','order'=>'DESC'])); }
     elseif(!empty($GLOBALS['wp_the_query']->posts)&&is_array($GLOBALS['wp_the_query']->posts))foreach($GLOBALS['wp_the_query']->posts as $a)$att[$a->ID]=$a;
     $o='';
     foreach($att as $id=>$a){ if($a->post_status==='trash')continue;
@@ -174,7 +174,7 @@ if(!function_exists('get_compat_media_markup')){ function get_compat_media_marku
         $f[$tax]=['label'=>$t['label']??$tax,'value'=>implode(', ',$vals),'taxonomy'=>true]; }
     $f=array_merge($f,(array)$args['errors']);$f=apply_filters('attachment_fields_to_edit',$f,$post);
     $core=['post_title','post_excerpt','post_content','url','menu_order','image_alt','image-size','align','image_url'];
-    $item="<table class='compat-attachment-fields'>"._rrw_m_field_rows($post,$f,$core).'</table>';
+    $item="<table class='compat-attachment-fields'>"._elvado_m_field_rows($post,$f,$core).'</table>';
     return ['item'=>$item,'meta'=>apply_filters('media_meta','',$post)];
 } }
 
@@ -361,9 +361,9 @@ if(!function_exists('wp_add_id3_tag_data')){ function wp_add_id3_tag_data(&$meta
     if(!empty($data['id3v2']['APIC'])){ $p=reset($data['id3v2']['APIC']);if(!empty($p['data']))$metadata['image']=['data'=>$p['data'],'mime'=>$p['image_mime']??'','width'=>$p['image_width']??0,'height'=>$p['image_height']??0]; }
     elseif(!empty($data['comments']['picture'])){ $p=reset($data['comments']['picture']);if(!empty($p['data']))$metadata['image']=['data'=>$p['data'],'mime'=>$p['image_mime']??'']; }
 } }
-if(!function_exists('_rrw_m_duration')){ function _rrw_m_duration($sec) { $s=(int)round($sec);return $s>=3600?sprintf('%d:%02d:%02d',intdiv($s,3600),intdiv($s%3600,60),$s%60):sprintf('%d:%02d',intdiv($s,60),$s%60); } }
-if(!function_exists('_rrw_m_mp4_info')){ /** Liest Dauer, Abmessungen und Erstellzeit aus dem moov-Kasten einer MP4/MOV-Datei. */
-function _rrw_m_mp4_info($file) {
+if(!function_exists('_elvado_m_duration')){ function _elvado_m_duration($sec) { $s=(int)round($sec);return $s>=3600?sprintf('%d:%02d:%02d',intdiv($s,3600),intdiv($s%3600,60),$s%60):sprintf('%d:%02d',intdiv($s,60),$s%60); } }
+if(!function_exists('_elvado_m_mp4_info')){ /** Liest Dauer, Abmessungen und Erstellzeit aus dem moov-Kasten einer MP4/MOV-Datei. */
+function _elvado_m_mp4_info($file) {
     $fh=@fopen($file,'rb');if(!$fh)return [];$size=filesize($file);$pos=0;$moov=null;
     while($pos+8<=$size){ fseek($fh,$pos);$h=fread($fh,8);if(strlen($h)<8)break;$len=unpack('N',substr($h,0,4))[1];$type=substr($h,4,4);$hl=8;
         if($len===1){ $e=fread($fh,8);$len=unpack('J',$e)[1];$hl=16; } elseif($len===0)$len=$size-$pos;
@@ -385,18 +385,18 @@ if(!function_exists('wp_read_video_metadata')){ function wp_read_video_metadata(
     if(!file_exists($file)||!is_file($file))return false;
     $ft=wp_check_filetype($file);$ext=strtolower((string)$ft['ext']);
     $m=['filesize'=>filesize($file),'mime_type'=>(string)$ft['type'],'fileformat'=>$ext,'dataformat'=>in_array($ext,['mp4','m4v','mov'],true)?'quicktime':$ext];
-    if(in_array($ext,['mp4','m4v','mov'],true)){ $i=_rrw_m_mp4_info($file);
+    if(in_array($ext,['mp4','m4v','mov'],true)){ $i=_elvado_m_mp4_info($file);
         foreach(['width','height','length','created_timestamp'] as $k)if(isset($i[$k]))$m[$k]=$i[$k];
-        if(isset($m['length']))$m['length_formatted']=_rrw_m_duration($m['length']); }
+        if(isset($m['length']))$m['length_formatted']=_elvado_m_duration($m['length']); }
     return apply_filters('wp_read_video_metadata',$m,$file,$ext,[]);
 } }
-if(!function_exists('_rrw_m_id3_text')){ function _rrw_m_id3_text($d) {
+if(!function_exists('_elvado_m_id3_text')){ function _elvado_m_id3_text($d) {
     if($d==='')return '';$enc=ord($d[0]);$t=substr($d,1);
     $t=match($enc){ 1=>(str_starts_with($t,"\xFF\xFE")||str_starts_with($t,"\xFE\xFF")?mb_convert_encoding($t,'UTF-8','UTF-16'):mb_convert_encoding($t,'UTF-8','UTF-16LE')), 2=>mb_convert_encoding($t,'UTF-8','UTF-16BE'), 3=>$t, default=>mb_convert_encoding($t,'UTF-8','ISO-8859-1') };
     return trim(str_replace("\0",'',$t));
 } }
-if(!function_exists('_rrw_m_audio_tags')){ /** ID3v2/ID3v1 in die getID3-ähnliche Struktur ['id3v2'=>['comments'=>[Schlüssel=>[Wert]]]] umsetzen. */
-function _rrw_m_audio_tags($file) {
+if(!function_exists('_elvado_m_audio_tags')){ /** ID3v2/ID3v1 in die getID3-ähnliche Struktur ['id3v2'=>['comments'=>[Schlüssel=>[Wert]]]] umsetzen. */
+function _elvado_m_audio_tags($file) {
     $fh=@fopen($file,'rb');if(!$fh)return [];$data=[];$head=fread($fh,10);
     if(strlen($head)===10&&str_starts_with($head,'ID3')){
         $ver=ord($head[3]);$sz=0;for($i=6;$i<10;$i++)$sz=($sz<<7)|(ord($head[$i])&0x7f);$body=$sz>0&&$sz<8388608?fread($fh,$sz):'';$o=0;$n=strlen($body);
@@ -404,7 +404,7 @@ function _rrw_m_audio_tags($file) {
         while($ver>=3&&$o+10<=$n){ $id=substr($body,$o,4);if($id[0]==="\0")break;
             $l=$ver===4?((ord($body[$o+4])<<21)|(ord($body[$o+5])<<14)|(ord($body[$o+6])<<7)|ord($body[$o+7])):unpack('N',substr($body,$o+4,4))[1];
             if($l<=0||$o+10+$l>$n)break;
-            if(isset($map[$id])){ $v=_rrw_m_id3_text(substr($body,$o+10,$l));if($v!=='')$data['id3v2']['comments'][$map[$id]][]=$v; }
+            if(isset($map[$id])){ $v=_elvado_m_id3_text(substr($body,$o+10,$l));if($v!=='')$data['id3v2']['comments'][$map[$id]][]=$v; }
             elseif($id==='APIC'&&!isset($data['id3v2']['APIC'])){ $f=substr($body,$o+10,$l);$p=strpos($f,"\0",1);if($p!==false){ $mime=substr($f,1,$p-1);$q=strpos($f,"\0",$p+2);if($q!==false)$data['id3v2']['APIC'][]=['data'=>substr($f,$q+1),'image_mime'=>$mime]; } }
             $o+=10+$l; }
     }
@@ -423,8 +423,8 @@ if(!function_exists('wp_read_audio_metadata')){ function wp_read_audio_metadata(
             if(preg_match('/\xFF[\xE2-\xFF][\x10-\xEF]/s',$buf,$mm,PREG_OFFSET_CAPTURE)){ $b=substr($buf,$mm[0][1],4);$vb=(ord($b[1])>>3)&3;$br=ord($b[2])>>4;
                 $t=$vb===3?[0,32,40,48,56,64,80,96,112,128,160,192,224,256,320]:[0,8,16,24,32,40,48,56,64,80,96,112,128,144,160];
                 if($vb!==1&&isset($t[$br])&&$t[$br]>0){ $m['bitrate']=$t[$br]*1000;$m['length']=(int)round((filesize($file)-$start)*8/$m['bitrate']); } } } }
-    if(isset($m['length']))$m['length_formatted']=_rrw_m_duration($m['length']);
-    $tags=_rrw_m_audio_tags($file);if($tags)wp_add_id3_tag_data($m,$tags);
+    if(isset($m['length']))$m['length_formatted']=_elvado_m_duration($m['length']);
+    $tags=_elvado_m_audio_tags($file);if($tags)wp_add_id3_tag_data($m,$tags);
     return apply_filters('wp_read_audio_metadata',$m,$file,$ext,$tags);
 } }
 if(!function_exists('wp_get_media_creation_timestamp')){ function wp_get_media_creation_timestamp($metadata) {

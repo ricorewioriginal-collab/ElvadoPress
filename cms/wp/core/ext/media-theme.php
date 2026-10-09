@@ -1,10 +1,10 @@
 <?php
 // Ergänzende Theme-Funktionen (wp-includes/theme.php): Theme-Verzeichnisse, Kopfbild/-video, Hintergrund, eigenes CSS, Editor-Stile,
 // Theme-Features, Wechsel-Nachbereitung. Der Customizer ist vereinfacht (siehe core/customize.php); die dafür gedachten
-// _wp_customize_*-Funktionen sind bewusst Standardwerte/No-ops (dokumentiert am jeweiligen Eintrag). Hilfsfunktionen beginnen mit _rrw_m_.
+// _wp_customize_*-Funktionen sind bewusst Standardwerte/No-ops (dokumentiert am jeweiligen Eintrag). Hilfsfunktionen beginnen mit _elvado_m_.
 
-/** Option eines Theme-Features (Eintrag [0] von add_theme_support), z. B. _rrw_m_th('custom-header','video'). */
-if(!function_exists('_rrw_m_th')){ function _rrw_m_th($feature,$key=null) {
+/** Option eines Theme-Features (Eintrag [0] von add_theme_support), z. B. _elvado_m_th('custom-header','video'). */
+if(!function_exists('_elvado_m_th')){ function _elvado_m_th($feature,$key=null) {
     $s=get_theme_support($feature);if(!is_array($s))return $s;$o=$s[0]??null;
     return $key===null?$o:(is_array($o)?($o[$key]??false):false);
 } }
@@ -19,7 +19,7 @@ if(!function_exists('register_theme_directory')){ function register_theme_direct
 } }
 if(!function_exists('search_theme_directories')){ function search_theme_directories($force=false) {
     global $wp_theme_directories;$found=[];
-    foreach(array_unique(array_merge(array_column(rrw_wp_theme_roots(),'dir'),(array)$wp_theme_directories)) as $root){
+    foreach(array_unique(array_merge(array_column(elvado_wp_theme_roots(),'dir'),(array)$wp_theme_directories)) as $root){
         if(!is_dir($root))continue;
         foreach(scandir($root)?:[] as $e){ if($e[0]==='.')continue;$d=$root.'/'.$e;if(!is_dir($d))continue;
             if(is_file($d.'/style.css')||is_file($d.'/theme.json')){ $found[$e]??=['theme_file'=>$e.'/style.css','theme_root'=>$root];continue; }
@@ -50,11 +50,11 @@ if(!function_exists('validate_theme_requirements')){ function validate_theme_req
 /* ───────── Kopfbild und Kopfvideo ───────── */
 if(!function_exists('get_header_image_tag')){ function get_header_image_tag($attr=[]) {
     $h=get_custom_header();$h->url=get_header_image();if(!$h->url)return '';
-    $w=absint($h->width?:_rrw_m_th('custom-header','width'));$ht=absint($h->height?:_rrw_m_th('custom-header','height'));$alt='';
+    $w=absint($h->width?:_elvado_m_th('custom-header','width'));$ht=absint($h->height?:_elvado_m_th('custom-header','height'));$alt='';
     if(!empty($h->attachment_id)){ $a=get_post_meta($h->attachment_id,'_wp_attachment_image_alt',true);if(is_string($a))$alt=$a; }
     $attr=wp_parse_args($attr,['src'=>$h->url,'width'=>$w,'height'=>$ht,'alt'=>$alt]);
     if(!empty($h->attachment_id)&&empty($attr['srcset'])&&($meta=wp_get_attachment_metadata($h->attachment_id))&&is_array($meta)){
-        $size=[(int)$attr['width'],(int)$attr['height']];$ss=wp_calculate_image_srcset($size,$attr['src'],$meta,$h->attachment_id)?:_rrw_m_srcset($size,$attr['src'],$meta,$h->attachment_id);
+        $size=[(int)$attr['width'],(int)$attr['height']];$ss=wp_calculate_image_srcset($size,$attr['src'],$meta,$h->attachment_id)?:_elvado_m_srcset($size,$attr['src'],$meta,$h->attachment_id);
         if($ss){ $attr['srcset']=$ss;$attr['sizes']=wp_calculate_image_sizes($size,$attr['src'],$meta,$h->attachment_id)?:sprintf('(max-width: %1$dpx) 100vw, %1$dpx',(int)$attr['width']); } }
     $attr=array_map('esc_attr',array_filter($attr,fn($v,$k)=>$k==='alt'||($v!==''&&$v!==0&&$v!==null),ARRAY_FILTER_USE_BOTH));   // leeres alt bleibt erhalten
     $html='<img';foreach($attr as $k=>$v)$html.=' '.$k.'="'.$v.'"';$html.=' />';
@@ -65,7 +65,7 @@ if(!function_exists('_get_random_header_data')){ function _get_random_header_dat
     if(empty($rand)){
         $mod=get_theme_mod('header_image','');$headers=[];
         if($mod==='random-uploaded-image')$headers=get_uploaded_header_images();
-        elseif(!empty($_wp_default_headers)){ if($mod==='random-default-image'||_rrw_m_th('custom-header','random-default'))$headers=$_wp_default_headers; }
+        elseif(!empty($_wp_default_headers)){ if($mod==='random-default-image'||_elvado_m_th('custom-header','random-default'))$headers=$_wp_default_headers; }
         if(empty($headers))return new stdClass;
         $rand=(object)$headers[array_rand($headers)];
         $rand->url=sprintf((string)($rand->url??''),get_template_directory_uri(),get_stylesheet_directory_uri());
@@ -75,7 +75,7 @@ if(!function_exists('_get_random_header_data')){ function _get_random_header_dat
 } }
 if(!function_exists('get_random_header_image')){ function get_random_header_image() { $r=_get_random_header_data();return empty($r->url)?'':$r->url; } }
 if(!function_exists('is_random_header_image')){ function is_random_header_image($type='any') {
-    $mod=get_theme_mod('header_image',_rrw_m_th('custom-header','default-image'));
+    $mod=get_theme_mod('header_image',_elvado_m_th('custom-header','default-image'));
     if($type==='any'){ return $mod==='random-default-image'||$mod==='random-uploaded-image'||(get_random_header_image()!==''&&empty($mod)); }
     return "random-$type-image"===$mod||($type==='default'&&empty($mod)&&get_random_header_image()!=='');
 } }
@@ -94,14 +94,14 @@ if(!function_exists('has_header_video')){ function has_header_video() { return (
 if(!function_exists('the_header_video_url')){ function the_header_video_url() { $v=get_header_video_url();if($v)echo esc_url($v); } }
 if(!function_exists('get_header_video_settings')){ function get_header_video_settings() {
     $h=get_custom_header();$url=(string)get_header_video_url();$type=wp_check_filetype($url,wp_get_mime_types());
-    $s=['mimeType'=>'','posterUrl'=>get_header_image(),'videoUrl'=>$url,'width'=>absint($h->width?:_rrw_m_th('custom-header','width')),'height'=>absint($h->height?:_rrw_m_th('custom-header','height')),'minWidth'=>900,'minHeight'=>500,
+    $s=['mimeType'=>'','posterUrl'=>get_header_image(),'videoUrl'=>$url,'width'=>absint($h->width?:_elvado_m_th('custom-header','width')),'height'=>absint($h->height?:_elvado_m_th('custom-header','height')),'minWidth'=>900,'minHeight'=>500,
         'l10n'=>['pause'=>'Pause','play'=>'Wiedergabe','pauseSpeak'=>'Das Video ist angehalten.','playSpeak'=>'Das Video läuft.']];
     if(preg_match('#^https?://(?:www\.)?(?:youtube\.com/watch|youtu\.be/)#',$url))$s['mimeType']='video/x-youtube';elseif(!empty($type['type']))$s['mimeType']=$type['type'];
     return apply_filters('header_video_settings',$s);
 } }
 if(!function_exists('is_header_video_active')){ function is_header_video_active() {
-    if(!_rrw_m_th('custom-header','video'))return false;
-    $cb=_rrw_m_th('custom-header','video-active-callback');
+    if(!_elvado_m_th('custom-header','video'))return false;
+    $cb=_elvado_m_th('custom-header','video-active-callback');
     return apply_filters('is_header_video_active',empty($cb)||!is_callable($cb)?true:call_user_func($cb));
 } }
 if(!function_exists('get_custom_header_markup')){ function get_custom_header_markup() {
@@ -155,11 +155,11 @@ function get_theme_starter_content() {
     return apply_filters('get_theme_starter_content',$c,$cfg);
 } }
 if(!function_exists('_custom_header_background_just_in_time')){ function _custom_header_background_just_in_time() {
-    foreach(['custom-header','custom-background'] as $f)if(current_theme_supports($f)){ $cb=_rrw_m_th($f,'wp-head-callback');if($cb&&is_callable($cb))add_action('wp_head',$cb); }
+    foreach(['custom-header','custom-background'] as $f)if(current_theme_supports($f)){ $cb=_elvado_m_th($f,'wp-head-callback');if($cb&&is_callable($cb))add_action('wp_head',$cb); }
 } }
 if(!function_exists('_custom_logo_header_styles')){ function _custom_logo_header_styles() {
-    if(!current_theme_supports('custom-header','header-text')&&_rrw_m_th('custom-logo','header-text')&&(($m=get_theme_mods())&&array_key_exists('header_text',$m)&&!$m['header_text'])){   // gespeichertes „false“ (get_theme_mod gäbe den Standardwert zurück)
-        $c='.'.implode(', .',array_map('sanitize_html_class',(array)_rrw_m_th('custom-logo','header-text')));
+    if(!current_theme_supports('custom-header','header-text')&&_elvado_m_th('custom-logo','header-text')&&(($m=get_theme_mods())&&array_key_exists('header_text',$m)&&!$m['header_text'])){   // gespeichertes „false“ (get_theme_mod gäbe den Standardwert zurück)
+        $c='.'.implode(', .',array_map('sanitize_html_class',(array)_elvado_m_th('custom-logo','header-text')));
         echo '<style id="custom-logo-css">'.$c.' { position: absolute; clip-path: inset(50%); }</style>'."\n";
     }
 } }
@@ -171,7 +171,7 @@ if(!function_exists('_remove_theme_support')){ function _remove_theme_support($f
         case 'custom-header-uploads':return _remove_theme_support('custom-header');
         case 'post-formats':remove_post_type_support('post','post-formats');break;
         case 'custom-header':case 'custom-background':
-            $cb=_rrw_m_th($feature,'wp-head-callback');if($cb){ remove_action('wp_head',$cb);remove_action('admin_head',$cb); }break;
+            $cb=_elvado_m_th($feature,'wp-head-callback');if($cb){ remove_action('wp_head',$cb);remove_action('admin_head',$cb); }break;
     }
     unset($_wp_theme_features[$feature]);return true;
 } }

@@ -2,10 +2,10 @@
 // Ergänzende WordPress-Funktionen (Bereich Admin, Teil 8): Bildeditor (image-edit.php) mit GD – Drehen, Spiegeln, Zuschneiden, Skalieren, Sichern/Wiederherstellen.
 // Ohne die PHP-Erweiterung GD melden die Funktionen einen Fehler (Objekt mit ->error) bzw. false. Änderungen kommen als JSON-Verlauf ($_REQUEST['history']) wie beim WordPress-Editor.
 
-if(!function_exists('rrw_adm_img_load')){ function rrw_adm_img_load($post_id) {   // GD-Bild des Anhangs (oder false)
+if(!function_exists('elvado_adm_img_load')){ function elvado_adm_img_load($post_id) {   // GD-Bild des Anhangs (oder false)
     $f=get_attached_file($post_id);if(!$f||!is_file($f))$f=function_exists('_load_image_to_edit_path')?_load_image_to_edit_path($post_id):false;
     if(!$f||!is_file($f))return false;
-    $i=_rrw_m_gd_load($f);return is_gd_image($i)?$i:false;
+    $i=_elvado_m_gd_load($f);return is_gd_image($i)?$i:false;
 } }
 if(!function_exists('_image_get_preview_ratio')){ function _image_get_preview_ratio($width, $height) { $m=max($width,$height);return $m>600?(600/$m):1; } }
 if(!function_exists('_rotate_image_resource')){ function _rotate_image_resource($img, $angle) {
@@ -61,10 +61,10 @@ if(!function_exists('wp_save_image_file')){ function wp_save_image_file($filenam
     $saved=apply_filters('wp_save_image_file',null,$filename,$image,$mime_type,$post_id);
     if(null!==$saved)return $saved;
     if(!is_gd_image($image))return false;
-    return in_array($mime_type,['image/jpeg','image/png','image/gif','image/webp'],true)?(bool)_rrw_m_gd_save($image,$filename,$mime_type):false;
+    return in_array($mime_type,['image/jpeg','image/png','image/gif','image/webp'],true)?(bool)_elvado_m_gd_save($image,$filename,$mime_type):false;
 } }
 if(!function_exists('stream_preview_image')){ function stream_preview_image($post_id) {   // Vorschau mit dem aktuellen Verlauf (auf 600 px begrenzt)
-    $post=get_post($post_id);$img=rrw_adm_img_load($post_id);if(!$post||!$img)return false;
+    $post=get_post($post_id);$img=elvado_adm_img_load($post_id);if(!$post||!$img)return false;
     $changes=!empty($_REQUEST['history'])?json_decode(wp_unslash($_REQUEST['history'])):null;
     if($changes)$img=image_edit_apply_changes($img,$changes);
     $w=imagesx($img);$h=imagesy($img);$r=_image_get_preview_ratio($w,$h);
@@ -94,7 +94,7 @@ if(!function_exists('wp_restore_image')){ function wp_restore_image($post_id) { 
 } }
 if(!function_exists('wp_save_image')){ function wp_save_image($post_id) {   // Änderungen als neue Datei speichern (Original bleibt als „full-orig“ gesichert)
     $r=new stdClass();$post=get_post($post_id);$file=get_attached_file($post_id);
-    $img=rrw_adm_img_load($post_id);if(!$post||!$img){ $r->error='Das Bild konnte nicht geladen werden.';return $r; }
+    $img=elvado_adm_img_load($post_id);if(!$post||!$img){ $r->error='Das Bild konnte nicht geladen werden.';return $r; }
     $fw=!empty($_REQUEST['fwidth'])?(int)$_REQUEST['fwidth']:0;$fh=!empty($_REQUEST['fheight'])?(int)$_REQUEST['fheight']:0;
     $target=!empty($_REQUEST['target'])?preg_replace('/[^a-z0-9_-]+/i','',(string)$_REQUEST['target']):'';$scale=!empty($_REQUEST['do'])&&'scale'===$_REQUEST['do'];$scaled=false;
     if($scale&&$fw>0&&$fh>0){

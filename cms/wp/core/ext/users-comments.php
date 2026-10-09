@@ -4,20 +4,20 @@
 // Funktionen, die Kommentare ändern, wirken nur auf die Tabelle wp_comments (CMS-Kommentare moderiert das CMS).
 
 /** Standard-Haken der Kommentarprüfung einmalig anmelden (statt beim Laden). */
-function rrw_wpx_comment_defaults(): void {
+function elvado_wpx_comment_defaults(): void {
     static $done=false;if($done)return;$done=true;
     if(!has_action('check_comment_flood','check_comment_flood_db'))add_action('check_comment_flood','check_comment_flood_db',10,4);
     if(!has_filter('comment_flood_filter','wp_throttle_comment_flood'))add_filter('comment_flood_filter','wp_throttle_comment_flood',10,3);
     if(!has_action('transition_comment_status','_clear_modified_cache_on_transition_comment_status'))add_action('transition_comment_status','_clear_modified_cache_on_transition_comment_status',10,2);
 }
 /** Prüft, ob einer der Zeilen-Begriffe (Groß-/Kleinschreibung egal) in einem der Felder vorkommt. */
-function rrw_wpx_words_match(string $keys, array $fields): bool {
+function elvado_wpx_words_match(string $keys, array $fields): bool {
     foreach(explode("\n",$keys) as $w){ $w=trim($w);if($w==='')continue;$p='#'.preg_quote($w,'#').'#i';foreach($fields as $f)if(preg_match($p,(string)$f))return true; }
     return false;
 }
 /** Beitrags-ID-Zahl je Status aus wp_comments (leer ohne Datenbank). */
-function rrw_wpx_comment_rows(string $sql, array $args=[]): array {
-    global $wpdb;if(!rrw_wp_db_ready())return [];
+function elvado_wpx_comment_rows(string $sql, array $args=[]): array {
+    global $wpdb;if(!elvado_wp_db_ready())return [];
     return (array)$wpdb->get_results($args?$wpdb->prepare($sql,...$args):$sql,ARRAY_A);
 }
 
@@ -31,9 +31,9 @@ if(!function_exists('check_comment')){
         $max=(int)get_option('comment_max_links',2);
         if($max){ $n=(int)apply_filters('comment_max_links_url',preg_match_all('/<a [^>]*href/i',(string)$comment),$url,$comment);if($n>=$max)return false; }
         $mod=trim((string)get_option('moderation_keys',''));
-        if($mod!==''&&rrw_wpx_words_match($mod,[$author,$email,$url,$comment,$user_ip,$user_agent]))return false;
+        if($mod!==''&&elvado_wpx_words_match($mod,[$author,$email,$url,$comment,$user_ip,$user_agent]))return false;
         if(1==get_option('comment_previously_approved',1)){
-            if($comment_type==='trackback'||$comment_type==='pingback'||$author===''||$email===''||!rrw_wp_db_ready())return false;
+            if($comment_type==='trackback'||$comment_type==='pingback'||$author===''||$email===''||!elvado_wp_db_ready())return false;
             $cu=get_user_by('email',wp_unslash($email));
             $ok=$cu&&!empty($cu->ID)
                 ?$wpdb->get_var($wpdb->prepare("SELECT comment_approved FROM {$wpdb->comments} WHERE user_id = %d AND comment_approved = '1' LIMIT 1",$cu->ID))
@@ -47,7 +47,7 @@ if(!function_exists('wp_check_comment_disallowed_list')){
     function wp_check_comment_disallowed_list($author, $email, $url, $comment, $user_ip, $user_agent) {
         do_action('wp_check_comment_disallowed_list',$author,$email,$url,$comment,$user_ip,$user_agent);
         $keys=trim((string)get_option('disallowed_keys',''));if($keys==='')return false;
-        return rrw_wpx_words_match($keys,[$author,$email,$url,$comment,wp_strip_all_tags((string)$comment),$user_ip,$user_agent]);
+        return elvado_wpx_words_match($keys,[$author,$email,$url,$comment,wp_strip_all_tags((string)$comment),$user_ip,$user_agent]);
     }
 }
 if(!function_exists('wp_check_comment_data')){
@@ -73,7 +73,7 @@ if(!function_exists('wp_check_comment_flood')){
     function wp_check_comment_flood($is_flood, $ip, $email, $date, $avoid_die=false) {
         global $wpdb;
         if($is_flood===true)return true;
-        if(current_user_can('manage_options')||current_user_can('moderate_comments')||!rrw_wp_db_ready())return false;
+        if(current_user_can('manage_options')||current_user_can('moderate_comments')||!elvado_wp_db_ready())return false;
         $hour_ago=gmdate('Y-m-d H:i:s',time()-HOUR_IN_SECONDS);
         if(is_user_logged_in()){ $who=get_current_user_id();$col='user_id'; } else { $who=$ip;$col='comment_author_IP'; }
         $last=$wpdb->get_var($wpdb->prepare("SELECT comment_date_gmt FROM {$wpdb->comments} WHERE comment_date_gmt >= %s AND ( {$col} = %s OR comment_author_email = %s ) ORDER BY comment_date_gmt DESC LIMIT 1",$hour_ago,$who,$email));
@@ -94,10 +94,10 @@ if(!function_exists('wp_throttle_comment_flood')){
 if(!function_exists('wp_allow_comment')){
     /** Doppelte/zu schnelle Kommentare ablehnen, sonst Freigabestatus (1, 0, „spam“, „trash“) liefern. */
     function wp_allow_comment($commentdata, $wp_error=false) {
-        global $wpdb;rrw_wpx_comment_defaults();
+        global $wpdb;elvado_wpx_comment_defaults();
         $c=wp_parse_args($commentdata,['comment_post_ID'=>0,'comment_author'=>'','comment_author_email'=>'','comment_author_url'=>'','comment_content'=>'','comment_parent'=>0,'comment_author_IP'=>'','comment_agent'=>'','comment_type'=>'comment','user_id'=>0,'comment_date_gmt'=>current_time('mysql',1)]);
         $dupe=null;
-        if(rrw_wp_db_ready()){
+        if(elvado_wp_db_ready()){
             $q="SELECT comment_ID FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_parent = %d AND comment_approved != 'trash' AND ( comment_author = %s";$a=[(int)$c['comment_post_ID'],(int)$c['comment_parent'],wp_unslash($c['comment_author'])];
             if($c['comment_author_email']!==''){ $q.=' OR comment_author_email = %s';$a[]=wp_unslash($c['comment_author_email']); }
             $dupe=$wpdb->get_var($wpdb->prepare($q.') AND comment_content = %s LIMIT 1',...array_merge($a,[wp_unslash($c['comment_content'])])));
@@ -125,7 +125,7 @@ if(!function_exists('wp_get_unapproved_comment_author_email')){
     function wp_get_unapproved_comment_author_email() {
         $mail='';
         if(!empty($_GET['unapproved'])&&!empty($_GET['moderation-hash'])){
-            $c=rrw_wpx_comment((int)$_GET['unapproved']);
+            $c=elvado_wpx_comment((int)$_GET['unapproved']);
             if($c&&hash_equals((string)$_GET['moderation-hash'],wp_hash($c->comment_date_gmt)))$mail=$c->comment_author_email;
         }
         return $mail?:(string)(wp_get_current_commenter()['comment_author_email']??'');
@@ -152,8 +152,8 @@ if(!function_exists('get_default_comment_status')){
 if(!function_exists('get_lastcommentmodified')){
     /** Zeitpunkt des jüngsten freigegebenen Kommentars („server“/„gmt“ = UTC, „blog“ = Blogzeit); false ohne Kommentare. */
     function get_lastcommentmodified($timezone='server') {
-        $max='';foreach(rrw_wp_cms_comments() as $c)if($c->comment_date_gmt>$max)$max=$c->comment_date_gmt;
-        $r=rrw_wpx_comment_rows("SELECT MAX(comment_date_gmt) AS m FROM {$GLOBALS['wpdb']->comments} WHERE comment_approved = '1'");
+        $max='';foreach(elvado_wp_cms_comments() as $c)if($c->comment_date_gmt>$max)$max=$c->comment_date_gmt;
+        $r=elvado_wpx_comment_rows("SELECT MAX(comment_date_gmt) AS m FROM {$GLOBALS['wpdb']->comments} WHERE comment_approved = '1'");
         if(!empty($r[0]['m'])&&$r[0]['m']>$max)$max=$r[0]['m'];
         $tz=strtolower((string)$timezone);
         $d=$max===''?false:($tz==='blog'?get_date_from_gmt($max):$max);
@@ -164,8 +164,8 @@ if(!function_exists('get_comment_count')){
     function get_comment_count($post_id=0) {
         global $wpdb;$post_id=(int)$post_id;
         $n=['approved'=>0,'awaiting_moderation'=>0,'spam'=>0,'trash'=>0,'post-trashed'=>0,'total_comments'=>0,'all'=>0];
-        foreach(rrw_wp_cms_comments() as $c)if(!$post_id||(int)$c->comment_post_ID===$post_id){ $n['approved']++;$n['total_comments']++;$n['all']++; }
-        $rows=rrw_wpx_comment_rows("SELECT comment_approved, COUNT(*) AS total FROM {$wpdb->comments}".($post_id?' WHERE comment_post_ID = %d':'').' GROUP BY comment_approved',$post_id?[$post_id]:[]);
+        foreach(elvado_wp_cms_comments() as $c)if(!$post_id||(int)$c->comment_post_ID===$post_id){ $n['approved']++;$n['total_comments']++;$n['all']++; }
+        $rows=elvado_wpx_comment_rows("SELECT comment_approved, COUNT(*) AS total FROM {$wpdb->comments}".($post_id?' WHERE comment_post_ID = %d':'').' GROUP BY comment_approved',$post_id?[$post_id]:[]);
         foreach($rows as $r){ $t=(int)$r['total'];
             switch((string)$r['comment_approved']){
                 case 'trash':$n['trash']+=$t;break;
@@ -181,7 +181,7 @@ if(!function_exists('get_comment_count')){
 if(!function_exists('get_page_of_comment')){
     /** Seite der Kommentarliste, auf der der Kommentar steht (nur freigegebene Hauptkommentare zählen). */
     function get_page_of_comment($comment_id, $args=[]) {
-        $orig=$args;$c=rrw_wpx_comment($comment_id);if(!$c)return null;
+        $orig=$args;$c=elvado_wpx_comment($comment_id);if(!$c)return null;
         $a=wp_parse_args($args,['type'=>'all','page'=>'','per_page'=>'','max_depth'=>'']);
         $per=$a['per_page'];
         if($per==='')$per=function_exists('get_query_var')?get_query_var('comments_per_page'):'';
@@ -223,7 +223,7 @@ if(!function_exists('_prime_comment_caches')){
     function _prime_comment_caches($comment_ids, $update_meta_cache=true) {
         global $wpdb;$miss=[];
         foreach(array_unique(array_filter(array_map('intval',(array)$comment_ids))) as $id){ wp_cache_get($id,'comment',false,$found);if(!$found)$miss[]=$id; }
-        if($miss&&rrw_wp_db_ready()){
+        if($miss&&elvado_wp_db_ready()){
             $rows=$wpdb->get_results("SELECT * FROM {$wpdb->comments} WHERE comment_ID IN (".implode(',',$miss).')');
             update_comment_cache(array_map(fn($r)=>new WP_Comment($r),(array)$rows),$update_meta_cache);
         }
@@ -259,7 +259,7 @@ if(!function_exists('sanitize_comment_cookies')){
 /* ───────── Statuswechsel ───────── */
 if(!function_exists('wp_transition_comment_status')){
     function wp_transition_comment_status($new_status, $old_status, $comment) {
-        rrw_wpx_comment_defaults();
+        elvado_wpx_comment_defaults();
         $map=[0=>'unapproved','0'=>'unapproved','hold'=>'unapproved',1=>'approved','1'=>'approved','approve'=>'approved'];
         $new_status=$map[$new_status]??$new_status;$old_status=$map[$old_status]??$old_status;
         if($new_status!==$old_status){ do_action('transition_comment_status',$new_status,$old_status,$comment);do_action("comment_{$old_status}_to_{$new_status}",$comment); }
@@ -268,7 +268,7 @@ if(!function_exists('wp_transition_comment_status')){
 }
 if(!function_exists('wp_unspam_comment')){
     function wp_unspam_comment($comment_id) {
-        $c=rrw_wpx_comment($comment_id);if(!$c)return false;
+        $c=elvado_wpx_comment($comment_id);if(!$c)return false;
         do_action('unspam_comment',$c->comment_ID,$c);
         $st=(string)get_comment_meta($c->comment_ID,'_wp_trash_meta_status',true);if($st==='')$st='0';
         if(wp_set_comment_status($c->comment_ID,$st==='1'?'approve':'hold')){ delete_comment_meta($c->comment_ID,'_wp_trash_meta_status');do_action('unspammed_comment',$c->comment_ID,$c);return true; }
@@ -281,9 +281,9 @@ if(!function_exists('wp_update_comment_count_now')){
         global $wpdb;$post_id=(int)$post_id;if(!$post_id)return false;
         $post=get_post($post_id);if(!$post)return false;
         $old=(int)$post->comment_count;$new=apply_filters('pre_wp_update_comment_count_now',null,$old,$post_id);
-        if($new===null){ $r=rrw_wpx_comment_rows("SELECT COUNT(*) AS n FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_approved = '1'",[$post_id]);$new=(int)($r[0]['n']??0); }
+        if($new===null){ $r=elvado_wpx_comment_rows("SELECT COUNT(*) AS n FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_approved = '1'",[$post_id]);$new=(int)($r[0]['n']??0); }
         $new=(int)$new;
-        if($post_id>=RRW_WP_ID_DB_MIN)$wpdb->update($wpdb->posts,['comment_count'=>$new],['ID'=>$post_id]);
+        if($post_id>=ELVADO_WP_ID_DB_MIN)$wpdb->update($wpdb->posts,['comment_count'=>$new],['ID'=>$post_id]);
         clean_post_cache($post);
         do_action('wp_update_comment_count',$post_id,$new,$old);do_action("edit_post_{$post->post_type}",$post_id,$post);do_action('edit_post',$post_id,$post);
         return true;
@@ -293,10 +293,10 @@ if(!function_exists('wp_update_comment_count_now')){
 /* ───────── Benachrichtigungen ───────── */
 if(!function_exists('wp_notify_postauthor')){
     function wp_notify_postauthor($comment_id, $deprecated=null) {
-        $c=rrw_wpx_comment($comment_id);if(!$c)return false;
+        $c=elvado_wpx_comment($comment_id);if(!$c)return false;
         $post=get_post((int)$c->comment_post_ID);$author=$post?get_userdata((int)$post->post_author):false;
         if(!$post||!$author||$author->user_email===''||(int)$c->user_id===(int)$post->post_author)return false;
-        $site=rrw_wpx_site_name();$type=$c->comment_type?:'comment';
+        $site=elvado_wpx_site_name();$type=$c->comment_type?:'comment';
         $kind=['trackback'=>'Trackback','pingback'=>'Pingback'][$type]??'Kommentar';
         $msg=sprintf("Neuer %s zu deinem Beitrag „%s“\n\nAutor: %s (IP: %s)\nE-Mail: %s\nWebsite: %s\n\n%s\n\nAnzeigen: %s\n",$kind,$post->post_title,$c->comment_author,$c->comment_author_IP,$c->comment_author_email,$c->comment_author_url,$c->comment_content,get_comment_link($c));
         $subject=sprintf('[%s] %s: „%s“',$site,$kind,$post->post_title);
@@ -310,8 +310,8 @@ if(!function_exists('wp_notify_postauthor')){
 if(!function_exists('wp_notify_moderator')){
     function wp_notify_moderator($comment_id) {
         $maybe=apply_filters('notify_moderator',get_option('moderation_notify',1),$comment_id);if(!$maybe)return true;
-        $c=rrw_wpx_comment($comment_id);if(!$c||$c->comment_approved!=='0')return false;
-        $post=get_post((int)$c->comment_post_ID);$site=rrw_wpx_site_name();
+        $c=elvado_wpx_comment($comment_id);if(!$c||$c->comment_approved!=='0')return false;
+        $post=get_post((int)$c->comment_post_ID);$site=elvado_wpx_site_name();
         $pending=get_pending_comments_num((int)$c->comment_post_ID);
         $msg=sprintf("Ein neuer Kommentar zum Beitrag „%s“ wartet auf Freigabe.\n\nAutor: %s (IP: %s)\nE-Mail: %s\nWebsite: %s\n\n%s\n\nFreigeben: %s\nInsgesamt warten %d Kommentare auf Freigabe.\n",$post->post_title??'',$c->comment_author,$c->comment_author_IP,$c->comment_author_email,$c->comment_author_url,$c->comment_content,admin_url('comment.php?action=approve&c='.$c->comment_ID),$pending);
         $subject=sprintf('[%s] Bitte freigeben: „%s“',$site,$post->post_title??'');
@@ -324,14 +324,14 @@ if(!function_exists('wp_notify_moderator')){
 }
 if(!function_exists('wp_new_comment_notify_moderator')){
     function wp_new_comment_notify_moderator($comment_id) {
-        $c=rrw_wpx_comment($comment_id);if(!$c)return false;
+        $c=elvado_wpx_comment($comment_id);if(!$c)return false;
         $maybe=apply_filters('notify_moderator',(string)$c->comment_approved==='0',$comment_id);
         return $maybe?wp_notify_moderator($comment_id):false;
     }
 }
 if(!function_exists('wp_new_comment_notify_postauthor')){
     function wp_new_comment_notify_postauthor($comment_id) {
-        $c=rrw_wpx_comment($comment_id);if(!$c)return false;
+        $c=elvado_wpx_comment($comment_id);if(!$c)return false;
         $maybe=apply_filters('notify_post_author',get_option('comments_notify',1),$comment_id);
         if(!$maybe||(string)$c->comment_approved!=='1')return false;
         return wp_notify_postauthor($comment_id);
@@ -361,7 +361,7 @@ if(!function_exists('_close_comments_for_old_post')){
 if(!function_exists('_wp_batch_update_comment_type')){
     /** Setzt leere Kommentartypen stapelweise auf „comment“ und plant bei Bedarf den nächsten Durchlauf. */
     function _wp_batch_update_comment_type() {
-        global $wpdb;if(!rrw_wp_db_ready())return;
+        global $wpdb;if(!elvado_wp_db_ready())return;
         $size=max(1,(int)apply_filters('wp_update_comment_type_batch_size',100));
         $ids=array_map('intval',(array)$wpdb->get_col($wpdb->prepare("SELECT comment_ID FROM {$wpdb->comments} WHERE comment_type = '' ORDER BY comment_ID DESC LIMIT %d",$size)));
         if($ids){ $wpdb->query("UPDATE {$wpdb->comments} SET comment_type = 'comment' WHERE comment_ID IN (".implode(',',$ids).')');clean_comment_cache($ids); }
@@ -402,7 +402,7 @@ if(!function_exists('wp_handle_comment_submission')){
             if(mb_strlen($v)>$max[$col])return new WP_Error($col.'_column_length','<strong>Fehler:</strong> '.$m,200);
         $cd=['comment_post_ID'=>$pid,'comment_author'=>$author,'comment_author_email'=>$email,'comment_author_url'=>$url,'comment_content'=>$text,'comment_type'=>'comment','comment_parent'=>$parent,'user_id'=>$uid,
              'comment_author_IP'=>(string)($_SERVER['REMOTE_ADDR']??''),'comment_agent'=>substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,254)];
-        if(($post->rrw_source??'')==='news'){   // CMS-Beiträge: Speicher und Regeln des CMS
+        if(($post->elvado_source??'')==='news'){   // CMS-Beiträge: Speicher und Regeln des CMS
             $r=wp_new_comment(['comment_post_ID'=>$pid,'author'=>$author,'comment'=>$text,'comment_parent'=>$parent,'hp'=>(string)($d['hp']??'')],true);
             if(is_wp_error($r))return $r;
             $cd['comment_ID']=(int)($r['id']??0);$cd['comment_approved']=!empty($r['pending'])?'0':'1';
@@ -416,13 +416,13 @@ if(!function_exists('wp_handle_comment_submission')){
         if(!$id)return new WP_Error('comment_save_error','<strong>Fehler:</strong> Der Kommentar konnte nicht gespeichert werden.',500);
         wp_update_comment_count_now((int)$pid);
         do_action('comment_post',$id,$ok,$cd);
-        return rrw_wpx_comment($id);
+        return elvado_wpx_comment($id);
     }
 }
 
 /* ───────── Pingbacks und Trackbacks ───────── */
 /** Einfacher XML-RPC-Aufruf per HTTP-Post; liefert den Antworttext oder false bei Fehler/Fault. */
-function rrw_wpx_xmlrpc(string $url, string $method, array $params) {
+function elvado_wpx_xmlrpc(string $url, string $method, array $params) {
     $x='<?xml version="1.0"?><methodCall><methodName>'.esc_html($method).'</methodName><params>';
     foreach($params as $p)$x.='<param><value><string>'.esc_html((string)$p).'</string></value></param>';
     $r=wp_remote_post($url,['timeout'=>5,'headers'=>['Content-Type'=>'text/xml'],'body'=>$x.'</params></methodCall>']);
@@ -430,7 +430,7 @@ function rrw_wpx_xmlrpc(string $url, string $method, array $params) {
     $b=wp_remote_retrieve_body($r);return str_contains($b,'<fault>')?false:$b;
 }
 /** Zeilen-/Leerzeichen-getrennte Adressliste (Spalten to_ping/pinged) als Array. */
-function rrw_wpx_url_list($s): array { return array_values(array_filter(preg_split('/\s+/',trim((string)$s))?:[])); }
+function elvado_wpx_url_list($s): array { return array_values(array_filter(preg_split('/\s+/',trim((string)$s))?:[])); }
 
 if(!function_exists('discover_pingback_server_uri')){
     function discover_pingback_server_uri($url, $deprecated='') {
@@ -460,15 +460,15 @@ if(!function_exists('pingback')){
     function pingback($content, $post) {
         global $wpdb;$post=get_post($post);if(!$post)return;
         if($content===null)$content=$post->post_content;
-        $pung=rrw_wpx_url_list($post->pinged);$self=get_permalink($post);$links=[];
+        $pung=elvado_wpx_url_list($post->pinged);$self=get_permalink($post);$links=[];
         if(preg_match_all('#https?://[^\s"\'<>\]\)]+#i',(string)$content,$m))foreach($m[0] as $l){ $l=rtrim($l,'.,;');if($l!==$self&&!in_array($l,$pung,true)&&url_to_postid($l)!==(int)$post->ID)$links[]=$l; }
         $links=array_unique($links);
         do_action_ref_array('pre_ping',[&$links,&$pung,$post->ID]);
         foreach($links as $to){
             $srv=discover_pingback_server_uri($to);if(!$srv)continue;
             if(function_exists('set_time_limit'))@set_time_limit(60);
-            if(rrw_wpx_xmlrpc($srv,'pingback.ping',[$self,$to])!==false&&(int)$post->ID>=RRW_WP_ID_DB_MIN&&rrw_wp_db_ready()){
-                $pung[]=$to;$wpdb->update($wpdb->posts,['pinged'=>implode("\n",$pung)],['ID'=>(int)$post->ID]);rrw_wp_post_cache_clear((int)$post->ID);
+            if(elvado_wpx_xmlrpc($srv,'pingback.ping',[$self,$to])!==false&&(int)$post->ID>=ELVADO_WP_ID_DB_MIN&&elvado_wp_db_ready()){
+                $pung[]=$to;$wpdb->update($wpdb->posts,['pinged'=>implode("\n",$pung)],['ID'=>(int)$post->ID]);elvado_wp_post_cache_clear((int)$post->ID);
             }
         }
     }
@@ -477,9 +477,9 @@ if(!function_exists('trackback')){
     function trackback($trackback_url, $title, $excerpt, $ID) {
         global $wpdb;if(empty($trackback_url))return;
         $r=wp_safe_remote_post($trackback_url,['timeout'=>10,'body'=>['title'=>$title,'url'=>get_permalink($ID),'blog_name'=>get_option('blogname'),'excerpt'=>$excerpt]]);
-        if(is_wp_error($r)||!rrw_wp_db_ready()||(int)$ID<RRW_WP_ID_DB_MIN)return;
+        if(is_wp_error($r)||!elvado_wp_db_ready()||(int)$ID<ELVADO_WP_ID_DB_MIN)return;
         $p=get_post((int)$ID);if(!$p)return;
-        $wpdb->update($wpdb->posts,['pinged'=>trim($p->pinged."\n".$trackback_url),'to_ping'=>trim(str_replace($trackback_url,'',(string)$p->to_ping))],['ID'=>(int)$ID]);rrw_wp_post_cache_clear((int)$ID);
+        $wpdb->update($wpdb->posts,['pinged'=>trim($p->pinged."\n".$trackback_url),'to_ping'=>trim(str_replace($trackback_url,'',(string)$p->to_ping))],['ID'=>(int)$ID]);elvado_wp_post_cache_clear((int)$ID);
         return true;
     }
 }
@@ -490,7 +490,7 @@ if(!function_exists('weblog_ping')){
         if(!preg_match('#^https?://#i',$server))$server='http://'.$server;
         if($path!=='')$server=rtrim($server,'/').'/'.ltrim((string)$path,'/');
         $home=trailingslashit(home_url());
-        if(rrw_wpx_xmlrpc($server,'weblogUpdates.extendedPing',[get_option('blogname'),$home,get_bloginfo('rss2_url')])===false)rrw_wpx_xmlrpc($server,'weblogUpdates.ping',[get_option('blogname'),$home]);
+        if(elvado_wpx_xmlrpc($server,'weblogUpdates.extendedPing',[get_option('blogname'),$home,get_bloginfo('rss2_url')])===false)elvado_wpx_xmlrpc($server,'weblogUpdates.ping',[get_option('blogname'),$home]);
     }
 }
 if(!function_exists('generic_ping')){
@@ -502,27 +502,27 @@ if(!function_exists('generic_ping')){
 if(!function_exists('do_trackbacks')){
     function do_trackbacks($post) {
         global $wpdb;$post=get_post($post);if(!$post)return;
-        $to=rrw_wpx_url_list($post->to_ping);$pinged=rrw_wpx_url_list($post->pinged);
-        if(!$to){ if((int)$post->ID>=RRW_WP_ID_DB_MIN&&rrw_wp_db_ready()){ $wpdb->update($wpdb->posts,['to_ping'=>''],['ID'=>(int)$post->ID]);rrw_wp_post_cache_clear((int)$post->ID); } return; }
+        $to=elvado_wpx_url_list($post->to_ping);$pinged=elvado_wpx_url_list($post->pinged);
+        if(!$to){ if((int)$post->ID>=ELVADO_WP_ID_DB_MIN&&elvado_wp_db_ready()){ $wpdb->update($wpdb->posts,['to_ping'=>''],['ID'=>(int)$post->ID]);elvado_wp_post_cache_clear((int)$post->ID); } return; }
         $ex=$post->post_excerpt===''?apply_filters('the_content',$post->post_content,$post->ID):apply_filters('the_excerpt',$post->post_excerpt);
         $ex=wp_html_excerpt(str_replace(']]>',']]&gt;',(string)$ex),252,'&#8230;');
         $title=strip_tags((string)apply_filters('the_title',$post->post_title,$post->ID));
         foreach($to as $u){
             if(!in_array($u,$pinged,true)){ trackback($u,$title,$ex,$post->ID);$pinged[]=$u; }
-            elseif((int)$post->ID>=RRW_WP_ID_DB_MIN&&rrw_wp_db_ready()){ $wpdb->update($wpdb->posts,['to_ping'=>trim(str_replace($u,'',(string)$post->to_ping))],['ID'=>(int)$post->ID]);rrw_wp_post_cache_clear((int)$post->ID); }
+            elseif((int)$post->ID>=ELVADO_WP_ID_DB_MIN&&elvado_wp_db_ready()){ $wpdb->update($wpdb->posts,['to_ping'=>trim(str_replace($u,'',(string)$post->to_ping))],['ID'=>(int)$post->ID]);elvado_wp_post_cache_clear((int)$post->ID); }
         }
     }
 }
 if(!function_exists('do_all_pingbacks')){
-    function do_all_pingbacks() { foreach(rrw_wpx_comment_rows("SELECT post_id FROM {$GLOBALS['wpdb']->postmeta} WHERE meta_key = '_pingme'") as $r){ delete_post_meta((int)$r['post_id'],'_pingme');pingback(null,(int)$r['post_id']); } }
+    function do_all_pingbacks() { foreach(elvado_wpx_comment_rows("SELECT post_id FROM {$GLOBALS['wpdb']->postmeta} WHERE meta_key = '_pingme'") as $r){ delete_post_meta((int)$r['post_id'],'_pingme');pingback(null,(int)$r['post_id']); } }
 }
 if(!function_exists('do_all_enclosures')){
     function do_all_enclosures() {
-        foreach(rrw_wpx_comment_rows("SELECT post_id FROM {$GLOBALS['wpdb']->postmeta} WHERE meta_key = '_encloseme'") as $r){ delete_post_meta((int)$r['post_id'],'_encloseme');if(function_exists('do_enclose'))do_enclose(null,(int)$r['post_id']); }
+        foreach(elvado_wpx_comment_rows("SELECT post_id FROM {$GLOBALS['wpdb']->postmeta} WHERE meta_key = '_encloseme'") as $r){ delete_post_meta((int)$r['post_id'],'_encloseme');if(function_exists('do_enclose'))do_enclose(null,(int)$r['post_id']); }
     }
 }
 if(!function_exists('do_all_trackbacks')){
-    function do_all_trackbacks() { foreach(rrw_wpx_comment_rows("SELECT ID FROM {$GLOBALS['wpdb']->posts} WHERE to_ping <> '' AND post_status = 'publish'") as $r)do_trackbacks((int)$r['ID']); }
+    function do_all_trackbacks() { foreach(elvado_wpx_comment_rows("SELECT ID FROM {$GLOBALS['wpdb']->posts} WHERE to_ping <> '' AND post_status = 'publish'") as $r)do_trackbacks((int)$r['ID']); }
 }
 if(!function_exists('do_all_pings')){
     function do_all_pings() { do_all_pingbacks();do_all_enclosures();do_all_trackbacks();generic_ping(); }
@@ -530,9 +530,9 @@ if(!function_exists('do_all_pings')){
 
 /* ───────── Datenschutz (Export/Löschen) ───────── */
 /** Kommentare mit E-Mail-Adresse aus wp_comments, seitenweise (500). */
-function rrw_wpx_comments_by_email(string $email, int $page): array {
+function elvado_wpx_comments_by_email(string $email, int $page): array {
     global $wpdb;$n=500;
-    return rrw_wp_db_ready()?(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->comments} WHERE comment_author_email = %s ORDER BY comment_ID ASC LIMIT %d OFFSET %d",$email,$n,($page-1)*$n)):[];
+    return elvado_wp_db_ready()?(array)$wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->comments} WHERE comment_author_email = %s ORDER BY comment_ID ASC LIMIT %d OFFSET %d",$email,$n,($page-1)*$n)):[];
 }
 if(!function_exists('wp_register_comment_personal_data_exporter')){
     function wp_register_comment_personal_data_exporter($exporters) { $exporters['wordpress-comments']=['exporter_friendly_name'=>'WordPress-Kommentare','callback'=>'wp_comments_personal_data_exporter'];return $exporters; }
@@ -541,7 +541,7 @@ if(!function_exists('wp_comments_personal_data_exporter')){
     function wp_comments_personal_data_exporter($email_address, $page=1) {
         $email=trim((string)$email_address);$page=max(1,(int)$page);if($email==='')return ['data'=>[],'done'=>true];
         $labels=['comment_author'=>'Kommentarautor','comment_author_email'=>'E-Mail des Kommentarautors','comment_author_url'=>'Website des Kommentarautors','comment_author_IP'=>'IP-Adresse des Kommentarautors','comment_agent'=>'Browser des Kommentarautors','comment_date'=>'Kommentardatum','comment_content'=>'Kommentar','comment_link'=>'Adresse des Kommentars'];
-        $rows=rrw_wpx_comments_by_email($email,$page);$data=[];
+        $rows=elvado_wpx_comments_by_email($email,$page);$data=[];
         foreach($rows as $c){
             $items=[];foreach($labels as $k=>$l){ $v=$k==='comment_link'?get_comment_link(new WP_Comment($c)):($c->$k??'');if($v!=='')$items[]=['name'=>$l,'value'=>(string)$v]; }
             $data[]=['group_id'=>'comments','group_label'=>'Kommentare','group_description'=>'Mit dieser E-Mail-Adresse abgegebene Kommentare.','item_id'=>'comment-'.$c->comment_ID,'data'=>$items];
@@ -557,7 +557,7 @@ if(!function_exists('wp_comments_personal_data_eraser')){
     function wp_comments_personal_data_eraser($email_address, $page=1) {
         global $wpdb;$email=trim((string)$email_address);$page=max(1,(int)$page);
         $res=['items_removed'=>false,'items_retained'=>false,'messages'=>[],'done'=>true];if($email==='')return $res;
-        $rows=rrw_wpx_comments_by_email($email,$page);
+        $rows=elvado_wpx_comments_by_email($email,$page);
         foreach($rows as $c){
             $anon=['comment_agent'=>'','comment_author'=>wp_privacy_anonymize_data('text'),'comment_author_email'=>wp_privacy_anonymize_data('email'),'comment_author_IP'=>wp_privacy_anonymize_data('ip'),'comment_author_url'=>wp_privacy_anonymize_data('url'),'user_id'=>0];
             $ok=apply_filters('wp_anonymize_comment',true,$c,$anon);

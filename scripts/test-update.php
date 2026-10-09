@@ -13,7 +13,7 @@ function put(string $f,string $c): void { @mkdir(dirname($f),0775,true);file_put
 function zipOf(string $file,array $entries): void { $z=new ZipArchive();$z->open($file,ZipArchive::CREATE|ZipArchive::OVERWRITE);foreach($entries as $k=>$c)$z->addFromString($k,$c);$z->close(); }
 $ping=fn(string $extra='')=>"<?php if((\$_GET['action']??'')==='update_ping'){ $extra echo json_encode(['status'=>'ok','version'=>trim((string)file_get_contents(__DIR__.'/VERSION'))]); exit; }\n";
 $brokenApi="<?php throw new RuntimeException('kaputt');\n";
-$tmp=sys_get_temp_dir().'/rrw-upd-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-upd-'.bin2hex(random_bytes(4));mkdir($tmp);
 $cms=$tmp.'/cms';
 // ───── Semver
 t('SemVer: 1.10.0 > 1.9.0',Semver::compare('1.10.0','1.9.0')===1&&Semver::compare('v2.0.0','1.99.99')===1&&Semver::compare('1.0.0','1.0.0')===0);

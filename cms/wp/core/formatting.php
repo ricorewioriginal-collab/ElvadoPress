@@ -127,8 +127,8 @@ function wp_specialchars_decode($text, $quote_style=ENT_NOQUOTES) { return htmls
 function force_balance_tags($text) {
     if(trim((string)$text)==='')return (string)$text;
     $d=new DOMDocument();libxml_use_internal_errors(true);
-    $d->loadHTML('<?xml encoding="utf-8"?><div id="rrwbal">'.$text.'</div>',LIBXML_HTML_NOIMPLIED|LIBXML_HTML_NODEFDTD);libxml_clear_errors();
-    $n=$d->getElementById('rrwbal');if(!$n)return (string)$text;$o='';foreach($n->childNodes as $c)$o.=$d->saveHTML($c);return $o;
+    $d->loadHTML('<?xml encoding="utf-8"?><div id="elvadobal">'.$text.'</div>',LIBXML_HTML_NOIMPLIED|LIBXML_HTML_NODEFDTD);libxml_clear_errors();
+    $n=$d->getElementById('elvadobal');if(!$n)return (string)$text;$o='';foreach($n->childNodes as $c)$o.=$d->saveHTML($c);return $o;
 }
 function balanceTags($text, $force=false) { return $force?force_balance_tags($text):(string)$text; }
 function convert_chars($c) { return (string)$c; }

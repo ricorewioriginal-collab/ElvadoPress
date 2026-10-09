@@ -1,7 +1,7 @@
 <?php
 // Minimaler MaxMind-DB-(mmdb)-Leser für die DB-IP-Lite-Stadtdatenbank. Liest per fseek, lädt die Datei nie komplett in den Speicher.
 // IP-Adressen werden nur für die Abfrage umgerechnet und nirgends gespeichert. Daten: IP Geolocation by DB-IP (CC BY 4.0).
-final class RrwMmdb {
+final class ElvadoMmdb {
     private $fh;private array $meta=[];private int $nodes=0;private int $recBits=0;private int $nodeBytes=0;private int $treeSize=0;private int $dataStart=0;private ?int $v4Start=null;
     public static function open(string $file): ?self {
         if(!is_file($file)||filesize($file)<1000)return null;
@@ -69,33 +69,33 @@ final class RrwMmdb {
     }
 }
 
-const RRW_GEO_DE_STATES=['Baden-Württemberg'=>'Baden-Württemberg','Bavaria'=>'Bayern','Berlin'=>'Berlin','Brandenburg'=>'Brandenburg','Bremen'=>'Bremen','Hamburg'=>'Hamburg','Hesse'=>'Hessen','Mecklenburg-Vorpommern'=>'Mecklenburg-Vorpommern','Mecklenburg-Western Pomerania'=>'Mecklenburg-Vorpommern','Lower Saxony'=>'Niedersachsen','North Rhine-Westphalia'=>'Nordrhein-Westfalen','Rhineland-Palatinate'=>'Rheinland-Pfalz','Saarland'=>'Saarland','Saxony'=>'Sachsen','Saxony-Anhalt'=>'Sachsen-Anhalt','Schleswig-Holstein'=>'Schleswig-Holstein','Thuringia'=>'Thüringen','Baden-Wurttemberg'=>'Baden-Württemberg'];
+const ELVADO_GEO_DE_STATES=['Baden-Württemberg'=>'Baden-Württemberg','Bavaria'=>'Bayern','Berlin'=>'Berlin','Brandenburg'=>'Brandenburg','Bremen'=>'Bremen','Hamburg'=>'Hamburg','Hesse'=>'Hessen','Mecklenburg-Vorpommern'=>'Mecklenburg-Vorpommern','Mecklenburg-Western Pomerania'=>'Mecklenburg-Vorpommern','Lower Saxony'=>'Niedersachsen','North Rhine-Westphalia'=>'Nordrhein-Westfalen','Rhineland-Palatinate'=>'Rheinland-Pfalz','Saarland'=>'Saarland','Saxony'=>'Sachsen','Saxony-Anhalt'=>'Sachsen-Anhalt','Schleswig-Holstein'=>'Schleswig-Holstein','Thuringia'=>'Thüringen','Baden-Wurttemberg'=>'Baden-Württemberg'];
 
-function rrw_geo_file(string $dataDir): string { return rrw_apps_dir($dataDir).'/geo.mmdb'; }
-function rrw_geo_status(string $dataDir): array {
-    $f=rrw_geo_file($dataDir);return ['installed'=>is_file($f)&&filesize($f)>1000000,'size'=>is_file($f)?(int)filesize($f):0,'updated'=>is_file($f)?gmdate('c',(int)filemtime($f)):''];
+function elvado_geo_file(string $dataDir): string { return elvado_apps_dir($dataDir).'/geo.mmdb'; }
+function elvado_geo_status(string $dataDir): array {
+    $f=elvado_geo_file($dataDir);return ['installed'=>is_file($f)&&filesize($f)>1000000,'size'=>is_file($f)?(int)filesize($f):0,'updated'=>is_file($f)?gmdate('c',(int)filemtime($f)):''];
 }
 // IP → "DE|Bayern|München" (Land|Bundesland/Region|Stadt); '' wenn unbekannt oder keine Datenbank
-function rrw_geo_lookup(string $dataDir,string $ip): string {
-    static $db=false;if($db===false)$db=RrwMmdb::open(rrw_geo_file($dataDir));
+function elvado_geo_lookup(string $dataDir,string $ip): string {
+    static $db=false;if($db===false)$db=ElvadoMmdb::open(elvado_geo_file($dataDir));
     if(!$db||$ip==='')return '';
     try{$r=$db->lookup($ip);}catch(Throwable $e){return '';}
     if(!$r)return '';
     $cc=strtoupper((string)($r['country']['iso_code']??''));if(!preg_match('/^[A-Z]{2}$/',$cc))return '';
-    $reg=(string)($r['subdivisions'][0]['names']['en']??'');if($cc==='DE')$reg=RRW_GEO_DE_STATES[$reg]??$reg;
+    $reg=(string)($r['subdivisions'][0]['names']['en']??'');if($cc==='DE')$reg=ELVADO_GEO_DE_STATES[$reg]??$reg;
     $city=(string)($r['city']['names']['de']??$r['city']['names']['en']??'');
     $clean=fn($s)=>str_replace('|','',mb_substr(trim(preg_replace('/\s*\(.*$/u','',strip_tags($s))),0,60));
     return $cc.'|'.$clean($reg).'|'.$clean($city);
 }
 // Aktuelle Monatsdatei laden (bei Fehler Vormonat); streamt gzip → Datei, ersetzt die alte erst nach Erfolg
-function rrw_geo_download(string $dataDir): array {
-    @set_time_limit(600);$dest=rrw_geo_file($dataDir);$tmp=$dest.'.part';
+function elvado_geo_download(string $dataDir): array {
+    @set_time_limit(600);$dest=elvado_geo_file($dataDir);$tmp=$dest.'.part';
     foreach([gmdate('Y-m'),gmdate('Y-m',strtotime('first day of last month'))] as $ym){
         $url="https://download.db-ip.com/free/dbip-city-lite-$ym.mmdb.gz";
         $in=@gzopen($url,'rb');if(!$in)continue;$out=@fopen($tmp,'wb');if(!$out){gzclose($in);return ['ok'=>false,'message'=>'Datei nicht schreibbar.'];}
         $n=0;while(!gzeof($in)){$c=gzread($in,1048576);if($c===false||$c==='')break;fwrite($out,$c);$n+=strlen($c);}
         gzclose($in);fclose($out);
-        if($n>20000000&&RrwMmdb::open($tmp)){@rename($tmp,$dest);return ['ok'=>true,'month'=>$ym,'size'=>$n];}
+        if($n>20000000&&ElvadoMmdb::open($tmp)){@rename($tmp,$dest);return ['ok'=>true,'month'=>$ym,'size'=>$n];}
         @unlink($tmp);
     }
     return ['ok'=>false,'message'=>'Download nicht möglich (Netzwerk gesperrt oder Datei nicht erreichbar).'];

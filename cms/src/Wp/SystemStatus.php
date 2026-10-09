@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 // cms/src/Wp/SystemStatus.php – Systemstatus und Update-Übersicht der Verwaltung: aus gesammelten Tatsachen („Facts“) werden Einträge mit OK / Warnung / Fehler und verständlichen deutschen Erklärungen.
-// Reine Logik ohne Zugriff auf System, Netz oder WordPress (die Tatsachen sammelt rrw_wpe_facts() in cms/lib/wpengine.php) – dadurch vollständig testbar.
+// Reine Logik ohne Zugriff auf System, Netz oder WordPress (die Tatsachen sammelt elvado_wpe_facts() in cms/lib/wpengine.php) – dadurch vollständig testbar.
 
 namespace Elvado\Wp;
 

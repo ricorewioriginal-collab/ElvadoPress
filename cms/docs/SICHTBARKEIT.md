@@ -23,4 +23,4 @@ Menüs, Widgets, Theme und Plugins steuern `cms/content/config/*.json` (siehe CO
 
 ## Warum Änderungen „automatisch zurückgesetzt“ werden konnten
 - Der Spiegel Website → `page.md` (bei jedem Veröffentlichen und im Deploy-Neuaufbau) überschrieb Dateien aus Git. Jetzt schreibt er keine Datei, die sich seit dem letzten Abgleich von außen geändert hat; sie wird stattdessen vorher übernommen (Manifest `cms/data/content-sync.json`). Beim allerersten Lauf wird nur der Ist-Stand gemerkt.
-- Beim Speichern bereinigt der Server die Daten (`rrw_clean_section`). Vorgaben, die nur einmalig angelegt werden (z. B. Favoriten-Menüpunkt, Partnerseite), werden nicht erneut ergänzt, sobald Menüs/Seiten gespeichert sind; unbekannte Systemseiten bleiben erhalten (bis 300 Seiten).
+- Beim Speichern bereinigt der Server die Daten (`elvado_clean_section`). Vorgaben, die nur einmalig angelegt werden (z. B. Favoriten-Menüpunkt, Partnerseite), werden nicht erneut ergänzt, sobald Menüs/Seiten gespeichert sind; unbekannte Systemseiten bleiben erhalten (bis 300 Seiten).

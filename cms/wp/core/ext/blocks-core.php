@@ -30,8 +30,8 @@ if(!function_exists('wp_register_block_metadata_collection')){
 function wp_register_block_metadata_collection($path,$manifest) { WP_Block_Metadata_Registry::register_collection($path,$manifest); }
 }
 /** WP_Block_Type-Argumente aus Block-Metadaten (wie beim Lesen einer block.json). */
-if(!function_exists('rrw_wp_block_metadata_args')){
-function rrw_wp_block_metadata_args(array $m, string $dir): array {
+if(!function_exists('elvado_wp_block_metadata_args')){
+function elvado_wp_block_metadata_args(array $m, string $dir): array {
     $a=['title'=>$m['title']??'','category'=>$m['category']??null,'parent'=>$m['parent']??null,'icon'=>$m['icon']??null,'description'=>$m['description']??'','keywords'=>$m['keywords']??[],'textdomain'=>$m['textdomain']??null,
         'attributes'=>$m['attributes']??null,'supports'=>$m['supports']??null,'uses_context'=>$m['usesContext']??[],'provides_context'=>$m['providesContext']??null,'api_version'=>$m['apiVersion']??1,'path'=>$dir];
     if(!empty($m['render'])&&str_starts_with((string)$m['render'],'file:')){
@@ -46,7 +46,7 @@ function wp_register_block_types_from_metadata_collection($path,$manifest='') {
     foreach(WP_Block_Metadata_Registry::get_collection_block_metadata_files($path) as $f){
         if(is_file($f)){ register_block_type_from_metadata($f);continue; }
         $m=WP_Block_Metadata_Registry::get_metadata($f);   // nur im Manifest vorhanden
-        if(is_array($m)&&!empty($m['name'])&&!WP_Block_Type_Registry::get_instance()->is_registered($m['name']))WP_Block_Type_Registry::get_instance()->register($m['name'],rrw_wp_block_metadata_args($m,dirname($f)));
+        if(is_array($m)&&!empty($m['name'])&&!WP_Block_Type_Registry::get_instance()->is_registered($m['name']))WP_Block_Type_Registry::get_instance()->register($m['name'],elvado_wp_block_metadata_args($m,dirname($f)));
     }
 }}
 if(!function_exists('get_block_metadata_i18n_schema')){
@@ -78,16 +78,16 @@ function get_block_asset_url($path) {
     return plugins_url(basename($p),$p);
 }}
 /** „file:./build/index.js“ → „./build/index.js“; Handles bleiben unverändert (remove_block_asset_path_prefix des Kerns gibt alles unverändert zurück). */
-if(!function_exists('rrw_wp_block_asset_path')){
-function rrw_wp_block_asset_path($v): string { $v=(string)$v;return str_starts_with($v,'file:')?substr($v,5):$v; }
+if(!function_exists('elvado_wp_block_asset_path')){
+function elvado_wp_block_asset_path($v): string { $v=(string)$v;return str_starts_with($v,'file:')?substr($v,5):$v; }
 }
 /** Gemeinsame Auflösung für Skripte, Module und Stile: [Handle-Name, Datei, Adresse, Asset-Daten, Version] oder null. */
-if(!function_exists('rrw_wp_block_asset_resolve')){
-function rrw_wp_block_asset_resolve(array $metadata, string $field, int $index, string $ext): ?array {
+if(!function_exists('elvado_wp_block_asset_resolve')){
+function elvado_wp_block_asset_resolve(array $metadata, string $field, int $index, string $ext): ?array {
     if(empty($metadata[$field])||empty($metadata['file']))return null;
     $v=$metadata[$field];if(is_array($v)){ if(empty($v[$index]))return null;$v=$v[$index]; }
     if(!str_starts_with((string)$v,'file:'))return null;
-    $rel=ltrim(rrw_wp_block_asset_path($v),'./');$dir=dirname((string)$metadata['file']);$file=$dir.'/'.$rel;$real=realpath($file);$file=$real!==false?$real:$file;
+    $rel=ltrim(elvado_wp_block_asset_path($v),'./');$dir=dirname((string)$metadata['file']);$file=$dir.'/'.$rel;$real=realpath($file);$file=$real!==false?$real:$file;
     $assetFile=$dir.'/'.preg_replace('/\.'.$ext.'$/','.asset.php',$rel);$asset=[];
     if(is_file($assetFile)){ $a=(function($f){ return include $f; })($assetFile);if(is_array($a))$asset=$a; }
     $ver=$asset['version']??($metadata['version']??(is_file($file)?filemtime($file):false));
@@ -98,7 +98,7 @@ function register_block_script_module_id($metadata,$field_name,$index=0) {
     if(empty($metadata[$field_name]))return false;
     $v=$metadata[$field_name];if(is_array($v)){ if(empty($v[$index]))return false;$v=$v[$index]; }
     if(!str_starts_with((string)$v,'file:'))return $v;   // bereits eine Modul-ID
-    $r=rrw_wp_block_asset_resolve($metadata,$field_name,(int)$index,'js');if(!$r)return false;
+    $r=elvado_wp_block_asset_resolve($metadata,$field_name,(int)$index,'js');if(!$r)return false;
     wp_register_script_module($r['handle'],$r['uri'],(array)($r['asset']['dependencies']??[]),$r['version']);
     return $r['handle'];
 }}
@@ -107,7 +107,7 @@ function register_block_script_handle($metadata,$field_name,$index=0) {
     if(empty($metadata[$field_name]))return false;
     $v=$metadata[$field_name];if(is_array($v)){ if(empty($v[$index]))return false;$v=$v[$index]; }
     if(!str_starts_with((string)$v,'file:'))return $v;   // bereits ein Skript-Handle
-    $r=rrw_wp_block_asset_resolve($metadata,$field_name,(int)$index,'js');if(!$r)return false;
+    $r=elvado_wp_block_asset_resolve($metadata,$field_name,(int)$index,'js');if(!$r)return false;
     $deps=(array)($r['asset']['dependencies']??[]);
     $args=[];if($field_name==='viewScript'&&str_starts_with((string)$metadata['name'],'core/'))$args['strategy']='defer';
     if(!wp_register_script($r['handle'],$r['uri'],$deps,$r['version'],$args))return false;
@@ -121,7 +121,7 @@ function register_block_style_handle($metadata,$field_name,$index=0) {
     if(!str_starts_with((string)$v,'file:'))return $v;   // bereits ein Stil-Handle
     $name=generate_block_asset_handle((string)$metadata['name'],$field_name,(int)$index);
     if(wp_style_is($name,'registered'))return $name;
-    $r=rrw_wp_block_asset_resolve($metadata,$field_name,(int)$index,'css');if(!$r)return false;
+    $r=elvado_wp_block_asset_resolve($metadata,$field_name,(int)$index,'css');if(!$r)return false;
     if(!wp_register_style($name,$r['uri'],[],$r['version']))return false;
     if(is_file($r['file']))wp_style_add_data($name,'path',$r['file']);
     return $name;
@@ -141,18 +141,18 @@ function get_comment_delimited_block_content($block_name,$block_attributes,$bloc
     return sprintf('<!-- wp:%s %s-->%s<!-- /wp:%s -->',$n,$a,$block_content,$n);
 }}
 /** Hooks-fähige Fassung von traverse_and_serialize_blocks (der Kern-Platzhalter ruft die Besucher nicht auf). Besucher: fn(&$block,$parent,$prev|$next). */
-if(!function_exists('rrw_wp_traverse_blocks')){
-function rrw_wp_traverse_blocks($blocks,$pre=null,$post=null): string {
+if(!function_exists('elvado_wp_traverse_blocks')){
+function elvado_wp_traverse_blocks($blocks,$pre=null,$post=null): string {
     $out='';$blocks=array_values((array)$blocks);$n=count($blocks);$none=null;
     foreach($blocks as $i=>$block){
         if(is_callable($pre))$out.=(string)call_user_func_array($pre,[&$block,&$none,$i===0?null:$blocks[$i-1]]);
         $after=is_callable($post)?(string)call_user_func_array($post,[&$block,&$none,$i===$n-1?null:$blocks[$i+1]]):'';
-        $out.=rrw_wp_traverse_block($block,$pre,$post).$after;
+        $out.=elvado_wp_traverse_block($block,$pre,$post).$after;
     }
     return $out;
 }}
-if(!function_exists('rrw_wp_traverse_block')){
-function rrw_wp_traverse_block($block,$pre=null,$post=null): string {
+if(!function_exists('elvado_wp_traverse_block')){
+function elvado_wp_traverse_block($block,$pre=null,$post=null): string {
     $content='';$bi=0;$inner_blocks=array_values((array)($block['innerBlocks']??[]));$n=count($inner_blocks);
     foreach((array)($block['innerContent']??[]) as $chunk){
         if(is_string($chunk)){ $content.=$chunk;continue; }
@@ -160,20 +160,20 @@ function rrw_wp_traverse_block($block,$pre=null,$post=null): string {
         $inner=$inner_blocks[$bi];
         if(is_callable($pre))$content.=(string)call_user_func_array($pre,[&$inner,&$block,$bi===0?null:$inner_blocks[$bi-1]]);
         $after=is_callable($post)?(string)call_user_func_array($post,[&$inner,&$block,$bi===$n-1?null:$inner_blocks[$bi+1]]):'';
-        $content.=rrw_wp_traverse_block($inner,$pre,$post).$after;$bi++;
+        $content.=elvado_wp_traverse_block($inner,$pre,$post).$after;$bi++;
     }
     return get_comment_delimited_block_content($block['blockName']??null,$block['attrs']??[],$content);
 }}
-if(!function_exists('rrw_wp_hooks_before_visitor')){
-function rrw_wp_hooks_before_visitor($hooked_blocks,$context,$callback='insert_hooked_blocks') {
+if(!function_exists('elvado_wp_hooks_before_visitor')){
+function elvado_wp_hooks_before_visitor($hooked_blocks,$context,$callback='insert_hooked_blocks') {
     return function(&$block,&$parent_block=null,$previous_block=null) use($hooked_blocks,$context,$callback){
         _inject_theme_attribute_in_template_part_block($block);$markup='';
         if($parent_block&&!$previous_block)$markup.=call_user_func_array($callback,[&$parent_block,'first_child',$hooked_blocks,$context]);
         return $markup.(string)call_user_func_array($callback,[&$block,'before',$hooked_blocks,$context]);
     };
 }}
-if(!function_exists('rrw_wp_hooks_after_visitor')){
-function rrw_wp_hooks_after_visitor($hooked_blocks,$context,$callback='insert_hooked_blocks') {
+if(!function_exists('elvado_wp_hooks_after_visitor')){
+function elvado_wp_hooks_after_visitor($hooked_blocks,$context,$callback='insert_hooked_blocks') {
     return function(&$block,&$parent_block=null,$next_block=null) use($hooked_blocks,$context,$callback){
         $markup=(string)call_user_func_array($callback,[&$block,'after',$hooked_blocks,$context]);
         if($parent_block&&!$next_block)$markup.=call_user_func_array($callback,[&$parent_block,'last_child',$hooked_blocks,$context]);
@@ -181,8 +181,8 @@ function rrw_wp_hooks_after_visitor($hooked_blocks,$context,$callback='insert_ho
     };
 }}
 /** Block-Typen, die an Anker-Block und Position eingehängt werden sollen (Filter hooked_block_types), je mit Filter hooked_block(_{typ}). */
-if(!function_exists('rrw_wp_hooked_candidates')){
-function rrw_wp_hooked_candidates(array $anchor, string $pos, $hooked_blocks, $context): array {
+if(!function_exists('elvado_wp_hooked_candidates')){
+function elvado_wp_hooked_candidates(array $anchor, string $pos, $hooked_blocks, $context): array {
     $type=$anchor['blockName']??'';
     $types=(array)apply_filters('hooked_block_types',$hooked_blocks[$type][$pos]??[],$pos,$type,$context);$out=[];
     foreach($types as $t){
@@ -195,13 +195,13 @@ function rrw_wp_hooked_candidates(array $anchor, string $pos, $hooked_blocks, $c
 if(!function_exists('insert_hooked_blocks')){
 function insert_hooked_blocks(&$parsed_anchor_block,$relative_position,$hooked_blocks,$context) {
     $ignored=(array)($parsed_anchor_block['attrs']['metadata']['ignoredHookedBlocks']??[]);$markup='';
-    foreach(rrw_wp_hooked_candidates($parsed_anchor_block,$relative_position,$hooked_blocks,$context) as $t=>$b)if(!in_array($t,$ignored,true))$markup.=serialize_block($b);
+    foreach(elvado_wp_hooked_candidates($parsed_anchor_block,$relative_position,$hooked_blocks,$context) as $t=>$b)if(!in_array($t,$ignored,true))$markup.=serialize_block($b);
     return $markup;
 }}
 if(!function_exists('set_ignored_hooked_blocks_metadata')){
 /** Vermerkt eingehängte Block-Typen in metadata.ignoredHookedBlocks des Ankers (per Referenz); gibt immer '' zurück. */
 function set_ignored_hooked_blocks_metadata(&$parsed_anchor_block,$relative_position,$hooked_blocks,$context) {
-    $types=array_keys(rrw_wp_hooked_candidates($parsed_anchor_block,$relative_position,$hooked_blocks,$context));if(!$types)return '';
+    $types=array_keys(elvado_wp_hooked_candidates($parsed_anchor_block,$relative_position,$hooked_blocks,$context));if(!$types)return '';
     $prev=(array)($parsed_anchor_block['attrs']['metadata']['ignoredHookedBlocks']??[]);
     $parsed_anchor_block['attrs']['metadata']['ignoredHookedBlocks']=array_values(array_unique(array_merge($prev,$types)));
     return '';
@@ -214,8 +214,8 @@ function insert_hooked_blocks_and_set_ignored_hooked_blocks_metadata(&$parsed_an
 if(!function_exists('apply_block_hooks_to_content')){
 function apply_block_hooks_to_content($content,$context=null,$callback='insert_hooked_blocks') {
     $hooked=get_hooked_blocks();$before='_inject_theme_attribute_in_template_part_block';$after=null;
-    if(!empty($hooked)||has_filter('hooked_block_types')){ $before=rrw_wp_hooks_before_visitor($hooked,$context,$callback);$after=rrw_wp_hooks_after_visitor($hooked,$context,$callback); }
-    return rrw_wp_traverse_blocks(parse_blocks((string)$content),$before,$after);
+    if(!empty($hooked)||has_filter('hooked_block_types')){ $before=elvado_wp_hooks_before_visitor($hooked,$context,$callback);$after=elvado_wp_hooks_after_visitor($hooked,$context,$callback); }
+    return elvado_wp_traverse_blocks(parse_blocks((string)$content),$before,$after);
 }}
 if(!function_exists('apply_block_hooks_to_content_from_post_object')){
 function apply_block_hooks_to_content_from_post_object($content,$post=null,$callback='insert_hooked_blocks') {
@@ -281,7 +281,7 @@ function resolve_pattern_blocks($blocks) {
             if($slug===''){ $out[]=$b;continue; }
             if(isset($seen[$slug]))continue;   // rekursive Muster überspringen
             $p=WP_Block_Patterns_Registry::get_instance()->get_registered($slug);
-            $content=$p?(string)($p['content']??''):'';if($content===''&&function_exists('rrw_wp_pattern_content'))$content=(string)rrw_wp_pattern_content($slug);
+            $content=$p?(string)($p['content']??''):'';if($content===''&&function_exists('elvado_wp_pattern_content'))$content=(string)elvado_wp_pattern_content($slug);
             if(!$p&&$content===''){ $out[]=$b;continue; }   // unbekanntes Muster bleibt stehen
             $seen[$slug]=true;$out=array_merge($out,resolve_pattern_blocks(parse_blocks($content)));unset($seen[$slug]);continue;
         }

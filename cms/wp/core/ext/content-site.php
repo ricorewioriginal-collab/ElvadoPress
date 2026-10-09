@@ -7,7 +7,7 @@ if(!function_exists('_get_cron_array')){
     function _get_cron_array() { $c=get_option('cron');if(!is_array($c))return false;unset($c['version']);return $c; }
 }
 if(!function_exists('_set_cron_array')){
-    function _set_cron_array($cron, $wp_error=false) { unset($cron['version']);_rrw_wp_cron_set((array)$cron);return true; }
+    function _set_cron_array($cron, $wp_error=false) { unset($cron['version']);_elvado_wp_cron_set((array)$cron);return true; }
 }
 if(!function_exists('_upgrade_cron_array')){
     // Wandelt das alte Format (ohne Argument-Schlüssel) um; Version 2 wird nur im Ergebnis vermerkt, nicht gespeichert (die Schicht kennt kein „version“-Feld).
@@ -19,7 +19,7 @@ if(!function_exists('_upgrade_cron_array')){
 }
 if(!function_exists('_wp_cron')){
     // Führt fällige Aufgaben direkt aus (statt einen Hintergrundaufruf zu starten); Rückgabe: 0 = nichts fällig, 1 = ausgeführt.
-    function _wp_cron() { if(!wp_get_ready_cron_jobs())return 0;rrw_wp_run_cron(false);return 1; }
+    function _wp_cron() { if(!wp_get_ready_cron_jobs())return 0;elvado_wp_run_cron(false);return 1; }
 }
 if(!function_exists('wp_reschedule_event')){
     function wp_reschedule_event($timestamp, $recurrence, $hook, $args=[], $wp_error=false) {
@@ -63,8 +63,8 @@ if(!function_exists('wp_resolve_numeric_slug_conflicts')){
 }
 
 /* ───────── Abfrage ───────── */
-if(!function_exists('is_comment_feed')){ function is_comment_feed() { return rrw_wp_flag('is_comment_feed'); } }
-if(!function_exists('is_favicon')){ function is_favicon() { return rrw_wp_flag('is_favicon'); } }
+if(!function_exists('is_comment_feed')){ function is_comment_feed() { return elvado_wp_flag('is_comment_feed'); } }
+if(!function_exists('is_favicon')){ function is_favicon() { return elvado_wp_flag('is_favicon'); } }
 if(!function_exists('the_comment')){
     // Schleife über $wp_query->comments: setzt $comment auf den nächsten Kommentar.
     function the_comment() {
@@ -91,24 +91,24 @@ if(!function_exists('generate_postdata')){
         return compact('id','authordata','currentday','currentmonth','page','pages','multipage','more','numpages');
     }
 }
-if(!function_exists('rrw_wp_x_date_like')){
+if(!function_exists('elvado_wp_x_date_like')){
     /** LIKE-Muster „JJJJ-MM-TT%“ aus den Abfrage-Variablen year/monthnum/day (fehlende Teile als Platzhalter), sonst null. */
-    function rrw_wp_x_date_like(): ?string {
+    function elvado_wp_x_date_like(): ?string {
         $y=(int)get_query_var('year');$m=(int)get_query_var('monthnum');$d=(int)get_query_var('day');if(!$y&&!$m&&!$d)return null;
         return ($y?sprintf('%04d',$y):'____').'-'.($m?sprintf('%02d',$m):'__').'-'.($d?sprintf('%02d',$d):'__').'%';
     }
 }
 if(!function_exists('_find_post_by_old_slug')){
     function _find_post_by_old_slug($post_type) {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return 0;
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return 0;
         $q=$wpdb->prepare("SELECT m.post_id FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE p.post_type = %s AND m.meta_key = '_wp_old_slug' AND m.meta_value = %s",$post_type,get_query_var('name'));
-        if($like=rrw_wp_x_date_like())$q.=$wpdb->prepare(' AND p.post_date LIKE %s',$like);
+        if($like=elvado_wp_x_date_like())$q.=$wpdb->prepare(' AND p.post_date LIKE %s',$like);
         return (int)$wpdb->get_var($q);
     }
 }
 if(!function_exists('_find_post_by_old_date')){
     function _find_post_by_old_date($post_type) {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready()||!($like=rrw_wp_x_date_like()))return false;
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready()||!($like=elvado_wp_x_date_like()))return false;
         $id=(int)$wpdb->get_var($wpdb->prepare("SELECT m.post_id FROM {$wpdb->postmeta} m INNER JOIN {$wpdb->posts} p ON p.ID = m.post_id WHERE p.post_type = %s AND m.meta_key = '_wp_old_date' AND p.post_name = %s AND m.meta_value LIKE %s",$post_type,get_query_var('name'),$like));
         return $id?:false;
     }
@@ -132,8 +132,8 @@ if(!function_exists('redirect_guess_404_permalink')){
         global $wpdb;$pre=apply_filters('pre_redirect_guess_404_permalink',null);if(is_string($pre))return $pre;
         $name=(string)get_query_var('name');if($name==='')return false;
         $types=array_filter(get_post_types(['exclude_from_search'=>false]),'is_post_type_viewable');$id=0;
-        if($wpdb&&rrw_wp_db_ready()&&$types)$id=(int)$wpdb->get_var($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE %s AND post_status = 'publish' AND post_type IN (".implode(',',array_map(fn($t)=>"'".esc_sql($t)."'",$types)).") ORDER BY ID ASC LIMIT 1",$wpdb->esc_like($name).'%'));
-        if(!$id)foreach(array_merge(rrw_wp_cms_posts(),rrw_wp_cms_pages()) as $p)if(str_starts_with((string)$p->post_name,$name)){ $id=(int)$p->ID;break; }
+        if($wpdb&&elvado_wp_db_ready()&&$types)$id=(int)$wpdb->get_var($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_name LIKE %s AND post_status = 'publish' AND post_type IN (".implode(',',array_map(fn($t)=>"'".esc_sql($t)."'",$types)).") ORDER BY ID ASC LIMIT 1",$wpdb->esc_like($name).'%'));
+        if(!$id)foreach(array_merge(elvado_wp_cms_posts(),elvado_wp_cms_pages()) as $p)if(str_starts_with((string)$p->post_name,$name)){ $id=(int)$p->ID;break; }
         if(!$id)return false;
         $l=get_permalink($id);return apply_filters('redirect_guess_404_permalink',$l?:false,$id);
     }

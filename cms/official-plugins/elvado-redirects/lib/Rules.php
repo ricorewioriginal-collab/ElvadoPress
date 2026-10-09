@@ -23,21 +23,21 @@ final class Rules
     public function load(): array
     {
         $this->core();
-        $d = rrw_tools_read(rrw_tools_dir($this->dataDir()) . '/redirects.json', ['rules' => []]);
+        $d = elvado_tools_read(elvado_tools_dir($this->dataDir()) . '/redirects.json', ['rules' => []]);
         return is_array($d['rules'] ?? null) ? array_values($d['rules']) : [];
     }
 
     public function save(array $rules): void
     {
         $this->core();
-        rrw_tools_write(rrw_tools_dir($this->dataDir()), 'redirects.json', ['rules' => array_values($rules)]);
+        elvado_tools_write(elvado_tools_dir($this->dataDir()), 'redirects.json', ['rules' => array_values($rules)]);
     }
 
     /** Pfad, auf den eine Regel zielt (nur interne Ziele; sonst null). */
     private static function internalTarget(array $r): ?string
     {
         $to = (string)($r['to'] ?? '');
-        return ($to !== '' && $to[0] === '/' && !str_starts_with($to, '//') && (int)($r['code'] ?? 301) !== 410) ? rrw_redirect_norm_path($to) : null;
+        return ($to !== '' && $to[0] === '/' && !str_starts_with($to, '//') && (int)($r['code'] ?? 301) !== 410) ? elvado_redirect_norm_path($to) : null;
     }
 
     /**
@@ -50,10 +50,10 @@ final class Rules
         foreach ($rules as $r) {
             $f = (string)($r['from'] ?? '');
             if ($f !== '' && !str_ends_with($f, '*')) {
-                $map[rrw_redirect_norm_path($f)] ??= $r;
+                $map[elvado_redirect_norm_path($f)] ??= $r;
             }
         }
-        $cur = rrw_redirect_norm_path($from);
+        $cur = elvado_redirect_norm_path($from);
         $seen = [$cur => true];
         $hops = 0;
         while (isset($map[$cur])) {
@@ -106,7 +106,7 @@ final class Rules
                 continue;
             }
             $res = self::resolve($rules, $t);
-            if ($res['hops'] > 0 && $res['final'] !== null && !$res['loop'] && $res['final'] !== rrw_redirect_norm_path($f)) {
+            if ($res['hops'] > 0 && $res['final'] !== null && !$res['loop'] && $res['final'] !== elvado_redirect_norm_path($f)) {
                 $notes[] = 'Kette verkürzt: ' . $f . ' → ' . $res['final'];
                 $rules[$i]['to'] = $res['final'];
             }
@@ -131,11 +131,11 @@ final class Rules
     {
         $st = '/%postname%/';
         try {
-            if (function_exists('rrw_wp_boot')) {
-                rrw_wp_boot(['theme' => true]);
+            if (function_exists('elvado_wp_boot')) {
+                elvado_wp_boot(['theme' => true]);
             }
-            if (function_exists('rrw_wp_link_structure')) {
-                $st = rrw_wp_link_structure();
+            if (function_exists('elvado_wp_link_structure')) {
+                $st = elvado_wp_link_structure();
             }
         } catch (\Throwable) {
         }
@@ -169,9 +169,9 @@ final class Rules
         $to = $kind === 'news' ? $this->postPath($new, $date) : '/' . rawurlencode($new) . '/';
         $this->core();
         $rules = $this->load();
-        $nf = rrw_redirect_norm_path($from);
-        $nt = rrw_redirect_norm_path($to);
-        $rules = array_values(array_filter($rules, static fn($r) => rrw_redirect_norm_path((string)($r['from'] ?? '')) !== $nt || str_ends_with((string)($r['from'] ?? ''), '*')));   // die neue Adresse ist wieder echt (z. B. Rückänderung)
+        $nf = elvado_redirect_norm_path($from);
+        $nt = elvado_redirect_norm_path($to);
+        $rules = array_values(array_filter($rules, static fn($r) => elvado_redirect_norm_path((string)($r['from'] ?? '')) !== $nt || str_ends_with((string)($r['from'] ?? ''), '*')));   // die neue Adresse ist wieder echt (z. B. Rückänderung)
         $rules[] = ['id' => bin2hex(random_bytes(4)), 'from' => $from, 'to' => $to, 'code' => (int)$this->np->setting('auto_code', 301), 'note' => 'automatisch (Adresse geändert)'];
         [$rules] = self::normalize($rules);
         $this->save(self::clean($rules));
@@ -202,7 +202,7 @@ final class Rules
                 $chains[] = $f . ' → … → ' . $res['final'] . ' (' . $res['hops'] . ' Schritte)';
             }
         }
-        $log = rrw_tools_read(rrw_tools_dir($this->dataDir()) . '/404.json', ['items' => []]);
+        $log = elvado_tools_read(elvado_tools_dir($this->dataDir()) . '/404.json', ['items' => []]);
         $items = is_array($log['items'] ?? null) ? $log['items'] : [];
         usort($items, static fn($a, $b) => (int)($b['count'] ?? 0) <=> (int)($a['count'] ?? 0));
         return ['rules' => $rules, 'loops' => $loops, 'chains' => $chains, 'top404' => array_slice($items, 0, 20), 'count404' => count($items)];
@@ -224,7 +224,7 @@ final class Rules
         $rules = $this->load();
         $rules[] = ['id' => bin2hex(random_bytes(4)), 'from' => $from, 'to' => $to, 'code' => $code, 'note' => 'aus 404-Monitor'];
         $before = count($rules);
-        $clean = rrw_redirects_clean($rules);   // prüft Form, Duplikate und (mit diesem Plugin) Schleifen
+        $clean = elvado_redirects_clean($rules);   // prüft Form, Duplikate und (mit diesem Plugin) Schleifen
         if (count($clean) < $before) {
             return ['ok' => false, 'message' => 'Die Weiterleitung wurde nicht gespeichert: ungültig, doppelt oder würde eine Schleife erzeugen.'];
         }
@@ -235,9 +235,9 @@ final class Rules
 
     private function removeFrom404(string $path): void
     {
-        $f = rrw_tools_dir($this->dataDir()) . '/404.json';
-        $d = rrw_tools_read($f, ['items' => []]);
+        $f = elvado_tools_dir($this->dataDir()) . '/404.json';
+        $d = elvado_tools_read($f, ['items' => []]);
         $d['items'] = array_values(array_filter((array)($d['items'] ?? []), static fn($i) => ($i['path'] ?? '') !== $path));
-        rrw_tools_write(rrw_tools_dir($this->dataDir()), '404.json', $d);
+        elvado_tools_write(elvado_tools_dir($this->dataDir()), '404.json', $d);
     }
 }

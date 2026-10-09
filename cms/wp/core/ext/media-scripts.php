@@ -2,10 +2,10 @@
 // Ergänzender Skript-Lader (wp-includes/script-loader.php): Registrierung der WordPress-Kernskripte und -Stile, Drucken von Kopf-/Fußskripten,
 // Blockstile, Globale Stile, Skript-Tags, Skript-Module. Die Registrierung nutzt die vorhandene Schicht (wp_register_script/_style); die
 // Ausgabe übernehmen wp_print_styles/wp_print_head_scripts/wp_print_footer_scripts. Verketten/Komprimieren von Dateien gibt es hier nicht
-// (script_concat_settings setzt nur die Globals, _print_scripts/_print_styles sind bewusst leer). Hilfsfunktionen beginnen mit _rrw_m_.
+// (script_concat_settings setzt nur die Globals, _print_scripts/_print_styles sind bewusst leer). Hilfsfunktionen beginnen mit _elvado_m_.
 
-if(!function_exists('_rrw_m_reg')){ /** Registriert eine Liste [Handle=>[Pfad, Abhängigkeiten, Version, Fuß]] (Pfad relativ zu wp-includes/ oder absolut). */
-function _rrw_m_reg($scripts,array $list,string $kind='script') {
+if(!function_exists('_elvado_m_reg')){ /** Registriert eine Liste [Handle=>[Pfad, Abhängigkeiten, Version, Fuß]] (Pfad relativ zu wp-includes/ oder absolut). */
+function _elvado_m_reg($scripts,array $list,string $kind='script') {
     foreach($list as $h=>$d){ $src=$d[0]??'';if($src!==''&&!preg_match('#^(https?:)?//#',$src))$src=includes_url($src);
         if($kind==='script')wp_register_script($h,$src,$d[1]??[],$d[2]??false,!empty($d[3]));else wp_register_style($h,$src,$d[1]??[],$d[2]??false,$d[3]??'all'); }
 } }
@@ -24,7 +24,7 @@ if(!function_exists('wp_default_scripts')){ function wp_default_scripts($scripts
         'media-editor'=>['js/media-editor.min.js',['shortcode','media-views'],false,1],'media-audiovideo'=>['js/media-audiovideo.min.js',['media-editor'],false,1],'mce-view'=>['js/mce-view.min.js',['shortcode','jquery','media-views','media-audiovideo'],false,1],
         'customize-loader'=>['js/customize-loader.min.js',['jquery','wp-backbone'],false,1],'wp-api-request'=>['js/api-request.min.js',['jquery'],false,1],'utils'=>['js/utils.min.js',['jquery'],false,1],
         'heartbeat'=>['js/heartbeat.min.js',['jquery','wp-hooks'],false,1],'wp-ajax-response'=>['js/wp-ajax-response.min.js',['jquery','wp-a11y'],false,1],'community-events'=>['js/community-events.min.js',['jquery','wp-util','wp-a11y'],false,1]];
-    _rrw_m_reg($scripts,$l);
+    _elvado_m_reg($scripts,$l);
     // jQuery UI (Kern, Widgets, Interaktionen, Effekte): ein Satz mit gemeinsamen Abhängigkeiten
     $ui=['core'=>[],'widget'=>['jquery-ui-core'],'mouse'=>['jquery-ui-core','jquery-ui-widget'],'position'=>['jquery-ui-core'],'sortable'=>['jquery-ui-mouse'],'draggable'=>['jquery-ui-mouse'],'droppable'=>['jquery-ui-draggable'],'resizable'=>['jquery-ui-mouse'],'selectable'=>['jquery-ui-mouse'],
         'accordion'=>['jquery-ui-core','jquery-ui-widget'],'tabs'=>['jquery-ui-core','jquery-ui-widget'],'datepicker'=>['jquery-ui-core'],'dialog'=>['jquery-ui-resizable','jquery-ui-draggable','jquery-ui-button'],'button'=>['jquery-ui-core','jquery-ui-widget'],
@@ -34,7 +34,7 @@ if(!function_exists('wp_default_scripts')){ function wp_default_scripts($scripts
     do_action('wp_default_scripts',$scripts);
 } }
 if(!function_exists('wp_default_styles')){ function wp_default_styles($styles) {
-    _rrw_m_reg($styles,['dashicons'=>['css/dashicons.min.css'],'admin-bar'=>['css/admin-bar.min.css',['dashicons']],'buttons'=>['css/buttons.min.css'],'common'=>['../wp-admin/css/common.min.css'],'forms'=>['../wp-admin/css/forms.min.css'],
+    _elvado_m_reg($styles,['dashicons'=>['css/dashicons.min.css'],'admin-bar'=>['css/admin-bar.min.css',['dashicons']],'buttons'=>['css/buttons.min.css'],'common'=>['../wp-admin/css/common.min.css'],'forms'=>['../wp-admin/css/forms.min.css'],
         'mediaelement'=>['js/mediaelement/mediaelementplayer-legacy.min.css'],'wp-mediaelement'=>['js/mediaelement/wp-mediaelement.min.css',['mediaelement']],'media-views'=>['css/media-views.min.css',['buttons','dashicons','wp-mediaelement']],
         'thickbox'=>['js/thickbox/thickbox.css',['dashicons']],'imgareaselect'=>['js/imgareaselect/imgareaselect.css'],'wp-pointer'=>['css/wp-pointer.min.css',['dashicons']],'editor-buttons'=>['css/editor.min.css',['dashicons']],
         'wp-embed-template-ie'=>['css/wp-embed-template-ie.min.css'],'wp-auth-check'=>['css/wp-auth-check.min.css',['dashicons']],'customize-controls'=>['../wp-admin/css/customize-controls.min.css',['wp-admin','colors','imgareaselect']],
@@ -83,7 +83,7 @@ if(!function_exists('wp_tinymce_inline_scripts')){ function wp_tinymce_inline_sc
 } }
 if(!function_exists('wp_default_packages_scripts')){ function wp_default_packages_scripts($scripts) {
     $assets=null;$files=[];
-    if(function_exists('rrw_wp_core_dir'))$files[]=rrw_wp_core_dir().'/assets/script-loader-packages.php';
+    if(function_exists('elvado_wp_core_dir'))$files[]=elvado_wp_core_dir().'/assets/script-loader-packages.php';
     $files[]=ABSPATH.WPINC.'/assets/script-loader-packages.php';
     foreach($files as $f)if(is_file($f)){ $a=include $f;if(is_array($a)){ $assets=$a;break; } }
     if($assets===null){   // ohne Kernressourcen: Paketnamen mit den wichtigsten Abhängigkeiten
@@ -205,14 +205,14 @@ if(!function_exists('wp_enqueue_registered_block_scripts_and_styles')){ function
     }
 } }
 if(!function_exists('enqueue_block_styles_assets')){ function enqueue_block_styles_assets() {
-    foreach((array)($GLOBALS['rrw_wp_block_styles']??[]) as $block=>$styles)foreach($styles as $sp){
+    foreach((array)($GLOBALS['elvado_wp_block_styles']??[]) as $block=>$styles)foreach($styles as $sp){
         if(!empty($sp['style_handle']))wp_enqueue_style($sp['style_handle']);
-        if(!empty($sp['inline_style'])){ $h='wp-block-library';if(!wp_style_is($h,'registered')){ $h='rrw-block-style-inline';wp_register_style($h,false);wp_enqueue_style($h); }wp_add_inline_style($h,$sp['inline_style']); }
+        if(!empty($sp['inline_style'])){ $h='wp-block-library';if(!wp_style_is($h,'registered')){ $h='elvado-block-style-inline';wp_register_style($h,false);wp_enqueue_style($h); }wp_add_inline_style($h,$sp['inline_style']); }
     }
 } }
 if(!function_exists('enqueue_editor_block_styles_assets')){ function enqueue_editor_block_styles_assets() {
     $l=['( function() {'];
-    foreach((array)($GLOBALS['rrw_wp_block_styles']??[]) as $block=>$styles)foreach($styles as $sp){
+    foreach((array)($GLOBALS['elvado_wp_block_styles']??[]) as $block=>$styles)foreach($styles as $sp){
         $s=['name'=>$sp['name'],'label'=>$sp['label']??$sp['name']];if(isset($sp['is_default']))$s['isDefault']=$sp['is_default'];
         $l[]=sprintf("\twp.blocks.registerBlockStyle( '%s', %s );",$block,wp_json_encode($s)); }
     $l[]='} )();';
@@ -231,7 +231,7 @@ if(!function_exists('wp_enqueue_block_support_styles')){ function wp_enqueue_blo
     add_action(wp_is_block_theme()?'wp_head':'wp_footer',static function() use($style){ echo "<style>$style</style>\n"; },$priority);
 } }
 if(!function_exists('wp_enqueue_stored_styles')){ function wp_enqueue_stored_styles($options=[]) {
-    $css=implode('',array_values((array)($GLOBALS['rrw_wp_block_support_css']??[])));if($css==='')return;
+    $css=implode('',array_values((array)($GLOBALS['elvado_wp_block_support_css']??[])));if($css==='')return;
     $pretty=isset($options['prettify'])?$options['prettify']===true:defined('SCRIPT_DEBUG')&&SCRIPT_DEBUG;
     wp_register_style('core-block-supports',false);wp_add_inline_style('core-block-supports',($pretty?"/**\n * Core styles: block-supports\n */\n":'').$css);wp_enqueue_style('core-block-supports');
 } }
@@ -245,21 +245,21 @@ if(!class_exists('WP_Script_Modules')){
 class WP_Script_Modules {
     private $registered=[];
     public function register($id,$src,$deps=[],$version=false) { if(isset($this->registered[$id]))return;$this->registered[$id]=['src'=>$src,'deps'=>array_values((array)$deps),'version'=>$version]; }
-    public function enqueue($id,$src='',$deps=[],$version=false) { if($src!=='')$this->register($id,$src,$deps,$version);if(isset($this->registered[$id]))$GLOBALS['rrw_wp_script_modules'][$id]=true; }
-    public function dequeue($id) { unset($GLOBALS['rrw_wp_script_modules'][$id]); }
-    public function deregister($id) { unset($this->registered[$id],$GLOBALS['rrw_wp_script_modules'][$id]); }
+    public function enqueue($id,$src='',$deps=[],$version=false) { if($src!=='')$this->register($id,$src,$deps,$version);if(isset($this->registered[$id]))$GLOBALS['elvado_wp_script_modules'][$id]=true; }
+    public function dequeue($id) { unset($GLOBALS['elvado_wp_script_modules'][$id]); }
+    public function deregister($id) { unset($this->registered[$id],$GLOBALS['elvado_wp_script_modules'][$id]); }
     public function get_registered() { return $this->registered; }
     public function is_registered($id) { return isset($this->registered[$id]); }
     private function url($m) { $s=(string)$m['src'];return $m['version']!==false&&$m['version']!==null?add_query_arg('ver',$m['version'],$s):$s; }
     public function print_import_map() {
-        $im=[];foreach($this->registered as $id=>$m)if(!empty($GLOBALS['rrw_wp_script_modules'][$id])||$this->is_dep_of_enqueued($id))$im[$id]=$this->url($m);
+        $im=[];foreach($this->registered as $id=>$m)if(!empty($GLOBALS['elvado_wp_script_modules'][$id])||$this->is_dep_of_enqueued($id))$im[$id]=$this->url($m);
         if($im)echo '<script type="importmap" id="wp-importmap">'.wp_json_encode(['imports'=>$im],JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP)."</script>\n";
     }
     public function print_enqueued_script_modules() {
-        foreach(array_keys(array_filter((array)($GLOBALS['rrw_wp_script_modules']??[]))) as $id)if(isset($this->registered[$id]))
+        foreach(array_keys(array_filter((array)($GLOBALS['elvado_wp_script_modules']??[]))) as $id)if(isset($this->registered[$id]))
             echo '<script type="module" src="'.esc_url($this->url($this->registered[$id])).'" id="'.esc_attr($id).'-js-module"></script>'."\n";
     }
-    private function is_dep_of_enqueued($id) { foreach(array_keys(array_filter((array)($GLOBALS['rrw_wp_script_modules']??[]))) as $q)if(in_array($id,$this->registered[$q]['deps']??[],true))return true;return false; }
+    private function is_dep_of_enqueued($id) { foreach(array_keys(array_filter((array)($GLOBALS['elvado_wp_script_modules']??[]))) as $q)if(in_array($id,$this->registered[$q]['deps']??[],true))return true;return false; }
 }
 }
 if(!function_exists('wp_script_modules')){ function wp_script_modules() { static $m=null;return $m??($m=new WP_Script_Modules()); } }

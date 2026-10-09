@@ -6,7 +6,7 @@ let CFG={};
 async function loadCfg(){const r=await fetch('/cms/api.php?action=public&_='+Date.now(),{cache:'no-store'});const d=await r.json();CFG=d.config||{};render();}
 function widget(){
  try{
-   const raw=sessionStorage.getItem('rrw_widget_preview_'+id);
+   const raw=sessionStorage.getItem('elvado_widget_preview_'+id);
    if(raw){const draft=JSON.parse(raw);if(draft&&draft.id===id&&draft.enabled!==false)return draft;}
  }catch(e){}
  return (CFG.widgets||[]).find(x=>x.id===id&&x.enabled!==false)

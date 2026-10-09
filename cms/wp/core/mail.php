@@ -5,7 +5,7 @@
 require_once __DIR__ . '/PHPMailer/PHPMailer.php';
 
 /** Anschrift-Liste ("Name <a@b>, c@d") als Liste aus [Adresse, Name]. */
-function _rrw_mail_addr_list($v): array {
+function _elvado_mail_addr_list($v): array {
     $o = [];
     foreach ((array) $v as $item) {
         foreach (\PHPMailer\PHPMailer\PHPMailer::parseAddresses(str_replace(["\r", "\n", "\0"], '', (string) $item)) as $a) {
@@ -16,7 +16,7 @@ function _rrw_mail_addr_list($v): array {
 }
 
 /** Eigentlicher Versand; Rückgabe true/false wie wp_mail(). */
-function _rrw_wp_mail_run($to, $subject, $message, $headers, $attachments): bool {
+function _elvado_wp_mail_run($to, $subject, $message, $headers, $attachments): bool {
     global $phpmailer;
     $mail_data = compact('to', 'subject', 'message', 'headers', 'attachments');
     if (!($phpmailer instanceof \PHPMailer\PHPMailer\PHPMailer)) {
@@ -50,10 +50,10 @@ function _rrw_wp_mail_run($to, $subject, $message, $headers, $attachments): bool
                     if (preg_match('/charset=["\']?([^"\';\s]+)/i', $rest, $m)) $charset = $m[1];
                 } elseif ($content !== '') $content_type = $content;
                 break;
-            case 'from': $from_list = _rrw_mail_addr_list($content); break;
-            case 'cc': $cc = array_merge($cc, _rrw_mail_addr_list($content)); break;
-            case 'bcc': $bcc = array_merge($bcc, _rrw_mail_addr_list($content)); break;
-            case 'reply-to': $reply = array_merge($reply, _rrw_mail_addr_list($content)); break;
+            case 'from': $from_list = _elvado_mail_addr_list($content); break;
+            case 'cc': $cc = array_merge($cc, _elvado_mail_addr_list($content)); break;
+            case 'bcc': $bcc = array_merge($bcc, _elvado_mail_addr_list($content)); break;
+            case 'reply-to': $reply = array_merge($reply, _elvado_mail_addr_list($content)); break;
             default: $custom[trim($name)] = trim($content);
         }
     }
@@ -81,7 +81,7 @@ function _rrw_wp_mail_run($to, $subject, $message, $headers, $attachments): bool
 
     // Empfänger: ungültige Adressen werden übersprungen
     $tos = is_array($to) ? $to : explode(',', (string) $to);
-    foreach ([['addAddress', _rrw_mail_addr_list($tos)], ['addCC', $cc], ['addBCC', $bcc], ['addReplyTo', $reply]] as [$fn, $list]) {
+    foreach ([['addAddress', _elvado_mail_addr_list($tos)], ['addCC', $cc], ['addBCC', $bcc], ['addReplyTo', $reply]] as [$fn, $list]) {
         foreach ($list as [$addr, $nm]) { try { $phpmailer->$fn($addr, $nm); } catch (\PHPMailer\PHPMailer\Exception $e) { continue; } }
     }
 

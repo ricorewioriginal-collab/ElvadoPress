@@ -7,7 +7,7 @@ use Elvado\Ai\{AiGatewayConfig,AiGatewayService,AiGatewayException,SiteBuilder};
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function thr(callable $f,string $needle=''): ?AiGatewayException { try{ $f();return null; }catch(AiGatewayException $e){ return ($needle===''||str_contains($e->getMessage(),$needle))?$e:null; } }
-$tmp=sys_get_temp_dir().'/rrw-sb-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-sb-'.bin2hex(random_bytes(4));mkdir($tmp);
 $calls=[];$answer='';
 Http::useTransport(function(string $m,string $u,array $h,?string $b,array $o) use(&$calls,&$answer): HttpResponse { $calls[]=['u'=>$u,'b'=>$b?json_decode($b,true):null,'o'=>$o];return new HttpResponse(200,json_encode(['choices'=>[['message'=>['content'=>$answer]]],'usage'=>['prompt_tokens'=>1,'completion_tokens'=>2]])); });
 $cfg=AiGatewayConfig::load($tmp);$cfg->save(['providers'=>['groq'=>['api_key'=>'gsk-test-key-1234']],'purposes'=>['builder'=>'groq']]);$cfg=AiGatewayConfig::load($tmp);

@@ -16,11 +16,11 @@ Dieses Dokument beschreibt das **native Plugin-System** (Verzeichnis `cms/src/Pl
 
 | Plugin | Neu im Plugin | Nutzt den Core |
 | --- | --- | --- |
-| Elvado SEO | Meta-Beschreibung, OpenGraph/Twitter, Schema.org, robots-Regeln, echte XML-Sitemap, Editor-Vorschau | SEO-Felder von Beiträgen/Seiten, `rrw_seo_defaults` |
+| Elvado SEO | Meta-Beschreibung, OpenGraph/Twitter, Schema.org, robots-Regeln, echte XML-Sitemap, Editor-Vorschau | SEO-Felder von Beiträgen/Seiten, `elvado_seo_defaults` |
 | Elvado Security | Login-Begrenzung, Login-Protokoll, Header, Sicherheitsübersicht, Dateiänderungs-Prüfung | bestehender Login (wird nicht ersetzt, nur vorher/nachher eingehängt) |
 | Elvado Backup | Zeitplan, Rotation, Prüfsummen, Redaktion von Geheimnissen, Sicherheitskopie vor Wiederherstellung | bestehender Bereich „Backups“ (die Engine dahinter wird ersetzt) |
 | Elvado Performance | Seiten-Cache, Lazy Loading, AVIF, .htaccess-Block, Kennzahlen | WebP-Varianten der Mediathek |
-| Elvado Forms | Formular-Builder, SMTP, Spam-Schutz, Webhook, Einsendungen | WordPress-Shortcode-System, `rrw_send_mail` als Rückfall |
+| Elvado Forms | Formular-Builder, SMTP, Spam-Schutz, Webhook, Einsendungen | WordPress-Shortcode-System, `elvado_send_mail` als Rückfall |
 | Elvado Analytics | interne Statistik, optional Matomo/Google Analytics | – |
 | Elvado Redirects | automatische Weiterleitung bei geändertem Slug, Schleifen-/Ketten-Schutz, 404-Monitor-Aktionen | vorhandene Regeln und 404-Protokoll (`cms/lib/tools.php`, Verwaltung unter Werkzeuge) |
 | Elvado AI | Textwerkzeuge im Editor, Vorschläge für Tabs/Hinweise/Store-Texte der Apps | KI-Zentrale (Anbieter, Schlüssel, Modelle, Limits) |
@@ -151,4 +151,4 @@ Zustand: `cms/data/.plugins/` (`state.json`, `settings/`, `data/<id>/`, `backup/
 Wer in einem Plugin-Skript einen `MutationObserver` auf `document.body` setzt, darf dort keine Änderungen am DOM oder Netzwerkanfragen ungebündelt auslösen: Die Verwaltung ändert den DOM bei jeder Anfrage selbst (Ladeanzeige), das ergibt sonst eine Endlosschleife und die Seite friert ein. Regeln: Ergebnis-Promise statt Ergebnis zwischenspeichern, Callback mit `setTimeout` bündeln, eigene Änderungen ausschließen, nur bei echter Änderung schreiben. Vorbild: `official-plugins/elvado-ai/admin.js` und `elvado-seo/admin.js`.
 
 ## Kopplung mit der KI-Zentrale
-Sobald in der KI-Zentrale ein nutzbarer Anbieter gespeichert wird, aktiviert `rrw_np_ai_autoactivate()` das Plugin *Elvado AI* einmalig. Wer es danach abschaltet, behält es aus.
+Sobald in der KI-Zentrale ein nutzbarer Anbieter gespeichert wird, aktiviert `elvado_np_ai_autoactivate()` das Plugin *Elvado AI* einmalig. Wer es danach abschaltet, behält es aus.

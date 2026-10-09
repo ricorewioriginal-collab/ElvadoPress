@@ -5,7 +5,7 @@ fetch('/cms/api.php?action=public&_='+Date.now(),{cache:'no-store'}).then(r=>r.j
  const c=d.config||{};
  let area=(c.widget_areas||[]).find(x=>x.id===id),widgets=c.widgets||[];
  try{
-   const ar=sessionStorage.getItem('rrw_widget_area_preview_'+id),wr=sessionStorage.getItem('rrw_widget_area_widgets_'+id);
+   const ar=sessionStorage.getItem('elvado_widget_area_preview_'+id),wr=sessionStorage.getItem('elvado_widget_area_widgets_'+id);
    if(ar)area=JSON.parse(ar);
    if(wr)widgets=JSON.parse(wr);
  }catch(e){}

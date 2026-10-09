@@ -48,31 +48,31 @@ function validate_plugin($plugin) {
 }
 
 /** Datei eines Plugins geschützt laden. Löst bei Abbruch (Fatal) eine automatische Deaktivierung aus. */
-function rrw_wp_include_plugin(string $plugin): ?string {
+function elvado_wp_include_plugin(string $plugin): ?string {
     static $failed=[];
     if(isset($failed[$plugin]))return $failed[$plugin];         // include_once würde einen abgebrochenen Ladeversuch sonst als Erfolg werten
-    $GLOBALS['rrw_wp_loading']=$plugin;
+    $GLOBALS['elvado_wp_loading']=$plugin;
     try{ include_once WP_PLUGIN_DIR.'/'.$plugin; $err=null; }
     catch(Throwable $e){ $err=$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')'; $failed[$plugin]=$err; }
-    $GLOBALS['rrw_wp_loading']=null;
+    $GLOBALS['elvado_wp_loading']=null;
     return $err;
 }
-function rrw_wp_register_crash_guard(): void {
+function elvado_wp_register_crash_guard(): void {
     static $done=false;if($done)return;$done=true;
     register_shutdown_function(function(){
-        $cur=$GLOBALS['rrw_wp_loading']??null;if(!$cur)return;
+        $cur=$GLOBALS['elvado_wp_loading']??null;if(!$cur)return;
         $e=error_get_last();
         if($e&&in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR,E_USER_ERROR],true)){
             if(str_starts_with($cur,'mu-plugins/')){   // Must-Use-Plugin: nicht abschaltbar, wird aber bis zur nächsten Änderung der Datei übersprungen
                 $f=(defined('WPMU_PLUGIN_DIR')?(string)WPMU_PLUGIN_DIR:WP_CONTENT_DIR.'/mu-plugins').'/'.basename($cur);
-                $skip=(array)get_option('rrw_wp_mu_skipped',[]);$skip[basename($cur)]=(int)@filemtime($f);update_option('rrw_wp_mu_skipped',$skip);
-                rrw_wp_log('Must-Use-Plugin '.basename($cur).' abgestürzt und bis zur nächsten Änderung übersprungen: '.$e['message']);
-                update_option('rrw_wp_plugin_errors',array_merge((array)get_option('rrw_wp_plugin_errors',[]),[$cur=>mb_substr($e['message'],0,300)]));
+                $skip=(array)get_option('elvado_wp_mu_skipped',[]);$skip[basename($cur)]=(int)@filemtime($f);update_option('elvado_wp_mu_skipped',$skip);
+                elvado_wp_log('Must-Use-Plugin '.basename($cur).' abgestürzt und bis zur nächsten Änderung übersprungen: '.$e['message']);
+                update_option('elvado_wp_plugin_errors',array_merge((array)get_option('elvado_wp_plugin_errors',[]),[$cur=>mb_substr($e['message'],0,300)]));
                 return;
             }
-            rrw_wp_log('Plugin '.$cur.' abgestürzt und automatisch deaktiviert: '.$e['message']);
+            elvado_wp_log('Plugin '.$cur.' abgestürzt und automatisch deaktiviert: '.$e['message']);
             $list=array_values(array_diff(get_option_active_plugins(),[$cur]));update_option('active_plugins',$list);
-            update_option('rrw_wp_plugin_errors',array_merge((array)get_option('rrw_wp_plugin_errors',[]),[$cur=>mb_substr($e['message'],0,300)]));
+            update_option('elvado_wp_plugin_errors',array_merge((array)get_option('elvado_wp_plugin_errors',[]),[$cur=>mb_substr($e['message'],0,300)]));
         }
     });
 }
@@ -81,33 +81,33 @@ function rrw_wp_register_crash_guard(): void {
  * danach muplugins_loaded. Ein Fehler in einer Datei wird gemeldet, bricht aber das Laden nicht ab (Must-Use-Plugins lassen sich nicht abschalten).
  * @return array<string,string> Fehler je Datei
  */
-function rrw_wp_load_mu_plugins(): array {
+function elvado_wp_load_mu_plugins(): array {
     static $done=false;$errors=[];
     if($done)return $errors;$done=true;
     $dir=defined('WPMU_PLUGIN_DIR')?(string)WPMU_PLUGIN_DIR:WP_CONTENT_DIR.'/mu-plugins';
     $files=is_dir($dir)?(glob($dir.'/*.php')?:[]):[];sort($files,SORT_STRING);
-    $skip=(array)get_option('rrw_wp_mu_skipped',[]);
+    $skip=(array)get_option('elvado_wp_mu_skipped',[]);
     foreach($files as $f){
         if(!is_file($f))continue;
         if(isset($skip[basename($f)])&&(int)$skip[basename($f)]===(int)@filemtime($f)){ $errors['mu-plugins/'.basename($f)]='abgestürzt, übersprungen bis die Datei geändert wird';continue; }
-        $GLOBALS['rrw_wp_loading']='mu-plugins/'.basename($f);
+        $GLOBALS['elvado_wp_loading']='mu-plugins/'.basename($f);
         try{ include_once $f; }
-        catch(Throwable $e){ $errors['mu-plugins/'.basename($f)]=$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')';rrw_wp_log('Must-Use-Plugin '.basename($f).': '.$errors['mu-plugins/'.basename($f)]); }
-        $GLOBALS['rrw_wp_loading']=null;
+        catch(Throwable $e){ $errors['mu-plugins/'.basename($f)]=$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')';elvado_wp_log('Must-Use-Plugin '.basename($f).': '.$errors['mu-plugins/'.basename($f)]); }
+        $GLOBALS['elvado_wp_loading']=null;
         do_action('mu_plugin_loaded',$f);
     }
     do_action('muplugins_loaded');
     return $errors;
 }
-function rrw_wp_load_plugins(): array {
+function elvado_wp_load_plugins(): array {
     static $loaded=[];$errors=[];
-    rrw_wp_register_crash_guard();
-    $errors+=rrw_wp_load_mu_plugins();
+    elvado_wp_register_crash_guard();
+    $errors+=elvado_wp_load_mu_plugins();
     foreach(get_option_active_plugins() as $pl){
         if(isset($loaded[$pl]))continue;
         $v=validate_plugin($pl);if(is_wp_error($v)){$errors[$pl]=$v->get_error_message();continue;}
-        $err=rrw_wp_include_plugin($pl);
-        if($err!==null){ $errors[$pl]=$err; rrw_wp_log('Plugin '.$pl.' konnte nicht geladen werden: '.$err); update_option('active_plugins',array_values(array_diff(get_option_active_plugins(),[$pl]))); update_option('rrw_wp_plugin_errors',array_merge((array)get_option('rrw_wp_plugin_errors',[]),[$pl=>mb_substr($err,0,300)])); continue; }
+        $err=elvado_wp_include_plugin($pl);
+        if($err!==null){ $errors[$pl]=$err; elvado_wp_log('Plugin '.$pl.' konnte nicht geladen werden: '.$err); update_option('active_plugins',array_values(array_diff(get_option_active_plugins(),[$pl]))); update_option('elvado_wp_plugin_errors',array_merge((array)get_option('elvado_wp_plugin_errors',[]),[$pl=>mb_substr($err,0,300)])); continue; }
         $loaded[$pl]=true;
         if($err===null)do_action('plugin_loaded',WP_PLUGIN_DIR.'/'.$pl);   // wie in WordPress: nach jedem erfolgreich geladenen Plugin (voller Pfad)
     }
@@ -120,25 +120,25 @@ function activate_plugin($plugin, $redirect='', $network_wide=false, $silent=fal
     // Anforderungen prüfen
     $d=get_plugin_data(WP_PLUGIN_DIR.'/'.$plugin);
     if($d['RequiresPHP']!==''&&version_compare(PHP_VERSION,$d['RequiresPHP'],'<'))return new WP_Error('php_version','Dieses Plugin benötigt PHP '.$d['RequiresPHP'].'.');
-    rrw_wp_register_crash_guard();
-    $GLOBALS['rrw_wp_loading']=$plugin;
+    elvado_wp_register_crash_guard();
+    $GLOBALS['elvado_wp_loading']=$plugin;
     try{
         ob_start();
-        $err=rrw_wp_include_plugin($plugin);
-        $GLOBALS['rrw_wp_loading']=$plugin;
+        $err=elvado_wp_include_plugin($plugin);
+        $GLOBALS['elvado_wp_loading']=$plugin;
         if($err===null){ do_action('activate_plugin',$plugin,$network_wide); do_action('activate_'.$plugin,$network_wide); }
         $out=ob_get_clean();
-    } catch(Throwable $e){ if(ob_get_level())ob_end_clean(); $GLOBALS['rrw_wp_loading']=null; return new WP_Error('plugin_activation_failed',$e->getMessage()); }
-    $GLOBALS['rrw_wp_loading']=null;
+    } catch(Throwable $e){ if(ob_get_level())ob_end_clean(); $GLOBALS['elvado_wp_loading']=null; return new WP_Error('plugin_activation_failed',$e->getMessage()); }
+    $GLOBALS['elvado_wp_loading']=null;
     if($err!==null)return new WP_Error('plugin_activation_failed',$err);
     $list=get_option_active_plugins();$list[]=$plugin;update_option('active_plugins',array_values(array_unique($list)));
-    $errs=(array)get_option('rrw_wp_plugin_errors',[]);unset($errs[$plugin]);update_option('rrw_wp_plugin_errors',$errs);
+    $errs=(array)get_option('elvado_wp_plugin_errors',[]);unset($errs[$plugin]);update_option('elvado_wp_plugin_errors',$errs);
     do_action('activated_plugin',$plugin,$network_wide);
-    rrw_wp_drop_activation_redirects();
+    elvado_wp_drop_activation_redirects();
     return null;
 }
 /** Plugins leiten nach der Aktivierung per wp_redirect()+exit auf eigene Assistenten um; das würde in der Plugin-Seiten-Umgebung die Anfrage beenden. */
-function rrw_wp_drop_activation_redirects(): void {
+function elvado_wp_drop_activation_redirects(): void {
     global $wpdb;
     if(!isset($wpdb))return;
     $rows=(array)$wpdb->get_col("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE '%activation!_redirect%' ESCAPE '!' OR option_name LIKE '%!_redirect!_on!_activation%' ESCAPE '!' OR option_name LIKE '%redirect!_after!_activation%' ESCAPE '!'");
@@ -149,7 +149,7 @@ function deactivate_plugins($plugins, $silent=false, $network_wide=null) {
     $list=get_option_active_plugins();
     foreach((array)$plugins as $pl){
         if(!in_array($pl,$list,true))continue;
-        if(!$silent){ try{ do_action('deactivate_plugin',$pl,$network_wide); do_action('deactivate_'.$pl,$network_wide); }catch(Throwable $e){ rrw_wp_log('Deaktivierungs-Hook '.$pl.': '.$e->getMessage()); } }
+        if(!$silent){ try{ do_action('deactivate_plugin',$pl,$network_wide); do_action('deactivate_'.$pl,$network_wide); }catch(Throwable $e){ elvado_wp_log('Deaktivierungs-Hook '.$pl.': '.$e->getMessage()); } }
         $list=array_values(array_diff($list,[$pl]));
         if(!$silent)do_action('deactivated_plugin',$pl,$network_wide);
     }
@@ -160,12 +160,12 @@ function delete_plugins($plugins, $deprecated='') {
         $v=validate_plugin($pl);if(is_wp_error($v))return $v;
         if(is_plugin_active($pl))return new WP_Error('plugin_active','Aktive Plugins können nicht gelöscht werden.');
         $dir=dirname(WP_PLUGIN_DIR.'/'.$pl);
-        if(realpath($dir)===realpath(WP_PLUGIN_DIR))@unlink(WP_PLUGIN_DIR.'/'.$pl); else rrw_wp_rmdir($dir);
+        if(realpath($dir)===realpath(WP_PLUGIN_DIR))@unlink(WP_PLUGIN_DIR.'/'.$pl); else elvado_wp_rmdir($dir);
         do_action('deleted_plugin',$pl,true);
     }
     return true;
 }
-function rrw_wp_rmdir(string $dir): void {
+function elvado_wp_rmdir(string $dir): void {
     $real=realpath($dir);$root=realpath(WP_PLUGIN_DIR);$root2=realpath(WP_CONTENT_DIR.'/themes');
     $ok=false;foreach([$root,$root2] as $r)if($r&&$real&&str_starts_with($real,$r.DIRECTORY_SEPARATOR))$ok=true;
     if(!$ok||is_link($dir))return;
@@ -175,15 +175,15 @@ function rrw_wp_rmdir(string $dir): void {
 
 /* ───────── Benutzer/Rechte (an CMS-Anmeldung gekoppelt; Stufe 2 erweitert das Modell) ───────── */
 function wp_get_current_user() {
-    $u=new WP_User(0);$g=$GLOBALS['rrw_wp_user']??null;
+    $u=new WP_User(0);$g=$GLOBALS['elvado_wp_user']??null;
     if($g){ $u->init((object)['ID'=>(int)($g['id']??1),'user_login'=>$g['login']??'','display_name'=>$g['name']??($g['login']??''),'user_email'=>$g['email']??'','role'=>$g['role']??'administrator']);
         if(!empty($g['caps']))$u->allcaps=$g['caps']; }
     return $u;
 }
 function get_current_user_id() { return wp_get_current_user()->ID; }
 function is_user_logged_in() { return wp_get_current_user()->exists(); }
-function rrw_wp_caps_for_role(string $role, bool $custom=true): array {
-    if($custom&&function_exists('rrw_wp_roles_custom')){ $cr=rrw_wp_roles_custom();if(isset($cr[$role]))return array_filter((array)$cr[$role]['capabilities']); }
+function elvado_wp_caps_for_role(string $role, bool $custom=true): array {
+    if($custom&&function_exists('elvado_wp_roles_custom')){ $cr=elvado_wp_roles_custom();if(isset($cr[$role]))return array_filter((array)$cr[$role]['capabilities']); }
     $admin=['manage_options','activate_plugins','install_plugins','delete_plugins','edit_plugins','update_plugins','switch_themes','edit_theme_options','install_themes','delete_themes','edit_themes','update_themes','manage_categories','moderate_comments','upload_files','import','export','unfiltered_html','edit_users','list_users','delete_users','create_users','promote_users','remove_users','edit_dashboard','read','edit_posts','edit_others_posts','edit_published_posts','publish_posts','delete_posts','delete_others_posts','delete_published_posts','edit_pages','edit_others_pages','edit_published_pages','publish_pages','delete_pages','delete_others_pages','read_private_posts','read_private_pages','edit_private_posts','edit_private_pages','manage_links','administrator'];
     if($role==='administrator'||$role==='admin')return array_fill_keys($admin,true);
     $author=['read','edit_posts','edit_published_posts','publish_posts','delete_posts','delete_published_posts','upload_files'];
@@ -193,17 +193,17 @@ function rrw_wp_caps_for_role(string $role, bool $custom=true): array {
 }
 function current_user_can($capability, ...$args) {
     $u=wp_get_current_user();if(!$u->exists())return (bool)apply_filters('user_has_cap',false,[$capability],[$capability],$u);
-    $caps=$u->allcaps;return (bool)apply_filters('user_has_cap',rrw_wp_has_cap($caps,$capability),[$capability],array_merge([$capability],$args),$u);
+    $caps=$u->allcaps;return (bool)apply_filters('user_has_cap',elvado_wp_has_cap($caps,$capability),[$capability],array_merge([$capability],$args),$u);
 }
 /** Primitive Berechtigung prüfen; Meta-Rechte (edit_post …) werden auf die allgemeinen Rechte abgebildet. */
-function rrw_wp_has_cap(array $caps, string $c): bool {
+function elvado_wp_has_cap(array $caps, string $c): bool {
     static $meta=['edit_post'=>'edit_posts','edit_page'=>'edit_pages','delete_post'=>'delete_posts','delete_page'=>'delete_pages','publish_post'=>'publish_posts','read_post'=>'read','read_page'=>'read','edit_comment'=>'moderate_comments'];
     if(isset($meta[$c]))$c=$meta[$c];
     return !empty($caps[$c]);
 }
-function user_can($user, $capability, ...$args) { return $user instanceof WP_User?rrw_wp_has_cap((array)$user->allcaps,(string)$capability):false; }
+function user_can($user, $capability, ...$args) { return $user instanceof WP_User?elvado_wp_has_cap((array)$user->allcaps,(string)$capability):false; }
 function current_user_can_for_blog($b, $c) { return current_user_can($c); }
-function is_admin() { return !empty($GLOBALS['rrw_wp_is_admin']); }
+function is_admin() { return !empty($GLOBALS['elvado_wp_is_admin']); }
 function is_super_admin($uid=false) { return current_user_can('administrator'); }
 function wp_set_current_user($id, $name='') { return wp_get_current_user(); }
 function wp_login_url($redirect='', $force=false) { return admin_url('index.php'); }

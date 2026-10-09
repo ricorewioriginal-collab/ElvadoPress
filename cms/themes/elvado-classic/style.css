@@ -4,7 +4,7 @@ Theme URI: https://github.com/ricorewioriginal-collab/ElvadoPress
 Description: Schlichtes, schnelles Standard-Theme des CMS (hell/dunkel, barrierearm, ohne Frameworks).
 Author: ElvadoPress
 Version: 1.0
-Text Domain: rrw-classic
+Text Domain: elvado-classic
 Requires PHP: 7.4
 */
 :root{--bg:#f6f7fb;--card:#fff;--text:#1b2230;--muted:#5d6779;--line:#e3e7ef;--accent:#2563eb;--accent-d:#1d4ed8;--radius:14px;--max:1120px}

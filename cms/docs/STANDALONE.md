@@ -31,7 +31,7 @@ Alle sichtbaren Bezeichnungen der Verwaltung kommen zentral aus `cms/lib/product
 { "name": "MeinCMS", "logo": "/assets/logo.png" }
 ```
 
-Mit nur `name` folgen Fenstertitel, Überschrift, Anmeldetext und die Generator-Angabe im RSS automatisch (Überschrift: „MeinCMS Verwaltung“). Einzeln überschreibbar: `slug`, `logo`, `title`, `heading`, `access_name`, `generator`. Leere Felder bedeuten „Standard“; „Standard wiederherstellen“ entfernt die Datei. Funktionen für Code: `rrw_product_name()`, `rrw_product_slug()`, `rrw_product_logo()`, `rrw_product_title()`, `rrw_product_heading()`, `rrw_product_generator()`.
+Mit nur `name` folgen Fenstertitel, Überschrift, Anmeldetext und die Generator-Angabe im RSS automatisch (Überschrift: „MeinCMS Verwaltung“). Einzeln überschreibbar: `slug`, `logo`, `title`, `heading`, `access_name`, `generator`. Leere Felder bedeuten „Standard“; „Standard wiederherstellen“ entfernt die Datei. Funktionen für Code: `elvado_product_name()`, `elvado_product_slug()`, `elvado_product_logo()`, `elvado_product_title()`, `elvado_product_heading()`, `elvado_product_generator()`.
 
 Noch nicht über diese Einstellung geführt: Markdown-Dokumentation unter `cms/docs/*.md`, Theme-Kopfzeilen, Texte der WordPress-Schicht und Inhalte, die ausdrücklich zur Marke der Website gehören (Rechtstexte, Beispielseiten).
 
@@ -60,7 +60,7 @@ Siehe auch [WORDPRESS.md](WORDPRESS.md) (WordPress-Kompatibilitätsschicht) und 
 
 - **Inhalte:** Bei der Einrichtung entstehen nur neutrale Inhalte: eine einzige Marke mit dem Namen der Website, das Beitrags-Widget, neutrale SEO-Angaben, kein Favoriten-Menü.
 - **Paket:** Ein Tag `v<Version>` löst den Workflow *Release* aus und erzeugt ein Installations-ZIP (`git archive`) samt Prüfsumme.
-- **Einrichtung:** Der Assistent schaltet das neutrale Theme `rrw-classic` ein; die Website erscheint sofort, weitere Themes installierst du im CMS.
+- **Einrichtung:** Der Assistent schaltet das neutrale Theme `elvado-classic` ein; die Website erscheint sofort, weitere Themes installierst du im CMS.
 
 ### Verbundene Dienste (eigene Dienste)
 

@@ -67,12 +67,12 @@ function _filter_block_template_part_area($type) {
 /* ───────── theme.json: eigene Vorlagen und Vorlagenteile ───────── */
 if(!function_exists('wp_get_theme_data_custom_templates')){
 function wp_get_theme_data_custom_templates() {
-    $o=[];foreach((array)(rrw_wp_theme_json()['theme']['customTemplates']??[]) as $t)if(is_array($t)&&!empty($t['name']))$o[$t['name']]=['title'=>$t['title']??$t['name'],'postTypes'=>$t['postTypes']??['page']];
+    $o=[];foreach((array)(elvado_wp_theme_json()['theme']['customTemplates']??[]) as $t)if(is_array($t)&&!empty($t['name']))$o[$t['name']]=['title'=>$t['title']??$t['name'],'postTypes'=>$t['postTypes']??['page']];
     return $o;
 }}
 if(!function_exists('wp_get_theme_data_template_parts')){
 function wp_get_theme_data_template_parts() {
-    $o=[];foreach((array)(rrw_wp_theme_json()['theme']['templateParts']??[]) as $t)if(is_array($t)&&!empty($t['name']))$o[$t['name']]=['title'=>$t['title']??$t['name'],'area'=>$t['area']??WP_TEMPLATE_PART_AREA_UNCATEGORIZED];
+    $o=[];foreach((array)(elvado_wp_theme_json()['theme']['templateParts']??[]) as $t)if(is_array($t)&&!empty($t['name']))$o[$t['name']]=['title'=>$t['title']??$t['name'],'area'=>$t['area']??WP_TEMPLATE_PART_AREA_UNCATEGORIZED];
     return $o;
 }}
 
@@ -236,15 +236,15 @@ function wp_generate_block_templates_export_file() {
     $file=wp_tempnam(get_stylesheet().'.zip');$zip=new ZipArchive();
     if($zip->open($file,ZipArchive::OVERWRITE)!==true)return new WP_Error('unable_to_create_zip','Die ZIP-Datei konnte nicht angelegt werden.');
     $dir=rtrim(wp_normalize_path(get_stylesheet_directory()),'/');$custom=[];$slug=preg_replace('/[^a-z0-9_-]/i','-',get_stylesheet());
-    foreach(['templates','parts'] as $sub)foreach(glob(RRW_WP_DATA.'/site-editor/'.$slug.'/'.$sub.'/*.html')?:[] as $f)$custom[$sub.'/'.basename($f)]=$f;
+    foreach(['templates','parts'] as $sub)foreach(glob(ELVADO_WP_DATA.'/site-editor/'.$slug.'/'.$sub.'/*.html')?:[] as $f)$custom[$sub.'/'.basename($f)]=$f;
     $it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::SELF_FIRST);
     foreach($it as $f){
         $rel=substr(wp_normalize_path($f->getPathname()),strlen($dir)+1);
         if(wp_is_theme_directory_ignored($rel)||!$f->isFile()||isset($custom[$rel]))continue;
-        if($rel==='theme.json'){ $user=get_option('rrw_wp_global_styles',[]);if(is_array($user)&&$user){ $zip->addFromString($rel,wp_json_encode(rrw_wp_tj_merge(rrw_wp_json_file($f->getPathname()),$user),JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));continue; } }
+        if($rel==='theme.json'){ $user=get_option('elvado_wp_global_styles',[]);if(is_array($user)&&$user){ $zip->addFromString($rel,wp_json_encode(elvado_wp_tj_merge(elvado_wp_json_file($f->getPathname()),$user),JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));continue; } }
         $zip->addFile($f->getPathname(),$rel);
     }
-    foreach($custom as $rel=>$src)$zip->addFromString($rel,rrw_wp_traverse_blocks(parse_blocks((string)file_get_contents($src)),'_remove_theme_attribute_from_template_part_block'));
+    foreach($custom as $rel=>$src)$zip->addFromString($rel,elvado_wp_traverse_blocks(parse_blocks((string)file_get_contents($src)),'_remove_theme_attribute_from_template_part_block'));
     $zip->close();
     return $file;
 }}
@@ -292,9 +292,9 @@ function resolve_block_template($template_type,$template_hierarchy,$fallback_tem
     if($fallback_template){ $i=array_search(_strip_template_file_suffix(basename((string)$fallback_template)),$slugs,true);if($i!==false)$limit=$i; }
     $t=null;
     foreach(array_slice($slugs,0,$limit) as $slug){
-        $f=rrw_wp_block_template_file($slug);if($f==='')continue;
+        $f=elvado_wp_block_template_file($slug);if($f==='')continue;
         $t=_build_block_template_result_from_file(['slug'=>$slug,'path'=>$f,'theme'=>get_stylesheet(),'type'=>'wp_template'],'wp_template');
-        if(str_contains(wp_normalize_path($f),'/site-editor/')){ $t->source='custom';$t->has_theme_file=rrw_wp_block_template_file($slug)!==''; }
+        if(str_contains(wp_normalize_path($f),'/site-editor/')){ $t->source='custom';$t->has_theme_file=elvado_wp_block_template_file($slug)!==''; }
         break;
     }
     if($t&&trim((string)$t->content)===''&&is_user_logged_in())$t->content=sprintf('Leere Vorlage: %s',$t->title);
@@ -306,7 +306,7 @@ function locate_block_template($template,$type,array $templates) {
     $bt=resolve_block_template($type,$templates,$template);
     if($bt){
         $GLOBALS['_wp_current_template_id']=$bt->id;$GLOBALS['_wp_current_template_content']=$bt->content;
-        // virtueller Pfad: die Ausgabe übernimmt rrw_wp_render_block_template()
+        // virtueller Pfad: die Ausgabe übernimmt elvado_wp_render_block_template()
         return ABSPATH.WPINC.'/template-canvas.php';
     }
     return $template;
@@ -334,9 +334,9 @@ function _resolve_template_for_new_post($wp_query) {
 }}
 if(!function_exists('unregister_block_template')){
 function unregister_block_template($template_name) {
-    $r=$GLOBALS['rrw_wp_registered_block_templates'][$template_name]??null;
+    $r=$GLOBALS['elvado_wp_registered_block_templates'][$template_name]??null;
     if($r===null)return new WP_Error('template_not_registered',sprintf('Die Vorlage „%s“ ist nicht registriert.',$template_name));
-    unset($GLOBALS['rrw_wp_registered_block_templates'][$template_name]);
+    unset($GLOBALS['elvado_wp_registered_block_templates'][$template_name]);
     $t=new WP_Block_Template();$t->id=$template_name;$t->slug=(string)(explode('//',$template_name,2)[1]??$template_name);$t->title=(string)($r['title']??'');$t->description=(string)($r['description']??'');
     $t->content=(string)($r['content']??'');$t->post_types=$r['post_types']??null;$t->source='plugin';$t->type='wp_template';
     return $t;
@@ -419,7 +419,7 @@ function get_block_editor_settings(array $custom_settings,$block_editor_context)
     $e['styles']=array_merge($gs,get_block_editor_theme_styles());
     $e['__experimentalFeatures']=wp_get_global_settings();
     // Paletten, Verläufe und Schriftgrößen (Standard und Theme zusammen)
-    foreach(['colors'=>'color.palette','gradients'=>'color.gradients','fontSizes'=>'typography.fontSizes'] as $k=>$path){ $p=rrw_wp_tj_presets($path);$list=array_merge($p['default'],$p['theme']);if($list)$e[$k]=$list; }
+    foreach(['colors'=>'color.palette','gradients'=>'color.gradients','fontSizes'=>'typography.fontSizes'] as $k=>$path){ $p=elvado_wp_tj_presets($path);$list=array_merge($p['default'],$p['theme']);if($list)$e[$k]=$list; }
     $e['__unstableResolvedAssets']=_wp_get_iframed_editor_assets();$e['localAutosaveInterval']=15;
     $e['disableLayoutStyles']=(bool)current_theme_supports('disable-layout-styles');
     $e=apply_filters('block_editor_settings_all',$e,$block_editor_context);

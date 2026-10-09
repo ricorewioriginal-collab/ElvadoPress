@@ -3,17 +3,17 @@
 if(!defined('ABSPATH'))exit;
 
 function elvado_bd_lib(): bool {
-    if(function_exists('rrw_tc_load'))return true;
-    $d=(defined('RRW_WP_NATIVE_THEMES')?dirname(RRW_WP_NATIVE_THEMES):dirname(__DIR__,3)).'/lib';
+    if(function_exists('elvado_tc_load'))return true;
+    $d=(defined('ELVADO_WP_NATIVE_THEMES')?dirname(ELVADO_WP_NATIVE_THEMES):dirname(__DIR__,3)).'/lib';
     if(!is_file($d.'/themeconf.php')||!is_file($d.'/band.php'))return false;
     require_once $d.'/band.php';require_once $d.'/themeconf.php';return true;
 }
-function elvado_bd_data_dir(): string { return dirname(RRW_WP_DATA); }
+function elvado_bd_data_dir(): string { return dirname(ELVADO_WP_DATA); }
 /** Bereinigte Band-Konfiguration (Abschnitt → Daten); ohne Bibliothek/Datei leere Vorgaben. */
 function elvado_bd_cfg(bool $reset=false): array {
     static $c=null;if($reset)$c=null;
     if($c===null){
-        $c=elvado_bd_lib()?rrw_tc_load(elvado_bd_data_dir(),'band'):[];
+        $c=elvado_bd_lib()?elvado_tc_load(elvado_bd_data_dir(),'band'):[];
         foreach(['band','booking','display'] as $k)$c[$k]=(array)($c[$k]??[]);
         foreach(['shows','releases','videos','members','gallery','links'] as $k)$c[$k]=(array)($c[$k]??[]);
     }
@@ -29,7 +29,7 @@ function elvado_bd_contrast(string $hex): string {
 }
 function elvado_bd_link_label(array $l): string {
     if(trim((string)$l['label'])!=='')return (string)$l['label'];
-    return defined('RRW_BAND_LINK_TYPES')?(RRW_BAND_LINK_TYPES[$l['type']]??'Link'):'Link';
+    return defined('ELVADO_BAND_LINK_TYPES')?(ELVADO_BAND_LINK_TYPES[$l['type']]??'Link'):'Link';
 }
 function elvado_bd_today(): string { return (string)wp_date('Y-m-d'); }
 function elvado_bd_date_parts(string $date): array {
@@ -88,7 +88,7 @@ function elvado_bd_section_ticker(): string {
     return '<div class="bd-ticker" aria-label="Aktuelles"><div class="bd-ticker-in">'.$row.'</div></div>';
 }
 function elvado_bd_show_row(array $s,string $cls=''): string {
-    $d=elvado_bd_date_parts($s['date']);$st=defined('RRW_BAND_SHOW_STATUS')?RRW_BAND_SHOW_STATUS:[];
+    $d=elvado_bd_date_parts($s['date']);$st=defined('ELVADO_BAND_SHOW_STATUS')?ELVADO_BAND_SHOW_STATUS:[];
     $h='<li class="bd-show '.esc_attr($s['status'].' '.$cls).'"><div class="bd-date"><span>'.esc_html($d['wd']).'</span><b>'.esc_html($d['day']).'</b><span>'.esc_html($d['mon']).'</span></div><div><div class="bd-venue">'.esc_html($s['venue']!==''?$s['venue']:$s['city']).'</div>'
         .'<div class="bd-city">'.esc_html(trim(($s['venue']!==''?$s['city']:'').($s['time']!==''?' · '.$s['time'].' Uhr':''),' ·')).'</div>'.($s['note']!==''?'<div class="bd-note">'.esc_html($s['note']).'</div>':'')
         .($s['status']!=='onsale'?'<span class="bd-badge '.esc_attr($s['status']).'">'.esc_html($st[$s['status']]??'').'</span>':'').'</div><div class="bd-act">';

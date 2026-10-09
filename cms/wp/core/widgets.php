@@ -1,7 +1,7 @@
 <?php
 // WordPress-Widget-API (Klasse WP_Widget, register_widget, the_widget). Die Anbindung an die Widget-Bereiche des Portals folgt mit der Theme-Laufzeit.
 $GLOBALS['wp_registered_widgets']=$GLOBALS['wp_registered_widgets']??[];
-$GLOBALS['rrw_wp_widget_classes']=$GLOBALS['rrw_wp_widget_classes']??[];
+$GLOBALS['elvado_wp_widget_classes']=$GLOBALS['elvado_wp_widget_classes']??[];
 
 if(!class_exists('WP_Widget')){
 class WP_Widget {
@@ -34,8 +34,8 @@ class WP_Widget {
 }
 class WP_Widget_Factory {
     public $widgets=[];
-    public function register($widget_class) { $this->widgets[$widget_class]=new $widget_class();$GLOBALS['rrw_wp_widget_classes'][$widget_class]=$this->widgets[$widget_class]; }
-    public function unregister($widget_class) { unset($this->widgets[$widget_class],$GLOBALS['rrw_wp_widget_classes'][$widget_class]); }
+    public function register($widget_class) { $this->widgets[$widget_class]=new $widget_class();$GLOBALS['elvado_wp_widget_classes'][$widget_class]=$this->widgets[$widget_class]; }
+    public function unregister($widget_class) { unset($this->widgets[$widget_class],$GLOBALS['elvado_wp_widget_classes'][$widget_class]); }
 }
 $GLOBALS['wp_widget_factory']=$GLOBALS['wp_widget_factory']??new WP_Widget_Factory();
 function register_widget($widget) { $GLOBALS['wp_widget_factory']->register(is_object($widget)?get_class($widget):$widget); do_action('register_widget',$widget); }

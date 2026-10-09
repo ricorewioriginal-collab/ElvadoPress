@@ -6,7 +6,7 @@ require __DIR__.'/../cms/src/autoload.php';
 use Elvado\Lovable\{LovableSettings,ProviderController,PostFeed};use Elvado\Database\DatabaseConnection;use Elvado\Repository\{LovableWidgetRepository,PostRepository};use Elvado\Support\RateLimiter;
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-$tmp=sys_get_temp_dir().'/rrw-lov-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-lov-'.bin2hex(random_bytes(4));mkdir($tmp);
 $news=[
  ['id'=>1,'slug'=>'konzert','title'=>'Konzert <b>live</b>','excerpt'=>'','body_html'=>'<p>Ein <em>langer</em> Text mit <script>alert(1)</script> Inhalt über das Konzert.</p>','category'=>'Events','tags'=>'musik, Live','image_url'=>'/cms/media/a.jpg','status'=>'published','published_at'=>'2026-03-01 10:00:00','author'=>'Anna','featured'=>true],
  ['id'=>2,'slug'=>'interview','title'=>'Interview','excerpt'=>'Kurz & knapp','category'=>'News','tags'=>'interview','image_url'=>'javascript:alert(1)','status'=>'published','published_at'=>'2026-02-01 09:00:00'],
