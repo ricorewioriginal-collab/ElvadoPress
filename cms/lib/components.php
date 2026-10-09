@@ -14,7 +14,6 @@ function rrw_components(bool $fresh = false): Registry
     if ($r === null || $fresh) {
         $r = new Registry();
         CoreComponents::register($r);
-        CoreComponents::registerRadio($r);
         rrw_components_packs($r);
         if (function_exists('rrw_np_boot')) {
             try {

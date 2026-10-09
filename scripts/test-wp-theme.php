@@ -101,7 +101,7 @@ t('danach wieder normal',page('/')['status']===200);
 /* Theme-Verwaltung: Liste, Aktivierung (Flag), Vorschau-Schlüssel */
 require_once __DIR__.'/../cms/wp/installer.php';
 $lt=array_column(rrw_wpi_list_themes(),null,'slug');
-t('Theme-Liste enthält Standard-Theme',isset($lt['rrw-classic'])&&$lt['rrw-classic']['bundled']&&$lt['rrw-classic']['name']==='RicoReWi Classic');
+t('Theme-Liste enthält Standard-Theme',isset($lt['rrw-classic'])&&$lt['rrw-classic']['bundled']&&$lt['rrw-classic']['name']==='ElvadoPress Classic');
 t('Aktivieren unbekannter Themes scheitert',rrw_wpi_activate_theme('gibts-nicht')!==null);
 t('Aktivieren setzt Optionen und Flag',rrw_wpi_activate_theme('rrw-classic')===null&&is_file(RRW_WP_DATA.'/front-on')&&get_option('stylesheet')==='rrw-classic');
 rrw_wpi_deactivate_theme();t('Deaktivieren entfernt Flag',!is_file(RRW_WP_DATA.'/front-on'));

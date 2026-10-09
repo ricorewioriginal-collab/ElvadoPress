@@ -8,7 +8,7 @@ final class Component
 {
     public const CATEGORIES = [
         'structure' => 'Struktur', 'content' => 'Inhalt', 'media' => 'Medien', 'data' => 'Beiträge & Daten', 'navigation' => 'Navigation',
-        'widgets' => 'Widgets & WordPress', 'radio' => 'Radio', 'advanced' => 'Erweitert', 'extension' => 'Erweiterungen',
+        'widgets' => 'Widgets & WordPress', 'advanced' => 'Erweitert', 'extension' => 'Erweiterungen',
     ];
     public const GROUPS = ['content' => 'Inhalt', 'design' => 'Design', 'behavior' => 'Verhalten'];
     /** Rendering: native = PHP-Funktion der Registry (überall), theme = vom aktiven Theme gerendert (Baukasten), wp = nur mit WordPress-Laufzeit, runtime = Modul von ElvadoPress (z. B. Formulare), bound = bestehender Bereich der Website (CSS-Selektor in „bind“): die Website rendert weiter selbst, ElvadoPress steuert nur Gestaltung und Sichtbarkeit. */

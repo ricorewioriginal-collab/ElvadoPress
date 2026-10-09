@@ -19,7 +19,7 @@ function rrw_td_get(string $url, int $maxBytes=2097152, int $timeout=20): ?strin
     for($hop=0;$hop<4;$hop++){
         if(!rrw_td_url_ok($url))return null;
         $body='';$ch=curl_init($url);
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>false,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_USERAGENT=>'RicoReWi-CMS-ThemeDirectory/1.0',CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>false,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_USERAGENT=>'ElvadoPress-ThemeDirectory/1.0',CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
             CURLOPT_WRITEFUNCTION=>function($c,$d) use(&$body,$maxBytes){ $body.=$d; return strlen($body)>$maxBytes?-1:strlen($d); }]);
         $ok=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);$loc=(string)curl_getinfo($ch,CURLINFO_REDIRECT_URL);curl_close($ch);
         if($code>=300&&$code<400&&$loc!==''){$url=$loc;continue;}

@@ -1,5 +1,5 @@
 // Produktbezeichnungen kommen aus cms/lib/product.php (index.php setzt window.RRW_PRODUCT); Rückfall = bisherige Anzeige.
-const RRW_P=Object.assign({name:'RicoReWi CMS',title:'RicoReWi Radio CMS',access_name:'RicoReWi-Radio-CMS',control_center:'AnMaCha Control Center',standalone:false},window.RRW_PRODUCT||{});
+const RRW_P=Object.assign({name:'ElvadoPress',title:'ElvadoPress',access_name:'ElvadoPress',control_center:'ElvadoPress',standalone:false},window.RRW_PRODUCT||{});
 function cmsEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 'use strict';
 const CRON='api.php'; let CMS=null, newsMounted=false, CMS_IS_SA=false, CMS_USER='', CMS_ROLE='admin', SERVICE_STATUS=[], CURRENT_PAGE_ID=null, DRAG_BLOCK=null, DRAG_MENU=null, MENU_EDITING='top';
@@ -297,7 +297,7 @@ async function initCms(){
    const p=document.querySelector('#cmsDenied p');if(p)p.textContent=e?.message||'Für diese Verwaltung fehlt die Berechtigung.';
  }
 }
-const PUBLIC_CMS_SECTIONS=new Set(['navigation','portal','social','apps','branding','core_network','pages','menus','widgets','widget_areas','feed_sources','rss','legal','brands','header_builder']);
+const PUBLIC_CMS_SECTIONS=new Set(['navigation','portal','apps','branding','core_network','pages','menus','widgets','widget_areas','feed_sources','rss','legal','brands','header_builder']);
 function cmsCanon(v){if(Array.isArray(v))return '['+v.map(cmsCanon).join(',')+']';if(v&&typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+cmsCanon(v[k])).join(',')+'}';return JSON.stringify(v)}
 function setPublishState(ok,text){
  const el=document.getElementById('cmsPublishState');if(!el)return;el.classList.toggle('bad',!ok);el.innerHTML='<i class="fas '+(ok?'fa-circle-check':'fa-triangle-exclamation')+'"></i> '+escCms(text|| (ok?'Alles gespeichert':'Nicht synchron'));
@@ -326,7 +326,6 @@ async function cmsReload(){try{const d=await cmsApi('get');CMS=d.config||{};wind
 function renderCms(){
  const nav=(CMS.navigation||[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
  document.getElementById('navEditor').innerHTML=nav.map((x,i)=>`<div class="navrow" data-id="${escCms(x.id)}"><div><input class="switch nav-vis" type="checkbox" ${x.visible?'checked':''}></div><div><input class="fc w-100 nav-label" maxlength="32" value="${escCms(x.label)}"></div><div><input class="fc w-100 nav-order" type="number" min="0" max="999" value="${Number(x.order)||0}"></div><div class="nav-id" style="color:var(--muted);font-family:monospace">${escCms(x.id)}</div></div>`).join('');
- const s=CMS.social||{};cmsRt.value=s.ricorewi_tiktok||'';cmsRi.value=s.ricorewi_instagram||'';cmsAt.value=s.anmacha_tiktok||'';cmsAi.value=s.anmacha_instagram||'';
  renderBranding(); window.BrandsManager?.render(); window.AppsManager?.render?.(); window.AlexaManager?.render?.(); window.ThemeManager?.refreshBrandSelect?.(); renderServices(); renderPages(); renderMenus(); renderWidgets(); renderWidgetAreas(); renderFeeds(); renderLegal();
 }
 function cmsFilterNav(q){
@@ -350,7 +349,6 @@ function cmsToggleNav(){document.querySelector('.tabs')?.classList.toggle('open'
 function cmsCloseNav(){document.querySelector('.tabs')?.classList.remove('open');document.getElementById('cmsNavBackdrop')?.classList.remove('on')}
 async function saveSection(section,value){const scrollY=window.scrollY;try{setPublishState(true,'Speichere…');const d=await cmsApi('save',{section,value});CMS[section]=d.value;renderCms();requestAnimationFrame(()=>window.scrollTo({top:scrollY,left:0,behavior:'auto'}));const live=await verifyPublicSection(section,d.value);cmsToast(live?'Gespeichert & live veröffentlicht ✓':'Gespeichert, Live-Stand bitte prüfen',!live)}catch(e){setPublishState(false,'Speichern fehlgeschlagen');cmsToast(e.message,true)}}
 function saveNavigation(){const value=[...document.querySelectorAll('.navrow')].map(r=>({id:r.dataset.id,label:r.querySelector('.nav-label').value.trim(),visible:r.querySelector('.nav-vis').checked,order:parseInt(r.querySelector('.nav-order').value||'100')}));saveSection('navigation',value)}
-function saveSocial(){saveSection('social',{ricorewi_tiktok:cmsRt.value.trim(),ricorewi_instagram:cmsRi.value.trim(),anmacha_tiktok:cmsAt.value.trim(),anmacha_instagram:cmsAi.value.trim()})}
 // „Apps verwalten“ (apps-manager.js) liefert den vollständigen Bereich samt Einstellungen je App; cms-app.js wird später geladen und darf das nicht mit der Kurzfassung überschreiben
 function saveApps(){
  const am=window.AppsManager;
@@ -421,8 +419,7 @@ function nativePreviewUrl(page){
  const base=location.origin+'/?cms_native_preview=1&cms_target='+encodeURIComponent(page?.system_target||'start')+'&t='+Date.now();
  if(!page||page.type!=='system')return base;
  const t=page.system_target;
- if(['start','sender','voting'].includes(t))return base;
- if(t==='senderdetail')return base+'#ricorewi';
+ if(t==='start')return base;
  return base+'#'+encodeURIComponent(t);
 }
 function refreshNativePreview(){

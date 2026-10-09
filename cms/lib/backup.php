@@ -33,7 +33,7 @@ function rrw_backup_create(string $root,bool $includeMedia=true): array {
     rrw_backup_add_file($zip,$root.'/rss.xml','rss.xml');
     rrw_backup_add_file($zip,$root.'/sitemap.xml','sitemap.xml');
     rrw_backup_add_file($zip,$root.'/robots.txt','robots.txt');
-    $manifest=['version'=>1,'created_at'=>date(DATE_ATOM),'include_media'=>$includeMedia,'source'=>function_exists('rrw_product_title')?rrw_product_title():'RicoReWi Radio CMS'];
+    $manifest=['version'=>1,'created_at'=>date(DATE_ATOM),'include_media'=>$includeMedia,'source'=>function_exists('rrw_product_title')?rrw_product_title():'ElvadoPress'];
     $zip->addFromString('backup.json',json_encode($manifest,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     $zip->close();return ['name'=>$name,'size'=>filesize($file)?:0,'created_at'=>$manifest['created_at']];
 }

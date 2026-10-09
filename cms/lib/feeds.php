@@ -15,7 +15,7 @@ function rrw_remote_feed_allowed(string $url): bool {
     if($ip&&$ip!==$host&&!filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE))return false;
     return true;
 }
-// Kennung beim Abruf: mit RicoReWi-Paket wie bisher, sonst neutral mit dem Produktnamen.
+// Kennung beim Abruf: neutral mit dem Produktnamen.
 function rrw_feed_user_agent(bool $long=true): string {
     if(!function_exists('rrw_product'))require_once __DIR__.'/product.php';
     $n=(string)(rrw_product()['name']??'');$n=preg_replace('/[^A-Za-z0-9.-]/','',$n)?:'CMS';

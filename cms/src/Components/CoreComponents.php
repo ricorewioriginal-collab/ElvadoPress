@@ -208,22 +208,4 @@ final class CoreComponents
                 ['k' => 'widget', 'label' => 'Widget (Kennung)', 'type' => 'text', 'max' => 80], ['k' => 'title', 'label' => 'Titel', 'type' => 'text']]],
         ];
     }
-
-    /** Radio-Erweiterung (neutral, ohne Markeninhalte): nur sichtbar, wenn das Merkmal „radio“ aktiv ist. */
-    public static function registerRadio(Registry $r): void
-    {
-        $e = fn($s) => self::e($s);
-        $r->register(['id' => 'radio_player', 'name' => 'Radio-Player', 'category' => 'radio', 'icon' => 'tower-broadcast', 'feature' => 'radio', 'description' => 'Livestream mit Player.', 'fields' => [
-            ['k' => 'stream', 'label' => 'Stream-Adresse (https://…)', 'type' => 'image'], ['k' => 'title', 'label' => 'Sendername', 'type' => 'text'], ['k' => 'cover', 'label' => 'Logo/Cover', 'type' => 'image']]],
-            'radio', fn($p) => $p['stream'] === '' ? '' : '<div class="ep-radio">' . ($p['cover'] !== '' ? '<img src="' . $e($p['cover']) . '" alt="">' : '') . '<div><b>' . $e($p['title']) . '</b><audio controls preload="none" src="' . $e($p['stream']) . '"></audio></div></div>');
-        $r->register(['id' => 'podcast', 'name' => 'Podcast', 'category' => 'radio', 'icon' => 'podcast', 'feature' => 'radio', 'description' => 'Liste von Episoden mit Player.', 'fields' => [
-            ['k' => 'title', 'label' => 'Überschrift', 'type' => 'text'], ['k' => 'items', 'label' => 'Episoden', 'type' => 'items', 'max_items' => 20, 'item' => [['k' => 'title', 'label' => 'Titel', 'type' => 'text', 'max' => 160], ['k' => 'src', 'label' => 'Audio-Adresse', 'type' => 'image']]]]],
-            'radio', function ($p) use ($e) {
-                $h = '';
-                foreach ($p['items'] as $i) {
-                    $h .= $i['src'] !== '' ? '<li><span>' . $e($i['title']) . '</span><audio controls preload="none" src="' . $e($i['src']) . '"></audio></li>' : '';
-                }
-                return $h === '' ? '' : ($p['title'] !== '' ? '<h3>' . $e($p['title']) . '</h3>' : '') . '<ul class="ep-podcast">' . $h . '</ul>';
-            });
-    }
 }

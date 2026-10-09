@@ -1,5 +1,5 @@
 <?php
-// Chat-Fenster des KI-Assistenten auf der öffentlichen Website (nur eigenständiges CMS; mit RicoReWi-Paket bringt das Portal seinen eigenen Assistenten mit).
+// Chat-Fenster des KI-Assistenten auf der öffentlichen Website .
 // Wird im Seitenfuß der WordPress-Themes eingebunden, wenn der Assistent in der Verwaltung eingeschaltet ist.
 if(!function_exists('rrw_wp_assistant_widget')){
     function rrw_wp_assistant_widget(): void {

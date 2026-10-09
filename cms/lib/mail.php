@@ -19,7 +19,7 @@ function rrw_mail_from(array $site): string {
     return 'noreply@'.$host;
 }
 function rrw_send_mail(string $to,string $subject,string $body,string $fromAddress,string $fromName=''): bool {
-    if($fromName==='')$fromName=function_exists('rrw_product_title')?rrw_product_title():'RicoReWi Radio CMS';
+    if($fromName==='')$fromName=function_exists('rrw_product_title')?rrw_product_title():'ElvadoPress';
     if(defined('RRW_DEMO')||!filter_var($to,FILTER_VALIDATE_EMAIL))return false;   // Demo: kein Mailversand
     $subjectEncoded='=?UTF-8?B?'.base64_encode($subject).'?=';
     $fromNameEncoded='=?UTF-8?B?'.base64_encode($fromName).'?=';
@@ -32,6 +32,6 @@ function rrw_send_mail(string $to,string $subject,string $body,string $fromAddre
 function rrw_send_comment_notification_email(array $site,string $toEmail,string $articleTitle,string $commentName,string $commentExcerpt,string $adminUrl): void {
     if($toEmail==='')return;
     $subject='Neuer Kommentar zu „'.$articleTitle.'"';
-    $body="Hallo,\n\n{$commentName} hat einen Kommentar zu deinem Beitrag \"{$articleTitle}\" hinterlassen:\n\n\"{$commentExcerpt}\"\n\nIm CMS ansehen und ggf. freigeben: {$adminUrl}\n\n-- \n".(function_exists('rrw_product_title')?rrw_product_title():'RicoReWi Radio CMS')." (automatische Benachrichtigung)";
+    $body="Hallo,\n\n{$commentName} hat einen Kommentar zu deinem Beitrag \"{$articleTitle}\" hinterlassen:\n\n\"{$commentExcerpt}\"\n\nIm CMS ansehen und ggf. freigeben: {$adminUrl}\n\n-- \n".(function_exists('rrw_product_title')?rrw_product_title():'ElvadoPress')." (automatische Benachrichtigung)";
     rrw_send_mail($toEmail,$subject,$body,rrw_mail_from($site));
 }

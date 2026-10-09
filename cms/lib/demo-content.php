@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // Inhalt der ElvadoPress-Demo: Die Demo-Website IST die Produkt-Homepage von ElvadoPress, gebaut mit ElvadoPress selbst
 // (Theme „Baukasten“ mit Homepage-Baukasten-Layout, Seiten, Menü, Beiträge). Wird bei jedem Zurücksetzen der Demo neu angelegt (lib/demo.php).
-// Nur Produkttexte – neutral, ohne RicoReWi-Bezug.
+// Nur Produkttexte.
 
 /** Abschnitte der Startseite (Format des Homepage-Baukastens, Option elvado_bk_layout). */
 function rrw_demo_layout(array $c): array {

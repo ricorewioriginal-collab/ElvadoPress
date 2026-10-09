@@ -145,8 +145,8 @@ t('Dienste: Prüfung liefert Zustand je Dienst (lokal gesperrt, abgeschaltet üb
 t('Dienste: Prüfung nur für angemeldete Administratoren',http('GET',"$B/cms/api.php?action=services_status")['code']===401||http('GET',"$B/cms/api.php?action=services_status")['code']===403);
 $ar=json_decode(http('GET',"$B/cms/api.php?action=architecture",[],$H)['body'],true)?:[];
 t('Systemübersicht: neutrale Website-Bezeichnung, keine Core-Sender (Produktnamen folgen dem Paket)',($ar['components'][0]['name']??'')==='Website'&&($ar['core_stations']??null)===[],json_encode($ar));
-/* Speichern von Bereichen, die eine frische Installation noch nicht angelegt hat (Seiten, Soziale Profile, Rechtliches) */
-foreach(['pages'=>[],'social'=>['ricorewi_tiktok'=>''],'legal'=>['imprint_mode'=>'shared']] as $sec=>$val){
+/* Speichern von Bereichen, die eine frische Installation noch nicht angelegt hat (Seiten, Rechtliches) */
+foreach(['pages'=>[],'legal'=>['imprint_mode'=>'shared']] as $sec=>$val){
     $r=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>$sec,'value'=>$val])],array_merge($H,['Content-Type: application/json']));
     t("Bereich ‚".$sec."‘ lässt sich in einer frischen Installation speichern",(json_decode($r['body'],true)['status']??'')==='ok',$r['body']);
 }

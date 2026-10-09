@@ -2,7 +2,7 @@
 // Prüft die Paket-Erweiterung der Komponenten: gebundene Bereiche („bind“), CSS dafür, Paket-Lader, Bearbeitungsziele, Vorschau-Schlüssel und das Einsetzen in fremdes HTML.
 // Aufruf: php scripts/test-components-packs.php
 declare(strict_types=1);
-function rrw_pack_available(string $pack = 'ricorewi-radio', ?string $d = null): bool { return $pack === 'demo-pack'; }   // nur dieses Paket „ist vorhanden“
+function rrw_pack_available(string $pack = 'demo-pack', ?string $d = null): bool { return $pack === 'demo-pack'; }   // nur dieses Paket „ist vorhanden“
 require __DIR__ . '/../cms/lib/components.php';
 use Elvado\Components\{Registry, Component, Layout, Renderer, LayoutStore};
 use Elvado\Wp\Actor;

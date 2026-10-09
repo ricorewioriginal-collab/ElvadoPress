@@ -111,7 +111,6 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
     <?php require __DIR__.'/views/panel-brands.php'; ?>
     <?php require __DIR__.'/views/panel-sites.php'; ?>
 
-    <?php require __DIR__.'/views/panel-social.php'; ?>
 
     <?php require __DIR__.'/views/panel-apps.php'; ?>
 

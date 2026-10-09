@@ -13,24 +13,24 @@ $apk=str_repeat('A',2_000_000);file_put_contents($root.'/downloads/App.apk',$apk
 $CERT=str_repeat('ab',32);
 function build(string $root,array $over=[]): void {
     global $sha,$CERT;
-    $d=array_merge(['version'=>'3.1.0','version_code'=>120,'package'=>'de.ricorewi.radio.dev','filename'=>'App.apk','signing'=>'stable','size_bytes'=>2_000_000,'sha256'=>$sha,'cert_sha256'=>$CERT,'built_at'=>'2026-10-04T10:00:00Z'],$over);
+    $d=array_merge(['version'=>'3.1.0','version_code'=>120,'package'=>'de.beispiel.app.dev','filename'=>'App.apk','signing'=>'stable','size_bytes'=>2_000_000,'sha256'=>$sha,'cert_sha256'=>$CERT,'built_at'=>'2026-10-04T10:00:00Z'],$over);
     file_put_contents($root.'/downloads/android-latest.json',json_encode($d));
 }
-function site(array $entry=[]): array { return ['apps'=>['android_enabled'=>true,'windows_enabled'=>true,'managed'=>['ricorewi-radio:android'=>$entry]]]; }
-$brand=['brand'=>'ricorewi-radio','origin'=>'https://www.ricorewi-radio.de','directory'=>false];
+function site(array $entry=[]): array { return ['apps'=>['android_enabled'=>true,'windows_enabled'=>true,'managed'=>['portalapp:android'=>$entry]]]; }
+$brand=['brand'=>'portalapp','origin'=>'https://www.beispiel.de','directory'=>false];
 function pub(string $root,array $site,array $brand,string $ver='3.0.0',int $code=0): array { return rrw_apps_public(rrw_apps_clean_site($site),$root,$brand,'android',$ver,'',str_repeat('s',32),$code); }
 function rrw_apps_clean_site(array $site): array { $site['apps']=rrw_apps_clean($site['apps']);return $site; }
 
 t('Gesunder, stabil signierter Build wird angeboten (mit URL, Paket, Code)',function() use($root,$brand){
     build($root);$o=pub($root,site(),$brand)['update'];
-    eq($o['available'],true);eq($o['url'],'https://www.ricorewi-radio.de/downloads/App.apk');eq($o['package'],'de.ricorewi.radio.dev');eq($o['latest_code'],120);
+    eq($o['available'],true);eq($o['url'],'https://www.beispiel.de/downloads/App.apk');eq($o['package'],'de.beispiel.app.dev');eq($o['latest_code'],120);
 });
 t('Debug-Signatur: kein Update, keine URL (Installation würde scheitern)',function() use($root,$brand){
     build($root,['signing'=>'debug']);$o=pub($root,site(),$brand)['update'];eq($o['available'],false);eq($o['url'],'');
 });
 t('Prüfsumme weicht ab (Datei verändert): wird nicht angeboten, Gesundheitsprüfung meldet es',function() use($root,$brand,$sha){
     build($root,['sha256'=>str_repeat('0',64)]);$o=pub($root,site(),$brand)['update'];eq($o['available'],false);eq($o['url'],'');
-    $m=rrw_apps_meta($root,'ricorewi-radio','ricorewi-radio','android');$codes=array_column(rrw_apps_health($m,rrw_apps_entry(site(),'ricorewi-radio','android'),'android'),'code');
+    $m=rrw_apps_meta($root,'portalapp','portalapp','android');$codes=array_column(rrw_apps_health($m,rrw_apps_entry(site(),'portalapp','android'),'android'),'code');
     eq(in_array('sha',$codes,true),true,'Fehler sha');
 });
 t('Datei fehlt / falsche Größe: nicht angeboten',function() use($root,$brand){
@@ -40,14 +40,14 @@ t('Datei fehlt / falsche Größe: nicht angeboten',function() use($root,$brand){
 t('Zertifikat-Pin: gleiches Zertifikat wird angeboten, anderes nicht',function() use($root,$brand,$CERT){
     build($root);eq(pub($root,site(['cert_pin'=>$CERT]),$brand)['update']['available'],true,'passend');
     build($root,['cert_sha256'=>str_repeat('cd',32)]);$o=pub($root,site(['cert_pin'=>$CERT]),$brand)['update'];eq($o['available'],false,'abweichend');eq($o['url'],'');
-    $m=rrw_apps_meta($root,'ricorewi-radio','ricorewi-radio','android');$h=rrw_apps_health($m,rrw_apps_entry(site(['cert_pin'=>$CERT]),'ricorewi-radio','android'),'android');
+    $m=rrw_apps_meta($root,'portalapp','portalapp','android');$h=rrw_apps_health($m,rrw_apps_entry(site(['cert_pin'=>$CERT]),'portalapp','android'),'android');
     eq(in_array('cert_changed',array_column($h,'code'),true),true);
 });
 t('Mindestversion über der neuesten Version sperrt niemanden aus',function() use($root,$brand){
     build($root);$r=pub($root,site(['min_version'=>'9.0.0']),$brand);eq($r['update']['required'],false);
     eq(pub($root,site(['min_version'=>'3.1.0']),$brand)['update']['required'],true,'erreichbare Mindestversion zwingt');
-    $m=rrw_apps_meta($root,'ricorewi-radio','ricorewi-radio','android');
-    eq(in_array('min_above_latest',array_column(rrw_apps_health($m,rrw_apps_entry(site(['min_version'=>'9.0.0']),'ricorewi-radio','android'),'android'),'code'),true),true);
+    $m=rrw_apps_meta($root,'portalapp','portalapp','android');
+    eq(in_array('min_above_latest',array_column(rrw_apps_health($m,rrw_apps_entry(site(['min_version'=>'9.0.0']),'portalapp','android'),'android'),'code'),true),true);
 });
 t('Gesperrte Versionen müssen aktualisieren, andere nicht',function() use($root,$brand){
     build($root);$s=site(['blocked'=>['3.0.1']]);
@@ -60,12 +60,12 @@ t('Gleicher Versionsname, neuerer Build: Update, wenn die App ihren Code schickt
 });
 t('Update-Text kommt an; Bereinigung von Pin, Sperrliste und Text',function() use($root,$brand){
     build($root);eq(pub($root,site(['notes'=>'<b>Neu</b> Dunkelmodus']),$brand)['update']['notes'],'Neu Dunkelmodus');
-    $c=rrw_apps_clean(['managed'=>['ricorewi-radio:android'=>['cert_pin'=>'../../x','blocked'=>'3.0.1, 3.0.2;x 3.0.1 <script>','notes'=>str_repeat('x',900)]]])['managed']['ricorewi-radio:android'];
+    $c=rrw_apps_clean(['managed'=>['portalapp:android'=>['cert_pin'=>'../../x','blocked'=>'3.0.1, 3.0.2;x 3.0.1 <script>','notes'=>str_repeat('x',900)]]])['managed']['portalapp:android'];
     eq($c['cert_pin'],'');eq($c['blocked'],['3.0.1','3.0.2']);eq(mb_strlen($c['notes']),600);
-    eq(rrw_apps_clean(['managed'=>['ricorewi-radio:android'=>['cert_pin'=>strtoupper(str_repeat('ab',32))]]])['managed']['ricorewi-radio:android']['cert_pin'],str_repeat('ab',32),'Großschreibung wird normalisiert');
+    eq(rrw_apps_clean(['managed'=>['portalapp:android'=>['cert_pin'=>strtoupper(str_repeat('ab',32))]]])['managed']['portalapp:android']['cert_pin'],str_repeat('ab',32),'Großschreibung wird normalisiert');
 });
 t('Änderungsprotokoll fasst Änderungen zusammen (und schweigt bei keiner)',function(){
-    $a=rrw_apps_clean(['managed'=>['ricorewi-radio:android'=>['rollout'=>100]]]);$b=rrw_apps_clean(['managed'=>['ricorewi-radio:android'=>['rollout'=>20,'maintenance'=>['enabled'=>true],'blocked'=>['3.0.1']]]]);
+    $a=rrw_apps_clean(['managed'=>['portalapp:android'=>['rollout'=>100]]]);$b=rrw_apps_clean(['managed'=>['portalapp:android'=>['rollout'=>20,'maintenance'=>['enabled'=>true],'blocked'=>['3.0.1']]]]);
     $s=rrw_apps_change_summary('apps',$a,$b);foreach(['Rollout 100 % → 20 %','Wartungsmodus an','3.0.1'] as $x)if(strpos($s,$x)===false)throw new RuntimeException("fehlt '$x' in: $s");
     eq(rrw_apps_change_summary('apps',$a,$a),'');
 });

@@ -413,7 +413,7 @@ function rrw_theme_catalog(array $site,bool $withHidden=false): array {
         $out[]=[
             'id'=>$id,'name'=>(string)($m['name']??$id),'version'=>(string)($m['version']??'1.0'),
             'author'=>(string)($m['author']??''),'description'=>(string)($m['description']??''),
-            'license'=>(string)($m['license']??'RicoReWi Free Theme'),
+            'license'=>(string)($m['license']??'Free Theme'),
             'builtin'=>!empty($m['builtin']),'wordpress'=>!empty($m['wordpress']),'bootstrap'=>!empty($m['bootstrap']),
             'compatibility'=>(string)($m['compatibility']??(!empty($m['wordpress'])?'wordpress-css':(!empty($m['bootstrap'])?'bootstrap-css':'native'))),
             'controls'=>is_array($m['controls']??null)?$m['controls']:[],
@@ -440,7 +440,7 @@ function rrw_import_theme_zip(string $zipPath): array {
         if($base==='theme.json'&&$themeJson===null){$themeJson=$zip->getFromIndex($i);$rootPrefix=dirname($name)==='.'?'':dirname($name).'/';}
     }
     // WordPress-Block-Themes bringen eine eigene theme.json (anderes Format) mit: ohne theme.css
-    // ist es kein RicoReWi-Theme, sondern wird über style.css als WordPress-Theme importiert.
+    // ist es kein Theme mit theme.json, sondern wird über style.css als WordPress-Theme importiert.
     if($themeJson!==null){$hasThemeCss=false;for($i=0;$i<$zip->numFiles;$i++)if(strtolower(basename(str_replace('\\','/',$zip->getNameIndex($i))))==='theme.css'){$hasThemeCss=true;break;}if(!$hasThemeCss)$themeJson=null;}
     if($themeJson!==null){
         $m=json_decode((string)$themeJson,true);if(!is_array($m))throw new RuntimeException('theme.json ist ungültig');
@@ -458,7 +458,7 @@ function rrw_import_theme_zip(string $zipPath): array {
             $name=str_replace('\\','/',$zip->getNameIndex($i));if(!rrw_zip_entry_safe($name))continue;
             if(strtolower(basename($name))==='style.css'){$wpStyleIndex=$i;$rootPrefix=dirname($name)==='.'?'':dirname($name).'/';break;}
         }
-        if($wpStyleIndex<0)throw new RuntimeException('Kein RicoReWi theme.json und kein WordPress style.css gefunden');
+        if($wpStyleIndex<0)throw new RuntimeException('Weder theme.json noch WordPress style.css gefunden');
         $wp=true;$styleCss=(string)$zip->getFromIndex($wpStyleIndex);
         preg_match('/Theme Name:\s*(.+)/i',$styleCss,$mm);$name=trim((string)($mm[1]??basename(rtrim($rootPrefix,'/'))?:'WordPress Theme'));
         preg_match('/Version:\s*(.+)/i',$styleCss,$mv);preg_match('/Author:\s*(.+)/i',$styleCss,$ma);
@@ -556,7 +556,7 @@ if(in_array($action,['access','get','save','media_upload','branding_upload','arc
         try {
             $legacy=rrw_control_center_json('radio_cms_legacy_settings_export',$tok);
             $settings=is_array($legacy['settings']??null)?$legacy['settings']:[];
-            foreach(['portal','branding','social','apps','core_network','pages','menus','widgets','widget_areas','widget_inactive','feed_sources','rss','legal','services','theme','brands','assistant','alexa'] as $section){
+            foreach(['portal','branding','apps','core_network','pages','menus','widgets','widget_areas','widget_inactive','feed_sources','rss','legal','services','theme','brands','assistant','alexa'] as $section){
                 if(array_key_exists($section,$settings)){
                     $clean=rrw_clean_section($section,$settings[$section]);
                     if($clean!==null)$site[$section]=$clean;
@@ -724,7 +724,7 @@ if($action==='import_legacy'){
         $legacyNews=rrw_control_center_json('radio_cms_legacy_news_export',$tok);
     }catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],502);}
     $settings=is_array($legacySettings['settings']??null)?$legacySettings['settings']:[];
-    foreach(['portal','social','apps','branding','core_network','pages','menus','widgets','widget_areas','widget_inactive','feed_sources','rss','legal','services','theme','brands','assistant','alexa'] as $section){
+    foreach(['portal','apps','branding','core_network','pages','menus','widgets','widget_areas','widget_inactive','feed_sources','rss','legal','services','theme','brands','assistant','alexa'] as $section){
         if(array_key_exists($section,$settings)){
             $clean=rrw_clean_section($section,$settings[$section]);
             if($clean!==null)$site[$section]=$clean;
@@ -947,7 +947,7 @@ if($action==='save'){
     rrw_site_lock($dataDir);
     $site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));if(!isset($site['theme'])||!is_array($site['theme']))$site['theme']=['active'=>rrw_default_theme_id()];$GLOBALS['RRW_SITE']=$site;
     // Bereiche, die eine frische Installation noch nicht angelegt hat (die Oberfläche speichert sie beim ersten Mal): leer anlegen statt „Unbekannter CMS-Bereich“
-    if(!array_key_exists($section,$site)&&in_array($section,['pages','social','legal','apps','core_network','header_builder'],true))$site[$section]=in_array($section,['pages'],true)?[]:(in_array($section,['core_network'],true)?['stations'=>[]]:(($section==='header_builder')?['enabled'=>false,'items'=>[]]:[]));
+    if(!array_key_exists($section,$site)&&in_array($section,['pages','legal','apps','core_network','header_builder'],true))$site[$section]=in_array($section,['pages'],true)?[]:(in_array($section,['core_network'],true)?['stations'=>[]]:(($section==='header_builder')?['enabled'=>false,'items'=>[]]:[]));
     if(!array_key_exists($section,$site))rrw_json(['status'=>'error','message'=>'Unbekannter CMS-Bereich'],400);
     $baseRev=(string)($b['base_rev']??'');
     if($baseRev!==''&&$baseRev!==rrw_section_rev($site,$section))rrw_json(['status'=>'conflict','message'=>'Dieser Bereich wurde inzwischen an anderer Stelle geändert (z. B. im Control Center oder von einer anderen Person). Bitte neu laden, damit nichts überschrieben wird.','rev'=>rrw_section_rev($site,$section)],409);
@@ -1735,7 +1735,7 @@ if($action==='seo_rebuild'){rrw_auth(false);rrw_seo_generate($site,rrw_read_json
 
 if($action==='api_docs'){
     rrw_auth(false);rrw_json(['status'=>'ok','version'=>'1.0','docs'=>'/cms/docs/API.md','docs_html'=>'/cms/docs/','plugin_docs'=>'/cms/docs/PLUGINS.md','public_endpoint'=>'/cms/api.php?action=public','rss'=>'/cms/rss.php','rss_alias'=>'/feed/','rss_mirror'=>'/rss.xml',
-      'write_sections'=>['portal','pages','menus','widgets','widget_areas','widget_inactive','branding','social','apps','legal','feed_sources','rss','theme','plugins','seo','storage','backup','brands','assistant','alexa'],
+      'write_sections'=>['portal','pages','menus','widgets','widget_areas','widget_inactive','branding','apps','legal','feed_sources','rss','theme','plugins','seo','storage','backup','brands','assistant','alexa'],
       'plugin_hooks'=>['portal:ready','page:rendered','cms:config-applied','plugin:loaded']]);
 }
 if($action==='themes_list'){rrw_auth(false);$state=$site['theme']??['active'=>rrw_default_theme_id(),'variant'=>'default','settings'=>[]];$modsSaved=array_keys(is_array($state['mods']??null)?$state['mods']:[]);unset($state['mods']);rrw_json(['status'=>'ok','themes'=>rrw_theme_catalog($site),'hidden_themes'=>array_values(array_map(fn($t)=>['id'=>$t['id'],'name'=>$t['name']],array_filter(rrw_theme_catalog($site,true),fn($t)=>$t['hidden']))),'active'=>$site['theme']['active']??rrw_default_theme_id(),'theme_state'=>$state,'mods_saved'=>$modsSaved]);}
@@ -2185,7 +2185,7 @@ if($action==='news_tag_change'){
 }
 if($action==='news_export'){
     $rows=array_values(array_filter($news,fn($a)=>empty($a['deleted_at'])));
-    $filename='ricorewi-radio-beitraege-'.date('Y-m-d').'.json';
+    $filename='beitraege-'.date('Y-m-d').'.json';
     header_remove('Content-Type');header('Content-Type: application/json; charset=utf-8');header('Content-Disposition: attachment; filename="'.$filename.'"');
     echo json_encode(['exported_at'=>date('c'),'site'=>preg_replace('#^https?://#','',rrw_site_origin($site)),'count'=>count($rows),'articles'=>$rows],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
     exit;
@@ -2289,7 +2289,7 @@ if($action==='news_duplicate'){
     $copy=$src;$copy['id']=$newId;$copy['title']=trim((string)($src['title']??'')).' (Kopie)';
     $copy['slug']=rrw_slug($copy['title'].'-'.$newId);
     $copy['status']='draft';$copy['featured']=0;$copy['published_at']=$now;$copy['created_at']=$now;$copy['updated_at']=$now;
-    $copy['author']=$newsAuth['display_name']??($src['author']??'RicoReWi Radio CMS');$copy['author_user']=$newsAuth['user']??'';
+    $copy['author']=$newsAuth['display_name']??($src['author']??rrw_product_title());$copy['author_user']=$newsAuth['user']??'';
     unset($copy['deleted_at']);
     $news[]=$copy;
     rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");

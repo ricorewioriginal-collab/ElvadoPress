@@ -11,7 +11,6 @@ require_once __DIR__.'/htmlsafe.php';
 // Wird sowohl von api.php (HTTP) als auch von rebuild.php (CLI) genutzt,
 // damit beide garantiert dasselbe Ergebnis erzeugen.
 
-require_once __DIR__.'/legal-defaults.php';
 const RRW_CMS_MARKER = '<!-- RRW-CMS-GENERATED -->';
 
 function rrw_ensure_dirs(): void {
@@ -205,18 +204,6 @@ function rrw_widget_types(): array {
         'embed'=>['name'=>'Einbettung (iframe)','category'=>'Medien','settings'=>['url'=>['type'=>'url','default'=>''],'height'=>$int(120,1400,520)]],
         'button'=>['name'=>'Button','category'=>'Eigene','settings'=>['label'=>$text(80,'Mehr erfahren'),'url'=>$text(1200,'#'),'style'=>$sel(['primary','ghost'],'primary'),'icon'=>$text(40)]],
         'menu'=>['name'=>'Navigationsmenü','category'=>'Eigene','settings'=>['menu'=>$sel(['top','bottom'],'top'),'style'=>$sel(['list','chips'],'list')]],
-        'stations'=>['name'=>'Senderliste','category'=>'Radio','settings'=>['count'=>$int(1,20,6),'layout'=>$sel(['list','grid'],'list'),'show_genres'=>$bool(true)]],
-        'now-playing'=>['name'=>'Jetzt läuft','category'=>'Radio','settings'=>['show_cover'=>$bool(true)]],
-        'schedule'=>['name'=>'Sendeplan','category'=>'Radio','settings'=>['count'=>$int(1,10,5),'station'=>$text(60)]],
-        'random-station'=>['name'=>'Überrasch mich','category'=>'Radio','settings'=>['label'=>$text(60,'Überrasch mich')]],
-        'favorites'=>['name'=>'Meine Favoriten','category'=>'Radio','settings'=>[]],
-        'podcast'=>['name'=>'Podcast','category'=>'Inhalte','settings'=>['count'=>$int(1,10,3),'show_images'=>$bool(true)]],
-        'voting'=>['name'=>'Netzwerk-Voting','category'=>'Interaktion','settings'=>[]],
-        'song-voting'=>['name'=>'Song-Voting','category'=>'Interaktion','settings'=>['label'=>$text(60,'Song-Voting öffnen'),'station'=>$text(60)]],
-        'studiomail'=>['name'=>'Studiomail','category'=>'Interaktion','settings'=>['label'=>$text(60,'Studiomail öffnen'),'station'=>$text(60)]],
-        'voicemail'=>['name'=>'Voicemail','category'=>'Interaktion','settings'=>['label'=>$text(60,'Voicemail öffnen'),'station'=>$text(60)]],
-        'wunsch'=>['name'=>'Musikwunsch','category'=>'Interaktion','settings'=>['label'=>$text(60,'Musikwunsch öffnen'),'station'=>$text(60)]],
-        'poll'=>['name'=>'Umfrage','category'=>'Interaktion','settings'=>['label'=>$text(60,'Umfrage öffnen'),'station'=>$text(60)]],
         // Allgemeine Widgets, unabhängig vom Radio (für das eigenständige CMS)
         'community-account'=>['name'=>'Mitgliederbereich','category'=>'Community','settings'=>[]],
         'community-forum'=>['name'=>'Forum','category'=>'Community','settings'=>[]],
@@ -229,21 +216,16 @@ function rrw_widget_types(): array {
         'social-links'=>['name'=>'Social-Links','category'=>'Social','settings'=>['items'=>['type'=>'textarea','max'=>3000,'default'=>''],'style'=>$sel(['list','icons'],'icons')]],
         'contact-form'=>['name'=>'Kontaktformular','category'=>'Interaktion','settings'=>['intro'=>['type'=>'textarea','max'=>500,'default'=>''],'notify'=>$text(120),'button'=>$text(40,'Senden'),'success'=>$text(200,'Danke, deine Nachricht ist angekommen.'),'consent'=>$text(300,'Ich stimme der Verarbeitung meiner Angaben zur Beantwortung meiner Anfrage zu (siehe Datenschutzerklärung).'),'subject'=>$bool(true)]],
         'newsletter'=>['name'=>'Newsletter-Anmeldung','category'=>'Interaktion','settings'=>['intro'=>['type'=>'textarea','max'=>500,'default'=>''],'notify'=>$text(120),'button'=>$text(40,'Anmelden'),'success'=>$text(200,'Danke für deine Anmeldung!'),'consent'=>$text(300,'Ich möchte den Newsletter erhalten und stimme der Speicherung meiner E-Mail-Adresse zu (siehe Datenschutzerklärung).')]],
-        'social-wall'=>['name'=>'Social Wall','category'=>'Social','settings'=>[]],
-        'social-single'=>['name'=>'Social-Profil','category'=>'Social','settings'=>['platform'=>$sel(['tiktok','instagram'],'tiktok'),'creator'=>$sel(['ricorewi','anmacha'],'ricorewi')]],
     ];
     return $t;
 }
 // Alte Widget-Definitionen (site.widgets, Typ builtin) -> Widget-Typ + Voreinstellungen
 function rrw_widget_legacy_type(string $builtin): array {
-    $map=['social-wall'=>['social-wall',[]],'tiktok-ricorewi'=>['social-single',['platform'=>'tiktok','creator'=>'ricorewi']],'tiktok-anmacha'=>['social-single',['platform'=>'tiktok','creator'=>'anmacha']],'instagram-ricorewi'=>['social-single',['platform'=>'instagram','creator'=>'ricorewi']],'instagram-anmacha'=>['social-single',['platform'=>'instagram','creator'=>'anmacha']],'news-latest'=>['recent-posts',[]],'stations'=>['stations',[]],'schedule'=>['schedule',[]],'podcast'=>['podcast',[]],'random-station'=>['random-station',[]],'favorites'=>['favorites',[]],'voting'=>['voting',[]],'song-voting'=>['song-voting',[]],'studiomail'=>['studiomail',[]],'voicemail'=>['voicemail',[]],'wunsch'=>['wunsch',[]],'poll'=>['poll',[]]];
+    $map=['news-latest'=>['recent-posts',[]]];
     return $map[$builtin]??['html',[]];
 }
 function rrw_widget_legacy_defs(): array {
-    static $d=null; if($d!==null)return $d;
-    $d=[];
-    foreach([['w-social','Social Wall','social-wall'],['w-tiktok-ricorewi','RicoReWi auf TikTok','tiktok-ricorewi'],['w-tiktok-anmacha','AnMaCha auf TikTok','tiktok-anmacha'],['w-instagram-ricorewi','RicoReWi auf Instagram','instagram-ricorewi'],['w-instagram-anmacha','AnMaCha auf Instagram','instagram-anmacha'],['w-news','Aktuelle News','news-latest'],['w-stations','Unsere Sender','stations'],['w-schedule','Sendeplan','schedule'],['w-podcast','Podcast','podcast'],['w-random','Überrasch mich','random-station'],['w-favorites','Meine Favoriten','favorites'],['w-song-voting','Song-Voting','song-voting'],['w-studiomail','Studiomail','studiomail'],['w-voicemail','Voicemail','voicemail'],['w-wunsch','Musikwunsch','wunsch'],['w-poll','Umfrage','poll']] as [$id,$title,$b])$d[$id]=['id'=>$id,'type'=>'builtin','builtin'=>$b,'title'=>$title,'name'=>$title];
-    return $d;
+    return ['w-news'=>['id'=>'w-news','type'=>'builtin','builtin'=>'news-latest','title'=>'Aktuelle News','name'=>'Aktuelle News']];
 }
 function rrw_widget_settings_clean(string $type,$settings): array {
     $schema=rrw_widget_types()[$type]['settings']??[];$settings=is_array($settings)?$settings:[];$out=[];
@@ -311,7 +293,6 @@ function rrw_clean_section(string $section,$value){
         }
         usort($out['items'],fn($x,$y)=>$x['order']<=>$y['order']);return $out;
     }
-    if($section==='social'){foreach(['ricorewi_tiktok','ricorewi_instagram','anmacha_tiktok','anmacha_instagram'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,120);return $o??[];}
     if($section==='branding'){foreach(['portal_logo','portal_icon','favicon','android_inapp_logo','android_startscreen','android_app_icon','windows_logo'] as $k)$o[$k]=mb_substr(trim((string)($value[$k]??'')),0,1000);return $o??[];}
     if($section==='core_network'){foreach((array)($value['stations']??[]) as $s){$s=strtolower(trim((string)$s));if(preg_match('/^[a-z0-9][a-z0-9_-]{1,62}$/',$s))$o[]=$s;}$o=array_values(array_unique($o??[]));return ['stations'=>$o];}
     if($section==='services'){ if(!function_exists('rrw_services_clean'))require_once __DIR__.'/services.php';return rrw_services_clean($value); }
@@ -332,7 +313,7 @@ function rrw_clean_section(string $section,$value){
         } return $out;
     }
     if($section==='widgets'){
-        $out=[];$allowed=['social-wall','tiktok-ricorewi','tiktok-anmacha','instagram-ricorewi','instagram-anmacha','news-latest','stations','schedule','podcast','random-station','favorites','voting','song-voting','studiomail','voicemail','wunsch','poll'];
+        $out=[];$allowed=['news-latest'];
         foreach(array_slice((array)$value,0,100) as $w){if(!is_array($w))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($w['id']??''));if($id==='')$id='widget_'.bin2hex(random_bytes(4));$type=in_array(($w['type']??'builtin'),['builtin','html','iframe'],true)?$w['type']:'builtin';$builtin=in_array(($w['builtin']??''),$allowed,true)?$w['builtin']:'';
             $cat=mb_substr(trim((string)($w['category']??'Eigene')),0,80);
             $out[]=['id'=>$id,'name'=>mb_substr((string)($w['name']??'Widget'),0,120),'type'=>$type,'builtin'=>$builtin,'category'=>$cat,'enabled'=>!array_key_exists('enabled',$w)||!empty($w['enabled']),'title'=>mb_substr((string)($w['title']??''),0,160),'config'=>is_array($w['config']??null)?$w['config']:[],'html'=>$type==='html'?rrw_safe_html((string)($w['html']??'')):'','url'=>$type==='iframe'?mb_substr(trim((string)($w['url']??'')),0,1200):''];
@@ -436,7 +417,7 @@ function rrw_generate_custom_pages(array $site,string $root): void {
         $md=trim((string)($p['meta_description']??''));if($md==='')$md=trim((string)($p['intro']??''));
         $metaTags=($md!==''?'<meta name="description" content="'.htmlspecialchars(mb_substr($md,0,300),ENT_QUOTES,'UTF-8').'">':'').(!empty($p['noindex'])?'<meta name="robots" content="noindex,follow">':'');
         $activeTheme=rrw_theme_id((string)($site['theme']['active']??'rrw-classic'));
-        $themeLink=$activeTheme!=='ricorewi-neon'?'<link rel="stylesheet" href="/cms/themes/'.htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8').'/theme.css">':'';
+        $themeLink=is_file(dirname(__DIR__).'/themes/'.$activeTheme.'/theme.css')?'<link rel="stylesheet" href="/cms/themes/'.htmlspecialchars($activeTheme,ENT_QUOTES,'UTF-8').'/theme.css">':'';
         $ts=is_array($site['theme']['settings']??null)?$site['theme']['settings']:[];
         $safeColor=function($v,$fallback){$v=trim((string)$v);return preg_match('/^#[0-9a-fA-F]{6}$/',$v)?$v:$fallback;};
         $themeVars='<style>:root{--rrw-theme-accent:'.$safeColor($ts['accent']??'','#b57cff').';--rrw-theme-accent2:'.$safeColor($ts['accent2']??'','#22d3ee').';--rrw-theme-background:'.$safeColor($ts['background']??'','#06060a').';--rrw-theme-surface:'.$safeColor($ts['surface']??'','#101522').';--rrw-theme-text:'.$safeColor($ts['text']??'','#f4f6ff').';--rrw-theme-radius:'.max(0,min(40,(float)($ts['radius']??16))).';--rrw-theme-content-width:'.max(800,min(1900,(float)($ts['content_width']??1320))).';--rrw-theme-font-scale:'.max(.75,min(1.4,(float)($ts['font_scale']??1))).';}</style>';
@@ -464,7 +445,7 @@ function rrw_update_index_snapshot(array $site,string $root): void {
         $html=substr($html,0,$pos)."\n".$payload."\n".substr($html,$pos);
     }
     $seo=function_exists('rrw_seo_defaults')?rrw_seo_defaults($site):[];
-    $title=htmlspecialchars((string)($seo['site_title']??$site['portal']['site_name']??'RicoReWi Radioportal'),ENT_QUOTES,'UTF-8');
+    $title=htmlspecialchars((string)($seo['site_title']??$site['portal']['site_name']??rrw_product_name()),ENT_QUOTES,'UTF-8');
     $desc=htmlspecialchars((string)($seo['description']??$site['portal']['news_intro']??''),ENT_QUOTES,'UTF-8');
     $canon=htmlspecialchars(rtrim((string)($seo['canonical_base']??rrw_default_canonical_base()),'/').'/',ENT_QUOTES,'UTF-8');
     $robots=htmlspecialchars((string)($seo['robots']??'index,follow'),ENT_QUOTES,'UTF-8');
@@ -530,104 +511,6 @@ function rrw_publish(array $site,string $siteFile,string $genDir,string $root): 
     if(function_exists('rrw_np_do'))rrw_np_do('content_saved','site');   // Plugins: z. B. Seiten-Cache leeren
 }
 
-// Standard-Inhalt der Partnerseite (#partner). Wird einmalig angelegt und ist danach im CMS (Seiten) vollständig frei bearbeitbar.
-function rrw_partner_card(string $logo,string $alt,string $name,string $text,string $url,string $label,string $brand='',string $target='_blank'): string {
-    $h=static fn(string $v)=>htmlspecialchars($v,ENT_QUOTES,'UTF-8');
-    $only=$brand!==''?' data-brand-only="'.$h($brand).'"':'';
-    $tgt=$target==='_self'?'':' target="_blank" rel="noopener"';
-    return '<div class="partner-card"'.$only.'><div class="partner-logo"><img src="'.$h($logo).'" alt="'.$h($alt).'" loading="lazy" style="max-width:260px;max-height:96px;height:auto;width:auto"></div>'
-        .'<div class="partner-body"><h3>'.$h($name).'</h3><p>'.$h($text).'</p>'
-        .'<p><a class="partner-link" href="'.$h($url).'"'.$tgt.'>'.$h($label).($target==='_self'?'':' ↗').'</a></p></div></div>';
-}
-// Logo der Marke SenderWelt aus dem CMS (Domains & Branding); leer, wenn keines hinterlegt ist
-function rrw_partner_brand_logo(array $site,string $brandId): string {
-    foreach((array)($site['brands']['items']??[]) as $b){
-        if(is_array($b)&&($b['id']??'')===$brandId){
-            $l=trim((string)($b['logo']??''));
-            return ($l!==''&&!str_contains($l,'placeholder')&&preg_match('#^(/|https://)#',$l))?$l:'';
-        }
-    }
-    return '';
-}
-function rrw_partner_station_blocks(): array {
-    return [
-        ['id'=>'blk_partner_stations_h','type'=>'heading','enabled'=>true,'text'=>'Unsere Sender','level'=>2],
-        ['id'=>'blk_partner_stations_t','type'=>'text','enabled'=>true,'text'=>'Das sind die Sender unseres Netzwerks. Namen und Logos kommen direkt von laut.fm und sind immer auf dem aktuellen Stand. Ein Klick öffnet den Sender im Portal.'],
-        ['id'=>'blk_partner_stations','type'=>'html','enabled'=>true,'html'=>'<div class="rrw-station-logos"></div>'],
-    ];
-}
-// Die beiden Portale tauschen auf der Partnerseite die Rollen: auf dem eigenen Portal "Dieses Portal", auf dem anderen "Schwesterportal".
-// Karten mit data-brand-only werden nur auf der genannten Marke angezeigt (Marken-Kennung: ricorewi-radio bzw. senderwelt).
-function rrw_partner_portal_blocks(string $swLogo): array {
-    $b=static fn(string $id,string $html)=>['id'=>$id,'type'=>'html','enabled'=>true,'html'=>$html];
-    return [
-        $b('blk_partner_ricorewi',rrw_partner_card('/assets/partner/ricorewi-radio.png','RicoReWi Radio – Logo','RicoReWi Radio',
-            'RicoReWi Radio ist das Hauptprogramm dieses Portals: Musik, Moderation und Community rund um die Uhr. Gemeinsam mit AnMaCha entstehen Shows und Aktionen, und im RicoReWi × AnMaCha Radioportal findest du alle Sender, den Sendeplan, News und Podcasts an einem Ort.',
-            '/','Zur Startseite','ricorewi-radio','_self')),
-        $b('blk_partner_senderwelt',rrw_partner_card($swLogo,'SenderWelt – Logo','SenderWelt',
-            'SenderWelt ist unser Schwesterportal für alle, die noch mehr Radio entdecken wollen. Neben unseren eigenen Sendern gibt es ein Verzeichnis mit Webradios von laut.fm und aus aller Welt – mit Suche, Favoriten und kostenlosen Apps für Android und Windows.',
-            'https://www.senderwelt.de','Zu SenderWelt','ricorewi-radio')),
-        $b('blk_partner_senderwelt_main',rrw_partner_card($swLogo,'SenderWelt – Logo','SenderWelt',
-            'SenderWelt ist dieses Portal: Deine Streams. Deine Sender. Eine Welt. Neben den Sendern des AnMaCha-Netzwerks findest du hier ein Verzeichnis mit Webradios von laut.fm und aus aller Welt – mit Suche, Favoriten und kostenlosen Apps für Android und Windows.',
-            '/','Zur Startseite','senderwelt','_self')),
-        $b('blk_partner_ricorewi_sister',rrw_partner_card('/assets/partner/ricorewi-radio.png','RicoReWi Radio – Logo','RicoReWi Radio',
-            'RicoReWi Radio ist unser Schwesterportal und das Hauptprogramm des Netzwerks: Musik, Moderation und Community rund um die Uhr. Dort findest du alle Sender, den Sendeplan, News und Podcasts im RicoReWi × AnMaCha Radioportal.',
-            'https://www.ricorewi-radio.de','Zu RicoReWi Radio','senderwelt')),
-    ];
-}
-function rrw_partner_page_default(array $site=[]): array {
-    $b=static fn(string $id,string $type,array $x)=>['id'=>$id,'type'=>$type,'enabled'=>true]+$x;
-    return [
-        'id'=>'page_partner','slug'=>'partner','title'=>'Partner','type'=>'custom','system_target'=>'','enabled'=>true,'native_enabled'=>false,
-        'headline'=>'Unsere Partner',
-        'intro'=>'Radio entsteht nie allein. Hier stellen wir die Menschen, Projekte und Plattformen vor, mit denen wir zusammenarbeiten – vom eigenen Radionetzwerk bis zur Technik, über die unsere Streams zu dir kommen.',
-        'text_overrides'=>[],
-        'blocks_before'=>[
-            $b('blk_partner_h1','heading',['text'=>'Unser Netzwerk','level'=>2]),
-            $b('blk_partner_anmacha','html',['html'=>rrw_partner_card('/assets/partner/anmacha.png','AnMaCha Radioproduktion – Logo','AnMaCha Radioproduktion',
-                'Die AnMaCha Radioproduktion steht hinter diesem Radioportal. Sie produziert und betreibt zwölf Webradios – von Charts, Schlager und Rock bis Rap und Kulthits – und präsentiert den AnMaCha Podcast. Auf der Homepage findest du alle Sender, Neuigkeiten und die Menschen dahinter.',
-                'https://anmacha.de','anmacha.de besuchen')]),
-            ...rrw_partner_portal_blocks(rrw_partner_brand_logo($site,'senderwelt')?:'/assets/partner/senderwelt.svg'),
-            $b('blk_partner_h2','heading',['text'=>'Plattformen & Technik','level'=>2]),
-            $b('blk_partner_meinradio','html',['html'=>rrw_partner_card('/assets/partner/meinradio-com.png','MeinRadio.com – Logo','MeinRadio.com',
-                'MeinRadio.com ist das Webradio-Angebot der AnMaCha Radioproduktion: Zwölf Webradios mit Charts, Schlager, Rock, Rap, Kulthits und Podcastshows mit Musik – rund um die Uhr live und kostenlos.',
-                'https://meinradio.com','meinradio.com besuchen')]),
-            $b('blk_partner_lautfm','html',['html'=>rrw_partner_card('/assets/partner/laut-fm.png','laut.fm – Logo','laut.fm',
-                'Unsere Streams laufen über laut.fm, die Plattform für „User Generated Radio“ in Deutschland. laut.fm stellt die Streaming-Technik bereit und übernimmt die Lizenzierung (GEMA/GVL). Weder RicoReWi noch AnMaCha hosten die Streams – wir gestalten die Programme und verwalten die Sender.',
-                'https://laut.fm','laut.fm besuchen')]),
-        ],
-        'blocks_after'=>rrw_partner_station_blocks(),
-    ];
-}
-
-// Partnerseite: Portalkarten markenabhängig (RicoReWi/SenderWelt tauschen die Rollen). Nur unveränderte Standardkarten werden umgestellt.
-function rrw_partner_migrate_brand(array $site): array {
-    if(!empty($site['_meta']['partner_brand_v2'])||!is_array($site['pages']??null))return $site;
-    $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
-    $site['_meta']['partner_brand_v2']=true;
-    foreach($site['pages'] as $pi=>$pg){
-        if(!is_array($pg)||($pg['slug']??'')!=='partner'||!is_array($pg['blocks_before']??null))continue;
-        $ri=$si=null;
-        foreach($pg['blocks_before'] as $bi=>$blk){
-            if(!is_array($blk))continue;
-            if(($blk['id']??'')==='blk_partner_ricorewi')$ri=$bi;
-            if(($blk['id']??'')==='blk_partner_senderwelt')$si=$bi;
-        }
-        if($ri===null||$si===null)continue;
-        $rh=(string)($pg['blocks_before'][$ri]['html']??'');$sh=(string)($pg['blocks_before'][$si]['html']??'');
-        if(str_contains($rh,'data-brand-only')||str_contains($sh,'data-brand-only'))continue;
-        if(!str_contains($rh,'RicoReWi Radio ist das Hauptprogramm dieses Portals')||!str_contains($sh,'SenderWelt ist unser Schwesterportal'))continue;
-        $logo=preg_match('/<img[^>]*\ssrc="([^"]+)"/',$sh,$mm)?html_entity_decode($mm[1],ENT_QUOTES,'UTF-8'):'/assets/partner/senderwelt.svg';
-        $first=min($ri,$si);$list=[];
-        foreach($pg['blocks_before'] as $bi=>$blk){
-            if($bi===$first)foreach(rrw_partner_portal_blocks($logo) as $nb)$list[]=$nb;
-            if($bi===$ri||$bi===$si)continue;
-            $list[]=$blk;
-        }
-        $site['pages'][$pi]['blocks_before']=$list;
-    }
-    return $site;
-}
 function rrw_ensure_site_defaults(array $site): array {
     if(function_exists('rrw_assistant_clean'))$site['assistant']=rrw_assistant_clean($site['assistant']??[]);
     $GLOBALS['RRW_SITE']=$site;

@@ -58,7 +58,7 @@ table{border-color:var(--border)}
 
 /* Anmeldung und „Kein Zugriff“ */
 #cmsLogin,#cmsDenied{max-width:460px;margin:12vh auto;padding:34px 30px 28px;border-radius:22px;border:1px solid var(--border-a);background:linear-gradient(180deg,rgba(14,24,42,.96),rgba(7,12,22,.98));box-shadow:0 30px 70px -20px rgba(0,0,0,.8),0 0 0 1px rgba(47,184,255,.06)}
-#cmsLogin::before{content:"RICOREWI RADIO · CMS";display:block;font-size:.62rem;font-weight:800;letter-spacing:.22em;color:var(--accent);margin-bottom:14px}
+#cmsLogin::before{content:"CMS";display:block;font-size:.62rem;font-weight:800;letter-spacing:.22em;color:var(--accent);margin-bottom:14px}
 #cmsLogin>i{color:var(--accent);font-size:2rem;margin-bottom:8px}
 #cmsLogin h2{font-size:1.35rem;font-weight:800}
 #cmsLogin p{color:var(--dim)}

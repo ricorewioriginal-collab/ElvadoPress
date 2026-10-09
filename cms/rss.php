@@ -29,8 +29,7 @@ function rrw_cfg(): array {
     $j=json_decode((string)file_get_contents($f),true);
     return is_array($j)?$j:[];
 }
-// Mit RicoReWi-Paket wie bisher über die öffentliche Schnittstelle der Hauptseite (enthält auch externe Feeds);
-// sonst und als Rückfall direkt aus den eigenen Beiträgen plus den eingestellten externen Quellen.
+// Beiträge direkt aus den eigenen Beiträgen plus den eingestellten externen Quellen.
 function rrw_public_news(array $cfg): array {
     $f=rrw_site_dir('data').'/news.json';$rows=[];
     if(is_file($f)){$x=json_decode((string)file_get_contents($f),true);if(is_array($x))$rows=$x;}

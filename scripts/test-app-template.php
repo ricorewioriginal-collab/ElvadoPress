@@ -8,7 +8,7 @@ require_once __DIR__.'/../cms/lib/appbuild.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 $T=__DIR__.'/../app-template';
-if(!is_dir($T)){ echo "übersprungen: In diesem Repository gibt es keine App-Vorlage (app-template/).\n";exit(0); }   // z. B. in ricorewi-radio (geteilte Tests)
+if(!is_dir($T)){ echo "übersprungen: In diesem Repository gibt es keine App-Vorlage (app-template/).\n";exit(0); }   //
 function files(string $dir): array { $o=[];$it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir,FilesystemIterator::SKIP_DOTS));foreach($it as $f)if($f->isFile())$o[]=$f->getPathname();sort($o);return $o; }
 $all=files($T);$rel=fn(string $p)=>substr($p,strlen($T)+1);
 $text=array_values(array_filter($all,fn($p)=>!preg_match('/\.(png|jpg|jpeg|webp|ico)$/i',$p)));

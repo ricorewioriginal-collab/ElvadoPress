@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Multi-Domain / Multi-Brand: EINE Website, EIN CMS, EIN Datenbestand - mehrere Marken.
 // Eine "Brand" (Marke) ist ein Satz Branding-Werte (Name, Logo, Favicon, Titel, Beschreibung,
 // Social-Bild, Canonical-Verhalten, optionale Text-/Rechts-Overrides), der an Domains hängt.
-// Welche Brand gilt, entscheidet der aufgerufene Hostname (z.B. senderwelt.de) - oder zur
+// Welche Brand gilt, entscheidet der aufgerufene Hostname (z.B. shop.beispiel.de) - oder zur
 // Vorschau im CMS der Parameter ?rrw_brand=<id>. Alle Inhalte (Sender, News, Widgets, Themes,
 // Seiten, Menüs) bleiben gemeinsam; die Brand ändert nur, wie die Website "heißt" und aussieht.
 // Themes bestimmen Layout/Design, Brands bestimmen Marke/Assets - zwei getrennte Ebenen.
@@ -104,7 +104,7 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
     $origin='https://'.($hostNorm!==''&&$hostNorm!=='localhost'&&!preg_match('/^(127\.|\d+\.\d+\.\d+\.\d+$)/',$hostNorm)?$hostNorm:$primary);
     $mainBase=rtrim((string)($seo['canonical_base']??'https://'.($primary!==''?$primary:($hostNorm!==''?$hostNorm:'localhost'))),'/');
     // Hauptmarke: Links (og:url, Share, RSS) bleiben wie bisher auf der Canonical-Basis
-    // (www.ricorewi-radio.de), unabhängig davon, ob mit oder ohne www aufgerufen wurde.
+    // (z. B. www.beispiel.de), unabhängig davon, ob mit oder ohne www aufgerufen wurde.
     if($isDefault&&preg_match('#^https://[a-z0-9.-]+$#i',$mainBase)&&preg_replace('/^www\./','',(string)parse_url($mainBase,PHP_URL_HOST))===preg_replace('/^www\./','',$hostNorm))$origin=$mainBase;
     $canonicalBase=match($b['canonical_mode']){'main'=>$mainBase,'custom'=>$b['canonical_base']!==''?$b['canonical_base']:'https://'.$primary,default=>$isDefault?$mainBase:'https://'.$primary};
     $legal=(array)($b['legal']??[]);$sharedLegal=(array)($site['legal']??[]);
@@ -126,7 +126,7 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
     ];
 }
 // Schwestermarken (alle anderen aktiven Marken) fuer den Partner-Hinweis im Willkommensbereich:
-// RicoReWi zeigt das SenderWelt-Logo mit Link und umgekehrt. Link: eigene Domain, solange die
+// Jede Marke zeigt die Logos der anderen mit Link. Link: eigene Domain, solange die
 // Domain noch nicht freigeschaltet ist (Canonical 'main') die Markenansicht auf der Hauptdomain.
 function rrw_brand_partners(array $reg,string $currentId,array $branding,string $mainBase): array {
     $out=[];
@@ -144,7 +144,7 @@ function rrw_brand_partners(array $reg,string $currentId,array $branding,string 
     return $out;
 }
 // Texte der Startseite/News/Footer je Marke: was im CMS (Domains & Branding → Texte überschreiben)
-// leer bleibt, bekommt bei Zweitmarken einen markeneigenen Standard statt der RicoReWi-Texte;
+// leer bleibt, bekommt bei Zweitmarken einen markeneigenen Standard statt der Texte der Hauptmarke;
 // die Hauptmarke nutzt weiterhin die gemeinsamen Portal-Texte.
 function rrw_brand_portal_overrides(array $b,bool $isDefault): array {
     $ov=array_filter((array)($b['overrides']['portal']??[]),fn($v)=>trim((string)$v)!=='');
@@ -159,66 +159,10 @@ function rrw_brand_portal_overrides(array $b,bool $isDefault): array {
     ];
     return array_merge($defaults,$ov);
 }
-function rrw_brand_notice_html(string $text): string {
-    $e=htmlspecialchars($text,ENT_QUOTES,'UTF-8');
-    $e=preg_replace_callback('~\[([^\]]{1,80})\]\((https://[^\s)"\'<>]+)\)~u',fn($m)=>'<a href="'.$m[2].'" target="_blank" rel="noopener nofollow" style="color:#7d86bd;">'.$m[1].'</a>',$e);
-    return str_replace("\n",'<br>',$e);
-}
 // Absolute URL für Social-Vorschauen (Crawler verlangen absolute Bild-/Seiten-URLs).
 function rrw_brand_abs(string $origin,string $path): string { if($path==='')return'';if(preg_match('~^https?://~i',$path))return $path;return rtrim($origin,'/').'/'.ltrim($path,'/'); }
 function rrw_brand_forced_from_request(): ?string {
     $q=$_GET['rrw_brand']??$_GET['cms_brand_preview']??null;return is_string($q)&&$q!==''?$q:null;
-}
-// Baut die brandabhängigen <head>-Werte und Logo-Verweise in das statische index.html ein.
-function rrw_brand_render_index(string $html,array $brand): string {
-    $e=fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8');
-    $ogAbs=rrw_brand_abs($brand['origin'],$brand['og_image']);$fav=$brand['favicon'];$ver='?bv='.substr(md5(json_encode([$brand['id'],$brand['logo'],$fav,$brand['touch_icon']])),0,8);
-    $rep=function(string $pattern,string $replacement) use (&$html){ $n=0;$html=preg_replace($pattern,$replacement,$html,1,$n);return $n; };
-    $rep('#<title id="page-title">.*?</title>#s','<title id="page-title">'.$e($brand['title']).'</title>');
-    $rep('#<meta id="meta-description" name="description" content="[^"]*">#','<meta id="meta-description" name="description" content="'.$e($brand['description']).'">');
-    $rep('#<meta property="og:site_name" content="[^"]*">#','<meta property="og:site_name" content="'.$e($brand['title']).'">');
-    $rep('#<meta id="og-title" property="og:title" content="[^"]*">#','<meta id="og-title" property="og:title" content="'.$e($brand['title']).'">');
-    $rep('#<meta id="og-description" property="og:description" content="[^"]*">#','<meta id="og-description" property="og:description" content="'.$e($brand['description']).'">');
-    $rep('#<meta id="og-image" property="og:image" content="[^"]*">#','<meta id="og-image" property="og:image" content="'.$e($ogAbs).'">');
-    $rep('#<meta id="twitter-title" name="twitter:title" content="[^"]*">#','<meta id="twitter-title" name="twitter:title" content="'.$e($brand['title']).'">');
-    $rep('#<meta id="twitter-description" name="twitter:description" content="[^"]*">#','<meta id="twitter-description" name="twitter:description" content="'.$e($brand['description']).'">');
-    $rep('#<meta id="twitter-image" name="twitter:image" content="[^"]*">#','<meta id="twitter-image" name="twitter:image" content="'.$e($ogAbs).'">');
-    if(!$rep('#<link rel="canonical" href="[^"]*">#','<link rel="canonical" href="'.$e($brand['canonical_url']).'">'))$rep('#(<meta id="meta-description"[^>]+>)#','$1'."\n    ".'<link rel="canonical" href="'.$e($brand['canonical_url']).'">');
-    if(!$rep('#<meta id="og-url" property="og:url" content="[^"]*">#','<meta id="og-url" property="og:url" content="'.$e($brand['origin'].'/').'">'))$rep('#(<meta id="og-title"[^>]+>)#','<meta id="og-url" property="og:url" content="'.$e($brand['origin'].'/').'">'."\n    ".'$1');
-    $rep('#<link rel="manifest" href="[^"]*">#','<link rel="manifest" href="/manifest.php">');
-    $rep('#<meta name="theme-color" content="[^"]*">#','<meta name="theme-color" content="'.$e($brand['colors']['theme']).'">');
-    $rep('#<meta name="apple-mobile-web-app-title" content="[^"]*">#','<meta name="apple-mobile-web-app-title" content="'.$e($brand['manifest_short_name']).'">');
-    $rep('#<link rel="icon" href="[^"]*"[^>]*>#','<link rel="icon" href="'.$e($fav.$ver).'">');
-    $rep('#<link rel="apple-touch-icon" href="[^"]*">#','<link rel="apple-touch-icon" href="'.$e($brand['touch_icon'].$ver).'">');
-    $rep('#<link rel="alternate" type="application/rss\+xml" title="[^"]*"#','<link rel="alternate" type="application/rss+xml" title="'.$e($brand['name'].' – News & Magazin').'"');
-    // Hauptmarke: Logo-Pfad und Alt-Texte bleiben exakt wie im statischen index.html (Regression null);
-    // andere Marken bekommen ihr Logo und ihren Namen.
-    if(!$brand['is_default']){
-        $alt=$e($brand['name'].' – Startseite');
-        $html=preg_replace('#(<a class="brand"[^>]*aria-label=")[^"]*("[^>]*>\s*<img src=")[^"]*(" alt=")[^"]*(")#','$1'.$alt.'$2'.$e($brand['logo']).'$3'.$e($brand['name']).'$4',$html,1);
-        $html=preg_replace('#(<div class="foot-brand"><img src=")[^"]*(" alt=")[^"]*(")#','$1'.$e($brand['logo']).'$2'.$e($brand['name']).'$3',$html,1);
-        // Startseiten-Texte und Footer direkt serverseitig (kein Aufblitzen der RicoReWi-Texte, Crawler sehen die Marke)
-        $ov=(array)($brand['overrides']['portal']??[]);
-        if(!empty($ov['hero_eyebrow']))$rep('#(<span id="cms-hero-eyebrow" class="eyebrow">).*?(</span>)#s','${1}'.$e($ov['hero_eyebrow']).'${2}');
-        if(!empty($ov['hero_title']))$rep('#(<h1 id="cms-hero-title">).*?(</h1>)#s','${1}'.$e($ov['hero_title']).'${2}');
-        if(!empty($ov['hero_text']))$rep('#(<p id="cms-hero-text">).*?(</p>)#s','${1}'.$e($ov['hero_text']).'${2}');
-        if(!empty($ov['footer_text']))$rep('#(<p id="cms-footer-text">).*?(</p>)#s','${1}'.$e($ov['footer_text']).'${2}');
-        // Rechtshinweis im Footer (laut.fm-Hinweis; bei Verzeichnis-Marken um den Verzeichnis-Hinweis erweitert)
-        if(!empty($ov['legal_notice'])){
-            $notice=rrw_brand_notice_html((string)$ov['legal_notice']);
-            $rep('#(<div class="legal-notice">\s*).*?(\s*<div style="margin-top:15px;">)#s','${1}'.str_replace(['\\','$'],['\\\\','\\$'],$notice).'${2}');
-        }
-    }
-    // Partner-Hinweis im Willkommensbereich (Schwestermarke mit Logo und Link) fuer alle Marken
-    $partner=$brand['partners'][0]??null;
-    if($partner){
-        $rep('#<a id="cms-hero-partner" class="hero-partner"[^>]*>.*?</a>#s','<a id="cms-hero-partner" class="hero-partner" href="'.$e($partner['url']).'" title="'.$e('Zu '.$partner['name']).'"><span class="hero-partner-label">Auch von uns</span><img src="'.$e($partner['logo']).'" alt="'.$e($partner['name']).'"></a>');
-    }
-    $public=rrw_brand_public_payload($brand);
-    $inject='<script>window.__RRW_BRAND__ = '.json_encode($public,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG).';</script>';
-    if(str_contains($html,'<!-- RRW-CMS-SNAPSHOT-END -->'))$html=str_replace('<!-- RRW-CMS-SNAPSHOT-END -->','<!-- RRW-CMS-SNAPSHOT-END -->'."\n".$inject,$html);
-    else $html=str_replace('</head>',$inject."\n</head>",$html);
-    return $html;
 }
 // Öffentliche Sicht auf eine Brand (keine Verwaltungsdaten - die Registry enthält ohnehin keine
 // Geheimnisse, aber diese Form ist stabil für die API).
@@ -241,30 +185,6 @@ function rrw_brand_manifest(array $brand): array {
     return ['id'=>'/','name'=>$brand['manifest_name'],'short_name'=>$brand['manifest_short_name'],'description'=>$brand['description'],'start_url'=>'./','scope'=>'./','display'=>'standalone','display_override'=>['standalone','minimal-ui'],'orientation'=>'any','background_color'=>$brand['colors']['theme'],'theme_color'=>$brand['colors']['theme'],'lang'=>'de','dir'=>'ltr','categories'=>['music','entertainment','news'],'prefer_related_applications'=>false,'launch_handler'=>['client_mode'=>['navigate-existing','auto']],'icons'=>$icons,'shortcuts'=>$shortcuts];
 }
 
-// Statische, vom CMS erzeugte Seiten (news.html, sender.html, eigene Seiten) markenabhängig
-// ausliefern (siehe brandpage.php + .htaccess). Die Hauptmarke bleibt bis auf ergänzte
-// Social-Tags unverändert; andere Marken bekommen Titel-Zusatz, Logo, Favicon, Canonical, Footer.
-function rrw_brand_render_static(string $html,array $brand,string $page): string {
-    $e=fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8');
-    $n=0;
-    if(!$brand['is_default']){
-        $html=preg_replace('#<title>(.*?) – RicoReWi Radio</title>#s','<title>$1 – '.$e($brand['title_suffix']).'</title>',$html,1,$n);
-        $html=preg_replace('#<link rel="icon" href="[^"]*">#','<link rel="icon" href="'.$e($brand['favicon']).'">',$html,1);
-        $html=preg_replace('#(<header><a class="brand" href="/"><img src=")[^"]*(" alt=")[^"]*(")#','$1'.$e($brand['logo']).'$2'.$e($brand['name']).'$3',$html,1);
-        $html=preg_replace('#<footer><a href="/">RicoReWi Radioportal</a></footer>#','<footer><a href="/">'.$e($brand['title']).'</a></footer>',$html,1);
-        $html=str_replace('>Interaktive Seite im Radioportal öffnen<','>Interaktive Seite auf '.$e($brand['name']).' öffnen<',$html);
-    }
-    $canon=rtrim($brand['canonical_base'],'/').'/'.$e($page).'.html';
-    if(preg_match('#<link rel="canonical" href="[^"]*">#',$html))$html=preg_replace('#<link rel="canonical" href="[^"]*">#','<link rel="canonical" href="'.$e($canon).'">',$html,1);
-    if(!str_contains($html,'property="og:title"')){
-        $title='';if(preg_match('#<title>(.*?)</title>#s',$html,$m))$title=html_entity_decode($m[1],ENT_QUOTES,'UTF-8');
-        $desc='';if(preg_match('#<meta name="description" content="([^"]*)">#',$html,$m))$desc=html_entity_decode($m[1],ENT_QUOTES,'UTF-8');
-        if($desc==='')$desc=$brand['description'];
-        $og='<meta property="og:type" content="article"><meta property="og:site_name" content="'.$e($brand['title']).'"><meta property="og:title" content="'.$e($title).'"><meta property="og:description" content="'.$e($desc).'"><meta property="og:image" content="'.$e(rrw_brand_abs($brand['origin'],$brand['og_image'])).'"><meta property="og:url" content="'.$e(rtrim($brand['origin'],'/').'/'.$page.'.html').'"><meta name="twitter:card" content="summary_large_image">';
-        $html=preg_replace('#</head>#',$og.'</head>',$html,1);
-    }
-    return $html;
-}
 
 // ───────── Marken anlegen, Domains absichern ─────────
 /** Jede Domain (mit/ohne „www.“) gehört genau einer Marke. @param list<array<string,mixed>> $items @return list<array{domain:string,brands:list<string>}> */
