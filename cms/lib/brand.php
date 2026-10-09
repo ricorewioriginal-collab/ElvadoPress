@@ -14,23 +14,11 @@ if(!function_exists('rrw_read_json')){
         if(!is_file($file))return $fallback;$d=json_decode((string)@file_get_contents($file),true);return is_array($d)?$d:$fallback;
     }
 }
-if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
-function rrw_brand_default_id(): string { return rrw_pack_available()?'ricorewi-radio':'site'; }
-// Standard-Registry: RicoReWi Radio (Hauptmarke, erbt alle bisherigen globalen Werte) und
-// SenderWelt (vorbereitet, neutrale Platzhalter-Assets bis im CMS echte Dateien gewählt werden).
+function rrw_brand_default_id(): string { return 'site'; }
+// Standard-Registry: nur die eigene Hauptmarke, benannt nach der Website.
 function rrw_brand_defaults(): array {
-    // Eigenständiges CMS (ohne das RicoReWi-Paket): nur die eigene Hauptmarke, benannt nach der Website
-    if(!rrw_pack_available()){
-        $nm=trim((string)($GLOBALS['RRW_SITE']['portal']['site_name']??''));if($nm==='')$nm='Meine Website';
-        return ['default'=>'site','items'=>[rrw_brand_blank(['id'=>'site','name'=>$nm,'short_name'=>$nm,'canonical_mode'=>'own','enabled'=>true,'builtin'=>true])]];
-    }
-    return [
-        'default'=>'ricorewi-radio',
-        'items'=>[
-            rrw_brand_blank(['id'=>'ricorewi-radio','name'=>'RicoReWi Radio','short_name'=>'RicoReWi','primary_domain'=>'ricorewi-radio.de','domains'=>['www.ricorewi-radio.de'],'canonical_mode'=>'own','app_prefix'=>'RicoReWi-Radio','enabled'=>true,'builtin'=>true]),
-            rrw_brand_blank(['id'=>'senderwelt','name'=>'SenderWelt','short_name'=>'SenderWelt','claim'=>'Deine Streams. Deine Sender. Eine Welt.','primary_domain'=>'senderwelt.de','domains'=>['www.senderwelt.de'],'title'=>'SenderWelt','title_suffix'=>'SenderWelt','description'=>'SenderWelt – Deine Streams. Deine Sender. Eine Welt. Webradio, Sendeplan, News und Podcasts an einem Ort.','manifest_name'=>'SenderWelt','manifest_short_name'=>'SenderWelt','logo'=>'/brands/senderwelt/logo-placeholder.svg','logo_dark'=>'','logo_light'=>'','favicon'=>'/brands/senderwelt/favicon-placeholder.svg','touch_icon'=>'/brands/senderwelt/touch-icon-placeholder.png','og_image'=>'/brands/senderwelt/social-placeholder.png','social_image'=>'','canonical_mode'=>'main','app_prefix'=>'SenderWelt','directory'=>true,'enabled'=>true,'builtin'=>true]),
-        ],
-    ];
+    $nm=trim((string)($GLOBALS['RRW_SITE']['portal']['site_name']??''));if($nm==='')$nm='Meine Website';
+    return ['default'=>'site','items'=>[rrw_brand_blank(['id'=>'site','name'=>$nm,'short_name'=>$nm,'canonical_mode'=>'own','enabled'=>true,'builtin'=>true])]];
 }
 function rrw_brand_blank(array $o=[]): array {
     return array_merge([
@@ -63,25 +51,18 @@ function rrw_brands_clean($value): array {
         $legal=is_array($b['legal']??null)?$b['legal']:[];$ov=is_array($b['overrides']['portal']??null)?$b['overrides']['portal']:[];$colors=is_array($b['colors']??null)?$b['colors']:[];
         $col=fn($c)=>preg_match('/^#[0-9a-f]{3,8}$/i',(string)$c)?strtolower((string)$c):'';
         $items[]=['id'=>$id,'name'=>mb_substr(trim((string)($b['name']??$id)),0,80),'short_name'=>mb_substr(trim((string)($b['short_name']??'')),0,40),'claim'=>mb_substr(trim((string)($b['claim']??'')),0,160),
-            'enabled'=>!array_key_exists('enabled',$b)||!empty($b['enabled']),'builtin'=>in_array($id,['ricorewi-radio','senderwelt'],true),
+            'enabled'=>!array_key_exists('enabled',$b)||!empty($b['enabled']),'builtin'=>$id==='site',
             'primary_domain'=>$primary,'domains'=>$domains,
             'logo'=>rrw_brand_asset_clean((string)($b['logo']??'')),'logo_dark'=>rrw_brand_asset_clean((string)($b['logo_dark']??'')),'logo_light'=>rrw_brand_asset_clean((string)($b['logo_light']??'')),'favicon'=>rrw_brand_asset_clean((string)($b['favicon']??'')),'touch_icon'=>rrw_brand_asset_clean((string)($b['touch_icon']??'')),'og_image'=>rrw_brand_asset_clean((string)($b['og_image']??'')),'social_image'=>rrw_brand_asset_clean((string)($b['social_image']??'')),
             'title'=>mb_substr(trim((string)($b['title']??'')),0,120),'title_suffix'=>mb_substr(trim((string)($b['title_suffix']??'')),0,80),'description'=>mb_substr(trim((string)($b['description']??'')),0,400),'manifest_name'=>mb_substr(trim((string)($b['manifest_name']??'')),0,60),'manifest_short_name'=>mb_substr(trim((string)($b['manifest_short_name']??'')),0,30),
             'colors'=>['theme'=>$col($colors['theme']??''),'accent'=>$col($colors['accent']??'')],
             'app_prefix'=>preg_replace('/[^A-Za-z0-9-]/','',(string)($b['app_prefix']??'')),
             // Radioverzeichnis (Suchfeld im Header, Verzeichnis-Seite); SenderWelt hat es standardmäßig
-            'directory'=>rrw_pack_available()&&(array_key_exists('directory',$b)?!empty($b['directory']):($id==='senderwelt')),
+            'directory'=>false,   // Radioverzeichnis ist nicht Teil von ElvadoPress
             'canonical_mode'=>in_array(($b['canonical_mode']??'own'),['own','main','custom'],true)?(string)($b['canonical_mode']??'own'):'own','canonical_base'=>preg_match('#^https://[a-z0-9.-]+$#i',(string)($b['canonical_base']??''))?strtolower((string)$b['canonical_base']):'',
             'legal'=>['imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>mb_substr(trim((string)($legal['imprint_url']??'')),0,1200),'imprint_content'=>$safe((string)($legal['imprint_content']??'')),'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>mb_substr(trim((string)($legal['privacy_url']??'')),0,1200),'privacy_content'=>$safe((string)($legal['privacy_content']??''))],
             'overrides'=>['portal'=>['site_name'=>mb_substr(trim((string)($ov['site_name']??'')),0,80),'hero_eyebrow'=>mb_substr(trim((string)($ov['hero_eyebrow']??'')),0,80),'hero_title'=>mb_substr(trim((string)($ov['hero_title']??'')),0,220),'hero_text'=>mb_substr(trim((string)($ov['hero_text']??'')),0,1200),'news_title'=>mb_substr(trim((string)($ov['news_title']??'')),0,140),'news_intro'=>mb_substr(trim((string)($ov['news_intro']??'')),0,600),'footer_text'=>mb_substr(trim((string)($ov['footer_text']??'')),0,220),'legal_notice'=>mb_substr(trim((string)($ov['legal_notice']??'')),0,2400)]],
         ];
-    }
-    // Eigenständiger Betrieb (CMS-Release): die mitgelieferte Marke SenderWelt gehört zum Portal des Herstellers und erscheint nicht;
-    // Marken mit eigenen Angaben (andere Domain) bleiben erhalten.
-    $own=function_exists('rrw_standalone')&&rrw_standalone();
-    if($own){
-        $items=array_values(array_filter($items,fn($i)=>!($i['id']==='senderwelt'&&$i['primary_domain']==='senderwelt.de')));
-        $defaults['items']=array_values(array_filter($defaults['items'],fn($d)=>$d['id']!=='senderwelt'));
     }
     // Eingebaute Marken dürfen nicht fehlen (sonst Standard-Eintrag ergänzen).
     foreach($defaults['items'] as $d)if(!isset($seen[$d['id']]))$items[]=$d;
@@ -104,7 +85,7 @@ function rrw_brand_id_for_host(array $site,string $host): string {
     return $reg['default'];
 }
 // Die wirksame Brand: Werte der Marke, bei leeren Feldern Rückgriff auf die bisherigen globalen
-// Einstellungen (branding/seo/portal) - so bleibt RicoReWi Radio exakt wie vorher.
+// Einstellungen (branding/seo/portal) - so bleibt die Website exakt wie vorher.
 function rrw_brand_resolve(array $site,string $host,?string $forced=null): array {
     $reg=rrw_brands_registry($site);$id=$forced!==null?rrw_brand_id_clean($forced):'';
     $by=[];foreach($reg['items'] as $b)$by[$b['id']]=$b;
@@ -117,14 +98,13 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
     $favicon=$g('favicon',(string)($branding['favicon']??'/icon-192.png'));
     $touch=$g('touch_icon',$isDefault?'/apple-touch-icon.png':$favicon);
     $og=$g('og_image',(string)($seo['og_image']??$branding['portal_icon']??'/icon-512.png'));
-    $ric=rrw_pack_available();
-    $title=$g('title',(string)($seo['site_title']??$portal['site_name']??($ric?'RicoReWi Radioportal':$b['name'])));
-    $suffix=$g('title_suffix',$isDefault?($ric?'RicoReWi Radioportal':$b['name']):$title);
+    $title=$g('title',(string)($seo['site_title']??$portal['site_name']??$b['name']));
+    $suffix=$g('title_suffix',$isDefault?$b['name']:$title);
     $desc=$g('description',(string)($seo['description']??$portal['news_intro']??''));
     $primary=$b['primary_domain']!==''?$b['primary_domain']:rrw_brand_host_normalize($host);
     $hostNorm=rrw_brand_host_normalize($host);
     $origin='https://'.($hostNorm!==''&&$hostNorm!=='localhost'&&!preg_match('/^(127\.|\d+\.\d+\.\d+\.\d+$)/',$hostNorm)?$hostNorm:$primary);
-    $mainBase=rtrim((string)($seo['canonical_base']??($ric?'https://www.ricorewi-radio.de':'https://'.($primary!==''?$primary:($hostNorm!==''?$hostNorm:'localhost')))),'/');
+    $mainBase=rtrim((string)($seo['canonical_base']??'https://'.($primary!==''?$primary:($hostNorm!==''?$hostNorm:'localhost'))),'/');
     // Hauptmarke: Links (og:url, Share, RSS) bleiben wie bisher auf der Canonical-Basis
     // (www.ricorewi-radio.de), unabhängig davon, ob mit oder ohne www aufgerufen wurde.
     if($isDefault&&preg_match('#^https://[a-z0-9.-]+$#i',$mainBase)&&preg_replace('/^www\./','',(string)parse_url($mainBase,PHP_URL_HOST))===preg_replace('/^www\./','',$hostNorm))$origin=$mainBase;
@@ -135,15 +115,15 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
         'hostname'=>$hostNorm,'primary_domain'=>$primary,'domains'=>array_values(array_merge([$b['primary_domain']],(array)$b['domains'])),'origin'=>$origin,
         'logo'=>$logo,'logo_dark'=>$g('logo_dark',''),'logo_light'=>$g('logo_light',''),'favicon'=>$favicon,'touch_icon'=>$touch,'og_image'=>$og,'social_image'=>$g('social_image',$og),
         'title'=>$title,'title_suffix'=>$suffix,'description'=>$desc,
-        'manifest_name'=>$g('manifest_name',$isDefault&&$ric?'RicoReWi Radio Portal':$b['name']),'manifest_short_name'=>$g('manifest_short_name',$isDefault&&$ric?'RicoReWi Radio':($b['short_name']?:$b['name'])),
+        'manifest_name'=>$g('manifest_name',$b['name']),'manifest_short_name'=>$g('manifest_short_name',$b['short_name']?:$b['name']),
         'colors'=>['theme'=>(string)($b['colors']['theme']??'')?:'#070a1c','accent'=>(string)($b['colors']['accent']??'')],
         'canonical_mode'=>$b['canonical_mode'],'canonical_base'=>$canonicalBase,'canonical_url'=>$canonicalBase.'/',
-        'app_prefix'=>$g('app_prefix',$isDefault&&$ric?'RicoReWi-Radio':(preg_replace('/[^A-Za-z0-9-]/','',str_replace(' ','-',$b['name']))?:'App')),
+        'app_prefix'=>$g('app_prefix',preg_replace('/[^A-Za-z0-9-]/','',str_replace(' ','-',$b['name']))?:'App'),
         'legal'=>[
             'imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>(string)($legal['imprint_url']??''),'imprint_content'=>(string)($legal['imprint_content']??''),
             'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>(string)($legal['privacy_url']??''),'privacy_content'=>(string)($legal['privacy_content']??''),
         ],
-        'directory'=>rrw_pack_available()&&!empty($b['directory']),
+        'directory'=>false,
         'overrides'=>['portal'=>rrw_brand_portal_overrides($b,$isDefault)],
         'partners'=>rrw_brand_partners($reg,$id,$branding,$mainBase),
     ];

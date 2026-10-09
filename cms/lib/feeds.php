@@ -17,8 +17,6 @@ function rrw_remote_feed_allowed(string $url): bool {
 }
 // Kennung beim Abruf: mit RicoReWi-Paket wie bisher, sonst neutral mit dem Produktnamen.
 function rrw_feed_user_agent(bool $long=true): string {
-    if(!function_exists('rrw_pack_available'))require_once __DIR__.'/pack.php';
-    if(rrw_pack_available())return $long?'RicoReWi-Radio-Magazin/1.0 (+https://www.ricorewi-radio.de/)':'RicoReWi-Radio-Magazin/1.0';
     if(!function_exists('rrw_product'))require_once __DIR__.'/product.php';
     $n=(string)(rrw_product()['name']??'');$n=preg_replace('/[^A-Za-z0-9.-]/','',$n)?:'CMS';
     return $n.'-Feeds/1.0';

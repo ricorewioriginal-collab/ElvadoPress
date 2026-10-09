@@ -6,22 +6,19 @@ require_once __DIR__.'/pack.php';
 require_once __DIR__.'/product.php';
 function rrw_seo_defaults(array $site): array {
     $s=is_array($site['seo']??null)?$site['seo']:[];
-    if(!rrw_pack_available()){   // eigenständiges CMS: keine RicoReWi-Vorgaben
-        $nm=trim((string)($site['portal']['site_name']??''));
-        return array_merge(['enabled'=>true,'site_title'=>$nm!==''?$nm:'Meine Website','description'=>'','canonical_base'=>rrw_default_canonical_base(),'index_custom_pages'=>true,'index_news'=>true,'robots'=>'index,follow','og_image'=>''], $s);
-    }
-    return array_merge(['enabled'=>true,'site_title'=>'RicoReWi Radioportal','description'=>'RicoReWi × AnMaCha Radioportal – Webradio, News, Podcasts, Voting und Community.','canonical_base'=>'https://www.ricorewi-radio.de','index_custom_pages'=>true,'index_news'=>true,'robots'=>'index,follow','og_image'=>'/icon-512.png'], $s);
+    $nm=trim((string)($site['portal']['site_name']??''));
+    return array_merge(['enabled'=>true,'site_title'=>$nm!==''?$nm:'Meine Website','description'=>'','canonical_base'=>rrw_default_canonical_base(),'index_custom_pages'=>true,'index_news'=>true,'robots'=>'index,follow','og_image'=>''], $s);
 }
 function rrw_seo_system_map(): array {
     return ['sender'=>'sender','sendeplan'=>'sendeplan','voting'=>'voting','podcast'=>'podcast','news'=>'news','hilfe'=>'hilfe','apps'=>'apps','fanshop'=>'shops'];
 }
 function rrw_seo_generate_system_pages(array $site,string $root,array $seo): array {
-    $made=[];$base=rtrim((string)$seo['canonical_base'],'/');$map=rrw_seo_system_map();$theme=(string)($site['theme']['active']??(rrw_pack_available()?'ricorewi-neon':'rrw-classic'));
+    $made=[];$base=rtrim((string)$seo['canonical_base'],'/');$map=rrw_seo_system_map();$theme=(string)($site['theme']['active']??'rrw-classic');
     $siteName=trim((string)($site['portal']['site_name']??''))?:rrw_product_name();
-    $suffix=rrw_pack_available()?'RicoReWi Radio':$siteName;
-    $logoAlt=rrw_pack_available()?'RicoReWi Radio':$siteName;
-    $backLabel=rrw_pack_available()?'Interaktive Seite im Radioportal öffnen':'Website öffnen';
-    $footerLabel=rrw_pack_available()?'RicoReWi Radioportal':$siteName;
+    $suffix=$siteName;
+    $logoAlt=$siteName;
+    $backLabel='Website öffnen';
+    $footerLabel=$siteName;
     foreach((array)($site['pages']??[]) as $p){
         if(($p['type']??'')!=='system'||empty($p['enabled']))continue;$target=(string)($p['system_target']??'');if(!isset($map[$target]))continue;
         $slug=$map[$target];$title=trim((string)($p['headline']??''))?:trim((string)($p['title']??ucfirst($slug)));$intro=trim((string)($p['intro']??''));
