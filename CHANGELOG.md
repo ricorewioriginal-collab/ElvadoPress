@@ -2,6 +2,14 @@
 
 Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröffentlichen eines Releases (Tag `v<Version>`) angehoben.
 
+## Nicht veröffentlicht (nach 1.2.0)
+
+### Mobile Verwaltung
+- Kopfzeile passt in jede Handybreite ab 320 px: Glocke, Design-Schalter und Benutzermenü waren vorher abgeschnitten und nicht erreichbar; „Zur Website“ ist auf dem Handy ein Symbol.
+- Kein doppelter Leerraum mehr über dem Inhalt, Statusleiste nur noch bei Meldungen (wie am Desktop), Abstände für Notch und Gestenleiste (`viewport-fit=cover`).
+- Schaltflächenzeilen (Beiträge, Kategorien, KI-Zentrale, Assistent, Live Builder), Auswahlfelder, Tabellen und das Upload-Menü der Themes bleiben im Bildschirm.
+- Themes-Bereich ohne Radio-Hinweis; Alexa-Icon-Vorschau zeigt vor dem ersten Upload kein defektes Bild.
+
 ## 1.2.0
 
 ### Lizenz

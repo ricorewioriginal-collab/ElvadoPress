@@ -20,7 +20,7 @@
           <button class="dg-chip sa-only" data-f="wp" onclick="DesignHub.filter('wp',this)"><i class="fab fa-wordpress"></i> WordPress-Themes</button>
         </div>
         <section id="dgPortal" class="dg-sec">
-          <div class="dg-head"><b>Portal-Designs</b><span class="hint">Behalten Radio-Player, Community und das Layout deiner Website – es ändert sich nur das Aussehen.</span></div>
+          <div class="dg-head"><b>Portal-Designs</b><span class="hint">Behalten Funktionen, Inhalte und das Layout deiner Website – es ändert sich nur das Aussehen.</span></div>
           <div id="themeGrid" class="theme-grid"><div class="empty">Themes werden geladen …</div></div>
           <div id="themeHidden" class="card" style="margin-top:12px" hidden></div>
         </section>
