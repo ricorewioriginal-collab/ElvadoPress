@@ -170,5 +170,31 @@ window.MediaHub=(()=>{
  }
  function cancelBrandingPick(){brandingPick=null;if(selected)select(items.indexOf(selected));}
  async function load(force=false){bind();try{const d=await api('media_library_list');items=d.items||[];render();renderAltBar()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
- return {load,select,remove,copyVariant,assignBranding,beginBrandingPick,cancelBrandingPick,uploadFiles,altSave,altSuggest,altBulkStart,altBulkSet,altBulkClose,altBulkSave};
+ /** Bild aus der Mediathek wählen (z. B. für Widget-Felder): cb(url) wird mit der Adresse des gewählten Bildes aufgerufen. */
+ async function pick(cb){
+  let modal=document.getElementById('mediaHubPick');
+  if(modal)modal.remove();
+  modal=document.createElement('div');modal.id='mediaHubPick';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(6,6,10,.7);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML='<div role="dialog" aria-label="Aus Mediathek wählen" style="background:var(--surface,#101522);border:1px solid var(--border,#232b45);border-radius:16px;max-width:760px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border,#232b45)"><b>Aus Mediathek wählen</b><button type="button" class="btn-g" id="mediaHubPickX" aria-label="Schließen">&times;</button></div><div id="mediaHubPickGrid" style="padding:16px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px"><div class="empty">Lädt…</div></div></div>';
+  const close=()=>modal.remove();
+  modal.addEventListener('click',e=>{if(e.target===modal)close();});
+  document.body.appendChild(modal);
+  modal.querySelector('#mediaHubPickX').addEventListener('click',close);
+  const grid=modal.querySelector('#mediaHubPickGrid');
+  try{
+   const d=await api('media_library_list');
+   const list=(d.items||[]).filter(x=>String(x.mime||'').startsWith('image/'));
+   grid.innerHTML=list.length?'':'<div class="empty" style="grid-column:1/-1">Noch keine Bilder in der Mediathek. Lade zuerst eines im Tab „Medien“ hoch.</div>';
+   list.forEach(x=>{
+    const url=x.original?.url||x.url||'';if(!url)return;
+    const b=document.createElement('button');b.type='button';b.title=x.name||'';
+    b.style.cssText='border:1px solid var(--border,#232b45);border-radius:10px;padding:6px;background:#0b0f26;cursor:pointer';
+    const img=document.createElement('img');img.src=url;img.alt=x.name||'';img.loading='lazy';img.style.cssText='width:100%;height:80px;object-fit:cover;border-radius:6px';
+    b.appendChild(img);b.addEventListener('click',()=>{close();try{cb(url);}catch(e){window.cmsToast?.(e.message,true);}});
+    grid.appendChild(b);
+   });
+  }catch(e){grid.textContent=e.message||'Fehler';}
+ }
+ return {pick,load,select,remove,copyVariant,assignBranding,beginBrandingPick,cancelBrandingPick,uploadFiles,altSave,altSuggest,altBulkStart,altBulkSet,altBulkClose,altBulkSave};
 })();

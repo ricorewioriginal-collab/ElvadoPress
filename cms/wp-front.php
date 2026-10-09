@@ -24,6 +24,7 @@ if(!$sbx&&is_file($cmsDir.'/data/sites.json')){
     try{ require_once $cmsDir.'/lib/sites.php';$siteId=elvado_site_current();if($siteId!==''){ $siteData=elvado_site_dir('data',$siteId);if(!defined('ELVADO_WP_DATA'))define('ELVADO_WP_DATA',$siteData.'/.wp');if(!defined('ELVADO_MEDIA_DIR'))define('ELVADO_MEDIA_DIR',elvado_site_dir('media',$siteId)); } }catch(Throwable $e){ $siteId='';$siteData=$cmsDir.'/data'; }
 }
 $flag=$siteData.'/.wp/front-on';
+require_once $cmsDir.'/lib/system.php';elvado_system_apply_timezone();   // Zeitzone der Einrichtung (wie in der Verwaltung): sonst gelten neue Beiträge je nach Zeitzone erst Stunden später als veröffentlicht
 require_once $cmsDir.'/wp/load.php';
 
 /* Vorschau: signierter, 15 Minuten gültiger Schlüssel (?elvado_wp_preview=<theme>.<ablauf>.<signatur>) → Cookie */

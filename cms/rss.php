@@ -5,6 +5,7 @@ header('Content-Type: application/rss+xml; charset=UTF-8');
 header('Cache-Control: public, max-age=300');
 
 require_once __DIR__.'/lib/sites.php';elvado_sites_request_context();   // mehrere Websites: Feed der aufgerufenen Domain
+require_once __DIR__.'/lib/system.php';elvado_system_apply_timezone();   // Zeitzone der Einrichtung auch für Website, Feed und REST (sonst weichen Veröffentlichungszeiten ab)
 require_once __DIR__.'/lib/product.php';
 require_once __DIR__.'/lib/pack.php';
 function elvado_xml(string $s): string {

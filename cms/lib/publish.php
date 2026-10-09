@@ -147,7 +147,7 @@ function elvado_news_unique_slug(array $news,int $id,string $slug): string {
 function elvado_news_seo_fields(array $b): array {
     $canon=trim((string)($b['canonical_url']??''));
     return ['seo_title'=>mb_substr(trim((string)($b['seo_title']??'')),0,70),'seo_description'=>mb_substr(trim((string)($b['seo_description']??'')),0,200),
-        'comments'=>in_array(($b['comments']??'default'),['open','closed'],true)?$b['comments']:'default','noindex'=>!empty($b['noindex']),
+        'comments'=>in_array(($b['comments']??'default'),['open','closed'],true)?($b['comments']??'default'):'default','noindex'=>!empty($b['noindex']),
         'canonical_url'=>(filter_var($canon,FILTER_VALIDATE_URL)&&preg_match('~^https?://~i',$canon))?mb_substr($canon,0,1200):''];
 }
 function elvado_news_tag_list(string $tags): array {
@@ -314,7 +314,7 @@ function elvado_clean_section(string $section,$value){
     }
     if($section==='widgets'){
         $out=[];$allowed=['news-latest'];
-        foreach(array_slice((array)$value,0,100) as $w){if(!is_array($w))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($w['id']??''));if($id==='')$id='widget_'.bin2hex(random_bytes(4));$type=in_array(($w['type']??'builtin'),['builtin','html','iframe'],true)?$w['type']:'builtin';$builtin=in_array(($w['builtin']??''),$allowed,true)?$w['builtin']:'';
+        foreach(array_slice((array)$value,0,100) as $w){if(!is_array($w))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($w['id']??''));if($id==='')$id='widget_'.bin2hex(random_bytes(4));$type=in_array(($w['type']??'builtin'),['builtin','html','iframe'],true)?($w['type']??'builtin'):'builtin';$builtin=in_array(($w['builtin']??''),$allowed,true)?($w['builtin']??''):'';
             $cat=mb_substr(trim((string)($w['category']??'Eigene')),0,80);
             $out[]=['id'=>$id,'name'=>mb_substr((string)($w['name']??'Widget'),0,120),'type'=>$type,'builtin'=>$builtin,'category'=>$cat,'enabled'=>!array_key_exists('enabled',$w)||!empty($w['enabled']),'title'=>mb_substr((string)($w['title']??''),0,160),'config'=>is_array($w['config']??null)?$w['config']:[],'html'=>$type==='html'?elvado_safe_html((string)($w['html']??'')):'','url'=>$type==='iframe'?mb_substr(trim((string)($w['url']??'')),0,1200):''];
         } return $out;
@@ -324,7 +324,7 @@ function elvado_clean_section(string $section,$value){
         foreach(array_slice((array)$value,0,50) as $a){
             if(!is_array($a))continue;$id=preg_replace('/[^a-zA-Z0-9_-]/','',(string)($a['id']??''));if($id==='')$id='area_'.bin2hex(random_bytes(4));
             $widgets=[];$seen=[];foreach(array_slice((array)($a['widgets']??[]),0,50) as $wid){$inst=elvado_widget_instance_clean($wid,$id);if($inst===null||isset($seen[$inst['id']]))continue;$seen[$inst['id']]=true;$widgets[]=$inst;}
-            $out[]=['id'=>$id,'name'=>mb_substr(trim((string)($a['name']??'Widget-Bereich')),0,120),'kind'=>in_array(($a['kind']??'sidebar'),$validKinds,true)?$a['kind']:'sidebar','scope'=>in_array(($a['scope']??'global'),$validScopes,true)?$a['scope']:'global','page_id'=>preg_replace('/[^a-zA-Z0-9_-]/','',(string)($a['page_id']??'')),'position'=>in_array(($a['position']??'right'),$validPos,true)?$a['position']:'right','enabled'=>!empty($a['enabled']),'widgets'=>$widgets];
+            $out[]=['id'=>$id,'name'=>mb_substr(trim((string)($a['name']??'Widget-Bereich')),0,120),'kind'=>in_array(($a['kind']??'sidebar'),$validKinds,true)?($a['kind']??'sidebar'):'sidebar','scope'=>in_array(($a['scope']??'global'),$validScopes,true)?($a['scope']??'global'):'global','page_id'=>preg_replace('/[^a-zA-Z0-9_-]/','',(string)($a['page_id']??'')),'position'=>in_array(($a['position']??'right'),$validPos,true)?($a['position']??'right'):'right','enabled'=>!empty($a['enabled']),'widgets'=>$widgets];
         } return $out;
     }
     if($section==='brands')return elvado_brands_clean($value);
@@ -382,10 +382,10 @@ function elvado_clean_section(string $section,$value){
     if($section==='seo'){
         $base=trim((string)($value['canonical_base']??elvado_default_canonical_base()));
         if(!preg_match('#^https://[a-z0-9.-]+(:\d{2,5})?$#i',$base))$base=elvado_default_canonical_base();
-        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??(($GLOBALS['ELVADO_SITE']['portal']['site_name']??'')?:elvado_product_name()))),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?$value['robots']:'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
+        return ['enabled'=>!array_key_exists('enabled',$value)||!empty($value['enabled']),'site_title'=>mb_substr(trim((string)($value['site_title']??(($GLOBALS['ELVADO_SITE']['portal']['site_name']??'')?:elvado_product_name()))),0,180),'description'=>mb_substr(trim((string)($value['description']??'')),0,500),'canonical_base'=>rtrim($base,'/'),'index_custom_pages'=>!array_key_exists('index_custom_pages',$value)||!empty($value['index_custom_pages']),'index_news'=>!array_key_exists('index_news',$value)||!empty($value['index_news']),'robots'=>in_array(($value['robots']??'index,follow'),['index,follow','noindex,nofollow'],true)?($value['robots']??'index,follow'):'index,follow','og_image'=>mb_substr(trim((string)($value['og_image']??'/icon-512.png')),0,1000)];
     }
     if($section==='storage'){
-        return ['mode'=>in_array(($value['mode']??'files'),['files','files+database'],true)?$value['mode']:'files','database_mirror'=>!empty($value['database_mirror'])];
+        return ['mode'=>in_array(($value['mode']??'files'),['files','files+database'],true)?($value['mode']??'files'):'files','database_mirror'=>!empty($value['database_mirror'])];
     }
     if($section==='backup'){
         return ['include_media'=>!array_key_exists('include_media',$value)||!empty($value['include_media']),'keep'=>max(1,min(50,(int)($value['keep']??10)))];

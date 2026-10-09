@@ -35,7 +35,7 @@
   const feat=(k,label,desc,also)=>`<label class="wm-check" style="display:flex;gap:10px;align-items:flex-start;margin:0"><input type="checkbox" ${f[k]!==false?'checked':''} onchange="AssistantManager.set('features.${k}',this.checked);${also?`AssistantManager.set('features.${also}',this.checked)`:''}"><span><b>${esc(label)}</b><br><small class="hint">${esc(desc)}</small></span></label>`;
   host.innerHTML=`
    <div class="section-grid" style="margin-bottom:10px">
-    <label class="wm-check" style="margin:0"><input type="checkbox" ${a.enabled!==false?'checked':''} onchange="AssistantManager.set('enabled',this.checked)"> Assistent auf der Website anzeigen</label>
+    <label class="wm-check" style="margin:0"><input type="checkbox" ${a.enabled?'checked':''} onchange="AssistantManager.set('enabled',this.checked)"> Assistent auf der Website anzeigen</label>
     ${field('name','Name des Assistenten',a.name||'',{ph:'Assistent'})}
     ${field('rate_limit','Max. Fragen je Besucher und Stunde',a.rate_limit||40,{type:'number',hint:'Schutz vor Missbrauch; pro IP-Adresse.'})}
     ${field('max_tokens','Max. Antwortlänge (Tokens)',a.max_tokens||420,{type:'number'})}
