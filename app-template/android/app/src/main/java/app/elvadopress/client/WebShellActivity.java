@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * App-Typ "web": die Website als eigene App (Vollbild-WebView) für beliebige Seiten, nicht nur Radio.
+ * App-Typ "web": die Website als eigene App (Vollbild-WebView) für beliebige Seiten.
  * Start-Adresse und Farbe kommen aus android/brands.json (launch_url, site_base, theme_color).
  * Interne Links bleiben in der App, fremde Adressen, mailto:/tel: und Downloads öffnen extern.
  * Laufzeit-Einstellungen aus dem CMS (Apps → Apps verwalten): Wartungsmodus, Pflicht-Update, Hinweis an alle Nutzer – siehe WebRuntime.

@@ -15,7 +15,7 @@ using Brushes = System.Windows.Media.Brushes;
 namespace ElvadoPress.App.Windows;
 
 /// <summary>
-/// App-Typ "web": die Website als eigene Windows-App (Vollbild-WebView2) für beliebige Seiten, nicht nur Radio.
+/// App-Typ "web": die Website als eigene Windows-App (Vollbild-WebView2) für beliebige Seiten.
 /// Interne Links bleiben im Fenster, fremde Adressen und mailto:/tel: öffnen im Standard-Browser.
 /// Laufzeit-Einstellungen aus dem CMS (Apps → Apps verwalten): Wartungsmodus, Pflicht-Update, Hinweis an alle Nutzer – siehe WebRuntime.
 /// </summary>

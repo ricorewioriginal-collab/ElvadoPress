@@ -1,6 +1,6 @@
 # Eigene Apps bauen (Build-Assistent)
 
-Im CMS unter **Apps → Eigene App bauen** erstellst du aus deiner Website installierbare Apps für **Android** und **Windows** mit eigenem Namen, Icon und Paketnamen – ohne Entwicklungsumgebung auf dem eigenen Rechner. Dazu kommt auf Wunsch der **Alexa-Skill** (Sprachsteuerung für Radio-Apps).
+Im CMS unter **Apps → Eigene App bauen** erstellst du aus deiner Website installierbare Apps für **Android** und **Windows** mit eigenem Namen, Icon und Paketnamen – ohne Entwicklungsumgebung auf dem eigenen Rechner. Dazu kommt auf Wunsch der **Alexa-Skill** (Sprachsteuerung für deine Website).
 
 ## App-Typen
 * **Baukasten-App** – eigene App mit eigenen Inhalten: Tab-Leiste unten (bis 5 Tabs), jeder Tab zeigt eine Seite, einen Beitrag oder den Shop deiner Website. Tabs, Symbole und Reihenfolge pflegst du unter *Apps verwalten → Inhalte der App* (mit Vorlagen für Verein, Shop, Magazin, Restaurant/Café, Dienstleister) – ohne neuen Build. Die Leiste liefert `app_config` als `tabs`; Android und Windows merken sich die letzte Leiste auch offline. Überblick aller Vorlagen: `app-template/VORLAGEN.md`. **App-Modus:** Die App meldet sich mit einem User-Agent-Zusatz (`ElvadoPressApp/1.0 (brand=…; platform=…)`), die Website blendet dann Kopf und Fuß aus (Einstellung je App: automatisch / ausblenden / anzeigen; `?rrw_app=<id>` zum Testen im Browser). Der Tab-Editor hat eine Seitenauswahl (Aktion `wp_link_targets`: Seiten, Beiträge, Kategorien) und eine Live-Vorschau im Handy-Rahmen.

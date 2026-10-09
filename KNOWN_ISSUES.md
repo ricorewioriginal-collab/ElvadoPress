@@ -2,8 +2,8 @@
 
 ## App-Vorlage und Alexa
 - **Bereich:** App-Baukasten (`app-template/`) / Alexa
-- **Status:** Vorlage umgesetzt (Ordner `app-template/`, verifiziert mit `scripts/verify-app-template.sh`: Android baut, Windows kompiliert, Tests grün). Alexa-Erweiterung offen.
-- **Einschränkungen der Vorlage:** Die Apps sind **nicht auf einem Gerät** getestet (nur gebaut/kompiliert und per Unit-Tests der CMS-Auswertung geprüft); die Windows-Pakete entstehen erst im Build-Workflow (Windows-Runner) und sind unsigniert. Die Radio-App enthält Funktionen mit Hersteller-Backend (Podcast, Community, Shops) – sie sind ausgeschaltet, solange nicht in `brands.json` unter `"radio"` eingetragen. Der interne Quelltext-Namensraum der Android-App (`app.elvadopress.client`) ist bewusst von der App-Kennung getrennt.
+- **Status:** Vorlage umgesetzt (Ordner `app-template/`, zuletzt vor dem Entfernen des Radio-Players mit `scripts/verify-app-template.sh` gebaut; danach nur statisch geprüft, siehe „Native Clients“).
+- **Einschränkungen der Vorlage:** Die Apps sind **nicht auf einem Gerät** getestet (nur gebaut/kompiliert und per Unit-Tests der CMS-Auswertung geprüft); die Windows-Pakete entstehen erst im Build-Workflow (Windows-Runner) und sind unsigniert.  Der interne Quelltext-Namensraum der Android-App (`app.elvadopress.client`) ist bewusst von der App-Kennung getrennt.
 - **Nächste Untersuchung:** Erste echte App aus der Vorlage auf Gerät (Android) und unter Windows prüfen; Alexa-Paket für eigene Inhalte.
 
 ## ElvadoPress Essentials / Plugin-System
@@ -38,5 +38,5 @@
 ## Radio-Reste in den nativen App-Clients
 - **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets), der Radio-Modus des KI-Assistenten und der Radio-App-Typ im App-Baukasten (Builder, Hörstatistik, Radio-Funktionen, Vorlagenkatalog) sind entfernt. Neue Apps sind Website- oder Baukasten-Apps; der frühere Typ „radio“ gilt als Website-App.
 - **Alexa:** Ist ein Website-Skill (Themen des Betreibers und Neuigkeiten aus den Beiträgen); die frühere Sender-/Stream-Logik ist entfernt.
-- **Offen (native Clients):** `app-template/` enthält noch den Radio-Player (Android `MainActivity`, `PlaybackService`, `Stations`, `Directory`, Cast/DLNA; Windows `MainWindow`, `RadioApi`, `RadioDirectory`, `NativePlayer`). Website- und Baukasten-Apps nutzen `WebShellActivity` bzw. die Web-Shell und brauchen ihn nicht. Das Entfernen setzt einen Build mit Android-SDK und .NET voraus (hier nicht möglich) und erfolgt getrennt.
+- **Native Clients:** Der Radio-Player ist aus `app-template/` entfernt (Android `MainActivity`, `PlaybackService`, Cast/DLNA, Konto/OIDC, Selbst-Update; Windows `MainWindow`, `RadioApi`, `NativePlayer`). Übrig bleibt die Web-Shell (`WebShellActivity` bzw. `WebShellWindow`) für Website- und Baukasten-Apps. **Nicht kompiliert:** Hier gibt es weder Android-SDK noch .NET; die Änderung wurde per Abhängigkeitsanalyse und `scripts/test-app-template.php` geprüft. Vor dem ersten Einsatz `scripts/verify-app-template.sh` mit SDK ausführen. Selbst-Update und Fehlermeldung (`ErrorReporter`) fehlen in der Android-Web-Shell.
 - **Offen (Assistent):** Sein Wissen über Apps und Alexa-Skill entfällt, bis diese umgebaut sind.

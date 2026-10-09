@@ -1,6 +1,6 @@
 # ElvadoPress App-Vorlage
 
-Diese Vorlage macht aus einer ElvadoPress-Website installierbare **Android-** und **Windows-Apps**. Sie gehört zum **Build-Assistenten im CMS** (Apps → *Eigene App bauen*): Das CMS trägt deine Apps in `android/brands.json` ein, lädt Icon und Bilder hoch, startet die Build-Workflows und liefert die fertigen Pakete wieder aus. Alles Weitere (Hinweise, Wartung, Startseite der Radio-App …) steuerst du später **ohne neuen Build** im CMS unter *Apps → Apps verwalten*.
+Diese Vorlage macht aus einer ElvadoPress-Website installierbare **Android-** und **Windows-Apps**. Sie gehört zum **Build-Assistenten im CMS** (Apps → *Eigene App bauen*): Das CMS trägt deine Apps in `android/brands.json` ein, lädt Icon und Bilder hoch, startet die Build-Workflows und liefert die fertigen Pakete wieder aus. Alles Weitere (Hinweise, Wartung, Tab-Leiste der Baukasten-App …) steuerst du später **ohne neuen Build** im CMS unter *Apps → Apps verwalten*.
 
 **Ausführliche Anleitung (Wo/Was/Wie): [ANLEITUNG.md](ANLEITUNG.md)** · **Übersicht der Vorlagen: [VORLAGEN.md](VORLAGEN.md)** (`templates.json`)
 
