@@ -12,7 +12,7 @@ Für neue Claude-Code-Sessions in dieser Reihenfolge lesen:
 Nicht automatisch das gesamte Repository neu analysieren.
 
 ## Projekt und Zweck
-ElvadoPress ist ein eigenständiges, erweiterbares PHP-CMS für Websites mit Themes, Plugins, visueller Verwaltung, Datei-Storage, optionalem Datenbankspiegel und WordPress-Kompatibilitätsschicht. Optionale neutrale Erweiterungen umfassen App-Baukasten, Alexa-Skill-Baukasten und KI-Assistent.
+ElvadoPress ist ein eigenständiges, erweiterbares PHP-CMS für Websites mit Themes, Plugins, visueller Verwaltung, Datei-Storage, optionalem Datenbankspiegel und WordPress-Kompatibilitätsschicht. Optionale neutrale Erweiterungen umfassen App-Baukasten, Alexa-Skill-Baukasten und KI-Assistent. ElvadoPress ist ein allgemeines CMS; Radio-Funktionen sind kein Standard.
 
 Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderwelt* werden seit Oktober 2026 **unabhängig** von ElvadoPress entwickelt; es gibt keinen Sync mehr und ElvadoPress nimmt keine Rücksicht auf deren Paket-Tests.
 
@@ -31,7 +31,8 @@ Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderw
 | Art | Beispiele | Repository |
 |---|---|---|
 | **CMS** | Beiträge, Seiten, Medien, Kommentare, Einstellungen, WordPress-Schicht, Themes/Plugins, Benutzer, Formulare, Community, Demo-Betrieb | **hier** |
-| **Radio-Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
+| **Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
+| **Radio** | Radio-Seiten, Player, Sendeplan, Radio-Widgets | **nicht im Kern**; später optionales Plugin „Elvado Radio / Audio“ |
 | **RicoReWi / Senderwelt** | Portal, Portal-Themes, paketgebundene Radio-/Netzwerkfunktionen, Marken-Inhalte | **eigenständig, nicht hier** |
 
 ## Core oder Plugin (verbindlich)

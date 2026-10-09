@@ -85,15 +85,10 @@ function rrw_components_store(?string $dataDir = null): LayoutStore
     return new LayoutStore(($dataDir ?? (defined('RRW_DATA_DIR') ? (string)RRW_DATA_DIR : dirname(__DIR__) . '/data')) . '/layouts', rrw_components());
 }
 
-/** Aktive Merkmale für den Katalog (z. B. „radio“). @return list<string> */
+/** Aktive Merkmale für den Katalog (Erweiterungen können sie über Pakete einführen). @return list<string> */
 function rrw_components_features(?string $dataDir = null): array
 {
-    $f = [];
-    $dir = $dataDir ?? (defined('RRW_DATA_DIR') ? (string)RRW_DATA_DIR : dirname(__DIR__) . '/data');
-    if (function_exists('rrw_radio_theme_active') && rrw_radio_theme_active($dir)) {
-        $f[] = 'radio';
-    }
-    return $f;
+    return [];
 }
 
 /** Bearbeitungsziele des Live Builders, die Pakete mitbringen (Komponenten, die an bestehende Bereiche der Website gebunden sind). @return list<array{id:string,label:string,scope:string,preview:string,source:string}> */

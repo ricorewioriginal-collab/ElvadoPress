@@ -93,12 +93,6 @@
           <button class="tab" data-tab="social" onclick="cmsTab('social',this)"><i class="fas fa-share-nodes"></i>Social</button>
         </div>
       </div>
-      <div class="tab-group single" data-feature="radio" hidden>
-        <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-radio"></i><span>Radio &amp; Streaming</span><i class="fas fa-chevron-down tg-chev"></i></div>
-        <div class="tab-group-body">
-          <button class="tab" data-tab="radio" onclick="cmsTab('radio',this);window.RadioAdmin?.load()"><i class="fas fa-tower-broadcast"></i>Sender &amp; Sendeplan</button>
-        </div>
-      </div>
       <div id="tcMenuHost"></div>
       <div class="tab-group">
         <div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-sliders"></i><span>Einstellungen</span><i class="fas fa-chevron-down tg-chev"></i></div>
