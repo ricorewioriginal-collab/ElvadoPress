@@ -1,7 +1,7 @@
 {
   "id": "elvado-radio",
   "name": "Elvado Radio / Audio",
-  "description": "Stellt Webradio- und Audio-Streams als Player auf Seiten, in Beiträgen und Widgets bereit – per Shortcode [elvado_radio]. Die Sender trägst du selbst ein. Es wird kein Skript von Dritten geladen und der Stream erst nach dem Klick auf „Abspielen“ abgerufen.",
+  "description": "Stellt Webradio- und Audio-Streams als Player auf Seiten, in Beiträgen und Widgets bereit – per Shortcode [elvado_radio] bereit und zeigt Sendeplan und „Jetzt läuft“ ([elvado_radio_schedule], [elvado_radio_now]) aus deiner eigenen Liste. Die Sender und Sendungen trägst du selbst ein. Es wird kein Skript von Dritten geladen und der Stream erst nach dem Klick auf „Abspielen“ abgerufen.",
   "version": "1.0.0",
   "author": "ElvadoPress",
   "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
@@ -17,6 +17,7 @@
   "entry": "plugin.php",
   "settings": [
     { "key": "stations", "type": "textarea", "default": "", "label": "Sender", "help": "Eine Zeile pro Sender: kennung | Name | https://stream-adresse | https://logo-adresse (Logo optional). Beispiel: mein-radio | Mein Radio | https://stream.example.org/live.mp3" },
-    { "key": "show_title", "type": "toggle", "default": true, "label": "Sendernamen über dem Player anzeigen" }
+    { "key": "show_title", "type": "toggle", "default": true, "label": "Sendernamen über dem Player anzeigen" },
+    { "key": "schedule", "type": "textarea", "default": "", "label": "Sendeplan", "help": "Eine Zeile pro Sendung: Tag | von-bis | Titel | Sender-Kennung (optional, leer = für alle). Tage: Mo, Di, Mi, Do, Fr, Sa, So, Bereiche wie Mo-Fr, Listen wie Sa,So oder täglich. Beispiel: Mo-Fr | 18:00-20:00 | Abendshow. Sendungen über Mitternacht sind möglich (22:00-02:00). Es gilt die Zeitzone der Website." }
   ]
 }

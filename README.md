@@ -33,12 +33,11 @@ ElvadoPress ist ein modernes, erweiterbares CMS zur Erstellung und Verwaltung vo
 - **SEO** (Meta, OpenGraph, Schema.org, Sitemap, Editor-Vorschau), **Security** (Login-Schutz, Header, Prüfungen), **Backup** (Zeitplan, Rotation, Prüfsummen), **Performance** (Seiten-Cache, Lazy Loading, AVIF), **Forms** (Formular-Builder mit SMTP, Spam-Schutz, Webhook), **Analytics** (interne, cookiefreie Statistik; Matomo/Google nur nach bewusster Einrichtung), **Redirects** (automatische Weiterleitungen, Schleifenschutz), **AI** (KI-Werkzeuge für Texte und Apps auf Basis der KI-Zentrale)
 - Die Installationsart wählst du im Installer: *Empfohlen*, *Minimal* oder *Benutzerdefiniert*. Weitere offizielle Plugins (Newsletter, Podcast, Shop …) sind im Katalog als „noch nicht verfügbar“ geführt. Entwicklung eigener Plugins: [cms/docs/PLUGIN-ENTWICKLUNG.md](cms/docs/PLUGIN-ENTWICKLUNG.md).
 
-**Radio-Erweiterungen (für eigene Radio-Apps und -Seiten)**
-- **App-Baukasten:** eigene Android- und Windows-Apps (Radio-App oder Website-App) über GitHub-Actions bauen
+**Erweiterungen (optional, mit deinen eigenen Inhalten)**
+- **App-Baukasten:** eigene Android- und Windows-Apps (Website-App oder Baukasten-App mit Tab-Leiste) über GitHub Actions bauen; die Vorlage ist leer und baut nichts von allein, Anleitung: [app-template/ANLEITUNG.md](app-template/ANLEITUNG.md)
 - **Alexa-Skill:** Sprachmodell, Skill-Angaben und Backend aus deinen Themen und Beiträgen erzeugen (liest Neuigkeiten vor, beantwortet Fragen zur Website)
-- **KI-Assistent** für Website und Apps
-
-Alle Radio-Erweiterungen sind optional und arbeiten mit deinen eigenen Inhalten.
+- **KI-Assistent** für deine Website
+- **Elvado Radio / Audio** (optionales Plugin, nicht Standard): Webradio- und Audio-Streams per Shortcode `[elvado_radio]` als Player einbinden, dazu Sendeplan und „Jetzt läuft“ (`[elvado_radio_schedule]`, `[elvado_radio_now]`)
 
 ## Live-Demo
 
@@ -56,7 +55,7 @@ Ausführliche Hinweise stehen in [INSTALL.md](INSTALL.md) und in `cms/docs/`.
 
 ## Qualität
 
-- `php scripts/smoke-test.php` richtet das CMS in einem temporären Ordner ein und prüft Einrichtung, Auslieferung, Verwaltung, Alexa-Baukasten und KI-Assistent (das Radioverzeichnis ist im eigenständigen CMS bewusst nicht enthalten); die übrigen Tests liegen in `scripts/test-*.php`.
+- `php scripts/smoke-test.php` richtet das CMS in einem temporären Ordner ein und prüft Einrichtung, Auslieferung, Verwaltung, Alexa-Baukasten und KI-Assistent; die übrigen Tests liegen in `scripts/test-*.php`.
 - Der Workflow *CI* führt PHP-Syntaxprüfung, diesen Test und alle weiteren Tests bei jedem Push und Pull Request aus.
 
 ## Entwicklung
