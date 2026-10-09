@@ -14,7 +14,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title><?=$ph('title')?></title>
 <?php if($pr['logo']!==''): ?><link rel="icon" href="<?=$ph('logo')?>"><?php endif; ?>
@@ -27,7 +27,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <link rel="stylesheet" href="assets/cms.css?v=45">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
-<link rel="stylesheet" href="assets/shell.css?v=6">
+<link rel="stylesheet" href="assets/shell.css?v=7">
 <script>try{var m=localStorage.getItem("ep_admin_theme");if(m==="auto")m=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";if(m==="light"||m==="dark")document.documentElement.setAttribute("data-admin-theme",m)}catch(e){}</script>
 
 </head>
@@ -162,7 +162,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/brands-manager.js?v=5"></script><script src="assets/sites-manager.js?v=1"></script>
 <script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=10"></script><script src="assets/apps-manager.js?v=11"></script>
-<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=9"></script>
+<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=10"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script><script src="assets/elvado-plugins.js?v=3"></script>
 <script src="assets/system-manager.js?v=3"></script>
@@ -184,10 +184,10 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/wp-links.js?v=2"></script>
 <script src="assets/wp-settings.js?v=2"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
 <script src="assets/sandbox.js?v=1"></script>
-<script src="assets/design-hub.js?v=3"></script>
+<script src="assets/design-hub.js?v=4"></script>
 <script src="assets/pages-manager.js?v=1"></script>
 <script src="assets/header-builder.js?v=1"></script>
-<script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=4"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=46"></script>
+<script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=4"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=47"></script>
 <?php /* Erweiterungen aktiver offizieller Plugins für die ganze Verwaltung (z. B. SEO-Vorschau im Editor) */ try{ if(is_file(__DIR__.'/data/.plugins/state.json')){ require_once __DIR__.'/lib/nplugins.php';foreach(elvado_np()->globalAdminScripts() as $__s)echo '<script src="'.htmlspecialchars($__s,ENT_QUOTES).'" defer></script>'."\n"; } }catch(Throwable $__e){} ?>
 <script src="assets/cms-nav.js?v=3"></script>
 <script src="assets/cms-search.js?v=2"></script>

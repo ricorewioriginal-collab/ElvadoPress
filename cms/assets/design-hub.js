@@ -10,7 +10,7 @@
     if(wp.front&&wp.name){
       box.innerHTML='<div class="dg-active-in"><i class="fab fa-wordpress"></i><div><div class="hint">Aktives Design</div><b>'+esc(wp.name)+'</b> <span class="dg-badge wp">WordPress-Theme</span><div class="hint">Deine Website wird mit diesem WordPress-Theme ausgeliefert.</div></div><button class="btn-g" onclick="WpThemes.off()"><i class="fas fa-rotate-left"></i> Zurück zum Portal-Design</button></div>';
     }else{
-      box.innerHTML='<div class="dg-active-in"><i class="fas fa-radio"></i><div><div class="hint">Aktives Design</div><b>'+esc(portal||'…')+'</b> <span class="dg-badge">Portal-Design</span><div class="hint">Radio-Player, Community und Layout bleiben erhalten.</div></div></div>';
+      box.innerHTML='<div class="dg-active-in"><i class="fas fa-palette"></i><div><div class="hint">Aktives Design</div><b>'+esc(portal||'…')+'</b> <span class="dg-badge">Portal-Design</span><div class="hint">Radio-Player, Community und Layout bleiben erhalten.</div></div></div>';
     }
   }
   function mark(sel,btn){document.querySelectorAll(sel).forEach(function(b){b.classList.toggle('on',b===btn)})}

@@ -326,3 +326,38 @@ html[data-admin-theme="light"] .lb-detrow{background:rgba(0,0,0,.03)}
 
 /* Sichtbarkeits-Check */
 .vis-box{margin:0 0 14px}.vis-list{margin:6px 0 0;padding-left:18px;font-size:.88rem;line-height:1.45}.vis-list li{margin:6px 0}
+
+/* Mobile Verwaltung: Kopfzeile passt in jede Handybreite (Glocke, Design-Schalter und Benutzermenü waren sonst abgeschnitten), kein doppelter Leerraum oben, Sicherheitsabstände für Notch und Gestenleiste */
+@media(max-width:850px){
+  body{padding-top:var(--ep-top)}
+  body .cms{padding:14px 14px calc(24px + env(safe-area-inset-bottom));padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+  .navbar-custom.ep-top{padding:0 max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left))!important}
+  .ep-top .container-fluid{gap:8px;min-width:0}
+  .ep-top .cms-navbar-actions{gap:6px!important;min-width:0}
+  .ep-top .ep-top-home{display:inline-flex;align-items:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .ep-top .ep-top-home .fa-arrow-left{margin-right:8px!important}
+  .tabs{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  /* Statusleiste wie am Desktop nur bei Meldungen (Fehler/Speichern), spart auf dem Handy viel Platz */
+  #cmsApp>.hero{display:none}
+  #cmsApp>.hero:has(#cmsFsState:not([hidden])),#cmsApp>.hero:has(.publish-state.bad){display:flex}
+}
+@media(max-width:600px){
+  .ep-top .ep-home-txt{display:none}
+  .ep-top .ep-top-home{width:40px;height:40px;justify-content:center;border-radius:10px}
+  .ep-top .ep-top-home .fa-arrow-left{margin:0!important}
+  .ep-top .ep-search{width:40px;height:40px}
+  .ep-top .ep-user-btn{height:40px;padding:0 2px;gap:0}
+  .ep-top .container-fluid{gap:4px}
+  .ep-top .cms-navbar-actions{gap:4px!important;margin-left:auto}
+}
+
+/* Mobile Verwaltung: Zeilen, Tabellen und Menüs bleiben im Bildschirm (Schaltflächen waren sonst abgeschnitten und nicht erreichbar) */
+@media(max-width:600px){
+  .panel .th>.d-flex,.aic-row,.wpec-loc,#assistantProviders div[style*="display:flex"]{flex-wrap:wrap;max-width:100%}
+  .wpec-loc select.fc{max-width:100%}
+  .panel input.fc,.panel select.fc{min-width:0}
+  .panel .tr-table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .alx-steps{max-width:100%;padding-left:22px}.alx-steps li{overflow-wrap:anywhere}
+  .lb-actions{margin-left:0;width:100%;flex-wrap:wrap}
+  .dg-upload .dg-upload-menu{position:fixed;left:14px;right:14px;top:auto;bottom:calc(14px + env(safe-area-inset-bottom));width:auto;max-height:70vh;overflow:auto;z-index:2000}
+}
