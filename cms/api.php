@@ -28,287 +28,18 @@ function rrw_body(): array {
     $j=json_decode($raw,true); return $b=is_array($j)?$j:[];
 }
 function rrw_token(): string {
-    $h=$_SERVER['HTTP_X_ANMACHA_TOKEN'] ?? '';
+    $h=$_SERVER['HTTP_X_ELVADOPRESS_TOKEN'] ?? '';
     if($h!=='')return trim($h);
     $b=rrw_body(); return trim((string)($b['_tok']??$_GET['_tok']??''));
 }
 function rrw_auth(bool $super=false): array {
     $tok=rrw_token();
     if($tok==='')rrw_json(['status'=>'error','message'=>'Nicht eingeloggt'],401);
-    if(str_starts_with($tok,'local_')){
-        $sess=rrw_local_session_validate($tok);
-        if($sess===null)rrw_json(['status'=>'error','message'=>'Sitzung abgelaufen, bitte erneut anmelden'],401);
-        $isAdmin=($sess['role']??'admin')==='admin';
-        if($super&&!$isAdmin)rrw_json(['status'=>'error','message'=>'Nur Administratoren dürfen diese Aktion ausführen'],403);
-        return ['allowed'=>true,'superadmin'=>$isAdmin,'role'=>$sess['role']??'admin','user'=>$sess['username'],'display_name'=>$sess['display_name']??$sess['username'],'source'=>'local'];
-    }
-    // Eigenständiger Betrieb: nur lokale Anmeldung, keinerlei Anfrage ans Control Center.
-    if(rrw_standalone())rrw_json(['status'=>'error','message'=>'Sitzung abgelaufen, bitte lokal anmelden (Control-Center-Anmeldung ist im eigenständigen Betrieb ausgeschaltet)'],401);
-    // Control-Center-Token: zuerst lokal verifizieren (siehe rrw_control_center_verify_token_local()
-    // und rrw_control_center_local_identity() weiter unten) - identische kryptographische Prüfung wie
-    // im Control Center selbst (gleiches Session-Secret, gleiche HMAC-Signatur, gleiche Tabellen für
-    // Rolle/Rechte). Das spart den HTTP-Roundtrip zum Control Center, wo immer er lokal entbehrlich
-    // ist. Ist die Secret-Datei vorhanden, aber das Token ungültig/abgelaufen, ist das ein endgültiges,
-    // lokal sicher festgestelltes Ergebnis: sofort ablehnen, nicht erst noch per HTTP nachfragen.
-    // Kann die Identität lokal nicht aufgelöst werden (Secret fehlt oder - wie auf dem Live-Hosting -
-    // keine lesbare Rechte-DB), entscheidet das Control Center per HTTP (siehe unten).
-    $secretAvailable=rrw_control_center_secret_available();
-    $name=$secretAvailable?rrw_control_center_verify_token_local($tok):null;
-    if($name!==null){
-        $identity=rrw_control_center_local_identity($name);
-        if($identity!==null){
-            if(empty($identity['allowed']))rrw_json(['status'=>'error','message'=>'Keine CMS-Berechtigung'],403);
-            if($super&&empty($identity['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Superadmins dürfen diese Aktion ausführen'],403);
-            $identity['role']=!empty($identity['superadmin'])?'admin':'autor';
-            $identity['source']='control-center';
-            return $identity;
-        }
-    } elseif($secretAvailable){
-        rrw_json(['status'=>'error','message'=>'Sitzung abgelaufen, bitte erneut anmelden'],401);
-    }
-    // HTTP-Berechtigungsprüfung beim Control Center. Die Live-Messung im Website-Zustand hat
-    // gezeigt: Der Selbstaufruf ist auf diesem Hosting NICHT blockiert - das Control Center
-    // antwortet auf ein ungültiges/abgelaufenes Token schlicht mit HTTP 401. Dieser Code wurde
-    // hier bisher wie ein Verbindungsfehler behandelt ("nicht erreichbar", 503), weshalb eine
-    // abgelaufene Sitzung nie zur Neuanmeldung führte, sondern wie ein toter Server aussah.
-    // Das Ergebnis wird kurz zwischengespeichert (rrw_control_center_auth_cache_*): Das Dashboard
-    // feuert bis zu zehn API-Anfragen gleichzeitig, und jede davon würde sonst einen eigenen
-    // Selbstaufruf starten - jede blockiert dabei einen PHP-Worker UND belegt einen zweiten für
-    // die Antwort. Auf Shared Hosting mit wenigen Workern laufen diese Anfragen gegenseitig in
-    // den Timeout ("Berechtigungsprüfung nicht erreichbar", "Statistik nicht verfügbar"), obwohl
-    // ein einzelner Aufruf in unter einer Sekunde antwortet. Jetzt holt nur die erste Anfrage
-    // die Entscheidung, alle parallelen warten an einer Sperre auf dasselbe Ergebnis.
-    $d=rrw_control_center_auth_cache_get($tok);
-    if($d===null){
-        $lock=rrw_control_center_auth_lock($tok);
-        $d=rrw_control_center_auth_cache_get($tok);
-        if($d===null){
-            $url='https://www.ricorewi-radio.de/control/cron.php?action=radio_cms_access&_tok='.rawurlencode($tok).'&_='.time();
-            $raw=false;$httpCode=0;
-            if(function_exists('curl_init')){
-                $r=rrw_curl_fetch($url,8,3);
-                if(!$r['ok'])$httpCode=(int)$r['code']; else $raw=$r['body'];
-            } else $raw=@file_get_contents($url);
-            if($lock)rrw_control_center_auth_unlock($lock);
-            if($httpCode===401)rrw_json(['status'=>'error','message'=>'Sitzung abgelaufen, bitte erneut anmelden'],401);
-            if($httpCode===403)rrw_json(['status'=>'error','message'=>'Keine CMS-Berechtigung'],403);
-            if($httpCode!==0||$raw===false)rrw_json(['status'=>'error','message'=>'Berechtigungsprüfung nicht erreichbar'.($httpCode>0?' (HTTP '.$httpCode.')':'')],503);
-            $d=json_decode((string)$raw,true);
-            if(!is_array($d)||empty($d['allowed']))rrw_json(['status'=>'error','message'=>'Keine CMS-Berechtigung'],403);
-            rrw_control_center_auth_cache_put($tok,$d);
-        } elseif($lock) rrw_control_center_auth_unlock($lock);
-    }
-    if($super&&empty($d['superadmin']))rrw_json(['status'=>'error','message'=>'Nur Superadmins dürfen diese Aktion ausführen'],403);
-    // Das Control Center kennt nur superadmin/nicht-superadmin, keine feingranularen CMS-Rollen:
-    // Superadmins gelten hier als 'admin', alle anderen als 'autor'. Seit der zugehörigen Änderung
-    // im Control-Center-Repo (anmacha_control_center, radio_cms_access) liefert es zusätzlich 'user'
-    // (stabiler Login-Name) und 'display_name' mit, damit Besitzrechte (rrw_news_can_edit) auch
-    // Control-Center-Autoren korrekt auseinanderhalten können statt sie alle auf eine generische
-    // Sammelidentität abzubilden. Der Fallback bleibt als Schutz, falls eine ältere Control-Center-
-    // Version (vor diesem Feld) im Einsatz ist.
-    $d['role']=!empty($d['superadmin'])?'admin':'autor';
-    $d['user']=(string)($d['user']??$d['username']??rrw_product_name());
-    $d['display_name']=(string)($d['display_name']??$d['user']);
-    $d['source']='control-center';
-    return $d;
-}
-// Gemeinsamer curl-Helfer für alle Selbstaufrufe dieses Servers auf seine eigene Domain
-// (Control-Center-Anbindung über https://www.ricorewi-radio.de/control/cron.php). Erster Versuch
-// direkt über 127.0.0.1 (kein Umweg über das öffentliche Netz; Host-Header/SNI bleiben korrekt,
-// sodass vHost-Auswahl und TLS-Zertifikatsprüfung dieselbe echte Domain betreffen), bei einem
-// Verbindungsfehler ganz normal über DNS. Laut Live-Messung im Website-Zustand funktionieren auf
-// diesem Hosting beide Wege.
-// Diagnose für den Website-Zustand: Warum scheitert der Selbstaufruf des Control Centers auf
-// diesem Hosting? Führt beide Strategien von rrw_curl_fetch() (Loopback 127.0.0.1, normales DNS)
-// mit kurzen Timeouts einmal aus und meldet je Versuch HTTP-Code, Ziel-IP und den konkreten
-// curl-Fehler. Ergebnis wird 10 Minuten zwischengespeichert, damit ein Dashboard-Aufruf auf einem
-// blockierten Hosting nicht jedes Mal in die Timeouts läuft; "Prüfen" erzwingt eine neue Messung.
-function rrw_control_center_selfcall_probe(bool $force=false): array {
-    $cache=__DIR__.'/data/.cc-selfcall.json';
-    if(!$force&&is_file($cache)){$c=json_decode((string)@file_get_contents($cache),true);if(is_array($c)&&(time()-(int)($c['at']??0))<600)return $c;}
-    $url='https://www.ricorewi-radio.de/control/cron.php?action=radio_cms_access&_tok=probe&_='.time();
-    $attempts=[];
-    foreach([['via'=>'127.0.0.1','resolve'=>['www.ricorewi-radio.de:443:127.0.0.1']],['via'=>'DNS','resolve'=>[]]] as $a){
-        if(!function_exists('curl_init')){$attempts[]=['via'=>$a['via'],'ok'=>false,'http'=>0,'ip'=>'','error'=>'curl-Erweiterung fehlt','body'=>''];continue;}
-        $ch=curl_init($url);
-        $opts=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>4,CURLOPT_CONNECTTIMEOUT=>2,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_HTTPHEADER=>['Accept: application/json']];
-        if($a['resolve'])$opts[CURLOPT_RESOLVE]=$a['resolve'];
-        curl_setopt_array($ch,$opts);
-        $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$errno=curl_errno($ch);$err=curl_error($ch);$ip=(string)curl_getinfo($ch,CURLINFO_PRIMARY_IP);curl_close($ch);
-        // Erreichbar heißt: eine HTTP-Antwort des Control Centers. Auf das Probe-Token antwortet es
-        // korrekt mit 401 - das ist ein funktionierendes Sicherheitsnetz, kein Verbindungsfehler.
-        $attempts[]=['via'=>$a['via'],'ok'=>$raw!==false&&(($code>=200&&$code<300)||$code===401||$code===403),'http'=>$code,'ip'=>$ip,'error'=>$err!==''?'curl #'.$errno.': '.$err:'','body'=>is_string($raw)?trim(substr(strip_tags($raw),0,100)):''];
-    }
-    $out=['at'=>time(),'ok'=>count(array_filter($attempts,fn($x)=>$x['ok']))>0,'attempts'=>$attempts];
-    @file_put_contents($cache,json_encode($out));
-    return $out;
-}
-// Kurzzeit-Cache für die per HTTP beim Control Center getroffene Zugriffsentscheidung (siehe
-// rrw_auth()). Schlüssel ist ein Hash des Tokens, nie das Token selbst; gespeichert wird nur die
-// Antwort des Control Centers (allowed/superadmin/user/display_name). Gültigkeit 5 Minuten - ein
-// im Control Center entzogenes Recht wirkt damit spätestens nach 5 Minuten, ein abgelaufenes Token
-// wird ohnehin vorher lokal an seiner Ablaufzeit erkannt. Verneinende Antworten werden nicht
-// gespeichert. Alte Einträge räumt der nächste Schreibzugriff weg.
-function rrw_control_center_auth_cache_dir(): string { $d=__DIR__.'/data/.cc-auth'; if(!is_dir($d))@mkdir($d,0750,true); return $d; }
-function rrw_control_center_auth_cache_file(string $tok): string { return rrw_control_center_auth_cache_dir().'/'.hash('sha256',$tok).'.json'; }
-function rrw_control_center_auth_cache_get(string $tok): ?array {
-    $f=rrw_control_center_auth_cache_file($tok);
-    if(!is_file($f))return null;
-    $c=json_decode((string)@file_get_contents($f),true);
-    if(!is_array($c)||(time()-(int)($c['at']??0))>300||empty($c['data']['allowed']))return null;
-    return $c['data'];
-}
-function rrw_control_center_auth_cache_put(string $tok,array $d): void {
-    $dir=rrw_control_center_auth_cache_dir();
-    $keep=['allowed','superadmin','user','username','display_name'];
-    $slim=array_intersect_key($d,array_flip($keep));
-    @file_put_contents(rrw_control_center_auth_cache_file($tok),json_encode(['at'=>time(),'data'=>$slim]),LOCK_EX);
-    foreach((array)@glob($dir.'/*.json') as $old)if(@filemtime($old)<time()-3600)@unlink($old);
-    foreach((array)@glob($dir.'/*.lock') as $old)if(@filemtime($old)<time()-600)@unlink($old);
-}
-function rrw_control_center_auth_lock(string $tok) {
-    $h=@fopen(rrw_control_center_auth_cache_dir().'/'.hash('sha256',$tok).'.lock','c');
-    if($h===false)return null;
-    if(!@flock($h,LOCK_EX)){fclose($h);return null;}
-    return $h;
-}
-function rrw_control_center_auth_unlock($h): void { if($h){@flock($h,LOCK_UN);fclose($h);} }
-function rrw_curl_fetch(string $url,int $timeout=8,int $connectTimeout=4): array {
-    $host=parse_url($url,PHP_URL_HOST)?:'';
-    $port=parse_url($url,PHP_URL_PORT)?:(parse_url($url,PHP_URL_SCHEME)==='https'?443:80);
-    $attempts=$host!==''?[["$host:$port:127.0.0.1"],[]]:[[]];
-    foreach($attempts as $resolve){
-        $ch=curl_init($url);
-        $opts=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>$connectTimeout,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_HTTPHEADER=>['Accept: application/json']];
-        if($resolve)$opts[CURLOPT_RESOLVE]=$resolve;
-        curl_setopt_array($ch,$opts);
-        $raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
-        if($raw!==false&&$code>=200&&$code<300)return ['ok'=>true,'code'=>$code,'body'=>$raw];
-        // Eine echte HTTP-Antwort (auch 401/403) heißt: Verbindung steht, die Gegenseite hat
-        // entschieden. Dann nicht noch die zweite Strategie probieren, sondern den Code melden -
-        // der Aufrufer unterscheidet damit "Token ungültig" von "nicht erreichbar".
-        if($raw!==false&&$code>0)return ['ok'=>false,'code'=>$code,'body'=>$raw];
-    }
-    return ['ok'=>false,'code'=>0,'body'=>null];
-}
-// Für unauthentifizierte, öffentliche Abrufe (z.B. den News-Legacy-Fallback): liefert null statt
-// eine Exception zu werfen, damit ein nicht erreichbares Control Center die öffentliche
-// News-Auflistung nicht mit einem Serverfehler abschießt, sondern einfach leer bleibt.
-function rrw_fetch_json_url(string $url,int $timeout=8): ?array {
-    if(function_exists('curl_init')){
-        $r=rrw_curl_fetch($url,$timeout);
-        if(!$r['ok'])return null;
-        $raw=$r['body'];
-    } else {
-        $raw=@file_get_contents($url);
-        if($raw===false)return null;
-    }
-    $d=json_decode((string)$raw,true);
-    return is_array($d)?$d:null;
-}
-// Liest veröffentlichte News direkt aus der SQLite-Datei des Control Centers (liegt als
-// Geschwisterverzeichnis "control/" im selben Deploy-Pfad wie "cms/"). Vermeidet den
-// HTTP-Umweg über die eigene Domain, der auf diesem Shared-Hosting-Setup offenbar blockiert
-// wird oder ins Leere läuft (Loopback des Servers auf sich selbst) — direkter Dateizugriff
-// ist zuverlässiger und ressourcensparender als ein Netzwerk-Roundtrip auf sich selbst.
-// Lesender SQLite-Zugriff auf die Control-Center-Datenbank über den Treiber, den das Hosting
-// tatsächlich bereitstellt: pdo_sqlite ODER die SQLite3-Klasse. Auf dem Live-Server fehlt
-// pdo_sqlite (sichtbar im Website-Zustand) - eine reine PDO-Anbindung ließ dort jede lokale
-// Rechteermittlung für Control-Center-Logins stillschweigend scheitern. Rückgabe null, wenn
-// Datei oder Treiber fehlen oder die Abfrage fehlschlägt; niemals eine geratene Antwort.
-function rrw_control_center_db_driver(): string {
-    if(extension_loaded('pdo_sqlite')&&class_exists('PDO'))return 'pdo_sqlite';
-    if(extension_loaded('sqlite3')&&class_exists('SQLite3'))return 'sqlite3';
-    return '';
-}
-function rrw_control_center_db_rows(string $sql,array $params=[]): ?array {
-    if(rrw_standalone())return null;
-    $dbFile=__DIR__.'/../control/radio_stats_crazy.sqlite';
-    if(!is_file($dbFile)||!is_readable($dbFile))return null;
-    try{
-        $driver=rrw_control_center_db_driver();
-        if($driver==='pdo_sqlite'){
-            $pdo=new PDO('sqlite:'.$dbFile,null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
-            $q=$pdo->prepare($sql);$q->execute(array_values($params));
-            $rows=$q->fetchAll(PDO::FETCH_ASSOC);return is_array($rows)?$rows:[];
-        }
-        if($driver==='sqlite3'){
-            $db=new SQLite3($dbFile,SQLITE3_OPEN_READONLY);$db->busyTimeout(2000);
-            $st=$db->prepare($sql);if($st===false){$db->close();return null;}
-            foreach(array_values($params) as $i=>$v)$st->bindValue($i+1,$v);
-            $res=$st->execute();if($res===false){$db->close();return null;}
-            $rows=[];while(($row=$res->fetchArray(SQLITE3_ASSOC))!==false)$rows[]=$row;
-            $db->close();return $rows;
-        }
-    }catch(Throwable $e){}
-    return null;
-}
-function rrw_fetch_legacy_news_local(): ?array {
-    return rrw_control_center_db_rows("SELECT id,slug,title,excerpt,body_html,category,image_url,external_url,status,featured,author,published_at,created_at,updated_at,tags,video_url,embed_html,image_mode FROM anmacha_news_articles WHERE status='published' ORDER BY COALESCE(published_at,created_at) DESC,id DESC");
-}
-// Verifiziert ein AnMaCha-Session-Token lokal, ohne HTTP-Aufruf ans Control Center: identische
-// Prüfung wie anmachaVerifySessionToken() im Control-Center-Repo (anmacha_control_center/cron.php) -
-// payload.signatur, HMAC-SHA256(payload, Session-Secret), Ablaufzeit. Das Session-Secret liegt als
-// Datei control/.session_secret im selben Deploy-Pfad (0600, vom Control Center selbst erzeugt) -
-// derselbe geheime Schlüssel, dieselbe kryptographische Prüfung, nur ohne den auf diesem Hosting
-// blockierten Selbstaufruf über die öffentliche Domain. Fail closed: jeder Fehler (Datei fehlt,
-// Signatur ungültig, Token abgelaufen/kaputt) liefert null, niemals eine geratene/leere Identität.
-function rrw_control_center_secret_available(): bool {
-    return is_file(__DIR__.'/../control/.session_secret');
-}
-function rrw_control_center_verify_token_local(string $token): ?string {
-    if($token===''||!str_contains($token,'.'))return null;
-    $secretFile=__DIR__.'/../control/.session_secret';
-    if(!is_file($secretFile))return null;
-    $secret=trim((string)@file_get_contents($secretFile));
-    if($secret==='')return null;
-    [$payload,$sig]=explode('.',$token,2);
-    $expected=hash_hmac('sha256',$payload,$secret);
-    if(!hash_equals($expected,$sig))return null;
-    $data=json_decode((string)base64_decode($payload,true),true);
-    if(!is_array($data)||empty($data['n'])||empty($data['e']))return null;
-    if((int)$data['e']<time())return null;
-    return strtolower((string)$data['n']);
-}
-// Liest Rolle/Rechte/Anzeigename zum bereits verifizierten Nutzernamen direkt aus der
-// Control-Center-SQLite-Datenbank (control/radio_stats_crazy.sqlite, siehe
-// rrw_fetch_legacy_news_local()) - repliziert isSuperadmin()/anmachaRadioCmsCanAccess() aus dem
-// Control-Center-Repo 1:1 (gleiche Tabellen, gleiche Bedingungen, rein lesend).
-function rrw_control_center_local_identity(string $name): ?array {
-    $users=rrw_control_center_db_rows('SELECT role,stations,nickname,display_name FROM users WHERE lautfm_name=? LIMIT 1',[$name]);
-    // Der Inhaber-Account ist im Control Center selbst allein per Namen Superadmin (isSuperadmin()
-    // entscheidet das vor jedem Datenbankzugriff). Das Token wurde bereits kryptographisch gegen
-    // das Session-Secret verifiziert, der Name ist also belegt - deshalb bleibt dieser Login auch
-    // dann lokal auflösbar, wenn die Rechte-Datenbank (noch) nicht lesbar ist.
-    if($users===null)return $name==='ricorewi'?['allowed'=>true,'superadmin'=>true,'user'=>$name,'display_name'=>$name]:null;
-    $u=$users[0]??null;
-    $superadmin=($name==='ricorewi')||($u&&($u['role']??'')==='superadmin');
-    if(!$superadmin&&$u){
-        $stations=json_decode((string)($u['stations']??'[]'),true);
-        if(is_array($stations))foreach($stations as $st){
-            $sn=strtolower(is_array($st)?(string)($st['name']??''):(string)$st);
-            if($sn==='ricorewi'){$superadmin=true;break;}
-        }
-    }
-    $allowed=$superadmin;
-    if(!$allowed){
-        $f=rrw_control_center_db_rows("SELECT enabled FROM anmacha_feature_access WHERE LOWER(user_name)=? AND feature='radio_cms' LIMIT 1",[$name]);
-        if($f===null)return null;
-        $allowed=((int)($f[0]['enabled']??0))===1;
-    }
-    $displayName=$u?(string)($u['nickname']?:($u['display_name']?:$name)):$name;
-    return ['allowed'=>$allowed,'superadmin'=>$superadmin,'user'=>$name,'display_name'=>$displayName];
-}
-function rrw_control_center_json(string $action,string $token): array {
-    if(rrw_standalone())throw new RuntimeException(rrw_standalone_notice('Der Zugriff auf das '.rrw_product_control_center()));
-    $url='https://www.ricorewi-radio.de/control/cron.php?action='.rawurlencode($action).'&_tok='.rawurlencode($token).'&_='.time();
-    if(function_exists('curl_init')){
-        $r=rrw_curl_fetch($url,12,4);
-        $raw=$r['ok']?$r['body']:false;
-    } else {$raw=@file_get_contents($url);}
-    $d=json_decode((string)$raw,true);
-    if(!is_array($d)||($d['status']??'error')!=='ok')throw new RuntimeException('Legacy-Export konnte nicht gelesen werden');
-    return $d;
+    $sess=str_starts_with($tok,'local_')?rrw_local_session_validate($tok):null;
+    if($sess===null)rrw_json(['status'=>'error','message'=>'Sitzung abgelaufen, bitte erneut anmelden'],401);
+    $isAdmin=($sess['role']??'admin')==='admin';
+    if($super&&!$isAdmin)rrw_json(['status'=>'error','message'=>'Nur Administratoren dürfen diese Aktion ausführen'],403);
+    return ['allowed'=>true,'superadmin'=>$isAdmin,'role'=>$sess['role']??'admin','user'=>$sess['username'],'display_name'=>$sess['display_name']??$sess['username'],'source'=>'local'];
 }
 function rrw_upload(string $bucket,int $max=12582912): string {
     if(empty($_FILES['file'])||!is_uploaded_file($_FILES['file']['tmp_name']))rrw_json(['status'=>'error','message'=>'Keine Datei'],400);
@@ -464,7 +195,7 @@ function rrw_import_theme_zip(string $zipPath): array {
         preg_match('/Version:\s*(.+)/i',$styleCss,$mv);preg_match('/Author:\s*(.+)/i',$styleCss,$ma);
         $id=rrw_theme_id($name);
         $isBootstrap=stripos($styleCss,'bootstrap')!==false;
-        $m=['id'=>$id,'name'=>$name,'version'=>trim((string)($mv[1]??'1.0')),'author'=>trim((string)($ma[1]??'')),'description'=>'WordPress-Theme über die RicoReWi-Kompatibilitätsschicht importiert. CSS, Bilder und Webfonts werden übernommen; WordPress-PHP wird nicht ausgeführt.','wordpress'=>true,'bootstrap'=>$isBootstrap,'compatibility'=>$isBootstrap?'wordpress+bootstrap':'wordpress-css','builtin'=>false];
+        $m=['id'=>$id,'name'=>$name,'version'=>trim((string)($mv[1]??'1.0')),'author'=>trim((string)($ma[1]??'')),'description'=>'WordPress-Theme über die WordPress-Kompatibilitätsschicht importiert. CSS, Bilder und Webfonts werden übernommen; WordPress-PHP wird nicht ausgeführt.','wordpress'=>true,'bootstrap'=>$isBootstrap,'compatibility'=>$isBootstrap?'wordpress+bootstrap':'wordpress-css','builtin'=>false];
         for($i=0;$i<$zip->numFiles;$i++){
             $nameIn=str_replace('\\','/',$zip->getNameIndex($i));if(!rrw_zip_entry_safe($nameIn)||!str_starts_with($nameIn,$rootPrefix))continue;
             $base=strtolower(basename($nameIn));if(in_array($base,['screenshot.png','screenshot.jpg','screenshot.jpeg','screenshot.webp'],true)){$screenshot=['name'=>$base,'data'=>$zip->getFromIndex($i)];break;}
@@ -520,7 +251,7 @@ require_once __DIR__.'/lib/pack.php';
 require_once __DIR__.'/lib/nplugins.php';
 rrw_system_apply_timezone();
 
-// Gleichzeitiges Bearbeiten (CMS, Control Center, mehrere Personen): Beim Speichern wird die Datei gesperrt und neu gelesen,
+// Gleichzeitiges Bearbeiten (mehrere Personen): Beim Speichern wird die Datei gesperrt und neu gelesen,
 // und jeder Bereich hat eine Versionskennung. Wer auf einem älteren Stand speichern will, bekommt statt stillem Überschreiben
 // einen Konflikt (HTTP 409) und lädt neu.
 function rrw_section_rev(array $site,string $section): string { return substr(sha1(json_encode($site[$section]??null,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)),0,12); }
@@ -547,30 +278,6 @@ if(function_exists('rrw_demo_guard'))rrw_demo_guard($action,rrw_body());
 $site=rrw_ensure_site_defaults(rrw_read_json($siteFile,[]));$GLOBALS['RRW_SITE']=$site;
 if(!isset($site['theme'])||!is_array($site['theme']))$site['theme']=['active'=>rrw_default_theme_id()];
 
-// One-time migration of the previously stored Control-Center CMS settings.
-// After this marker exists, /cms/data/site.json is the only content source.
-if(in_array($action,['access','get','save','media_upload','branding_upload','architecture','services_status','news_list','news_get','news_save','news_delete','news_thumbnail_upload'],true)
-   && empty($site['_meta']['control_center_imported_at']) && !rrw_standalone()) {
-    $tok=rrw_token();
-    if($tok!=='') {
-        try {
-            $legacy=rrw_control_center_json('radio_cms_legacy_settings_export',$tok);
-            $settings=is_array($legacy['settings']??null)?$legacy['settings']:[];
-            foreach(['portal','branding','apps','core_network','pages','menus','widgets','widget_areas','widget_inactive','feed_sources','rss','legal','services','theme','brands','assistant','alexa'] as $section){
-                if(array_key_exists($section,$settings)){
-                    $clean=rrw_clean_section($section,$settings[$section]);
-                    if($clean!==null)$site[$section]=$clean;
-                }
-            }
-            $site=rrw_ensure_site_defaults($site);
-            $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
-            $site['_meta']['control_center_imported_at']=date(DATE_ATOM);
-            rrw_publish($site,$siteFile,$genDir,$root);
-        } catch(Throwable $e) {
-            // Keep the file-CMS usable even when legacy migration is unavailable.
-        }
-    }
-}
 // Multi-Brand: öffentliche Markeninfo für den aufgerufenen Hostname (oder ?rrw_brand=<id> zur Vorschau)
 $rrwBrand=rrw_brand_resolve($site,(string)($_SERVER['HTTP_HOST']??''),rrw_brand_forced_from_request());
 header('Vary: Host');
@@ -715,35 +422,9 @@ if($action==='assistant_test'){ rrw_auth(false);$b=rrw_body();rrw_json(['status'
 if($action==='assistant_models'){ rrw_auth(true);rrw_json(['status'=>'ok']+rrw_assistant_models_list($site,rrw_body(),$dataDir)); }
 if($action==='brands_public'){$reg=rrw_brands_registry($site);rrw_json(['status'=>'ok','default'=>$reg['default'],'brands'=>array_map(fn($b)=>['id'=>$b['id'],'name'=>$b['name'],'short_name'=>$b['short_name'],'primary_domain'=>$b['primary_domain'],'domains'=>$b['domains'],'enabled'=>!empty($b['enabled'])],$reg['items'])]);}
 if($action==='public')rrw_json(['status'=>'ok','config'=>rrw_site_public($site),'brand'=>rrw_brand_public_payload($rrwBrand),'storage'=>'/cms/data/site.json']);
-if($action==='import_legacy'){
-    rrw_auth(true);$tok=rrw_token();
-    if(rrw_standalone())rrw_json(['status'=>'error','message'=>rrw_standalone_notice('Die Altdaten-Übernahme')],409);
-    if(rrw_site_current()!=='')rrw_json(['status'=>'error','message'=>'Die Altdaten-Übernahme gilt nur für die Hauptwebsite.'],409);
-    try{
-        $legacySettings=rrw_control_center_json('radio_cms_legacy_settings_export',$tok);
-        $legacyNews=rrw_control_center_json('radio_cms_legacy_news_export',$tok);
-    }catch(Throwable $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],502);}
-    $settings=is_array($legacySettings['settings']??null)?$legacySettings['settings']:[];
-    foreach(['portal','apps','branding','core_network','pages','menus','widgets','widget_areas','widget_inactive','feed_sources','rss','legal','services','theme','brands','assistant','alexa'] as $section){
-        if(array_key_exists($section,$settings)){
-            $clean=rrw_clean_section($section,$settings[$section]);
-            if($clean!==null)$site[$section]=$clean;
-        }
-    }
-    $newsRows=is_array($legacyNews['articles']??null)?array_values($legacyNews['articles']):[];
-    try{
-        $site=rrw_ensure_site_defaults($site);
-            $site['_meta']=is_array($site['_meta']??null)?$site['_meta']:[];
-        $site['_meta']['control_center_imported_at']=date(DATE_ATOM);
-        $site['_meta']['legacy_imported_at']=date(DATE_ATOM);
-        rrw_publish($site,$siteFile,$genDir,$root);
-        if($newsRows)rrw_write_atomic($newsFile,json_encode($newsRows,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
-    }catch(Throwable $e){rrw_json(['status'=>'error','message'=>'Import konnte nicht gespeichert werden: '.$e->getMessage()],500);}
-    rrw_json(['status'=>'ok','config'=>$site,'news_count'=>count($newsRows),'message'=>'Altdaten wurden in /cms übernommen']);
-}
-if($action==='access'){ $a=rrw_auth(false);rrw_json(['status'=>'ok','allowed'=>true,'superadmin'=>!empty($a['superadmin']),'role'=>$a['role']??'admin','user'=>$a['user']??'','display_name'=>$a['display_name']??'','source'=>$a['source']??'','standalone'=>rrw_standalone(),'product'=>rrw_product_public(),'version'=>rrw_cms_version()]); }
-if($action==='product'){ rrw_json(['status'=>'ok','product'=>rrw_product_public(),'standalone'=>rrw_standalone()]); }
-if($action==='local_auth_status'){ rrw_json(['status'=>'ok','configured'=>rrw_local_auth_configured(),'standalone'=>rrw_standalone(),'install_needed'=>rrw_install_needed(),'product'=>rrw_product_public()]); }
+if($action==='access'){ $a=rrw_auth(false);rrw_json(['status'=>'ok','allowed'=>true,'superadmin'=>!empty($a['superadmin']),'role'=>$a['role']??'admin','user'=>$a['user']??'','display_name'=>$a['display_name']??'','source'=>$a['source']??'','product'=>rrw_product_public(),'version'=>rrw_cms_version()]); }
+if($action==='product'){ rrw_json(['status'=>'ok','product'=>rrw_product_public()]); }
+if($action==='local_auth_status'){ rrw_json(['status'=>'ok','configured'=>rrw_local_auth_configured(),'install_needed'=>rrw_install_needed(),'product'=>rrw_product_public()]); }
 if($action==='local_auth_setup'){
     // Frische Installation: Konto nur über den Einrichtungsassistenten (Passwortregeln, CSRF, Sperre), nicht über diese offene Route.
     if(rrw_install_needed())rrw_json(['status'=>'error','message'=>'Bitte die Einrichtung über install.php abschließen','install_needed'=>true],409);
@@ -808,13 +489,11 @@ if($action==='user_delete'){
 // bearbeiten" ist das unabhängig von der Redakteur-Verwaltung, die Admins vorbehalten ist.
 if($action==='profile_get_self'){
     $selfAuth=rrw_auth(false);
-    if(($selfAuth['source']??'')!=='local')rrw_json(['status'=>'ok','source'=>$selfAuth['source']??'','user'=>$selfAuth['user']??'','display_name'=>$selfAuth['display_name']??'','role'=>$selfAuth['role']??'admin','email'=>'']);
     $me=null;foreach(rrw_local_users() as $u)if(strcasecmp((string)($u['username']??''),(string)$selfAuth['user'])===0){$me=$u;break;}
     rrw_json(['status'=>'ok','source'=>'local','user'=>$selfAuth['user'],'display_name'=>(string)($me['display_name']??$selfAuth['user']),'role'=>$selfAuth['role']??'autor','email'=>(string)($me['email']??'')]);
 }
 if($action==='profile_update_self'){
     $selfAuth=rrw_auth(false);
-    if(($selfAuth['source']??'')!=='local')rrw_json(['status'=>'error','message'=>'Dieses Profil wird über das '.rrw_product_control_center().' verwaltet'],400);
     $b=rrw_body();
     $password=array_key_exists('password',$b)&&trim((string)$b['password'])!==''?(string)$b['password']:null;
     $displayName=array_key_exists('display_name',$b)?(string)$b['display_name']:null;
@@ -832,29 +511,19 @@ if($action==='logout'){
 if($action==='system_get'){
     rrw_auth(true);
     $adm=0;foreach(rrw_local_users() as $u)if(($u['role']??'')==='admin')$adm++;
-    $out=['status'=>'ok','system'=>rrw_system_config(),'product'=>rrw_product(),'product_overrides'=>rrw_product_overrides(),'product_defaults'=>rrw_product_defaults(),'version'=>rrw_cms_version(),'local_admins'=>$adm,'standalone'=>rrw_standalone()];
+    $out=['status'=>'ok','system'=>rrw_system_config(),'product'=>rrw_product(),'product_overrides'=>rrw_product_overrides(),'product_defaults'=>rrw_product_defaults(),'version'=>rrw_cms_version(),'local_admins'=>$adm];
     if(!empty($_GET['checksum']))$out['checksum']=rrw_cms_checksum();
     rrw_json($out);
 }
 if($action==='system_save'){
     $su=rrw_auth(true);$b=rrw_body();$changed=[];
     try{
-        if(array_key_exists('control_center',$b)){
-            $want=!empty($b['control_center']);
-            if(!$want){
-                $adm=0;foreach(rrw_local_users() as $u)if(($u['role']??'')==='admin')$adm++;
-                if($adm<1)rrw_json(['status'=>'error','message'=>'Vor dem Ausschalten der Control-Center-Anbindung muss ein lokaler Administrator existieren (Redakteure).'],400);
-            }
-            if($want===rrw_standalone())$changed[]='Betriebsmodus';
-            rrw_system_save(['control_center'=>$want]);
-            try{rrw_update_index_snapshot(rrw_ensure_site_defaults(rrw_read_json($siteFile,[])),$root);}catch(Throwable $e){}
-        }
         foreach(['language','timezone'] as $k)if(array_key_exists($k,$b)){rrw_system_save([$k=>(string)$b[$k]]);$changed[]=$k==='language'?'Sprache':'Zeitzone';}
         if(is_array($b['product']??null)){rrw_product_save($b['product']);$changed[]='Produktname';}
     }catch(InvalidArgumentException $e){rrw_json(['status'=>'error','message'=>$e->getMessage()],400);}
     catch(Throwable $e){rrw_json(['status'=>'error','message'=>'Speichern fehlgeschlagen'],500);}
     if($changed)rrw_log_activity($activityLogFile,$su,'system_save','Betrieb/Produkt geändert ('.implode(', ',array_unique($changed)).')');
-    rrw_json(['status'=>'ok','system'=>rrw_system_config(),'product'=>rrw_product(),'standalone'=>rrw_standalone()]);
+    rrw_json(['status'=>'ok','system'=>rrw_system_config(),'product'=>rrw_product()]);
 }
 if($action==='health'){
     rrw_auth(false);
@@ -877,7 +546,7 @@ if($action==='health'){
 }
 // Website-Zustand (wie WordPress' "Site Health"): rein lesende Selbstdiagnose. Prüft vor allem die
 // Punkte, die im Betrieb sonst nur als diffuse Folgefehler sichtbar werden - insbesondere die
-// Anbindung des Control-Center-Logins (Session-Secret + Rechte-DB), fehlende PHP-Erweiterungen,
+// fehlende PHP-Erweiterungen,
 // beschädigte Datendateien und zu kleine Upload-Limits. Status je Prüfung: good | warn | critical.
 if($action==='site_health'){
     rrw_auth(false);
@@ -885,17 +554,13 @@ if($action==='site_health'){
     $add=function(string $group,string $label,string $status,string $detail)use(&$items){$items[]=['group'=>$group,'label'=>$label,'status'=>$status,'detail'=>$detail];};
     $bytes=function(string $v):int{$v=trim($v);if($v==='')return 0;$n=(float)$v;switch(strtolower(substr($v,-1))){case 'g':$n*=1024;case 'm':$n*=1024;case 'k':$n*=1024;}return (int)$n;};
     $fmt=function(int $n):string{if($n<1048576)return round($n/1024).' KB';if($n<1073741824)return round($n/1048576,1).' MB';return round($n/1073741824,2).' GB';};
-    // Funktioniert der HTTP-Weg zum Control Center, sind lokaler SQLite-Treiber und Rechte-DB nur
-    // eine Abkürzung, keine Voraussetzung - dann dürfen diese Zeilen nicht als Problem erscheinen.
-    $probe=rrw_standalone()?['ok'=>false,'at'=>time(),'attempts'=>[]]:rrw_control_center_selfcall_probe(!empty(rrw_body()['force']));
 
     $add('Server','PHP-Version',version_compare(PHP_VERSION,'8.1.0','>=')?'good':'critical',PHP_VERSION.(version_compare(PHP_VERSION,'8.1.0','>=')?'':' - mindestens 8.1 erforderlich'));
     $https=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')||(($_SERVER['HTTP_X_FORWARDED_PROTO']??'')==='https');
     $add('Server','HTTPS',$https?'good':'warn',$https?'Verwaltung läuft verschlüsselt':'Verwaltung wird ohne HTTPS aufgerufen');
-    $sqliteDriver=rrw_control_center_db_driver();
-    $add('PHP-Erweiterungen','SQLite-Treiber',($sqliteDriver!==''||$probe['ok'])?'good':'warn',$sqliteDriver==='pdo_sqlite'?'pdo_sqlite verfügbar':($sqliteDriver==='sqlite3'?'SQLite3-Klasse verfügbar (pdo_sqlite fehlt - Datenbank-Spiegel nicht nutzbar, Control-Center-Rechte werden über SQLite3 gelesen)':'weder pdo_sqlite noch SQLite3 verfügbar - '.($probe['ok']?'nicht erforderlich, Control-Center-Rechte werden per HTTP beim Control Center geprüft (Datenbank-Spiegel nicht nutzbar)':'Control-Center-Rechte können lokal nicht gelesen werden')));
+    $add('PHP-Erweiterungen','SQLite-Treiber',(class_exists('PDO')&&in_array('sqlite',PDO::getAvailableDrivers(),true))?'good':'warn',(class_exists('PDO')&&in_array('sqlite',PDO::getAvailableDrivers(),true))?'pdo_sqlite verfügbar':'pdo_sqlite fehlt - Datenbank-Spiegel nicht nutzbar');
     foreach([
-        ['curl',function_exists('curl_init'),'externe Feeds und Sicherheitsnetz der Berechtigungsprüfung'],
+        ['curl',function_exists('curl_init'),'externe Feeds'],
         ['gd',function_exists('imagecreatetruecolor'),'Bildgrößen-Varianten in der Medienbibliothek'],
         ['fileinfo',class_exists('finfo'),'Typprüfung bei Uploads'],
         ['zip',class_exists('ZipArchive'),'Backups und Plugin-/Theme-Installation'],
@@ -906,19 +571,7 @@ if($action==='site_health'){
     $mem=$bytes((string)ini_get('memory_limit'));
     $add('Server','PHP-Speicherlimit',($mem<=0||$mem>=134217728)?'good':'warn',$mem<=0?'unbegrenzt':$fmt($mem).($mem>=134217728?'':' - für Bildvarianten sind 128 MB empfohlen'));
 
-    $add('Anmeldung','Lokaler CMS-Zugang',rrw_local_auth_configured()?'good':'warn',rrw_local_auth_configured()?'eingerichtet - Login direkt über /cms/ möglich':'nicht eingerichtet - Login nur über das Control Center möglich');
-    $add('Anmeldung','Betriebsmodus','good',rrw_standalone()?'eigenständig - Anmeldung nur lokal, keine Anfragen an das '.rrw_product_control_center():'mit '.rrw_product_control_center().'-Anbindung (Standard)');
-    if(!rrw_standalone()){
-    $secret=rrw_control_center_secret_available();
-    $ccDb=__DIR__.'/../control/radio_stats_crazy.sqlite';
-    $ccDbFile=is_file($ccDb)&&is_readable($ccDb);
-    $ccDbOk=$ccDbFile&&rrw_control_center_db_rows('SELECT 1 FROM users LIMIT 1')!==null;
-    $add('Anmeldung','Control-Center-Sitzungsprüfung',$secret?'good':'warn',$secret?'control/.session_secret vorhanden - Control-Center-Tokens werden lokal verifiziert':'control/.session_secret fehlt - Control-Center-Tokens werden ausschließlich per HTTP beim Control Center geprüft');
-    $found=[];foreach(array_merge(glob(__DIR__.'/../control/*.sqlite')?:[],glob(__DIR__.'/../control/*/*.sqlite')?:[],glob(__DIR__.'/../control/*.db')?:[],glob(__DIR__.'/../control/*/*.db')?:[]) as $f)$found[]=substr($f,strlen(__DIR__.'/../control/'));
-    $add('Anmeldung','Control-Center-Rechtedatenbank',($ccDbOk||$probe['ok'])?'good':'warn',$ccDbOk?'control/radio_stats_crazy.sqlite lesbar über '.$sqliteDriver:(!$ccDbFile?'control/radio_stats_crazy.sqlite nicht vorhanden'.($found?' - gefundene Datenbankdateien unter control/: '.implode(', ',array_slice($found,0,8)):''):'Datei vorhanden ('.$fmt((int)@filesize($ccDb)).'), aber nicht abfragbar - '.($sqliteDriver===''?'kein SQLite-Treiber':'Tabelle users fehlt oder Datei beschädigt')).($probe['ok']?' - nicht erforderlich, Rollen/Rechte kommen per HTTP vom Control Center':' - Rollen/Rechte für Control-Center-Logins (außer Inhaber-Account) können nicht ermittelt werden'));
-    $probeDetail=implode(' | ',array_map(fn($x)=>$x['via'].': '.($x['ok']?'erreichbar, HTTP '.$x['http'].($x['http']===401?' auf Probe-Token (korrekt)':''):($x['error']!==''?$x['error']:'HTTP '.$x['http'])).($x['ip']!==''?' ('.$x['ip'].')':''),$probe['attempts']));
-    $add('Anmeldung','Control-Center-Selbstaufruf',$probe['ok']?'good':'warn',($probe['ok']?'HTTP-Berechtigungsprüfung beim Control Center funktioniert - Control-Center-Logins werden darüber aufgelöst - ':'Control Center vom Server aus nicht erreichbar - Control-Center-Logins ohne lokale Rechte-DB scheitern mit "Berechtigungsprüfung nicht erreichbar" - ').$probeDetail.' (gemessen '.date('H:i',(int)$probe['at']).')');
-    }
+    $add('Anmeldung','Lokaler CMS-Zugang',rrw_local_auth_configured()?'good':'warn',rrw_local_auth_configured()?'eingerichtet - Login direkt über /cms/ möglich':'nicht eingerichtet - bitte die Einrichtung abschließen');
 
     foreach([['site.json',$siteFile,true],['news.json',$newsFile,true],['comments.json',$commentsFile,false],['local-sessions.local.json',$dataDir.'/local-sessions.local.json',false]] as [$name,$file,$required]){
         if(!is_file($file)){$add('Daten',$name,$required?'critical':'good',$required?'fehlt':'noch nicht angelegt (wird bei Bedarf erzeugt)');continue;}
@@ -950,7 +603,7 @@ if($action==='save'){
     if(!array_key_exists($section,$site)&&in_array($section,['pages','legal','apps','core_network','header_builder'],true))$site[$section]=in_array($section,['pages'],true)?[]:(in_array($section,['core_network'],true)?['stations'=>[]]:(($section==='header_builder')?['enabled'=>false,'items'=>[]]:[]));
     if(!array_key_exists($section,$site))rrw_json(['status'=>'error','message'=>'Unbekannter CMS-Bereich'],400);
     $baseRev=(string)($b['base_rev']??'');
-    if($baseRev!==''&&$baseRev!==rrw_section_rev($site,$section))rrw_json(['status'=>'conflict','message'=>'Dieser Bereich wurde inzwischen an anderer Stelle geändert (z. B. im Control Center oder von einer anderen Person). Bitte neu laden, damit nichts überschrieben wird.','rev'=>rrw_section_rev($site,$section)],409);
+    if($baseRev!==''&&$baseRev!==rrw_section_rev($site,$section))rrw_json(['status'=>'conflict','message'=>'Dieser Bereich wurde inzwischen an anderer Stelle geändert (z. B. von einer anderen Person). Bitte neu laden, damit nichts überschrieben wird.','rev'=>rrw_section_rev($site,$section)],409);
     $value=$b['value']??null;
     // Theme-Layout und die pro Theme gespeicherten Anpassungen gehören dem Theme-System, nicht
     // dem Formular: beim generischen Speichern des Theme-Bereichs bleiben sie erhalten.
@@ -1442,7 +1095,7 @@ if(str_starts_with($action,'wp_')){
     }
     if($action==='wp_admin_rest'){
         require_once __DIR__.'/wp/admin.php';require_once __DIR__.'/wp/rest.php';
-        $GLOBALS['rrw_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ANMACHA_TOKEN']??''));
+        $GLOBALS['rrw_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ELVADOPRESS_TOKEN']??''));
         $GLOBALS['rrw_wp_die_throws']=true;$GLOBALS['rrw_wp_serving_rest']=true;
         $hdr=[];foreach((array)($b['headers']??[]) as $k=>$v)if(is_string($k)&&is_scalar($v))$hdr[$k]=(string)$v;
         $path=(string)($b['path']??'');$path=preg_replace('#^.*?/wp-json#','',$path);$q=[];
@@ -1456,7 +1109,7 @@ if(str_starts_with($action,'wp_')){
     }
     if(in_array($action,['wp_admin_menu','wp_admin_page','wp_admin_ajax','wp_admin_notices'],true)){
         require_once __DIR__.'/wp/admin.php';
-        $GLOBALS['rrw_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ANMACHA_TOKEN']??''));
+        $GLOBALS['rrw_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ELVADOPRESS_TOKEN']??''));
         if($action==='wp_admin_menu')rrw_json(['status'=>'ok','groups'=>rrw_wp_admin_menu_tree()]);
         if($action==='wp_admin_notices'){ $nd=rrw_wp_admin_notices_doc();rrw_json(['status'=>'ok','frame'=>$nd===''?'':rrw_wp_admin_frame_store($nd)]); }   // Meldungen der WordPress-Plugins (z. B. Hello Dolly)
         $lv=ob_get_level();$sent=false;
@@ -1818,7 +1471,7 @@ if($action==='theme_delete'||$action==='theme_unhide'){
     $rm=function(string $d)use(&$rm):void{foreach(scandir($d)?:[] as $x){if($x==='.'||$x==='..')continue;$f=$d.'/'.$x;if(is_link($f)||is_file($f))@unlink($f);elseif(is_dir($f))$rm($f);}@rmdir($d);};$rm($dir);
     rrw_json(['status'=>'ok','hidden'=>false]);
 }
-if($action==='architecture'){rrw_auth(false);rrw_json(['status'=>'ok','components'=>[['id'=>'portal','name'=>'Website','type'=>'Frontend','path'=>'/'],['id'=>'cms','name'=>rrw_product_title(),'type'=>'Datei-CMS','path'=>'/cms/'],['id'=>'storage','name'=>'CMS-Dateispeicher','type'=>'JSON','path'=>'/cms/data/site.json'],['id'=>'generated','name'=>'Generierte Seiten & SEO','type'=>'HTML/CSS','path'=>'/cms/generated/'],['id'=>'control-center','name'=>rrw_product_control_center().(rrw_standalone()?' (ausgeschaltet)':' (optional)'),'type'=>'Zugriff & Rechte','path'=>'/control/'],['id'=>'local-auth','name'=>'Lokaler CMS-Zugang','type'=>'Zugriff & Rechte','path'=>'/cms/data/local-auth.local.php']],'core_stations'=>[],'updated_at'=>date(DATE_ATOM)]);}
+if($action==='architecture'){rrw_auth(false);rrw_json(['status'=>'ok','components'=>[['id'=>'portal','name'=>'Website','type'=>'Frontend','path'=>'/'],['id'=>'cms','name'=>rrw_product_title(),'type'=>'Datei-CMS','path'=>'/cms/'],['id'=>'storage','name'=>'CMS-Dateispeicher','type'=>'JSON','path'=>'/cms/data/site.json'],['id'=>'generated','name'=>'Generierte Seiten & SEO','type'=>'HTML/CSS','path'=>'/cms/generated/'],['id'=>'local-auth','name'=>'Lokaler CMS-Zugang','type'=>'Zugriff & Rechte','path'=>'/cms/data/local-auth.local.php']],'core_stations'=>[],'updated_at'=>date(DATE_ATOM)]);}
 // Community (Mitglieder; optional, standardmäßig aus): öffentliche Konto-Funktionen und Verwaltung im CMS
 if(str_starts_with($action,'member_')||str_starts_with($action,'community_')||str_starts_with($action,'forum_')||str_starts_with($action,'social_')){
     $cmCfg=rrw_cm_config($dataDir);$cmIp=trim(explode(',',(string)($_SERVER['HTTP_X_FORWARDED_FOR']??$_SERVER['REMOTE_ADDR']??''))[0]);
@@ -1850,7 +1503,7 @@ if(str_starts_with($action,'member_')||str_starts_with($action,'community_')||st
         $cmNeedOn();if(!$cmCfg['forum'])rrw_json(['status'=>'error','message'=>'Das Forum ist nicht aktiv.'],404);
         $b=rrw_body();$q=fn(string $k)=>(string)($_GET[$k]??'');
         // Moderation: CMS-Token (Administrator) oder Mitglied mit Rolle moderator
-        $foMod=function() use($cmMe,$dataDir,&$b){ if(trim((string)($_SERVER['HTTP_X_ANMACHA_TOKEN']??''))!==''){rrw_auth(true);return null;} $m=$cmMe(); if(($m['role']??'')!=='moderator')rrw_json(['status'=>'error','message'=>'Dazu fehlt dir die Berechtigung.'],403); return $m; };
+        $foMod=function() use($cmMe,$dataDir,&$b){ if(trim((string)($_SERVER['HTTP_X_ELVADOPRESS_TOKEN']??''))!==''){rrw_auth(true);return null;} $m=$cmMe(); if(($m['role']??'')!=='moderator')rrw_json(['status'=>'error','message'=>'Dazu fehlt dir die Berechtigung.'],403); return $m; };
         if($action==='forum_overview')rrw_json(['status'=>'ok','categories'=>rrw_fo_overview($dataDir)]);
         if($action==='forum_topics'){$r=rrw_fo_topics($dataDir,$q('cat'),(int)$q('page'));rrw_json(['status'=>'ok']+$r);}
         if($action==='forum_topic'){$r=rrw_fo_topic($dataDir,$q('id'),(int)$q('page'));if(!$r)rrw_json(['status'=>'error','message'=>'Thema nicht gefunden'],404);rrw_json(['status'=>'ok']+$r);}
@@ -2085,52 +1738,7 @@ if(count($newsPurged)!==count($news)){
     rrw_log_activity($activityLogFile,null,'news_trash_auto_purge','Papierkorb automatisch geleert (Beiträge älter als 30 Tage)');
 }
 $newsViews=rrw_read_json($newsViewsFile,[]);
-if(empty($news) && rrw_site_current()==='' && in_array($action,['news_list','news_get','news_public'],true)) {   // Control-Center-Import nur für die Hauptwebsite
-    $tok=rrw_token();
-    if($tok!=='') {
-        try {
-            $legacy=rrw_control_center_json('radio_cms_legacy_news_export',$tok);
-            $legacyRows=is_array($legacy['articles']??null)?$legacy['articles']:[];
-            if($legacyRows) {
-                $news=array_values($legacyRows);
-                rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
-            }
-        } catch(Throwable $e) {}
-    }
-}
 if($action==='news_public'){
-    // Läuft nicht nur bei komplett leerer news.json, sondern auch dann, wenn lokal (noch) kein
-    // einziger Artikel als "live" gilt: Ein Artikel kann lokal als Entwurf importiert worden sein,
-    // bevor er im Control Center final veröffentlicht wurde (Zeitpunkt des allerersten Imports lag
-    // vor der Veröffentlichung dort). Ohne diesen erweiterten Trigger bliebe so ein Eintrag dauerhaft
-    // hängen, weil die reine "$news ist leer"-Prüfung danach nie wieder zutrifft.
-    if(!rrw_standalone()&&rrw_site_current()===''&&!array_filter($news,'rrw_news_is_live')){   // Legacy-Import nur für die Hauptwebsite
-        $legacy=rrw_fetch_legacy_news_local();
-        if(!is_array($legacy)){
-            $legacyRemote=rrw_fetch_json_url('https://www.ricorewi-radio.de/control/cron.php?action=news_public_legacy_fallback&_='.time());
-            $legacy=is_array($legacyRemote['articles']??null)?$legacyRemote['articles']:null;
-        }
-        if(is_array($legacy)&&$legacy){
-            // Merge statt Überschreiben: nur tatsächlich im Control Center veröffentlichte Legacy-
-            // Artikel werden per Slug eingepflegt (neu angelegt oder ein vorhandener, noch nicht
-            // veröffentlichter lokaler Eintrag auf "published" aktualisiert). So gehen weder andere,
-            // bereits lokal im CMS gepflegte Entwürfe verloren, noch überschreibt ein leerer/fehlerhafter
-            // Fallback versehentlich vorhandene Inhalte.
-            $bySlug=[]; foreach($news as $i=>$a)$bySlug[(string)($a['slug']??'')]=$i;
-            $changed=false;
-            foreach($legacy as $row){
-                if(!is_array($row)||($row['status']??'')!=='published')continue;
-                $slug=(string)($row['slug']??''); if($slug==='')continue;
-                if(isset($bySlug[$slug])){
-                    $idx=$bySlug[$slug];
-                    if(($news[$idx]['status']??'')!=='published'){$news[$idx]=$row+$news[$idx];$news[$idx]['status']='published';$changed=true;}
-                } else {
-                    $news[]=$row;$bySlug[$slug]=array_key_last($news);$changed=true;
-                }
-            }
-            if($changed){try{ rrw_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n"); }catch(Throwable $e){}}
-        }
-    }
     $published=array_values(array_filter($news,'rrw_news_is_live'));
     $published=array_map(fn($a)=>$a+['views'=>rrw_news_view_count($newsViews,(int)($a['id']??0))],$published);
     $published=array_merge($published,rrw_external_feed_articles($site));

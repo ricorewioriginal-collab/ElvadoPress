@@ -2,11 +2,11 @@
 // Elvado AI – Oberfläche: Buttons im Beitragseditor und ein globales window.ElvadoAi für den App-Bereich. Sendet nur, was du auslöst.
 (function(){
   if(window.ElvadoAi)return;
-  var tok=function(){return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';};
+  var tok=function(){return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';};
   var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
   var st=null;
   function call(name,args){
-    return fetch('/cms/api.php?action=np_call',{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:JSON.stringify({id:'elvado-ai',call:name,args:args||{}})})
+    return fetch('/cms/api.php?action=np_call',{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':tok()},body:JSON.stringify({id:'elvado-ai',call:name,args:args||{}})})
       .then(function(r){return r.json().catch(function(){return{status:'error',message:'Unerwartete Antwort'};});}).then(function(d){if(d.status!=='ok'&&!d.message)d.message='Fehler';return d;});
   }
   function status(){   // das Promise (nicht erst das Ergebnis) merken: sonst startet jede DOM-Änderung bis zur Antwort eine neue Anfrage

@@ -21,4 +21,4 @@ Installation prüft Quelle (feste Hosts), Größe, Dateitypen und PHP-Syntax. Ak
 `ext_list`, `ext_search`, `ext_install`, `ext_upload`, `ext_activate`, `ext_deactivate`, `ext_delete`, `ext_safe` in `cms/engine-api.php`. Tests: `scripts/test-wp-engine-extensions.php` (mit echtem WordPress), `scripts/test-wp-engine-api.php` (Rechte, Methoden, Eingaben).
 
 ## Eigene Erweiterung eines Projekts („Pakete“)
-Projekte liefern Zusatzfunktionen als **Paket** (`cms/packs/<paket>/components.php`, z. B. RicoReWi): bestehende Bereiche der eigenen Website werden als steuerbare Komponenten im Live Builder angebunden – siehe [COMPONENTS.md](COMPONENTS.md). Projektinhalte gehören nie in den neutralen Kern.
+Projekte liefern Zusatzfunktionen als **Paket** (`cms/packs/<paket>/components.php`): bestehende Bereiche der eigenen Website werden als steuerbare Komponenten im Live Builder angebunden – siehe [COMPONENTS.md](COMPONENTS.md). Projektinhalte gehören nie in den neutralen Kern.

@@ -2,13 +2,13 @@
 /* CMS-Aktualisierung (System → Version & Update): Anzeige der installierten/neuesten Version, Suche, Einspielen, Downgrade, Sicherungen, Einstellungen.
    Serverlogik: cms/src/Update/ (API-Aktionen update_*). Zeigt außerdem die Version im Kopf der Verwaltung (Hinweis bei verfügbarem Update). */
 window.UpdateManager=(()=>{
- const tok=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const tok=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const $=id=>document.getElementById(id);
  const toast=(m,bad=false)=>window.cmsToast?.(m,bad);
  let S=null,busy=false;
  async function api(action,body,quiet){
-  const opt=body===undefined?{headers:{'X-AnMaCha-Token':tok()}}:{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:JSON.stringify(body)};
+  const opt=body===undefined?{headers:{'X-ElvadoPress-Token':tok()}}:{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':tok()},body:JSON.stringify(body)};
   const r=await fetch('api.php?action='+encodeURIComponent(action)+'&_='+Date.now(),opt),d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));
   if(r.status===401&&!quiet)window.cmsSessionExpired?.();
   if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d;

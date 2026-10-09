@@ -4,11 +4,11 @@ window.ElvadoPluginPages=window.ElvadoPluginPages||{pages:{},register:function(i
 window.ElvadoPlugins=(()=>{
  const S={rows:[],view:'list',filter:'all',detail:null,tab:'overview',busy:false,meta:{}};
  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const tok=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const tok=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  const root=()=>document.getElementById('epRoot');
  const toast=(m,e)=>{(window.cmsToast||((x)=>alert(x)))(m,!!e);};
  async function post(action,body){
-  const r=await fetch('/cms/api.php?action='+action,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:body===undefined?undefined:JSON.stringify(body)});
+  const r=await fetch('/cms/api.php?action='+action,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':tok()},body:body===undefined?undefined:JSON.stringify(body)});
   let d;try{d=await r.json();}catch(e){throw new Error('Unerwartete Antwort des Servers');}
   return d;
  }

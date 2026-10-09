@@ -28,7 +28,7 @@ function install(string $base,array $extra): array {
     return http('POST',$base.'/cms/install.php',['Content-Type: application/x-www-form-urlencoded','Cookie: '.$cookie],$post);
 }
 function state(string $tmp): array { $f=$tmp.'/cms/data/.plugins/state.json';return is_file($f)?(json_decode((string)file_get_contents($f),true)?:[]):[]; }
-function api(string $base,string $action,array $body=[],string $tok=''): array { [$st,$ck,$b]=http('POST',$base.'/cms/api.php?action='.$action,['Content-Type: application/json','X-AnMaCha-Token: '.$tok],json_encode($body));return json_decode($b,true)?:['_raw'=>substr($b,0,200)]; }
+function api(string $base,string $action,array $body=[],string $tok=''): array { [$st,$ck,$b]=http('POST',$base.'/cms/api.php?action='.$action,['Content-Type: application/json','X-ElvadoPress-Token: '.$tok],json_encode($body));return json_decode($b,true)?:['_raw'=>substr($b,0,200)]; }
 $ess=['elvado-seo','elvado-security','elvado-backup','elvado-performance','elvado-forms','elvado-analytics','elvado-redirects','elvado-ai'];sort($ess);
 
 // ---------- Empfohlen

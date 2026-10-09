@@ -4,7 +4,7 @@
 (function(){
   if(window.WpNotices)return;
   var box=null,frame=null,busy=false;
-  var tok=function(){try{return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';}catch(e){return '';}};
+  var tok=function(){try{return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';}catch(e){return '';}};
   function hide(){if(box)box.style.cssText='display:none';if(frame)frame.removeAttribute('src');}
   function show(url){
     box=box||document.getElementById('wpNotices');if(!box)return;
@@ -13,7 +13,7 @@
   }
   function refresh(){
     if(busy||!tok())return;busy=true;
-    fetch('/cms/api.php?action=wp_admin_notices',{headers:{'X-AnMaCha-Token':tok()}}).then(function(r){return r.json();}).then(function(d){
+    fetch('/cms/api.php?action=wp_admin_notices',{headers:{'X-ElvadoPress-Token':tok()}}).then(function(r){return r.json();}).then(function(d){
       busy=false;if(d&&d.status==='ok'&&d.frame)show(d.frame);else hide();
     }).catch(function(){busy=false;});
   }

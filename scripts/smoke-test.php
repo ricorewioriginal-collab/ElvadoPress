@@ -79,7 +79,7 @@ t('Unbekannte Adresse → 404',$r['code']===404);
 $r=http('POST',"$B/cms/api.php?action=login",['__json'=>json_encode(['username'=>'chef','password'=>$pw])],['Content-Type: application/json']);
 $login=json_decode($r['body'],true)?:[];$tok=(string)($login['token']??'');
 t('Anmeldung',$tok!=='',$r['body']);
-$H=['X-AnMaCha-Token: '.$tok];
+$H=['X-ElvadoPress-Token: '.$tok];
 $g=json_decode(http('GET',"$B/cms/api.php?action=get",[],$H)['body'],true)?:[];
 $cfg=$g['config']??[];
 t('Keine Paket-Schalter in der Konfiguration',!array_key_exists('packs',$g),json_encode($g['packs']??null));

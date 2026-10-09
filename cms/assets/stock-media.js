@@ -9,7 +9,7 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function api(a,b){return window.cmsApi(a,b)}
   function toast(m,bad){if(window.cmsToast)window.cmsToast(m,!!bad)}
-  function token(){try{return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||''}catch(e){return ''}}
+  function token(){try{return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}catch(e){return ''}}
   function info(item,credit,attr){
     var vars=Array.isArray(item.variants)?item.variants:[],orig=(item.original&&item.original.url)||item.url||'';
     return {url:orig,credit:credit||(item.credit&&item.credit.text)||'',attribution:attr!=null?attr:!!(item.credit&&item.credit.attribution_required),alt:String(item.name||'').replace(/[-_]+/g,' ').replace(/\s+\d+$/,'').trim(),
@@ -94,7 +94,7 @@
   }
   async function upload(f){
     if(!f)return;var fd=new FormData();fd.append('file',f);fd.append('sizes','64,128,192,256,512,1024,1600');fd.append('quality','90');
-    try{var r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd}),d=await r.json().catch(function(){return {}});
+    try{var r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd}),d=await r.json().catch(function(){return {}});
       if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');done(d.item,null)}catch(e){toast(e.message,true)}
   }
   /* ───────── Einstellungen (Medien-Panel) ───────── */

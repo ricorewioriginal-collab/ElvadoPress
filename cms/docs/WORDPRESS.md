@@ -153,7 +153,7 @@ Bisher zeigte die WordPress-Schicht CMS-Inhalte (Beiträge aus `news.json`, eige
 Mit `php scripts/wp-missing.php <plugin-ordner>` listet das Repo, welche WordPress-Funktionen ein Plugin aufruft, die noch fehlen. Mit `php scripts/wp-probe.php <plugin-ordner> […]` läuft ein Probelauf: Plugin aktivieren, Schicht starten, Startseite, Beitrag, REST-Index und jede Admin-Seite des Plugins aufrufen und Fehler/Warnungen melden (Plugins liegen unter `cms/wp-content/plugins`, nicht im Repo).
 
 ## Eigenständiger Betrieb
-Das CMS und die WordPress-Schicht bilden zusammen ein eigenständig installierbares System: Einrichtungsassistent, Betriebsmodus (mit oder ohne Control Center), änderbarer Produktname, Version und Datensicherung sind in [STANDALONE.md](STANDALONE.md) beschrieben. Der Assistent nutzt dieselbe Datenbankschicht (`cms/lib/database.php`) wie die WordPress-Datenbank.
+Das CMS und die WordPress-Schicht bilden zusammen ein eigenständig installierbares System: Einrichtungsassistent, änderbarer Produktname, Version und Datensicherung sind in [STANDALONE.md](STANDALONE.md) beschrieben. Der Assistent nutzt dieselbe Datenbankschicht (`cms/lib/database.php`) wie die WordPress-Datenbank.
 
 ## Sicherheit und Stabilität
 - Plugins sind fremder PHP-Code mit den Rechten des CMS: Installation, Aktivierung und Löschen nur für Administratoren.

@@ -1,26 +1,22 @@
 <?php
 declare(strict_types=1);
 
-// Betriebsmodus (Control-Center-Anbindung an/aus), Installationsstatus und CMS-Version.
-// Ohne Datei cms/data/system.local.json bleibt alles wie bisher: Control-Center-Anbindung aktiv.
-// Die Datei enthält nur Betriebseinstellungen (keine Zugangsdaten):
-//   control_center (bool, Standard true), language (z. B. "de"), timezone (z. B. "Europe/Berlin"), installed_at
+// Betriebseinstellungen, Installationsstatus und CMS-Version.
+// Die Datei cms/data/system.local.json enthält nur Betriebseinstellungen (keine Zugangsdaten):
+//   language (z. B. "de"), timezone (z. B. "Europe/Berlin"), installed_at
 
 function rrw_data_dir(): string { return defined('RRW_DATA_DIR')?rtrim((string)RRW_DATA_DIR,'/'):__DIR__.'/../data'; }
 function rrw_system_file(): string { return defined('RRW_SYSTEM_FILE')?(string)RRW_SYSTEM_FILE:rrw_data_dir().'/system.local.json'; }
 function rrw_install_lock_file(): string { return defined('RRW_INSTALL_LOCK')?(string)RRW_INSTALL_LOCK:rrw_data_dir().'/install.lock'; }
-function rrw_control_dir(): string { return defined('RRW_CONTROL_DIR')?rtrim((string)RRW_CONTROL_DIR,'/'):dirname(__DIR__,2).'/control'; }
 
-/** Betriebseinstellungen, auf feste Felder gebracht (Standard: Control-Center-Anbindung an). */
+/** Betriebseinstellungen, auf feste Felder gebracht . */
 function rrw_system_config(bool $reload=false): array {
     static $c=null;if($c!==null&&!$reload)return $c;
     $f=rrw_system_file();$j=is_file($f)?json_decode((string)@file_get_contents($f),true):null;if(!is_array($j))$j=[];
     $tz=(string)($j['timezone']??'');if($tz!==''&&!in_array($tz,DateTimeZone::listIdentifiers(),true))$tz='';
     $lang=(string)($j['language']??'');if(!preg_match('/^[a-z]{2}(_[A-Z]{2})?$/',$lang))$lang='';
-    return $c=['control_center'=>!array_key_exists('control_center',$j)||!empty($j['control_center']),'language'=>$lang,'timezone'=>$tz,'installed_at'=>(string)($j['installed_at']??'')];
+    return $c=['language'=>$lang,'timezone'=>$tz,'installed_at'=>(string)($j['installed_at']??'')];
 }
-/** Eigenständiger Betrieb: keine Anfragen an das Control Center, Anmeldung nur lokal. */
-function rrw_standalone(): bool { return !rrw_system_config()['control_center']; }
 /** Zeitzone aus der Einrichtung anwenden (ohne Einstellung bleibt die Server-Zeitzone). */
 function rrw_system_apply_timezone(): void {
     $tz=rrw_system_config()['timezone'];if($tz!=='')@date_default_timezone_set($tz);
@@ -29,19 +25,12 @@ function rrw_system_apply_timezone(): void {
 function rrw_system_save(array $in): array {
     $f=rrw_system_file();$old=is_file($f)?json_decode((string)@file_get_contents($f),true):null;if(!is_array($old))$old=[];
     $new=$old;
-    if(array_key_exists('control_center',$in))$new['control_center']=!empty($in['control_center']);
     if(array_key_exists('language',$in)){$l=(string)$in['language'];if($l!==''&&!preg_match('/^[a-z]{2}(_[A-Z]{2})?$/',$l))throw new InvalidArgumentException('Ungültige Sprache');$new['language']=$l;}
     if(array_key_exists('timezone',$in)){$t=(string)$in['timezone'];if($t!==''&&!in_array($t,DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('Ungültige Zeitzone');$new['timezone']=$t;}
     if(array_key_exists('installed_at',$in))$new['installed_at']=(string)$in['installed_at'];
     rrw_write_atomic($f,json_encode($new,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
     @chmod($f,0600);
     return rrw_system_config(true);
-}
-
-/** Nicht verfügbar im eigenständigen Betrieb: einheitlicher Hinweistext. */
-function rrw_standalone_notice(string $what=''): string {
-    $w=($what!==''?$what.' ist ':'Diese Funktion ist ');
-    return $w.'in dieser Installation nicht verfügbar.';
 }
 
 // ---------------------------------------------------------------- Ersteinrichtung (Status)
@@ -54,14 +43,13 @@ function rrw_system_file_empty(string $file): bool {
 }
 /**
  * Muss die Ersteinrichtung laufen? Nur bei einer wirklich frischen Installation:
- * keine Sperrdatei, keine Betriebseinstellung, kein lokaler Zugang, keine Control-Center-Spuren und
+ * keine Sperrdatei, keine Betriebseinstellung, kein lokaler Zugang und
  * Inhalte nur im ausgelieferten Ausgangszustand (site.json ohne "_meta", keine Beiträge, kein Protokoll).
  * Im Zweifel (unlesbare oder ungültige Dateien) lautet die Antwort false.
  */
 function rrw_install_needed(): bool {
     if(is_file(rrw_install_lock_file())||is_file(rrw_system_file()))return false;
     if(function_exists('rrw_local_auth_configured')?rrw_local_auth_configured():is_file(rrw_data_dir().'/local-auth.local.php'))return false;
-    if(is_dir(rrw_control_dir()))return false;
     $d=rrw_data_dir();
     $site=$d.'/site.json';
     if(is_file($site)){

@@ -19,7 +19,7 @@ cms/content/pages/
 title: "Über uns"
 slug: "ueber-uns"
 enabled: true
-headline: "Über RicoReWi Radio"
+headline: "Über uns"
 intro: "..."
 ---
 
@@ -34,7 +34,7 @@ Der Markdown-Spiegel wird aus den CMS-Seiten erzeugt. So bleiben Inhalte:
 - portabel
 - backup-freundlich
 
-Die eigentliche öffentliche HTML-Seite wird weiterhin vom RicoReWi-CMS generiert.
+Die eigentliche öffentliche HTML-Seite wird weiterhin vom CMS generiert.
 
 ## Dateien (Git) → Website
 Seiten und Beiträge lassen sich auch **als Dateien im Repository** pflegen; das CMS übernimmt neue und geänderte Dateien automatisch:

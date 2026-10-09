@@ -436,7 +436,7 @@ function rrw_update_index_snapshot(array $site,string $root): void {
     $html=(string)file_get_contents($file);
     $start='<!-- RRW-CMS-SNAPSHOT-START -->';
     $end='<!-- RRW-CMS-SNAPSHOT-END -->';
-    $payload=$start."\n<script>window.__RRW_CMS_FILE__ = ".json_encode(rrw_site_public($site)+(rrw_standalone()?['standalone'=>true]:[]),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).";</script>\n".$end;
+    $payload=$start."\n<script>window.__RRW_CMS_FILE__ = ".json_encode(rrw_site_public($site),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES).";</script>\n".$end;
     $pattern='#'.preg_quote($start,'#').'.*?'.preg_quote($end,'#').'#s';
     if(preg_match($pattern,$html))$html=preg_replace($pattern,$payload,$html,1);
     else {

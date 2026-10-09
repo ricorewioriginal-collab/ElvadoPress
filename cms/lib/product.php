@@ -2,11 +2,11 @@
 declare(strict_types=1);
 
 // Zentrale Produktbezeichnung der Verwaltung. Alle sichtbaren Namen (Titel, Überschrift, Anmeldung,
-// Generator-Angaben, Control-Center-Name) kommen von hier. Optional überschreibt cms/data/product.json
+// Generator-Angaben) kommen von hier. Optional überschreibt cms/data/product.json
 // die Werte; ohne Datei gilt exakt die bisherige Anzeige. Wird kein "name" gesetzt, bleiben auch die
 // abgeleiteten Texte bei ihren bisherigen Formulierungen.
 //
-// product.json (alles optional): name, slug, logo, title, heading, access_name, generator, control_center
+// product.json (alles optional): name, slug, logo, title, heading, access_name, generator
 
 function rrw_product_file(): string { return defined('RRW_PRODUCT_FILE')?(string)RRW_PRODUCT_FILE:__DIR__.'/../data/product.json'; }
 
@@ -15,7 +15,6 @@ function rrw_product_defaults(): array {
     $d=[
         'name'=>'ElvadoPress','slug'=>'elvadopress','logo'=>'',
         'title'=>'ElvadoPress','heading'=>'ElvadoPress Verwaltung','access_name'=>'ElvadoPress','generator'=>'ElvadoPress',
-        'control_center'=>'ElvadoPress',
     ];
     // Eigenständiges Paket (z. B. ElvadoPress): cms/lib/product.default.json legt den Standard fest, den das Bauen des Pakets mitbringt
     $f=__DIR__.'/product.default.json';
@@ -38,7 +37,7 @@ function rrw_product_slugify(string $name): string {
 /** Eingaben bereinigen: unbekannte Felder fallen weg, leere Felder bedeuten "Standard". */
 function rrw_product_clean(array $in): array {
     $o=[];
-    foreach(['name'=>60,'title'=>80,'heading'=>80,'access_name'=>60,'generator'=>60,'control_center'=>60] as $k=>$max){
+    foreach(['name'=>60,'title'=>80,'heading'=>80,'access_name'=>60,'generator'=>60] as $k=>$max){
         $v=trim((string)preg_replace('/[\x00-\x1f<>"]/u','',(string)($in[$k]??'')));
         if($v!=='')$o[$k]=mb_substr($v,0,$max);
     }
@@ -72,13 +71,12 @@ function rrw_product_logo(): string { return rrw_product()['logo']; }
 function rrw_product_title(): string { return rrw_product()['title']; }
 function rrw_product_heading(): string { return rrw_product()['heading']; }
 function rrw_product_generator(): string { return rrw_product()['generator']; }
-function rrw_product_control_center(): string { return rrw_product()['control_center']; }
 /** HTML-Escape für Ausgaben. */
 function rrw_product_h(string $s): string { return htmlspecialchars($s,ENT_QUOTES,'UTF-8'); }
 /** Öffentlich unkritische Angaben für die Oberfläche (keine Pfade, keine Zugangsdaten). */
 function rrw_product_public(): array {
     $p=rrw_product();
-    return ['name'=>$p['name'],'slug'=>$p['slug'],'logo'=>$p['logo'],'title'=>$p['title'],'heading'=>$p['heading'],'access_name'=>$p['access_name'],'control_center'=>$p['control_center']];
+    return ['name'=>$p['name'],'slug'=>$p['slug'],'logo'=>$p['logo'],'title'=>$p['title'],'heading'=>$p['heading'],'access_name'=>$p['access_name']];
 }
 /** Speichern (atomar). Leere Eingabe entfernt die Datei und stellt damit die Standardwerte wieder her. */
 function rrw_product_save(array $in): array {

@@ -1,12 +1,5 @@
 # Bekannte Probleme
 
-## Historische Angaben in INSTALL.md
-- **Bereich:** Dokumentation / Installation / Betriebsmodi
-- **Status:** offen; keine Anwendungscode-Änderung erforderlich.
-- **Problem:** `INSTALL.md` beginnt mit der Aussage, der Standardbetrieb sei unverändert die Anbindung an das AnMaCha Control Center, und enthält weitere historische RicoReWi-Bezeichnungen. Das steht in Spannung zur aktuellen Repository-Dokumentation, die ElvadoPress als eigenständiges CMS/Hauptquelle beschreibt und bei frischer Installation `control_center: false` dokumentiert.
-- **Bekannte Ursache:** Die Datei ist aus der früheren Projektstruktur historisch weitergewachsen.
-- **Nächste Untersuchung:** Connected-/Standalone-Verhalten gezielt gegen `cms/install.php`, Auth-/Systemlogik und aktuelle Tests prüfen; danach nur eindeutig veraltete Formulierungen korrigieren. Weiterhin gültige Migrations-/Connected-Mode-Hinweise erhalten.
-
 ## App-Vorlage und Alexa
 - **Bereich:** App-Baukasten (`app-template/`) / Alexa
 - **Status:** Vorlage umgesetzt (Ordner `app-template/`, verifiziert mit `scripts/verify-app-template.sh`: Android baut, Windows kompiliert, Tests grün). Alexa-Erweiterung offen.
@@ -18,7 +11,7 @@
 - **Nicht live getestet (kein Zugang in der Entwicklungsumgebung):** SMTP mit STARTTLS/SSL gegen echte Server (getestet wurde die Anmeldung gegen einen lokalen Test-Mailserver ohne Verschlüsselung), Matomo und Google Analytics (nur Auslieferung des Skripts geprüft), alle KI-Anbieter (Gateway mit simulierten Antworten), Webhook-Zustellung an echte Ziele, AVIF-Erzeugung hängt von der GD-Bibliothek des Servers ab (hier ohne AVIF getestet, WebP vorhanden).
 - **Bewusste Grenzen:** Updates offizieller Plugins kommen aus der mit ElvadoPress ausgelieferten Paketbibliothek (`update.source: bundled`), nicht aus separaten Downloads. Hochgeladene Plugins führen kein Server-PHP aus. Newsletter, Podcast, Radio/Audio, Events, Shop, Social, Consent, Maintenance und WordPress Compatibility Tools existieren noch nicht (nur Katalogeinträge).
 - **Hinweise:** Bestehende Installationen bekommen die Essentials inaktiv (kein Verhaltenswechsel ohne Zustimmung). Das Plugin Elvado SEO ersetzt `sitemap.xml` (solange aktiv); die SEO-Felder von Beiträgen/Seiten sind die vorhandenen Felder des CMS, für reine WordPress-Beiträge gelten Beitrags-Metafelder `_elvado_seo_*` (ohne eigene Editor-Oberfläche). Der Seiten-Cache von Elvado Performance wirkt nur für Besucher ohne Cookies/Parameter; Seiten mit dem Attribut `data-elvado-nocache` werden nie gecacht. Elvado Backup exportiert keine Passwörter/Schlüssel; nach einer Wiederherstellung auf einem neuen Server müssen sie neu eingetragen werden. Die Sicherheits-Header (`frame-ancestors 'self'`) verhindern das Einbetten der Website in fremde Seiten (abschaltbar).
-- **Control-Center-Anbindung (AnMaCha):** Die Oberfläche der RicoReWi-Reste ist entfernt (Reiter Radioverzeichnis, Website-Inhalte, Sender-Netzwerk, `data-pack`-Schalter, Control-Center-Felder). Offen sind die serverseitigen Control-Center-Pfade (`rrw_control_center_*` in `cms/api.php`, Token-Anmeldung, `rrw_standalone()` in `cms/lib/system.php`, `cmsLoginRedirect`-Ersatz) und das Datenmodell `core_network`/`portal`. Der Installer schaltet den eigenständigen Betrieb immer ein (`control_center=false`). Der Test `test-install-modes.php` braucht lokale Ports und einen echten PHP-Server.
+- **Control-Center-Anbindung:** vollständig entfernt (Anmeldung nur lokal; Header `X-ElvadoPress-Token`, Speicherschlüssel `elvadopress_session_token`). Bereits angemeldete Browser müssen sich einmal neu anmelden.
 
 - **Behoben:** Die Demo (und jede Installation mit aktiven Plugins Elvado AI/SEO) fror beim Öffnen der Verwaltung ein (Endlosschleife im `MutationObserver` der Plugin-Oberflächen). Plugin-Skripte, die den DOM beobachten, müssen eigene Änderungen ausschließen und bündeln (siehe `cms/docs/PLUGIN-ENTWICKLUNG.md`).
 

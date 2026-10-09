@@ -128,7 +128,7 @@ function rrw_install_run(array $c,array $ctx): array {
         rrw_local_auth_set($c['username'],$c['password'],'admin');
         rrw_local_user_update($c['username'],null,null,$c['display_name'],$c['email']!==''?$c['email']:null);
         $remember(rrw_system_file());
-        rrw_system_save(['control_center'=>false,'language'=>$c['language'],'timezone'=>$c['timezone'],'installed_at'=>$now]);
+        rrw_system_save(['language'=>$c['language'],'timezone'=>$c['timezone'],'installed_at'=>$now]);
         // Beispielbeitrag nur, wenn noch keine Beiträge existieren
         $remember($ctx['newsFile']);$remember($ctx['siteFile']);$remember($ctx['activityLog']);
         if(!empty($c['sample'])&&rrw_system_file_empty($ctx['newsFile'])){

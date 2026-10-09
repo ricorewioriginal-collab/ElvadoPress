@@ -92,8 +92,8 @@
     $('hbStock').onclick=function(){if(!window.StockMedia)return;m.remove();StockMedia.open({tab:'stock',onPick:function(it,i){pick(i.url)}})};
     $('hbUp').onchange=async function(){
       var f=this.files&&this.files[0];if(!f)return;var fd=new FormData();fd.append('file',f);fd.append('sizes','64,128,192,256,512,1024,1600');fd.append('quality','90');
-      try{var tk=sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
-        var r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':tk},body:fd}),d=await r.json().catch(function(){return {}});
+      try{var tk=sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
+        var r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':tk},body:fd}),d=await r.json().catch(function(){return {}});
         if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');var u=d.item&&d.item.original&&d.item.original.url;if(u)pick(u)}catch(x){msg(x.message,true)}
     };
     cmsApi('media_library_list').then(function(l){items=(l.items||[]).filter(function(i){return i.url&&(/^image\//.test(i.mime||'')||/\.(png|jpe?g|webp|gif|svg)$/i.test(i.url))}).sort(function(a,b){return (b.mtime||0)-(a.mtime||0)});drawGrid()}).catch(function(x){$('hbGrid').innerHTML='<div class="hint">'+esc(x.message)+'</div>'});

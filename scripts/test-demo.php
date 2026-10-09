@@ -73,7 +73,7 @@ t('Falsches Passwort wird abgelehnt',$r['code']===401);
 $r=http('POST',"$B/cms/api.php?action=login",['username'=>$cfg['user'],'password'=>$cfg['password']]);
 $tok=(string)($r['json']['token']??'');
 t('Anmeldung mit Demo-Zugang',($r['json']['status']??'')==='ok'&&$tok!=='',$r['body']);
-$H=['X-Anmacha-Token: '.$tok,'Content-Type: application/json'];
+$H=['X-ElvadoPress-Token: '.$tok,'Content-Type: application/json'];
 $r=http('GET',"$B/cms/api.php?action=news_list",null,$H);
 t('Verwaltung liefert Beiträge',($r['json']['status']??'')==='ok');
 $ok=0;$blocked=['plugin_upload','theme_upload','wp_plugin_install','wp_theme_upload','database_config_save','assistant_chat','feed_test','redirects_save','member_register','wp_core_install','update_apply','update_rollback','update_config_save','lovable_sync'];
@@ -83,8 +83,6 @@ t('Gefährliche Aktionen sind gesperrt',$ok===count($blocked),"$ok/".count($bloc
 $free=0;$freeList=['user_add','user_update','profile_update_self','backup_create','backup_restore','media_upload','branding_upload','news_thumbnail_upload','ai_status','update_status','update_check','lovable_get','stock_status'];
 foreach($freeList as $a){ $r=http('POST',"$B/cms/api.php?action=$a",['x'=>1],$H);if(!($r['code']===403&&($r['json']['demo']??false)))$free++;else echo "zu Unrecht gesperrt: $a\n"; }
 t('Benutzer, Backups, Medien, KI, Update-Anzeige sind in der Demo frei',$free===count($freeList),"$free/".count($freeList));
-$r=http('POST',"$B/cms/api.php?action=system_save",['control_center'=>true],$H);
-t('Betriebsmodus (Control Center) bleibt gesperrt, damit die Anmeldung erhalten bleibt',$r['code']===403&&($r['json']['demo']??false));
 $r=http('POST',"$B/cms/api.php?action=system_save",['timezone'=>'Europe/Vienna'],$H);
 t('Zeitzone/Name änderbar',$r['code']!==403,$r['body']);
 $r=http('GET',"$B/cms/api.php?action=update_status",null,$H);

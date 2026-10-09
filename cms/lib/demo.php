@@ -248,7 +248,6 @@ function rrw_demo_guard(string $action,array $body): void {
     if(in_array($action,RRW_DEMO_BLOCKED,true))rrw_demo_deny($action);
     if($action==='np_call'&&!in_array((string)($body['call']??''),['overview','status','list_forms','submissions'],true))rrw_demo_deny($action);   // Plugin-Aktionen: in der Demo nur lesen
     // Betriebsmodus darf nicht umgeschaltet werden (sonst wäre die Anmeldung der Demo weg); alles andere (Name, Sprache, Zeitzone) ist frei
-    if($action==='system_save'&&array_key_exists('control_center',$body)&&function_exists('rrw_standalone')&&(bool)$body['control_center']===rrw_standalone())rrw_demo_deny($action);
     if($action==='wp_admin_page'){
         $page=(string)($body['page']??'');$p=(string)parse_url($page,PHP_URL_PATH);
         if(preg_match(RRW_DEMO_WP_PAGES,ltrim($p,'/')))rrw_demo_deny($action);

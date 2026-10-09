@@ -5,10 +5,10 @@
   var themes=[],front=false,items=[],page=1,pages=1,prevSlug='',sbx=false;
   function $(id){return document.getElementById(id)}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function token(){return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||''}
+  function token(){return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}
   function toast(m,bad){if(window.cmsToast)window.cmsToast(m,bad);else alert(m)}
   async function call(action,q,body){
-    var o={headers:{'X-AnMaCha-Token':token()}};if(body!==undefined){o.method='POST';o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}
+    var o={headers:{'X-ElvadoPress-Token':token()}};if(body!==undefined){o.method='POST';o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}
     var r=await fetch('api.php?action='+action+(q||'')+(sbx&&String(action).indexOf('wp_theme')===0?'&sandbox=1':'')+'&_='+Date.now(),o),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
     if(!r.ok||d.status==='error'){var er=new Error(d.message||'Fehler');er.errors=d.errors;throw er}return d;
   }
@@ -97,7 +97,7 @@
   async function upload(file){
     if(!file)return;var st=function(m,k){if(window.DesignHub)DesignHub.status(m,k)};
     st('Lade „'+file.name+'“ hoch …','busy');var fd=new FormData();fd.append('file',file);
-    try{var r=await fetch('api.php?action=wp_theme_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd}),d=await r.json().catch(function(){return null});
+    try{var r=await fetch('api.php?action=wp_theme_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd}),d=await r.json().catch(function(){return null});
       if(r.status===401&&window.cmsSessionExpired)window.cmsSessionExpired();
       if(!d)throw new Error('Upload fehlgeschlagen (Serverantwort '+r.status+'). Möglicherweise ist die Datei größer als das Upload-Limit des Servers.');
       if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');
@@ -221,7 +221,7 @@
     $('czPickUp').onchange=async function(){
       var f=this.files&&this.files[0];if(!f)return;var fd=new FormData();fd.append('file',f);fd.append('sizes','64,128,192,256,512,1024,1600');fd.append('quality','90');
       try{$('czPickGrid').innerHTML='<div class="hint">Lade hoch …</div>';
-        var r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd}),d=await r.json().catch(function(){return {}});
+        var r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd}),d=await r.json().catch(function(){return {}});
         if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');
         var url=d.item&&d.item.original&&d.item.original.url;if(url){czSetImage(id,url);close();return}
         var l=await call('media_library_list');items=(l.items||[]).filter(function(i){return /^image\//.test(i.mime||'')||/\.(png|jpe?g|webp|gif|svg)$/i.test(i.url||'')});draw()

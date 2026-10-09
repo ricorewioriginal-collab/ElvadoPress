@@ -23,7 +23,7 @@ $proc = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', $site], [1 => ['fi
 register_shutdown_function(function () use ($proc, $tmp) { if (is_resource($proc)) { proc_terminate($proc); proc_close($proc); } rmrf($tmp); });
 for ($i = 0; $i < 50; $i++) { if (@fsockopen('127.0.0.1', $port)) break; usleep(100000); }
 function api(string $action, ?array $body = null, string $tok = ''): array {
-    global $port; $h = "Content-Type: application/json\r\n" . ($tok !== '' ? "X-AnMaCha-Token: $tok\r\n" : '');
+    global $port; $h = "Content-Type: application/json\r\n" . ($tok !== '' ? "X-ElvadoPress-Token: $tok\r\n" : '');
     $ctx = stream_context_create(['http' => ['method' => $body === null ? 'GET' : 'POST', 'header' => $h, 'content' => $body === null ? '' : json_encode($body), 'ignore_errors' => true, 'timeout' => 30]]);
     $j = json_decode((string)@file_get_contents("http://127.0.0.1:$port/cms/api.php?action=$action", false, $ctx), true); return is_array($j) ? $j : [];
 }

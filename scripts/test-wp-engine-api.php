@@ -43,7 +43,7 @@ for ($i = 0; $i < 50; $i++) { if (@fsockopen('127.0.0.1', $port)) break; usleep(
 function http(string $method, string $path, ?string $tok = null, ?array $body = null, array $hdr = []): array {
     global $port;
     $h = ['Content-Type: application/json'] + $hdr;
-    if ($tok !== null) { $h[] = 'X-AnMaCha-Token: ' . $tok; }
+    if ($tok !== null) { $h[] = 'X-ElvadoPress-Token: ' . $tok; }
     $ctx = stream_context_create(['http' => ['method' => $method, 'header' => implode("\r\n", $h), 'content' => $body === null ? '' : json_encode($body), 'ignore_errors' => true, 'timeout' => 60]]);
     $t0 = microtime(true);
     $b = (string)@file_get_contents("http://127.0.0.1:$port$path", false, $ctx);
@@ -69,7 +69,7 @@ foreach (['components_catalog', 'layout_get', 'layout_revisions', 'layout_previe
 foreach (['layout_save_draft', 'layout_publish', 'layout_discard', 'layout_rollback', 'layout_render'] as $a) { if (http('POST', $CMP . $a, null, [])['code'] !== 401) { $leak[] = $a; } }
 t('Komponenten-/Layout-API ohne Anmeldung: überall 401', $leak === [], json_encode($leak));
 t('Gefälschte/abgelaufene Sitzung: 401', http('GET', $ENG . 'engine_status', 'local_' . str_repeat('ab', 24))['code'] === 401 && http('GET', $ENG . 'engine_status', 'irgendwas')['code'] === 401);
-$r = http('GET', $ENG . 'engine_status', null, null, ['Cookie: anmacha_session_token=' . $admin . '; token=' . $admin . '; PHPSESSID=x']);
+$r = http('GET', $ENG . 'engine_status', null, null, ['Cookie: elvadopress_session_token=' . $admin . '; token=' . $admin . '; PHPSESSID=x']);
 t('Nur ein Cookie reicht nie (kein Cookie-Login ⇒ kein CSRF)', $r['code'] === 401);
 t('SQL-/Pfad-Zeichen im Token: 401 statt Fehler', http('GET', $ENG . 'engine_status', "local_' OR 1=1 --")['code'] === 401 && http('GET', $ENG . 'engine_status', "../../etc/passwd")['code'] === 401);
 
@@ -94,7 +94,7 @@ t('REST ohne Anmeldung: überall 401', $leak === [], json_encode($leak));
 $bearer = function (string $method, string $path, string $tok, ?array $body = null) { global $port; $ctx = stream_context_create(['http' => ['method' => $method, 'header' => "Authorization: Bearer $tok\r\nContent-Type: application/json", 'content' => $body === null ? '' : json_encode($body), 'ignore_errors' => true, 'timeout' => 60]]); $b = (string)@file_get_contents("http://127.0.0.1:$port$path", false, $ctx); $c = 0; foreach ($http_response_header ?? [] as $l) { if (preg_match('#^HTTP/\S+ (\d+)#', $l, $m)) { $c = (int)$m[1]; } } return ['code' => $c, 'json' => json_decode($b, true), 'body' => $b, 'headers' => $http_response_header ?? []]; };
 $d = $bearer('GET', $R . '/', $admin);
 t('REST: Anmeldung per „Authorization: Bearer“, Wurzel nennt Version und Routen', $d['code'] === 200 && ($d['json']['data']['version'] ?? 0) === 1 && in_array('pages', $d['json']['data']['routes'] ?? [], true) && str_contains(implode("\n", $d['headers']), 'X-ElvadoPress-API: 1'), $d['body']);
-t('REST: Cookie allein reicht nie', http('GET', $R . '/posts', null, null, ['Cookie: anmacha_session_token=' . $admin])['code'] === 401);
+t('REST: Cookie allein reicht nie', http('GET', $R . '/posts', null, null, ['Cookie: elvadopress_session_token=' . $admin])['code'] === 401);
 $p = $bearer('GET', $R . '/posts', $admin);
 t('REST: Beiträge lesen (native Daten), mit Seitenangaben', $p['code'] === 200 && ($p['json']['meta']['total'] ?? 0) === 1 && ($p['json']['data'][0]['title'] ?? '') === 'Hallo Welt' && ($p['json']['meta']['source'] ?? '') === 'native' && isset($p['json']['meta']['pages']), $p['body']);
 t('REST: einzelner Beitrag, unbekannter 404, Seite und Medien lesbar', $bearer('GET', $R . '/posts/1', $admin)['code'] === 200 && $bearer('GET', $R . '/posts/999', $admin)['code'] === 404 && $bearer('GET', $R . '/pages', $admin)['code'] === 200 && $bearer('GET', $R . '/media', $admin)['code'] === 200 && $bearer('GET', $R . '/categories', $admin)['code'] === 200 && $bearer('GET', $R . '/navigation', $admin)['code'] === 200);
@@ -124,7 +124,7 @@ foreach (['content_save' => [['type' => '../x', 'item' => ['title' => 'x']], 'PO
 t('Ungültige Eingaben: 4xx mit Meldung, kein Absturz, keine Pfade/Stack-Traces', $bad === [], json_encode($bad));
 t('Ungültiger Layout-Bereich wird abgelehnt', in_array(http('GET', $CMP . 'layout_get&scope=' . rawurlencode("x';DROP"), $admin)['code'], [400, 422], true) && in_array(http('GET', $CMP . 'layout_get&scope=' . rawurlencode('../../site'), $admin)['code'], [400, 422], true));
 t('Unbekannte Aktion: 404 (kein Absturz)', http('GET', $ENG . 'gibt_es_nicht', $admin)['code'] === 404);
-$r = http('POST', $ENG . 'content_save', $admin, null, []); $r2 = (string)@file_get_contents("http://127.0.0.1:$port{$ENG}content_list", false, stream_context_create(['http' => ['method' => 'POST', 'header' => "X-AnMaCha-Token: $admin\r\nContent-Type: application/json", 'content' => '{kaputt', 'ignore_errors' => true]]));
+$r = http('POST', $ENG . 'content_save', $admin, null, []); $r2 = (string)@file_get_contents("http://127.0.0.1:$port{$ENG}content_list", false, stream_context_create(['http' => ['method' => 'POST', 'header' => "X-ElvadoPress-Token: $admin\r\nContent-Type: application/json", 'content' => '{kaputt', 'ignore_errors' => true]]));
 t('Kaputtes JSON: keine PHP-Fehlermeldung nach außen', !str_contains($r2, 'Warning') && !str_contains($r2, 'Fatal') && !str_contains($r2, $tmp));
 t('Antworten sind JSON', str_contains(implode("\n", $st['headers']), 'application/json'));
 

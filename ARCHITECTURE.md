@@ -22,10 +22,7 @@ ElvadoPress ist ein serverseitiges PHP-CMS ohne erforderlichen Build-Schritt. Di
 5. Bereichsrevisionen (`revs`/`base_rev`) schützen parallele Bearbeitung vor stillem Überschreiben.
 
 ## Authentifizierung
-Zwei Betriebswege sind dokumentiert:
-- lokaler CMS-Zugang mit serverseitig gespeicherten Passwort-Hashes und lokalen Sitzungstokens;
-- optional Control-Center-Token im verbundenen Betriebsmodus.
-Im eigenständigen Betrieb werden Control-Center-Tokens abgelehnt. Details und konkrete API-Aktionen: `cms/docs/API.md` und `INSTALL.md`.
+Lokaler CMS-Zugang mit serverseitig gespeicherten Passwort-Hashes und lokalen Sitzungstokens (Header `X-ElvadoPress-Token`). Details und konkrete API-Aktionen: `cms/docs/API.md` und `INSTALL.md`.
 
 ## Storage / Datenbank
 - Standard: JSON/Dateien unter `cms/data/`; Markdown-Spiegel für Seiten/Inhalte.
@@ -42,7 +39,7 @@ Im eigenständigen Betrieb werden Control-Center-Tokens abgelehnt. Details und k
 Es gibt keine getrennte Node-SPA und keinen erforderlichen JS-Build. PHP rendert/koordiniert die Verwaltung; JavaScript-Dateien unter `cms/assets/` liefern die interaktive Clientlogik und sprechen die PHP-API an. Panels liegen modular unter `cms/views/`.
 
 ## Externe Dienste
-Optionale Integrationen umfassen den verbundenen Control-Center-Betrieb, konfigurierbare KI-Anbieter, App-Build/GitHub-Funktionen, Alexa/Streams und frei konfigurierbare verbundene Dienste. Diese sind nicht für den Kernbetrieb zwingend. Keine Zugangsdaten gehören in die Dokumentation.
+Optionale Integrationen umfassen konfigurierbare KI-Anbieter, App-Build/GitHub-Funktionen, Alexa/Streams und frei konfigurierbare verbundene Dienste. Diese sind nicht für den Kernbetrieb zwingend. Keine Zugangsdaten gehören in die Dokumentation.
 
 ## Deployment / Veröffentlichung
 - ElvadoPress ist die Hauptquelle.

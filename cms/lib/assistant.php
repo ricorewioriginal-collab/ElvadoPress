@@ -263,7 +263,7 @@ function rrw_assistant_research(string $q,string $dataDir,bool $allowLookup=true
         if(preg_match('/wetter|temperatur|regnet|regen\b|schnee|sonnig|gewitter|wie warm|wie kalt|vorhersage|unwetter|scheint die sonne/iu',$lower)){
             $w=rrw_assistant_research_weather($q,$dataDir);if($w){$lines[]=$w;$kinds[]='weather';}
         }
-        if(preg_match('/schlagzeile|nachrichten|tagesschau|was (?:ist|war) (?:heute |gestern )?(?:in der welt |so )?passiert|weltgeschehen|aktuelle?n? (?:meldung|nachricht|lage|ereignis)|breaking|neuigkeiten aus (?:der welt|deutschland|politik)/iu',$lower)&&!preg_match('/magazin|anmacha|ricorewi|senderwelt/iu',$lower)){
+        if(preg_match('/schlagzeile|nachrichten|tagesschau|was (?:ist|war) (?:heute |gestern )?(?:in der welt |so )?passiert|weltgeschehen|aktuelle?n? (?:meldung|nachricht|lage|ereignis)|breaking|neuigkeiten aus (?:der welt|deutschland|politik)/iu',$lower)&&!preg_match('/magazin/iu',$lower)){
             $h=rrw_assistant_research_headlines($q,$dataDir);if($h){$lines[]=$h;$kinds[]='headlines';}
         }
         if($allowLookup&&!$kinds){

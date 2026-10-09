@@ -109,11 +109,9 @@ Der Customizer unterstützt unter anderem:
 
 ## Mitgelieferte freie Themes
 
-- RicoReWi Neon
-- Broadcast Glass
-- Clean Air
-- Midnight Magazine
-- Bootstrap Wave
-- Signal Paper
+- Classic (`rrw-classic`, neutrales Standard-Theme)
+- Elvado Baukasten
+- Elvado Creator
+- Elvado Band
 
 Alle Theme-Pakete im Repository sind für dieses CMS erstellt und nicht aus fremden Themes kopiert.

@@ -14,10 +14,10 @@ function loadAdminPluginScripts(plugins){
 }
 window.PluginManager=(()=>{
  let plugins=[];
- const token=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const token=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  async function api(action,body){
-  const opts=body===undefined?{headers:{'X-AnMaCha-Token':token()}}:{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':token()},body:JSON.stringify(body)};
+  const opts=body===undefined?{headers:{'X-ElvadoPress-Token':token()}}:{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':token()},body:JSON.stringify(body)};
   const r=await fetch('api.php?action='+encodeURIComponent(action)+'&_='+Date.now(),opts);
   const d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));
   if(r.status===401)window.cmsSessionExpired?.();
@@ -37,7 +37,7 @@ window.PluginManager=(()=>{
  }
  function render(){const host=document.getElementById('pluginGrid');if(!host)return;host.innerHTML=plugins.length?plugins.map(card).join(''):'<div class="empty" style="grid-column:1/-1"><i class="fas fa-plug"></i>Noch keine Plugins installiert.</div>';bindCards();}
  async function load(){try{const d=await api('plugins_list');plugins=d.plugins||[];render();loadAdminPluginScripts(plugins);RRWCmsPluginAPI.emit('plugins:loaded',{plugins});}catch(e){const h=document.getElementById('pluginGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1;color:var(--bad)">'+esc(e.message)+'</div>';}}
- async function upload(file){if(!file)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch('api.php?action=plugin_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd});const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');window.cmsToast?.('Plugin installiert ✓');await load();}catch(e){window.cmsToast?.(e.message,true)}}
+ async function upload(file){if(!file)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch('api.php?action=plugin_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd});const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');window.cmsToast?.('Plugin installiert ✓');await load();}catch(e){window.cmsToast?.(e.message,true)}}
  async function toggle(id,enabled){try{await api('plugin_toggle',{id,enabled});window.cmsToast?.(enabled?'Plugin aktiviert ✓':'Plugin deaktiviert');await load();}catch(e){window.cmsToast?.(e.message,true)}}
  async function remove(id){if(!confirm('Plugin wirklich löschen?'))return;try{await api('plugin_delete',{id});window.cmsToast?.('Plugin gelöscht');await load();}catch(e){window.cmsToast?.(e.message,true)}}
  function bind(){const f=document.getElementById('pluginUpload');if(f&&!f.dataset.bound){f.dataset.bound='1';f.addEventListener('change',()=>{upload(f.files?.[0]);f.value='';});}}

@@ -3,10 +3,10 @@
 window.WpEngine=(()=>{
  const S={st:null,prep:null,ana:null,mig:null,run:null,busy:'',msg:null,form:null};
  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const tok=()=>{try{return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';}catch(e){return '';}};
+ const tok=()=>{try{return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';}catch(e){return '';}};
  const root=()=>document.getElementById('wpeRoot');
  async function api(action,body){
-  const r=await fetch('/cms/engine-api.php?action='+action,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:body===undefined?undefined:JSON.stringify(body)});
+  const r=await fetch('/cms/engine-api.php?action='+action,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':tok()},body:body===undefined?undefined:JSON.stringify(body)});
   let d;try{d=await r.json();}catch(e){throw new Error('Unerwartete Antwort des Servers');}
   return d;
  }
