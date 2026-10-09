@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "ElvadoPress",
   "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
-  "license": "MIT",
+  "license": "GPL-2.0-or-later",
   "official": true,
   "recommended": true,
   "category": "KI",
