@@ -89,6 +89,16 @@ t('App-Startabfrage: öffentlich, gültig, Marke erkannt, kein Aussperren',($ac[
 $bad=get($base,'app_config','','&brand=unbekannt&platform=windows&version=1');
 t('App-Startabfrage mit unbekannter Marke bleibt gültig',($bad['status']??'')==='ok');
 
+// ---------- Robustheit: aktives Theme fehlt (gelöscht/umbenannt, z. B. nach einem Update) → Standard-Theme statt leerer Seite
+$of=$tmp.'/cms/data/.wp/options.json';
+if(is_file($of)){
+    $orig=(string)file_get_contents($of);
+    file_put_contents($of,str_replace('elvado-classic','gibt-es-nicht',$orig));
+    [$st,,$hb]=http('GET',$base.'/radio-neu/');
+    t('Fehlendes aktives Theme: Website fällt auf das Standard-Theme zurück (keine leere Seite)',$st===200&&str_contains($hb,'<html')&&str_contains($hb,'<audio'),"HTTP $st, ".strlen($hb).' Bytes');
+    file_put_contents($of,$orig);
+}else t('Optionsdatei der WordPress-Schicht vorhanden',false,$of);
+
 // ---------- Sicherheit der Schnittstellen
 t('Verwaltungsaktionen ohne Anmeldung werden abgewiesen',(function() use($base){ foreach(['apps_overview','alexa_get','np_list','system_get','app_build_state'] as $a){ [$st]=http('GET',$base.'/cms/api.php?action='.$a);if($st!==401)return false; } return true; })());
 t('Altes Token-Format wird abgelehnt (kein Fremd-Login)',(function() use($base){ [$st]=http('GET',$base.'/cms/api.php?action=np_list',['X-ElvadoPress-Token: fremd123']);return $st===401; })());
