@@ -106,6 +106,7 @@ t('Alle in der Verwaltung eingebundenen Skripte existieren',$bad===[],implode(',
 preg_match_all('~<link[^>]+href="(assets/[^"?]+)~',$adm,$cs);$bad=[];foreach(array_unique($cs[1]) as $s)if(!is_file($tmp.'/cms/'.$s))$bad[]=$s;
 t('Alle eingebundenen Stylesheets existieren',$bad===[],implode(',',$bad));
 $log=is_file($tmp.'/srv.log')?(string)file_get_contents($tmp.'/srv.log'):'';
+$log=implode("\n",preg_grep('/JIT is incompatible/',explode("\n",$log),PREG_GREP_INVERT));   // bekannte Meldung mancher CI-Läufer, kein Fehler des CMS
 t('PHP-Server-Protokoll ohne Fatal/Warning/Deprecated',!preg_match('/Fatal error|Warning:|Deprecated:|Uncaught/',$log),substr(implode("\n",array_slice(preg_grep('/Fatal error|Warning:|Deprecated:|Uncaught/',explode("\n",$log)),0,4)),0,500));
 
 echo "\n".($n-$fail)." von $n Prüfungen bestanden\n";
