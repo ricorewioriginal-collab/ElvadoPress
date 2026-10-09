@@ -14,8 +14,20 @@ function elvado_wpc_use_theme(string $slug): bool {
         if($h['Template']!==''&&preg_match('/^[a-z0-9_-]{1,80}$/',$h['Template']))$parent=$h['Template'];break;
     }
     if(!$found)return false;
-    add_filter('pre_option_stylesheet',fn()=>$slug);add_filter('pre_option_template',fn()=>$parent);
+    $ss=fn()=>$slug;$tp=fn()=>$parent;
+    add_filter('pre_option_stylesheet',$ss);add_filter('pre_option_template',$tp);
+    $GLOBALS['elvado_wpc_pre']=['stylesheet'=>$ss,'template'=>$tp];
     return true;
+}
+
+/** Echter Wert einer Theme-Einstellung ("stylesheet"/"template"), unabhängig von dem Theme, das dieser Aufruf nur zur Bearbeitung eingeschaltet hat (elvado_wpc_use_theme).
+    Ohne das galt jedes bearbeitete Theme als „aktiv“: Customizer und Live Builder meldeten „veröffentlicht“, obwohl die Website ein anderes Theme auslieferte. */
+function elvado_wpc_real_option(string $name): string {
+    $f=(array)($GLOBALS['elvado_wpc_pre']??[]);
+    foreach($f as $n=>$cb)remove_filter('pre_option_'.$n,$cb);
+    $v=(string)get_option($name,'');
+    foreach($f as $n=>$cb)add_filter('pre_option_'.$n,$cb);
+    return $v;
 }
 
 /** „name[a][b]“ → ['name',['a','b']]. */

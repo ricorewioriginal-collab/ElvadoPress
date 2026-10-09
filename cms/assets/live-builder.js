@@ -318,10 +318,11 @@
       snapReset();palette();draw();notice();badge();state(hasDraft?'Entwurf geladen (noch nicht veröffentlicht)':'');if(!previewUrl)getPreview();else setFrame();
     }catch(e){state(e.message||'Laden fehlgeschlagen',true)}
   }
+  var retryN=0,retryT=0;   /* Autospeichern: bei Fehler (Verbindung, Server) bis zu dreimal erneut versuchen, solange Änderungen offen sind */
   async function saveDraft(){
-    clearTimeout(timer);if(saving){pending=true;return}saving=true;
-    try{state('Speichere Entwurf…');var d=target?await capi('layout_save_draft',{layout:layout,publish_at:publishAt}):await cmsApi('wp_bk_draft',{layout:layout,publish_at:publishAt});hasDraft=true;dirty=false;revisions=d.revisions||revisions;state(publishAt?'Entwurf gespeichert · geplant für '+publishAt.replace('T',' '):'Entwurf gespeichert');setFrame()}
-    catch(e){state(e.message||'Speichern fehlgeschlagen',true)}
+    clearTimeout(timer);clearTimeout(retryT);if(saving){pending=true;return}saving=true;
+    try{state('Speichere Entwurf…');var d=target?await capi('layout_save_draft',{layout:layout,publish_at:publishAt}):await cmsApi('wp_bk_draft',{layout:layout,publish_at:publishAt});hasDraft=true;dirty=false;retryN=0;revisions=d.revisions||revisions;state(publishAt?'Entwurf gespeichert · geplant für '+publishAt.replace('T',' '):'Entwurf gespeichert');setFrame()}
+    catch(e){state((/Failed to fetch|NetworkError|Load failed/i.test(e.message||'')?'Verbindung unterbrochen':(e.message||'Speichern fehlgeschlagen'))+(retryN<3?' – neuer Versuch folgt':' – bitte „Entwurf speichern“ drücken'),true);if(retryN<3){retryT=setTimeout(function(){retryN++;if(dirty)saveDraft()},[2000,6000,15000][retryN])}}
     saving=false;if(pending){pending=false;saveDraft()}
   }
   async function publish(){
@@ -444,7 +445,19 @@
     document.querySelectorAll('#panel-livebuilder [data-lbmode]').forEach(function(b){b.classList.toggle('on',b.dataset.lbmode===m)});
     var ed=m!=='preview';if(ed!==bridge.edit){bridge.edit=ed;send({type:'mode',edit:ed})}   // „Vorschau“: Links funktionieren, keine Auswahl
   }
-  function device(d){var f=frame();f.dataset.dev=d;try{document.dispatchEvent(new CustomEvent('ep-device',{detail:d}))}catch(e){}document.querySelectorAll('#panel-livebuilder [data-lbdev]').forEach(function(b){b.classList.toggle('on',b.dataset.lbdev===d)})}
+  /* Geräte-Vorschau: Die Seite wird in der echten Breite des Geräts gerechnet (Desktop 1280, Tablet 768, Mobil 390) und passend verkleinert,
+     damit auch bei schmalem Vorschaufenster das Layout des gewählten Geräts erscheint (Media-Queries greifen). Auf Handy-Bildschirmen (unter 900 px) bleibt „Desktop“ unskaliert. */
+  var DEVW={desktop:1280,tablet:768,mobile:390};
+  function fit(){
+    var f=frame();if(!f||!f.parentNode)return;var st=f.parentNode,sw=st.clientWidth,sh=st.clientHeight;if(!sw||!sh)return;
+    var W=DEVW[f.dataset.dev]||DEVW.desktop;if(f.dataset.dev==='desktop'&&window.innerWidth<900)W=sw;
+    var sc=Math.min(1,sw/W);
+    f.style.width=W+'px';f.style.height=Math.round(sh/sc)+'px';f.style.flex='none';
+    f.style.transformOrigin='0 0';f.style.transform=sc<1?'scale('+sc.toFixed(4)+')':'';
+    f.style.marginLeft=Math.max(0,Math.round((sw-W*sc)/2))+'px';
+  }
+  var fitT=0;function fitSoon(){cancelAnimationFrame(fitT);fitT=requestAnimationFrame(fit)}
+  function device(d){var f=frame();f.dataset.dev=d;fitSoon();try{document.dispatchEvent(new CustomEvent('ep-device',{detail:d}))}catch(e){}document.querySelectorAll('#panel-livebuilder [data-lbdev]').forEach(function(b){b.classList.toggle('on',b.dataset.lbdev===d)})}
   function customizer(){
     var go=function(){if(window.cmsTab)cmsTab('themes',document.querySelector('.tab[data-tab="themes"]'));if(window.DesignHub&&DesignHub.load)DesignHub.load();
       Promise.resolve(window.WpThemes&&WpThemes.load&&WpThemes.load()).then(function(){if(WpThemes.customizeSlug)WpThemes.customizeSlug('elvado-baukasten')}).catch(function(){})};
@@ -473,6 +486,7 @@
     var root=$('panel-livebuilder');if(!root||root.dataset.bound)return;root.dataset.bound='1';bridge.token=rnd();
     root.addEventListener('click',onClick);root.addEventListener('input',onInput);root.addEventListener('change',onInput);
     window.addEventListener('message',onMessage);
+    window.addEventListener('resize',fitSoon);try{if(window.ResizeObserver&&frame())new ResizeObserver(fitSoon).observe(frame().parentNode)}catch(e){}fitSoon();
     var dl=$('lbDetList');if(dl){dl.addEventListener('mouseover',detHover);dl.addEventListener('mouseleave',function(){toFrame({type:'hl',sel:''})})}
     var f=frame();if(f)f.addEventListener('load',function(){setTimeout(function(){if(!bridge.ready)init()},200)});   // falls „hello“ vor dem Zuhören kam
     document.addEventListener('click',function(e){if(!e.target.closest('.lb-more'))pop()});
@@ -488,6 +502,7 @@
       from.list.splice(from.idx,1);var tl=locate(s.dataset.id);tl.list.splice(tl.idx,0,from.node);changed();draw();
     });
     window.addEventListener('beforeunload',function(e){if(dirty){e.preventDefault();e.returnValue=''}});
+    document.addEventListener('visibilitychange',function(){if(document.hidden&&dirty&&!saving)saveDraft()});   /* Tab verlassen oder Handy sperren: offene Änderungen sofort sichern */
   }
   window.LiveBuilder={device:function(d){device(d)},load:function(){bind();load()},publish:publish,saveDraft:saveDraft};
   document.addEventListener('keydown',function(e){

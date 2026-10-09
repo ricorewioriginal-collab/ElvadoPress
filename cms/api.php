@@ -1221,7 +1221,7 @@ if(str_starts_with($action,'wp_')){
         $shareUrl=function(string $id) use($czSlug,$sbxQ){ return '/?'.$sbxQ.'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($czSlug,null,7*86400)).'&elvado_wp_draft='.$id; };
         if($action==='wp_theme_customize'){
             $cs=elvado_wpc_cs_latest($czSlug);$id=$cs?(string)$cs['id']:elvado_wpc_new_id();
-            $finish(['status'=>'ok']+elvado_wpc_describe($czSlug)+['draft'=>$id,'url'=>$prevUrl($id),'active'=>$wpThemes()['active']===$czSlug,'front'=>is_file(ELVADO_WP_DATA.'/front-on'),
+            $finish(['status'=>'ok']+elvado_wpc_describe($czSlug)+['draft'=>$id,'url'=>$prevUrl($id),'active'=>(is_file(ELVADO_WP_DATA.'/front-on')?elvado_wpc_real_option('stylesheet'):'')===$czSlug,'front'=>is_file(ELVADO_WP_DATA.'/front-on'),
                 'changeset'=>$cs?['id'=>$id,'status'=>$cs['status'],'date'=>(int)$cs['date'],'values'=>$cs['values']??new stdClass,'share'=>$shareUrl($id)]:null]);
         }
         if($action==='wp_theme_customize_changeset'){
@@ -1254,7 +1254,7 @@ if(str_starts_with($action,'wp_')){
         $bkSt=elvado_bk_store();
         $bkOut=function(array $layout) use($wpThemes,$bkSt){ $t=$wpThemes();$st=$bkSt->get('home');
             return ['status'=>'ok','layout'=>$layout,'custom'=>elvado_bk_saved_layout()!==null,'draft'=>$st['draft']!==null,'publish_at'=>(string)($st['draft']['publish_at']??''),'revisions'=>$bkSt->revisions('home'),'schema'=>elvado_bk_schema(),
-                'active'=>$t['front']&&(string)get_option('template','')==='elvado-baukasten'||$t['active']==='elvado-baukasten'];};
+                'active'=>$t['front']&&(elvado_wpc_real_option('template')==='elvado-baukasten'||elvado_wpc_real_option('stylesheet')==='elvado-baukasten')];};
         if($action==='wp_bk_get'){ $d=elvado_bk_draft_layout();elvado_json($bkOut($d!==null?$d:elvado_bk_active_layout())+['published'=>elvado_bk_active_layout()]); }
         if($action==='wp_bk_revisions'){ elvado_json(['status'=>'ok','revisions'=>$bkSt->revisions('home')]); }
         if($action==='wp_bk_draft'){

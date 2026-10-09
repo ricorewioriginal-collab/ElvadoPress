@@ -109,6 +109,11 @@ $bk=api($base,'np_call',['id'=>'elvado-backup','call'=>'overview','args'=>[]],$t
 t('Backup-Plugin liefert Übersicht',isset($bk['blocks']),json_encode($bk));
 
 // ---------- Konsistenz der Navigation
+$c1=api($base,'wp_theme_customize',['slug'=>'elvado-baukasten'],$tok);$c2=api($base,'wp_theme_customize',['slug'=>'elvado-classic'],$tok);$k1=api($base,'wp_bk_get',[],$tok);
+t('Customizer/Live Builder: ein nur bearbeitetes Theme gilt nicht als aktiv (sonst „veröffentlicht“, obwohl die Website ein anderes Theme zeigt)',($c1['active']??null)===false&&($c2['active']??null)===true&&($k1['active']??null)===false,json_encode([$c1['active']??null,$c2['active']??null,$k1['active']??null]));
+api($base,'wp_theme_activate',['slug'=>'elvado-baukasten'],$tok);$c3=api($base,'wp_theme_customize',['slug'=>'elvado-baukasten'],$tok);$k2=api($base,'wp_bk_get',[],$tok);
+t('Customizer/Live Builder: nach dem Aktivieren gilt das Theme als aktiv',($c3['active']??null)===true&&($k2['active']??null)===true,json_encode([$c3['active']??null,$k2['active']??null]));
+api($base,'wp_theme_activate',['slug'=>'elvado-classic'],$tok);
 [$stNo]=http('GET',$base.'/cms/api.php?action=admin_links_get');
 t('Eigene Menülinks: ohne Anmeldung nicht lesbar',$stNo===401,"HTTP $stNo");
 $lk=api($base,'admin_links_save',['links'=>[['label'=>'Statistik','url'=>'https://stats.example.org/','icon'=>'chart-line','mode'=>'frame'],['label'=>'Hilfe','url'=>'/hilfe/','mode'=>'new']]],$tok);
