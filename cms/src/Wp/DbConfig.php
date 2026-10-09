@@ -108,7 +108,7 @@ final class DbConfig
     /** Kennung der Website dieser Anfrage ('' = Hauptwebsite; Multisite, lib/sites.php). */
     private function siteId(): string
     {
-        return function_exists('rrw_site_current') ? rrw_site_current() : '';
+        return function_exists('elvado_site_current') ? elvado_site_current() : '';
     }
 
     /** Standard-Präfix: Hauptwebsite „wpk_“, weitere Websites ein eigenes, aus der Kennung abgeleitetes (z. B. „wpk3fa91c_“) – gleiche Datenbank, getrennte Tabellen. */
@@ -121,10 +121,10 @@ final class DbConfig
     /** Die Verbindung gehört dem ganzen CMS: weitere Websites nutzen die Datei der Hauptwebsite. */
     public function sharedFile(): string
     {
-        if (defined('RRW_DB_CONFIG_FILE')) {
-            return (string)RRW_DB_CONFIG_FILE;
+        if (defined('ELVADO_DB_CONFIG_FILE')) {
+            return (string)ELVADO_DB_CONFIG_FILE;
         }
-        return ($this->siteId() !== '' ? rrw_sites_base() . '/data' : dirname($this->engine->stateDir())) . '/database.local.php';
+        return ($this->siteId() !== '' ? elvado_sites_base() . '/data' : dirname($this->engine->stateDir())) . '/database.local.php';
     }
 
     /** Gemeinsame Datenbank-Einstellungen des CMS (nur MySQL/MariaDB). @return array{host:string,name:string,user:string,pass:string,cms_prefix:string}|null */
@@ -168,13 +168,13 @@ final class DbConfig
         if ($sh !== null && strcasecmp($sh['cms_prefix'], $prefix) === 0) {
             return 'Das Tabellenpräfix „' . $prefix . '“ nutzt schon die WordPress-Schicht des CMS in dieser Datenbank. Bitte ein anderes wählen (Vorschlag: ' . $this->defaultPrefix() . ').';
         }
-        if (function_exists('rrw_sites_registry')) {   // andere Websites derselben Datenbank
+        if (function_exists('elvado_sites_registry')) {   // andere Websites derselben Datenbank
             $me = $this->siteId();
-            foreach (array_merge([''], array_column(rrw_sites_registry(), 'id')) as $id) {
+            foreach (array_merge([''], array_column(elvado_sites_registry(), 'id')) as $id) {
                 if ($id === $me) {
                     continue;
                 }
-                $f = rrw_site_dir('data', $id) . '/.wp-engine/db.json';
+                $f = elvado_site_dir('data', $id) . '/.wp-engine/db.json';
                 $d = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
                 if (is_array($d) && strcasecmp((string)($d['prefix'] ?? ''), $prefix) === 0) {
                     return 'Das Tabellenpräfix „' . $prefix . '“ nutzt schon die WordPress-Engine einer anderen Website in dieser Datenbank. Bitte ein anderes wählen (Vorschlag: ' . $this->defaultPrefix() . ').';
@@ -264,7 +264,7 @@ final class DbConfig
         if ($c = $this->prefixConflict($v['cfg']['prefix'])) {
             throw new \RuntimeException($c);
         }
-        if ($this->shared() === null && defined('RRW_DEMO')) {   // Demo: eigene, abgeschottete Verbindung wie bisher (die Demo räumt ihre Tabellen selbst auf)
+        if ($this->shared() === null && defined('ELVADO_DEMO')) {   // Demo: eigene, abgeschottete Verbindung wie bisher (die Demo räumt ihre Tabellen selbst auf)
             $this->engine->protect();
             $f = $this->engine->stateDir() . '/db.json';
             $tmp = $f . '.' . bin2hex(random_bytes(4)) . '.tmp';

@@ -245,9 +245,9 @@ if(!function_exists('wp_init_targeted_link_rel_filters')){
 if(!function_exists('wp_remove_targeted_link_rel_filters')){
     function wp_remove_targeted_link_rel_filters() { foreach(['title_save_pre','content_save_pre','excerpt_save_pre','content_filtered_save_pre','pre_comment_content','pre_term_description','pre_link_description','pre_link_notes','pre_user_description'] as $f)remove_filter($f,'wp_targeted_link_rel'); }
 }
-if(!function_exists('rrw_ext_absolute_url')){
+if(!function_exists('elvado_ext_absolute_url')){
     /** Relative Adresse gegen eine Basisadresse auflösen (RFC-3986, vereinfacht). */
-    function rrw_ext_absolute_url($rel, $base) {
+    function elvado_ext_absolute_url($rel, $base) {
         $rel=(string)$rel;if($rel===''||preg_match('#^[a-z][a-z0-9+.\-]*:#i',$rel))return $rel;
         $b=parse_url((string)$base);if(!$b||empty($b['host']))return $rel;
         $root=($b['scheme']??'http').'://'.$b['host'].(isset($b['port'])?':'.$b['port']:'');
@@ -262,7 +262,7 @@ if(!function_exists('rrw_ext_absolute_url')){
 if(!function_exists('_links_add_base')){
     function _links_add_base($m) {
         global $_links_add_base;
-        return $m[1].'='.$m[2].((preg_match('#^(\w{1,20}):#',$m[3],$p)&&in_array($p[1],wp_allowed_protocols(),true))?$m[3]:rrw_ext_absolute_url($m[3],$_links_add_base)).$m[2];
+        return $m[1].'='.$m[2].((preg_match('#^(\w{1,20}):#',$m[3],$p)&&in_array($p[1],wp_allowed_protocols(),true))?$m[3]:elvado_ext_absolute_url($m[3],$_links_add_base)).$m[2];
     }
 }
 if(!function_exists('links_add_base_url')){

@@ -14,7 +14,7 @@ function path_join($base, $path) { return preg_match('#^/|^[a-z]:[\\\\/]#i',(str
 function wp_basename($path, $suffix='') { return urldecode(basename(str_replace(['%2F','%5C'],'/',urlencode((string)$path)),$suffix)); }
 function current_datetime() { return new DateTimeImmutable('now',wp_timezone()); }
 function wp_get_current_commenter() { return ['comment_author'=>'','comment_author_email'=>'','comment_author_url'=>'']; }
-function get_current_screen() { return $GLOBALS['rrw_wp_screen']??null; }
+function get_current_screen() { return $GLOBALS['elvado_wp_screen']??null; }
 function get_admin_page_title() { return (string)($GLOBALS['title']??''); }
 function self_admin_url($path='', $scheme='admin') { return admin_url($path,$scheme); }
 function network_admin_url($path='', $scheme='admin') { return admin_url($path,$scheme); }
@@ -43,22 +43,22 @@ function request_filesystem_credentials($form_post, $type='', $error=false, $con
 function WP_Filesystem($args=false, $context=false, $allow_relaxed_file_ownership=false) { if(class_exists('WP_Filesystem_Direct'))$GLOBALS['wp_filesystem']=new WP_Filesystem_Direct();return true; }
 
 /* Einstellungs-API */
-$GLOBALS['rrw_wp_settings']=$GLOBALS['rrw_wp_settings']??['registered'=>[],'sections'=>[],'fields'=>[]];
+$GLOBALS['elvado_wp_settings']=$GLOBALS['elvado_wp_settings']??['registered'=>[],'sections'=>[],'fields'=>[]];
 function register_setting($option_group, $option_name, $args=[]) {
     if(is_callable($args))$args=['sanitize_callback'=>$args];
-    $GLOBALS['rrw_wp_settings']['registered'][$option_group][$option_name]=$args;
+    $GLOBALS['elvado_wp_settings']['registered'][$option_group][$option_name]=$args;
     if(!empty($args['sanitize_callback']))add_filter("sanitize_option_{$option_name}",$args['sanitize_callback'],10,3);
     if(is_array($args)&&array_key_exists('default',$args))add_filter("default_option_{$option_name}",fn($d)=>$args['default']);
 }
-function unregister_setting($option_group, $option_name, $deprecated='') { unset($GLOBALS['rrw_wp_settings']['registered'][$option_group][$option_name]); }
-function get_registered_settings() { $o=[];foreach($GLOBALS['rrw_wp_settings']['registered'] as $g=>$s)foreach($s as $n=>$a)$o[$n]=$a;return $o; }
-function add_settings_section($id, $title, $callback, $page, $args=[]) { $GLOBALS['rrw_wp_settings']['sections'][$page][$id]=['id'=>$id,'title'=>$title,'callback'=>$callback]; }
-function add_settings_field($id, $title, $callback, $page, $section='default', $args=[]) { $GLOBALS['rrw_wp_settings']['fields'][$page][$section][$id]=['id'=>$id,'title'=>$title,'callback'=>$callback,'args'=>$args]; }
+function unregister_setting($option_group, $option_name, $deprecated='') { unset($GLOBALS['elvado_wp_settings']['registered'][$option_group][$option_name]); }
+function get_registered_settings() { $o=[];foreach($GLOBALS['elvado_wp_settings']['registered'] as $g=>$s)foreach($s as $n=>$a)$o[$n]=$a;return $o; }
+function add_settings_section($id, $title, $callback, $page, $args=[]) { $GLOBALS['elvado_wp_settings']['sections'][$page][$id]=['id'=>$id,'title'=>$title,'callback'=>$callback]; }
+function add_settings_field($id, $title, $callback, $page, $section='default', $args=[]) { $GLOBALS['elvado_wp_settings']['fields'][$page][$section][$id]=['id'=>$id,'title'=>$title,'callback'=>$callback,'args'=>$args]; }
 function settings_fields($option_group) {
     echo "<input type='hidden' name='option_page' value='".esc_attr($option_group)."' />";echo '<input type="hidden" name="action" value="update" />';wp_nonce_field("{$option_group}-options");
 }
 function do_settings_sections($page) {
-    $s=$GLOBALS['rrw_wp_settings'];if(!isset($s['sections'][$page]))return;
+    $s=$GLOBALS['elvado_wp_settings'];if(!isset($s['sections'][$page]))return;
     foreach($s['sections'][$page] as $sec){
         if($sec['title'])echo "<h2>{$sec['title']}</h2>\n";
         if($sec['callback'])call_user_func($sec['callback'],$sec);
@@ -67,7 +67,7 @@ function do_settings_sections($page) {
     }
 }
 function do_settings_fields($page, $section) {
-    $s=$GLOBALS['rrw_wp_settings'];if(!isset($s['fields'][$page][$section]))return;
+    $s=$GLOBALS['elvado_wp_settings'];if(!isset($s['fields'][$page][$section]))return;
     foreach($s['fields'][$page][$section] as $f){
         echo '<tr><th scope="row">'.($f['args']['label_for']??false?'<label for="'.esc_attr($f['args']['label_for']).'">'.$f['title'].'</label>':$f['title']).'</th><td>';
         call_user_func($f['callback'],$f['args']);echo '</td></tr>';
@@ -79,10 +79,10 @@ function submit_button($text=null, $type='primary', $name='submit', $wrap=true, 
     echo $wrap?'<p class="submit">'.$b.'</p>':$b;
 }
 /** Speichern von options.php-Formularen (Einstellungs-API): nur registrierte Optionen der angegebenen Gruppe. */
-function rrw_wp_save_settings(array $post): array|WP_Error {
+function elvado_wp_save_settings(array $post): array|WP_Error {
     $group=(string)($post['option_page']??'');if($group==='')return new WP_Error('no_group','Keine Optionsgruppe.');
     if(!wp_verify_nonce($post['_wpnonce']??'',"{$group}-options"))return new WP_Error('nonce','Der Sicherheitscode ist abgelaufen – bitte Seite neu laden.');
-    $reg=$GLOBALS['rrw_wp_settings']['registered'][$group]??null;if(!$reg)return new WP_Error('unknown_group','Unbekannte Optionsgruppe.');
+    $reg=$GLOBALS['elvado_wp_settings']['registered'][$group]??null;if(!$reg)return new WP_Error('unknown_group','Unbekannte Optionsgruppe.');
     $saved=[];
     foreach($reg as $name=>$args){
         $val=$post[$name]??null;

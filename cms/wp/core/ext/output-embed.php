@@ -2,11 +2,11 @@
 // Ergänzende Einbettungs-Funktionen (Bereich Ausgabe): oEmbed-Anbieterliste, eigene Beiträge als oEmbed-Antwort, Einbettungs-Vorlage (Embed-Ausgaben).
 // Es gibt keinen Netzzugriff beim Einbetten fremder Dienste; YouTube-Adressen und Audio/Video-Dateien werden lokal in HTML umgesetzt.
 
-if(!function_exists('rrw_ext_oembed_providers')){
+if(!function_exists('elvado_ext_oembed_providers')){
     /** Anbieterliste (Format ⇒ [Endpunkt, regex?]); wird erst beim ersten Zugriff aufgebaut. */
-    function &rrw_ext_oembed_providers() {
-        if(!isset($GLOBALS['rrw_wp_oembed_providers'])){
-            $GLOBALS['rrw_wp_oembed_providers']=[
+    function &elvado_ext_oembed_providers() {
+        if(!isset($GLOBALS['elvado_wp_oembed_providers'])){
+            $GLOBALS['elvado_wp_oembed_providers']=[
                 '#https?://((m|www)\.)?youtube\.com/watch.*#i'=>['https://www.youtube.com/oembed',true],'#https?://((m|www)\.)?youtube\.com/playlist.*#i'=>['https://www.youtube.com/oembed',true],'#https?://youtu\.be/.*#i'=>['https://www.youtube.com/oembed',true],
                 '#https?://(.+\.)?vimeo\.com/.*#i'=>['https://vimeo.com/api/oembed.{format}',true],'#https?://(www\.)?dailymotion\.com/.*#i'=>['https://www.dailymotion.com/services/oembed',true],
                 '#https?://(www\.)?flickr\.com/.*#i'=>['https://www.flickr.com/services/oembed/',true],'#https?://(.+\.)?soundcloud\.com/.*#i'=>['https://soundcloud.com/oembed',true],
@@ -18,17 +18,17 @@ if(!function_exists('rrw_ext_oembed_providers')){
                 '#https?://(www\.)?scribd\.com/doc/.*#i'=>['https://www.scribd.com/services/oembed',true],'#https?://(www\.)?issuu\.com/.+/docs/.*#i'=>['https://issuu.com/oembed_wp',true],
             ];
         }
-        return $GLOBALS['rrw_wp_oembed_providers'];
+        return $GLOBALS['elvado_wp_oembed_providers'];
     }
 }
 if(!function_exists('wp_oembed_add_provider')){
     /** Anbieter hinzufügen: $format mit * als Platzhalter (oder Regex, wenn $regex true), $provider = Endpunkt. */
-    function wp_oembed_add_provider($format, $provider, $regex=false) { $p=&rrw_ext_oembed_providers();$p[$format]=[$provider,(bool)$regex]; }
+    function wp_oembed_add_provider($format, $provider, $regex=false) { $p=&elvado_ext_oembed_providers();$p[$format]=[$provider,(bool)$regex]; }
 }
-if(!function_exists('rrw_ext_oembed_provider_for')){
+if(!function_exists('elvado_ext_oembed_provider_for')){
     /** Endpunkt des ersten passenden Anbieters für eine Adresse (oder false). */
-    function rrw_ext_oembed_provider_for($url) {
-        foreach(rrw_ext_oembed_providers() as $mask=>[$endpoint,$regex]){
+    function elvado_ext_oembed_provider_for($url) {
+        foreach(elvado_ext_oembed_providers() as $mask=>[$endpoint,$regex]){
             $re=$regex?$mask:'#'.str_replace('___w___','(.+)',preg_quote(str_replace('*','___w___',$mask),'#')).'#i';
             if(@preg_match($re,(string)$url))return $endpoint;
         }
@@ -36,7 +36,7 @@ if(!function_exists('rrw_ext_oembed_provider_for')){
     }
 }
 if(!function_exists('wp_oembed_remove_provider')){
-    function wp_oembed_remove_provider($format) { $p=&rrw_ext_oembed_providers();if(isset($p[$format])){ unset($p[$format]);return true; }return false; }
+    function wp_oembed_remove_provider($format) { $p=&elvado_ext_oembed_providers();if(isset($p[$format])){ unset($p[$format]);return true; }return false; }
 }
 if(!function_exists('wp_maybe_load_embeds')){
     function wp_maybe_load_embeds() {

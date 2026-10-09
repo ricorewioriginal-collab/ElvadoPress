@@ -91,7 +91,7 @@ if(!function_exists('avoid_blog_page_permalink_collision')){
 if(!function_exists('choose_primary_blog')){
     function choose_primary_blog() {
         $blogs=get_blogs_of_user(get_current_user_id());
-        if(!$blogs&&is_user_logged_in())$blogs=[1=>(object)['userblog_id'=>1,'domain'=>rrw_ms_site_row()['domain'],'path'=>rrw_ms_site_row()['path']]];   // angemeldet ohne Eintrag in wp_users: die eine Site
+        if(!$blogs&&is_user_logged_in())$blogs=[1=>(object)['userblog_id'=>1,'domain'=>elvado_ms_site_row()['domain'],'path'=>elvado_ms_site_row()['path']]];   // angemeldet ohne Eintrag in wp_users: die eine Site
         echo '<table class="form-table" role="presentation"><tr><th scope="row">'.esc_html__('Primary Site').'</th><td>';
         if(count($blogs)<=1){ $b=reset($blogs);if($b)echo '<span>'.esc_html($b->domain.$b->path).'</span>'; }
         else{ echo '<select name="primary_blog" id="primary_blog">';foreach($blogs as $b)echo '<option value="'.(int)$b->userblog_id.'">'.esc_html($b->domain.$b->path).'</option>';echo '</select>'; }
@@ -197,7 +197,7 @@ if(!function_exists('allow_subdirectory_install')){
     function allow_subdirectory_install() {
         global $wpdb;
         if(apply_filters('allow_subdirectory_install',false)||(defined('ALLOW_SUBDIRECTORY_INSTALL')&&ALLOW_SUBDIRECTORY_INSTALL))return true;
-        if(!rrw_wp_db_ready())return true;
+        if(!elvado_wp_db_ready())return true;
         $post=$wpdb->get_row($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_date < %s AND post_status = 'publish' LIMIT 1",gmdate('Y-m-d H:i:s',strtotime('-1 month'))));
         return empty($post);
     }
@@ -230,7 +230,7 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
     public function __construct($args=[]) { parent::__construct(['plural'=>'sites','singular'=>'site','screen'=>$args['screen']??'sites-network']); }
     public function ajax_user_can() { return current_user_can('manage_sites'); }
     public function prepare_items() {
-        $s=trim((string)($_REQUEST['s']??''));$row=rrw_ms_site_row();$row['users']=function_exists('get_user_count')&&get_user_count()>=0?get_user_count():count(get_users(['fields'=>'ids']));
+        $s=trim((string)($_REQUEST['s']??''));$row=elvado_ms_site_row();$row['users']=function_exists('get_user_count')&&get_user_count()>=0?get_user_count():count(get_users(['fields'=>'ids']));
         $this->items=($s===''||stripos($row['domain'].$row['path'],$s)!==false)?[$row]:[];
         $this->set_pagination_args(['total_items'=>count($this->items),'per_page'=>20]);
     }
@@ -289,15 +289,15 @@ class WP_Terms_List_Table extends WP_List_Table {
         $tax=(string)($GLOBALS['taxonomy']??($_REQUEST['taxonomy']??'post_tag'));$GLOBALS['taxonomy']=$tax;
         parent::__construct(['plural'=>'tags','singular'=>'tag','screen'=>$args['screen']??'edit-tags']);
     }
-    protected function rrw_tax(): string { return (string)($GLOBALS['taxonomy']??'post_tag'); }
-    public function ajax_user_can() { $t=get_taxonomy($this->rrw_tax());return $t&&current_user_can($t->cap->manage_terms??'manage_categories'); }
+    protected function elvado_tax(): string { return (string)($GLOBALS['taxonomy']??'post_tag'); }
+    public function ajax_user_can() { $t=get_taxonomy($this->elvado_tax());return $t&&current_user_can($t->cap->manage_terms??'manage_categories'); }
     public function prepare_items() {
         $per=20;$paged=$this->get_pagenum();$s=trim((string)($_REQUEST['s']??''));
-        $all=get_terms(['taxonomy'=>$this->rrw_tax(),'hide_empty'=>false,'search'=>$s]);
+        $all=get_terms(['taxonomy'=>$this->elvado_tax(),'hide_empty'=>false,'search'=>$s]);
         $all=is_array($all)?$all:[];$this->items=array_slice($all,($paged-1)*$per,$per);
         $this->set_pagination_args(['total_items'=>count($all),'per_page'=>$per]);
     }
-    public function get_columns() { return apply_filters('manage_'.$this->rrw_tax().'_columns',['cb'=>'<input type="checkbox" />','name'=>_x('Name','term name'),'description'=>__('Description'),'slug'=>__('Slug'),'posts'=>_x('Count','Number/count of items')]); }
+    public function get_columns() { return apply_filters('manage_'.$this->elvado_tax().'_columns',['cb'=>'<input type="checkbox" />','name'=>_x('Name','term name'),'description'=>__('Description'),'slug'=>__('Slug'),'posts'=>_x('Count','Number/count of items')]); }
     public function get_sortable_columns() { return ['name'=>'name','description'=>'description','slug'=>'slug','posts'=>'count']; }
     protected function get_default_primary_column_name() { return 'name'; }
     public function column_cb($term) { echo '<input type="checkbox" name="delete_tags[]" value="'.(int)$term->term_id.'" />'; }
@@ -305,6 +305,6 @@ class WP_Terms_List_Table extends WP_List_Table {
     public function column_description($term) { echo $term->description?esc_html((string)$term->description):'<span aria-hidden="true">&#8212;</span>'; }
     public function column_slug($term) { echo esc_html((string)$term->slug); }
     public function column_posts($term) { echo (int)$term->count; }
-    public function column_default($term,$column_name) { return (string)apply_filters('manage_'.$this->rrw_tax().'_custom_column','',$column_name,$term->term_id); }
+    public function column_default($term,$column_name) { return (string)apply_filters('manage_'.$this->elvado_tax().'_custom_column','',$column_name,$term->term_id); }
 }
 }

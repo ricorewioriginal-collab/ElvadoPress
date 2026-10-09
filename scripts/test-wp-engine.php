@@ -152,7 +152,7 @@ t('Kaputte Daten stören nicht', (function () use ($cms) { file_put_contents("$c
 
 // 8) Der Engine-Standard verändert nichts an einer ElvadoPress-Anfrage
 $api = (string)file_get_contents(__DIR__ . '/../cms/engine-api.php');
-t('engine-api verweigert Gäste und beschränkt Nicht-Administratoren auf Inhalte/Medien', str_contains($api, 'rrw_auth(false)') && str_contains($api, '!$rrwActor->isAdmin() && !in_array($rrwEngineAction, [') && !preg_match("/'engine_[a-z_]+'.*'content_list'/", (string)preg_replace('/\n/', ' ', substr($api, (int)strpos($api, '!$rrwActor->isAdmin()'), 400))));
+t('engine-api verweigert Gäste und beschränkt Nicht-Administratoren auf Inhalte/Medien', str_contains($api, 'elvado_auth(false)') && str_contains($api, '!$elvadoActor->isAdmin() && !in_array($elvadoEngineAction, [') && !preg_match("/'engine_[a-z_]+'.*'content_list'/", (string)preg_replace('/\n/', ' ', substr($api, (int)strpos($api, '!$elvadoActor->isAdmin()'), 400))));
 t('Demo sperrt Schreib-Aktionen', (bool)preg_match('/demo/i', (string)file_get_contents(__DIR__ . '/../cms/engine-api.php')));
 
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";

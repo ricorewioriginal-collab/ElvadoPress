@@ -9,7 +9,7 @@ require_once $root.'/cms/lib/pack.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function rmrf(string $d): void { if(!is_dir($d))return; foreach(scandir($d) as $f){if($f==='.'||$f==='..')continue;$p=$d.'/'.$f;is_dir($p)&&!is_link($p)?rmrf($p):@unlink($p);} @rmdir($d); }
-$tmp=sys_get_temp_dir().'/rrw-sab-'.bin2hex(random_bytes(4));mkdir($tmp);$pkg=$tmp.'/pkg';$proc=null;
+$tmp=sys_get_temp_dir().'/elvado-sab-'.bin2hex(random_bytes(4));mkdir($tmp);$pkg=$tmp.'/pkg';$proc=null;
 register_shutdown_function(function() use($tmp,&$proc){ if(is_resource($proc))proc_terminate($proc);rmrf($tmp); });
 
 /* Bauen (im Paket-Modus: das Paket in einen Arbeitsordner kopieren, damit die Installation das Original nicht verändert) */
@@ -27,9 +27,9 @@ t('ZIP erzeugt',is_file($tmp.'/cms.zip')&&filesize($tmp.'/cms.zip')>100000);
 }
 
 /* Inhalt */
-t('Nur neutrale Themes im Paket (kein Portal-Design)',array_values(array_diff(scandir($pkg.'/cms/themes'),['.','..']))===['elvado-band','elvado-baukasten','elvado-creator','rrw-classic']);
+t('Nur neutrale Themes im Paket (kein Portal-Design)',array_values(array_diff(scandir($pkg.'/cms/themes'),['.','..']))===['elvado-band','elvado-baukasten','elvado-classic','elvado-creator']);
 foreach(['index.html','news.html','sender.html','assets','android','windows-native','alexa','brands','downloads','app-screenshots','cms/lib/alexa-skill/lambda/node_modules','cms/standalone','cms/content/pages/partner','cms/docs/BRANDS.md','cms/docs/PARTNER.md'] as $x)t("Fehlt im Paket: $x",!file_exists("$pkg/$x"));
-foreach(['index.php','.htaccess','INSTALL.md','cms/api.php','cms/install.php','cms/wp-front.php','cms/lib/pack.php','cms/themes/rrw-classic/style.css','cms/data/.htaccess'] as $x)t("Im Paket: $x",file_exists("$pkg/$x"));
+foreach(['index.php','.htaccess','INSTALL.md','cms/api.php','cms/install.php','cms/wp-front.php','cms/lib/pack.php','cms/themes/elvado-classic/style.css','cms/data/.htaccess'] as $x)t("Im Paket: $x",file_exists("$pkg/$x"));
 t('Datenordner leer (nur Schutzdateien)',(function() use($pkg){ foreach(scandir($pkg.'/cms/data') as $f)if($f!=='.'&&$f!=='..'&&$f!=='.htaccess'&&!str_ends_with($f,'.example'))return false;return true; })());
 $bad=0;$it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pkg,FilesystemIterator::SKIP_DOTS));
 foreach($it as $f)if($f->getExtension()==='php'){ exec('php -l '.escapeshellarg($f->getPathname()).' 2>&1',$o2,$r2);if($r2!==0){$bad++;echo "Syntaxfehler: ".$f->getPathname()."\n";} }
@@ -61,7 +61,7 @@ t('Einrichtung abgeschlossen',$r['code']===200&&(stripos($r['body'],'abgeschloss
 t('Sperrdatei vorhanden',is_file($pkg.'/cms/data/install.lock'));
 t('Neutrales Theme eingeschaltet',is_file($pkg.'/cms/data/.wp/front-on'));
 $opts=json_decode((string)@file_get_contents($pkg.'/cms/data/.wp/options.json'),true)?:[];
-t('Theme „rrw-classic“ gewählt',isset($opts['stylesheet']['v'])&&@unserialize($opts['stylesheet']['v'])==='rrw-classic');
+t('Theme „elvado-classic“ gewählt',isset($opts['stylesheet']['v'])&&@unserialize($opts['stylesheet']['v'])==='elvado-classic');
 
 /* Website */
 $r=http('GET',"$B/");

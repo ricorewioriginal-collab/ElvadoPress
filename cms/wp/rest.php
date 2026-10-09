@@ -2,7 +2,7 @@
 // REST-API unter /wp-json/: Plugin-Routen (register_rest_route) und die wichtigsten Kernrouten (wp/v2/posts, pages, categories, tags).
 // Besucher gelten als nicht angemeldet; Routen mit permission_callback, der Rechte verlangt, antworten 401/403.
 
-function rrw_wp_rest_core_routes(): void {
+function elvado_wp_rest_core_routes(): void {
     $pub=['permission_callback'=>'__return_true'];
     $list=function(string $type){
         return function(WP_REST_Request $r) use($type){
@@ -10,7 +10,7 @@ function rrw_wp_rest_core_routes(): void {
             $args=['post_type'=>$type,'post_status'=>'publish','posts_per_page'=>$per,'paged'=>$page,'orderby'=>'date','order'=>strtolower((string)$r->get_param('order'))==='asc'?'ASC':'DESC'];
             if($s=(string)$r->get_param('search'))$args['s']=$s;
             if($sl=(string)$r->get_param('slug'))$args['name']=$sl;
-            $q=new WP_Query($args);$out=array_map('rrw_wp_rest_post',$q->posts);
+            $q=new WP_Query($args);$out=array_map('elvado_wp_rest_post',$q->posts);
             $res=new WP_REST_Response($out,200);$res->header('X-WP-Total',(string)$q->found_posts);$res->header('X-WP-TotalPages',(string)max(1,(int)$q->max_num_pages));
             return $res;
         };
@@ -19,7 +19,7 @@ function rrw_wp_rest_core_routes(): void {
         return function(WP_REST_Request $r) use($type){
             $p=get_post((int)$r->get_param('id'));
             if(!$p||$p->post_type!==$type||$p->post_status!=='publish')return new WP_Error('rest_post_invalid_id','Ungültige Beitrags-ID.',['status'=>404]);
-            return rrw_wp_rest_post($p);
+            return elvado_wp_rest_post($p);
         };
     };
     foreach(['posts'=>'post','pages'=>'page'] as $base=>$type){
@@ -47,13 +47,13 @@ function rrw_wp_rest_core_routes(): void {
             return array_map(fn($t)=>['id'=>(int)$t->term_id,'count'=>(int)$t->count,'description'=>(string)$t->description,'link'=>get_term_link($t),'name'=>$t->name,'slug'=>$t->slug,'taxonomy'=>$tax],$terms);
         }]+$pub);
     }
-    if(function_exists('rrw_wp_bridge_parts')&&rrw_wp_bridge_parts())rrw_wp_rest_bridge_routes();
+    if(function_exists('elvado_wp_bridge_parts')&&elvado_wp_bridge_parts())elvado_wp_rest_bridge_routes();
 }
 /**
  * Schreibende Routen (nur mit eingeschalteter Schreibbrücke): Beiträge/Seiten anlegen, ändern, löschen; Medien lesen und hochladen.
  * Die Daten landen über wp_insert_post & Co. in den CMS-Dateien bzw. der Medienbibliothek.
  */
-function rrw_wp_rest_bridge_routes(): void {
+function elvado_wp_rest_bridge_routes(): void {
     $fields=function(WP_REST_Request $r,string $type): array {
         $a=['post_type'=>$type];
         foreach(['title'=>'post_title','content'=>'post_content','excerpt'=>'post_excerpt','status'=>'post_status','slug'=>'post_name','date'=>'post_date','author'=>'post_author'] as $k=>$f){
@@ -71,38 +71,38 @@ function rrw_wp_rest_bridge_routes(): void {
         register_rest_route('wp/v2','/'.$base,['methods'=>'POST','permission_callback'=>$perm,'callback'=>function(WP_REST_Request $r) use($fields,$type){
             $a=$fields($r,$type);   // neue Beiträge → news.json, neue Seiten → Tabelle wp_posts
             $id=wp_insert_post($a,true);if(is_wp_error($id))return new WP_Error($id->get_error_code(),$id->get_error_message(),['status'=>400]);
-            return new WP_REST_Response(rrw_wp_rest_post(get_post($id)),201);
+            return new WP_REST_Response(elvado_wp_rest_post(get_post($id)),201);
         }]);
         register_rest_route('wp/v2','/'.$base.'/(?P<id>[\d]+)',['methods'=>'POST,PUT,PATCH','permission_callback'=>$perm,'callback'=>function(WP_REST_Request $r) use($fields,$type,$notFound){
             $id=(int)$r->get_param('id');$p=get_post($id);if(!$p||$p->post_type!==$type)return $notFound();
             $a=$fields($r,$type)+['ID'=>$id];$res=wp_update_post($a,true);if(is_wp_error($res))return new WP_Error($res->get_error_code(),$res->get_error_message(),['status'=>400]);
-            return rrw_wp_rest_post(get_post($id));
+            return elvado_wp_rest_post(get_post($id));
         }]);
         register_rest_route('wp/v2','/'.$base.'/(?P<id>[\d]+)',['methods'=>'DELETE','permission_callback'=>fn()=>current_user_can($cap),'callback'=>function(WP_REST_Request $r) use($type,$notFound){
             $id=(int)$r->get_param('id');$p=get_post($id);if(!$p||$p->post_type!==$type)return $notFound();
             $force=in_array($r->get_param('force'),[true,'true','1',1],true);
-            if($force){ $prev=rrw_wp_rest_post($p);$ok=wp_delete_post($id,true);if(!$ok)return new WP_Error('rest_cannot_delete','Der Eintrag lässt sich hier nicht endgültig löschen.',['status'=>501]);return ['deleted'=>true,'previous'=>$prev]; }
+            if($force){ $prev=elvado_wp_rest_post($p);$ok=wp_delete_post($id,true);if(!$ok)return new WP_Error('rest_cannot_delete','Der Eintrag lässt sich hier nicht endgültig löschen.',['status'=>501]);return ['deleted'=>true,'previous'=>$prev]; }
             $ok=wp_trash_post($id);if(!$ok)return new WP_Error('rest_cannot_delete','Der Eintrag lässt sich hier nicht in den Papierkorb legen.',['status'=>501]);
-            return rrw_wp_rest_post(get_post($id));
+            return elvado_wp_rest_post(get_post($id));
         }]);
     }
-    if(rrw_wp_bridge('media')){
+    if(elvado_wp_bridge('media')){
         $mediaPerm=fn()=>current_user_can('upload_files');
         register_rest_route('wp/v2','/media',['methods'=>'GET','permission_callback'=>'__return_true','callback'=>function(WP_REST_Request $r){
-            $per=max(1,min(100,(int)($r->get_param('per_page')?:10)));$page=max(1,(int)($r->get_param('page')?:1));$ids=array_keys(rrw_wp_cms_media_map());
-            $res=new WP_REST_Response(array_map('rrw_wp_cms_media_rest',array_slice($ids,($page-1)*$per,$per)),200);$res->header('X-WP-Total',(string)count($ids));$res->header('X-WP-TotalPages',(string)max(1,(int)ceil(count($ids)/$per)));return $res;
+            $per=max(1,min(100,(int)($r->get_param('per_page')?:10)));$page=max(1,(int)($r->get_param('page')?:1));$ids=array_keys(elvado_wp_cms_media_map());
+            $res=new WP_REST_Response(array_map('elvado_wp_cms_media_rest',array_slice($ids,($page-1)*$per,$per)),200);$res->header('X-WP-Total',(string)count($ids));$res->header('X-WP-TotalPages',(string)max(1,(int)ceil(count($ids)/$per)));return $res;
         }]);
         register_rest_route('wp/v2','/media/(?P<id>[\d]+)',['methods'=>'GET','permission_callback'=>'__return_true','callback'=>function(WP_REST_Request $r){
-            $id=(int)$r->get_param('id');return rrw_wp_cms_media_post($id)?rrw_wp_cms_media_rest($id):new WP_Error('rest_post_invalid_id','Ungültige Beitrags-ID.',['status'=>404]);
+            $id=(int)$r->get_param('id');return elvado_wp_cms_media_post($id)?elvado_wp_cms_media_rest($id):new WP_Error('rest_post_invalid_id','Ungültige Beitrags-ID.',['status'=>404]);
         }]);
         register_rest_route('wp/v2','/media',['methods'=>'POST','permission_callback'=>$mediaPerm,'callback'=>function(WP_REST_Request $r){
             $f=$_FILES['file']??null;if(!is_array($f))return new WP_Error('rest_upload_no_data','Keine Daten übermittelt.',['status'=>400]);
-            $id=rrw_wp_cms_media_store($f);if(is_wp_error($id))return $id;
-            return new WP_REST_Response(rrw_wp_cms_media_rest($id),201);
+            $id=elvado_wp_cms_media_store($f);if(is_wp_error($id))return $id;
+            return new WP_REST_Response(elvado_wp_cms_media_rest($id),201);
         }]);
     }
 }
-function rrw_wp_rest_post(WP_Post $p): array {
+function elvado_wp_rest_post(WP_Post $p): array {
     $old=$GLOBALS['post']??null;$GLOBALS['post']=$p;
     try{
         $content=apply_filters('the_content',$p->post_content);
@@ -119,13 +119,13 @@ function rrw_wp_rest_post(WP_Post $p): array {
 }
 
 /** Alle Routen mit Endpunkten (rest_api_init wird einmal ausgelöst). */
-function rrw_wp_rest_routes(): array {
+function elvado_wp_rest_routes(): array {
     static $init=false;
-    if(!$init){ $init=true;rrw_wp_rest_core_routes();do_action('rest_api_init'); }
-    return $GLOBALS['rrw_wp_rest_routes']??[];
+    if(!$init){ $init=true;elvado_wp_rest_core_routes();do_action('rest_api_init'); }
+    return $GLOBALS['elvado_wp_rest_routes']??[];
 }
 
-function rrw_wp_rest_arg_check(array $argDefs, WP_REST_Request $req): ?WP_Error {
+function elvado_wp_rest_arg_check(array $argDefs, WP_REST_Request $req): ?WP_Error {
     foreach($argDefs as $name=>$def){
         if(!is_array($def))continue;
         $has=$req->has_param($name);
@@ -154,15 +154,15 @@ function rrw_wp_rest_arg_check(array $argDefs, WP_REST_Request $req): ?WP_Error 
  * Eine REST-Anfrage ausführen. $route beginnt mit „/“ (z. B. /wp/v2/posts).
  * @return array{status:int,headers:array,body:string}
  */
-function rrw_wp_rest_dispatch(string $method, string $route, array $query=[], string $rawBody='', array $headers=[]): array {
+function elvado_wp_rest_dispatch(string $method, string $route, array $query=[], string $rawBody='', array $headers=[]): array {
     $method=strtoupper($method);$h=['Content-Type'=>'application/json; charset=UTF-8','X-Robots-Tag'=>'noindex','X-Content-Type-Options'=>'nosniff'];
     $json=fn($data,int $st,array $extra=[])=>['status'=>$st,'headers'=>$extra+$h,'body'=>(string)wp_json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)];
     $route='/'.trim($route,'/');
-    $routes=rrw_wp_rest_routes();
+    $routes=elvado_wp_rest_routes();
     if($route==='/')
         return $json(['name'=>get_bloginfo('name'),'description'=>get_bloginfo('description'),'url'=>home_url(),'home'=>home_url(),'namespaces'=>array_values(array_unique(array_map(fn($k)=>preg_match('#^/([^/]+(?:/v\d+)?)/#',$k.'/',$m)?$m[1]:trim($k,'/'),array_keys($routes)))),'routes'=>(object)array_map(fn($k)=>['namespace'=>explode('/',trim($k,'/'))[0],'_links'=>['self'=>[['href'=>rest_url(ltrim($k,'/'))]]]],array_combine(array_keys($routes),array_keys($routes)))],200);
     // Plugins laden Namespaces erst bei Bedarf (rest_pre_dispatch, z. B. WooCommerce wc-analytics)
-    try{ apply_filters('rest_pre_dispatch',null,rest_get_server(),new WP_REST_Request($method,$route));$routes=rrw_wp_rest_routes(); }catch(Throwable $e){ rrw_wp_log('REST pre_dispatch: '.$e->getMessage()); }
+    try{ apply_filters('rest_pre_dispatch',null,rest_get_server(),new WP_REST_Request($method,$route));$routes=elvado_wp_rest_routes(); }catch(Throwable $e){ elvado_wp_log('REST pre_dispatch: '.$e->getMessage()); }
     $match=null;$params=[];$allowed=[];
     foreach($routes as $key=>$eps){
         if(!@preg_match('#^'.str_replace('#','\#',$key).'/?$#i',$route,$m))continue;
@@ -197,7 +197,7 @@ function rrw_wp_rest_dispatch(string $method, string $route, array $query=[], st
     }
     if($rawBody===''&&!empty($_POST))$req->set_body_params(wp_unslash($_POST));   // Formularfelder (multipart/urlencoded)
     try{
-        $err=rrw_wp_rest_arg_check((array)($match['args']??[]),$req);
+        $err=elvado_wp_rest_arg_check((array)($match['args']??[]),$req);
         if(!$err&&isset($match['permission_callback'])){
             $ok=is_callable($match['permission_callback'])?call_user_func($match['permission_callback'],$req):false;
             if(is_wp_error($ok))$err=$ok;
@@ -207,8 +207,8 @@ function rrw_wp_rest_dispatch(string $method, string $route, array $query=[], st
         if(!is_callable($match['callback']??null))return $json(['code'=>'rest_invalid_handler','message'=>'Der Handler ist ungültig.','data'=>['status'=>500]],500);
         $res=call_user_func($match['callback'],$req);
         $res=apply_filters('rest_post_dispatch',$res,null,$req);
-    }catch(RRW_WP_Die $d){ return $json(['code'=>'rest_die','message'=>$d->getMessage(),'data'=>['status'=>$d->getCode()?:500]],$d->getCode()?:500);
-    }catch(Throwable $e){ rrw_wp_log('REST '.$route.': '.get_class($e).': '.$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')');return $json(['code'=>'internal_server_error','message'=>'Interner Fehler.','data'=>['status'=>500]],500); }
+    }catch(ELVADO_WP_Die $d){ return $json(['code'=>'rest_die','message'=>$d->getMessage(),'data'=>['status'=>$d->getCode()?:500]],$d->getCode()?:500);
+    }catch(Throwable $e){ elvado_wp_log('REST '.$route.': '.get_class($e).': '.$e->getMessage().' ('.basename($e->getFile()).':'.$e->getLine().')');return $json(['code'=>'internal_server_error','message'=>'Interner Fehler.','data'=>['status'=>500]],500); }
     if(is_wp_error($res)){ $st=(int)(((array)$res->get_error_data())['status']??500);return $json(['code'=>$res->get_error_code(),'message'=>$res->get_error_message(),'data'=>(array)$res->get_error_data()+['status'=>$st]],$st); }
     if($res instanceof WP_REST_Response){ return $json($res->get_data(),$res->get_status(),array_map('strval',$res->get_headers())); }
     return $json($res,200);

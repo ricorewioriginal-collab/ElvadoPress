@@ -2,14 +2,14 @@
 // Prüft die ergänzenden Block-/REST-Funktionen (cms/wp/core/ext/blocks-*.php): Schema-Prüfung, Routen, Hooks, Serialisierung, Vorlagen,
 // Block-Unterstützungen, Style-Engine, Muster, Bindungen. Aufruf: php scripts/test-wp-ext-blocks.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-extb-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';
-file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['RRW_SITE']=[];
+$tmp=sys_get_temp_dir().'/elvado-extb-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';
+file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['ELVADO_SITE']=[];
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
 
 // Vollständigkeit: alle Funktionen der Liste existieren (bewusst ausgelassen: keine)
 $names=preg_split('/\s+/',trim('
@@ -114,14 +114,14 @@ t('rest_get_route_for_taxonomy_items ohne show_in_rest leer',rest_get_route_for_
 add_filter('rest_route_for_post',fn($r)=>$r.'?x=1');
 t('Filter rest_route_for_post',str_ends_with(rest_get_route_for_post($p),'?x=1'));
 remove_all_filters('rest_route_for_post');
-$m=rrw_wp_rest_endpoint_methods(['methods'=>'GET, POST']);t('Methoden-Liste',$m===['GET','POST']);
+$m=elvado_wp_rest_endpoint_methods(['methods'=>'GET, POST']);t('Methoden-Liste',$m===['GET','POST']);
 $req=new WP_REST_Request('OPTIONS','/wp/v2/posts');$o=rest_handle_options_request(null,null,$req);
 t('rest_handle_options_request liefert Allow',$o instanceof WP_REST_Response&&str_contains((string)($o->get_headers()['Allow']??''),'GET'));
 t('rest_handle_options_request: GET unberührt',rest_handle_options_request(null,null,new WP_REST_Request('GET','/wp/v2/posts'))===null);
 $resp=new WP_REST_Response(['a'=>1]);$resp->set_matched_route('/wp/v2/posts');$r2=rest_send_allow_header($resp,rest_get_server(),new WP_REST_Request('GET','/wp/v2/posts'));
 t('rest_send_allow_header',str_contains((string)($r2->get_headers()['Allow']??''),'GET'));
-$_SERVER['HTTP_ORIGIN']='http://example.test';$GLOBALS['rrw_wp_rest_sent_headers']=[];rest_send_cors_headers(true);
-t('rest_send_cors_headers',(bool)array_filter($GLOBALS['rrw_wp_rest_sent_headers'],fn($h)=>str_starts_with($h,'Access-Control-Allow-Origin: http://example.test')));
+$_SERVER['HTTP_ORIGIN']='http://example.test';$GLOBALS['elvado_wp_rest_sent_headers']=[];rest_send_cors_headers(true);
+t('rest_send_cors_headers',(bool)array_filter($GLOBALS['elvado_wp_rest_sent_headers'],fn($h)=>str_starts_with($h,'Access-Control-Allow-Origin: http://example.test')));
 unset($_SERVER['HTTP_ORIGIN']);
 t('rest_cookie_check_errors ohne Nonce: unangemeldet',(function(){ unset($_REQUEST['_wpnonce'],$_SERVER['HTTP_X_WP_NONCE']);$GLOBALS['wp_rest_auth_cookie']=true;return rest_cookie_check_errors(null)===true; })());
 t('rest_cookie_check_errors falscher Nonce → 403',(function(){ $_SERVER['HTTP_X_WP_NONCE']='falsch';$r=rest_cookie_check_errors(null);unset($_SERVER['HTTP_X_WP_NONCE']);return is_wp_error($r)&&$r->get_error_code()==='rest_cookie_invalid_nonce'; })());
@@ -134,14 +134,14 @@ t('rest_output_rsd',(function(){ ob_start();rest_output_rsd();return str_contain
 $pre=rest_preload_api_request([],'/wp/v2/posts?per_page=1');
 t('rest_preload_api_request',isset($pre['/wp/v2/posts?per_page=1']['body'])&&count($pre['/wp/v2/posts?per_page=1']['body'])===1);
 t('rest_ensure_request',rest_ensure_request('/wp/v2/posts') instanceof WP_REST_Request&&rest_ensure_request('/x')->get_route()==='/x');
-$GLOBALS['rrw_wp_rest_sent_headers']=[];rest_handle_doing_it_wrong('f','Meldung','6.0');t('Hinweise nur bei WP_DEBUG',$GLOBALS['rrw_wp_rest_sent_headers']===[]);
+$GLOBALS['elvado_wp_rest_sent_headers']=[];rest_handle_doing_it_wrong('f','Meldung','6.0');t('Hinweise nur bei WP_DEBUG',$GLOBALS['elvado_wp_rest_sent_headers']===[]);
 
 /* ───── Blöcke: Handles, Serialisierung, Hooks ───── */
 t('generate_block_asset_handle',generate_block_asset_handle('core/paragraph','editorScript')==='wp-block-paragraph-editor'&&generate_block_asset_handle('core/image','viewScript',1)==='wp-block-image-view-2'&&generate_block_asset_handle('my/block','editorStyle')==='my-block-editor-style'&&generate_block_asset_handle('a/b','script',2)==='a-b-script-3');
 t('get_block_asset_url',str_ends_with((string)get_block_asset_url(WP_CONTENT_DIR.'/plugins/p/build/x.js'),'/plugins/p/build/x.js')&&get_block_asset_url('')===false);
 $bd=$tmp.'/wp-content/plugins/demo/blk';mkdir($bd.'/build',0777,true);file_put_contents($bd.'/build/index.js','//x');file_put_contents($bd.'/build/index.asset.php',"<?php return ['dependencies'=>['wp-blocks','wp-i18n'],'version'=>'abc'];");file_put_contents($bd.'/build/style.css','.a{}');
 $meta=['name'=>'demo/blk','file'=>$bd.'/block.json','editorScript'=>'file:./build/index.js','style'=>'file:./build/style.css','viewScript'=>'bereits-handle','textdomain'=>'demo'];
-t('register_block_script_handle',register_block_script_handle($meta,'editorScript')==='demo-blk-editor-script'&&wp_script_is('demo-blk-editor-script','registered')&&$GLOBALS['rrw_wp_scripts']['reg']['demo-blk-editor-script']['deps']===['wp-blocks','wp-i18n']&&$GLOBALS['rrw_wp_scripts']['reg']['demo-blk-editor-script']['ver']==='abc');
+t('register_block_script_handle',register_block_script_handle($meta,'editorScript')==='demo-blk-editor-script'&&wp_script_is('demo-blk-editor-script','registered')&&$GLOBALS['elvado_wp_scripts']['reg']['demo-blk-editor-script']['deps']===['wp-blocks','wp-i18n']&&$GLOBALS['elvado_wp_scripts']['reg']['demo-blk-editor-script']['ver']==='abc');
 t('register_block_script_handle: vorhandener Handle',register_block_script_handle($meta,'viewScript')==='bereits-handle'&&register_block_script_handle($meta,'fehlt')===false);
 t('register_block_style_handle',register_block_style_handle($meta,'style')==='demo-blk-style'&&wp_style_is('demo-blk-style','registered'));
 t('register_block_script_module_id',register_block_script_module_id(['name'=>'demo/blk','file'=>$bd.'/block.json','viewScriptModule'=>'file:./build/index.js'],'viewScriptModule')==='demo-blk-view-script-module'&&register_block_script_module_id(['viewScriptModule'=>'mod/id'],'viewScriptModule')==='mod/id');
@@ -319,10 +319,10 @@ $bg=wp_render_background_support('<div class="a">x</div>',['blockName'=>'t/bg','
 t('wp_render_background_support',str_contains($bg,'background-image:url(')&&str_contains($bg,'background-size:cover;')&&str_contains($bg,'has-background')&&isset($bt2->attributes['style']));
 $bt3=new WP_Block_Type('t/pos',['supports'=>['position'=>['sticky'=>true]]]);WP_Block_Type_Registry::get_instance()->register($bt3);
 t('wp_render_position_support: Theme ohne sticky: unverändert',wp_render_position_support('<div>x</div>',['blockName'=>'t/pos','attrs'=>['style'=>['position'=>['type'=>'sticky','top'=>'0px']]]])==='<div>x</div>');
-update_option('rrw_wp_global_styles',['settings'=>['position'=>['sticky'=>true]]]);rrw_wp_theme_json(true);
+update_option('elvado_wp_global_styles',['settings'=>['position'=>['sticky'=>true]]]);elvado_wp_theme_json(true);
 $po2=wp_render_position_support('<div>x</div>',['blockName'=>'t/pos','attrs'=>['style'=>['position'=>['type'=>'sticky','top'=>'0px']]]]);
-t('wp_render_position_support: sticky',str_contains($po2,'is-position-sticky')&&preg_match('/wp-container-\d+/',$po2)===1&&str_contains(implode('',$GLOBALS['rrw_wp_block_support_css']),'position:sticky;'));
-delete_option('rrw_wp_global_styles');rrw_wp_theme_json(true);
+t('wp_render_position_support: sticky',str_contains($po2,'is-position-sticky')&&preg_match('/wp-container-\d+/',$po2)===1&&str_contains(implode('',$GLOBALS['elvado_wp_block_support_css']),'position:sticky;'));
+delete_option('elvado_wp_global_styles');elvado_wp_theme_json(true);
 t('wp_register_position_support / dimensions',(function() use($bt3){ wp_register_position_support($bt3);return isset($bt3->attributes['style']); })());
 
 /* ───── Layout ───── */
@@ -352,7 +352,7 @@ t('wp_style_engine_get_stylesheet_from_css_rules',$ss==='.a{color:red;margin:0;p
 t('Style-Engine: schön formatiert',str_contains(wp_style_engine_get_stylesheet_from_css_rules([['selector'=>'.p','declarations'=>['color'=>'red']]],['prettify'=>true]),".p {\n\tcolor: red;\n}"));
 wp_style_engine_get_stylesheet_from_css_rules([['selector'=>'.ctx','declarations'=>['top'=>'0']]],['context'=>'t-ctx']);wp_style_engine_get_stylesheet_from_css_rules([['selector'=>'.ctx','declarations'=>['left'=>'1px']]],['context'=>'t-ctx']);
 t('wp_style_engine_get_stylesheet_from_context',wp_style_engine_get_stylesheet_from_context('t-ctx',['prettify'=>false])==='.ctx{top:0;left:1px;}'&&wp_style_engine_get_stylesheet_from_context('nix')==='');
-t('Kontext block-supports erscheint im Footer',(function(){ wp_style_engine_get_stylesheet_from_css_rules([['selector'=>'.fz','declarations'=>['gap'=>'2px']]],['context'=>'block-supports']);ob_start();rrw_wp_fse_footer();return str_contains(ob_get_clean(),'.fz{gap:2px;}'); })());
+t('Kontext block-supports erscheint im Footer',(function(){ wp_style_engine_get_stylesheet_from_css_rules([['selector'=>'.fz','declarations'=>['gap'=>'2px']]],['context'=>'block-supports']);ob_start();elvado_wp_fse_footer();return str_contains(ob_get_clean(),'.fz{gap:2px;}'); })());
 
 /* ───── Global Styles, Selektoren ───── */
 t('wp_get_block_name_from_theme_json_path',wp_get_block_name_from_theme_json_path(['styles','blocks','core/button','color'])==='core/button'&&wp_get_block_name_from_theme_json_path(['styles','color'])==='');
@@ -367,7 +367,7 @@ wp_add_global_styles_for_blocks();t('wp_add_global_styles_for_blocks ohne Fehler
 
 /* ───── Muster ───── */
 _register_core_block_patterns_and_categories();
-t('_register_core_block_patterns_and_categories',isset($GLOBALS['rrw_wp_pattern_categories']['featured'])&&isset($GLOBALS['rrw_wp_pattern_categories']['footer']));
+t('_register_core_block_patterns_and_categories',isset($GLOBALS['elvado_wp_pattern_categories']['featured'])&&isset($GLOBALS['elvado_wp_pattern_categories']['footer']));
 $norm=wp_normalize_remote_block_pattern(['title'=>['rendered'=>'Titel'],'pattern_content'=>'<!-- wp:paragraph /-->','category_slugs'=>['text'],'meta'=>['wpop_viewport_width'=>'800','wpop_description'=>'Beschr','wpop_keywords'=>'a, b']]);
 t('wp_normalize_remote_block_pattern',$norm['title']==='Titel'&&$norm['categories']===['text']&&$norm['viewportWidth']===800&&$norm['keywords']===['a','b']&&$norm['description']==='Beschr');
 _load_remote_block_patterns([['title'=>['rendered'=>'Fern Muster'],'pattern_content'=>'<!-- wp:paragraph /-->','category_slugs'=>['text']]]);
@@ -382,16 +382,16 @@ t('_register_theme_block_patterns',$pr&&str_contains($pr['content'],'Hero')&&$pr
 t('wp_get_block_style_variation_name_from_class',wp_get_block_style_variation_name_from_class('a is-style-fancy b')==='fancy'&&wp_get_block_style_variation_name_from_class('is-style-default')===null&&wp_get_block_style_variation_name_from_class(null)===null);
 $rv=wp_resolve_block_style_variation_ref_values(['color'=>['text'=>['ref'=>'styles.color.text'],'background'=>['ref'=>'styles.fehlt']],'x'=>1],['styles'=>['color'=>['text'=>'#111']]]);
 t('wp_resolve_block_style_variation_ref_values',$rv===['color'=>['text'=>'#111'],'x'=>1]);
-update_option('rrw_wp_global_styles',['styles'=>['blocks'=>['core/button'=>['variations'=>['fancy'=>['color'=>['text'=>'#ff0000']]]]]]]);rrw_wp_theme_json(true);
+update_option('elvado_wp_global_styles',['styles'=>['blocks'=>['core/button'=>['variations'=>['fancy'=>['color'=>['text'=>'#ff0000']]]]]]]);elvado_wp_theme_json(true);
 $pb=wp_render_block_style_variation_support_styles(['blockName'=>'core/button','attrs'=>['className'=>'is-style-fancy']]);
 t('wp_render_block_style_variation_support_styles: Klasse mit Instanz',preg_match('/^is-style-fancy--\d+$/',$pb['attrs']['className'])===1);
-$stored=implode('',$GLOBALS['rrw_wp_style_engine_raw']['block-style-variation-styles']??[]);
+$stored=implode('',$GLOBALS['elvado_wp_style_engine_raw']['block-style-variation-styles']??[]);
 t('Variations-CSS gespeichert',str_contains($stored,'.wp-block-button.is-style-fancy--')&&str_contains($stored,'color:#ff0000'),$stored);
 t('wp_render_block_style_variation_support_styles: ohne Variation unverändert',wp_render_block_style_variation_support_styles(['blockName'=>'core/button','attrs'=>['className'=>'x']])===['blockName'=>'core/button','attrs'=>['className'=>'x']]);
 $vc=wp_render_block_style_variation_class_name('<div class="wp-block-button">x</div>',['attrs'=>$pb['attrs']]);
 t('wp_render_block_style_variation_class_name',str_contains($vc,'is-style-fancy--'));
 wp_enqueue_block_style_variation_styles();t('wp_enqueue_block_style_variation_styles',wp_style_is('block-style-variation-styles','enqueued'));
-delete_option('rrw_wp_global_styles');rrw_wp_theme_json(true);
+delete_option('elvado_wp_global_styles');elvado_wp_theme_json(true);
 wp_register_block_style_variations_from_theme_json_partials([['title'=>'Dunkel Variante','slug'=>'dunkel','blockTypes'=>['core/group','core/button']]]);
 wp_register_block_style_variations_from_theme_json_partials(['hell'=>['title'=>'Hell','blockTypes'=>['core/group']]]);
 $reg=WP_Block_Styles_Registry::get_instance();
@@ -402,12 +402,12 @@ $eb=['blockName'=>'t/sup','attrs'=>['style'=>['elements'=>['link'=>['color'=>['t
 t('wp_get_elements_class_name',preg_match('/^wp-elements-[0-9a-f]{32}$/',wp_get_elements_class_name($eb))===1&&wp_get_elements_class_name($eb)===wp_get_elements_class_name($eb));
 t('wp_should_add_elements_class_name',wp_should_add_elements_class_name($eb,[])===true&&wp_should_add_elements_class_name(['blockName'=>'t/sup','attrs'=>[]],[])===false&&wp_should_add_elements_class_name(['blockName'=>'t/gibtsnicht','attrs'=>$eb['attrs']],[])===false&&wp_should_add_elements_class_name($eb,['skip'=>['link']])===false);
 $er=wp_render_elements_support_styles($eb);
-t('wp_render_elements_support_styles: Klasse und CSS',preg_match('/wp-elements-[0-9a-f]{32}/',$er['attrs']['className'],$mm)===1&&str_contains(implode('',$GLOBALS['rrw_wp_block_support_css']),'a:where(:not(.wp-element-button)){color:#00f;}')&&str_contains(implode('',$GLOBALS['rrw_wp_block_support_css']),':hover{color:#0f0;}'));
+t('wp_render_elements_support_styles: Klasse und CSS',preg_match('/wp-elements-[0-9a-f]{32}/',$er['attrs']['className'],$mm)===1&&str_contains(implode('',$GLOBALS['elvado_wp_block_support_css']),'a:where(:not(.wp-element-button)){color:#00f;}')&&str_contains(implode('',$GLOBALS['elvado_wp_block_support_css']),':hover{color:#0f0;}'));
 t('wp_render_elements_class_name',str_contains(wp_render_elements_class_name('<p>x</p>',$er),$mm[0])&&wp_render_elements_class_name('<p>x</p>',['attrs'=>[]])==='<p>x</p>');
 $sb=['blockName'=>'core/group','attrs'=>['settings'=>['color'=>['palette'=>[['slug'=>'rot','color'=>'#f00','name'=>'Rot']]]]],'innerBlocks'=>[['blockName'=>'core/paragraph']]];
 t('_wp_get_presets_class_name',str_starts_with(_wp_get_presets_class_name($sb),'wp-settings-'));
 t('_wp_add_block_level_presets_class',str_contains(_wp_add_block_level_presets_class('<div>x</div>',$sb),_wp_get_presets_class_name($sb))&&_wp_add_block_level_presets_class('<div>x</div>',['innerBlocks'=>[],'attrs'=>[]])==='<div>x</div>'&&_wp_add_block_level_presets_class('<div>x</div>',['innerBlocks'=>[1],'attrs'=>[]])==='<div>x</div>');
-t('_wp_add_block_level_preset_styles',_wp_add_block_level_preset_styles(null,$sb)===null&&str_contains(implode('',$GLOBALS['rrw_wp_block_support_css']),'--wp--preset--color--rot:#f00;'));
+t('_wp_add_block_level_preset_styles',_wp_add_block_level_preset_styles(null,$sb)===null&&str_contains(implode('',$GLOBALS['elvado_wp_block_support_css']),'--wp--preset--color--rot:#f00;'));
 t('_wp_add_block_level_preset_styles: Vorergebnis durchreichen',_wp_add_block_level_preset_styles('fertig',$sb)===null);
 
 /* ───── Bindungen ───── */

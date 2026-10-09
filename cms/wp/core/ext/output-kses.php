@@ -1,7 +1,7 @@
 <?php
 // Ergänzende kses-Funktionen (Bereich Ausgabe): Bausteine zum Zerlegen und Prüfen von HTML-Attributen, Entitäten und Protokollen sowie CSS-Filter.
 // wp_kses() des Kerns bleibt unverändert; diese Funktionen sind eigenständig nutzbar (Plugins rufen sie direkt auf).
-// Hinweis: wp_kses_bad_protocol() des Kerns liefert bool; hier wird intern rrw_ext_kses_protocol() (String-Ergebnis) verwendet.
+// Hinweis: wp_kses_bad_protocol() des Kerns liefert bool; hier wird intern elvado_ext_kses_protocol() (String-Ergebnis) verwendet.
 
 if(!function_exists('wp_kses_version')){ function wp_kses_version() { return '0.2.2'; } }
 if(!function_exists('wp_kses_hook')){ function wp_kses_hook($content, $allowed_html, $allowed_protocols) { return apply_filters('pre_kses',$content,$allowed_html,$allowed_protocols); } }
@@ -97,9 +97,9 @@ if(!function_exists('wp_kses_bad_protocol_once')){
         return $content;
     }
 }
-if(!function_exists('rrw_ext_kses_protocol')){
+if(!function_exists('elvado_ext_kses_protocol')){
     /** Wie WordPress’ wp_kses_bad_protocol (liefert den bereinigten String); wiederholt, bis nichts mehr wegfällt. */
-    function rrw_ext_kses_protocol($content, $allowed_protocols) {
+    function elvado_ext_kses_protocol($content, $allowed_protocols) {
         $content=wp_kses_no_null((string)$content);$n=0;
         do{ $orig=$content;$content=wp_kses_bad_protocol_once($content,$allowed_protocols); }while($orig!==$content&&++$n<6);
         return $orig!==$content?'':$content;
@@ -184,7 +184,7 @@ if(!function_exists('wp_kses_one_attr')){
             $value=$split[1];$quote=$value===''?'':$value[0];
             if($quote==='"'||$quote==="'"){ if(!str_ends_with($value,$quote)||strlen($value)<2)return '';$value=substr($value,1,-1); } else $quote='"';
             $value=esc_attr($value);
-            if(in_array(strtolower($name),$uris,true))$value=rrw_ext_kses_protocol($value,$protocols);
+            if(in_array(strtolower($name),$uris,true))$value=elvado_ext_kses_protocol($value,$protocols);
             $attr="$name=$quote$value$quote";$vless='n';
         } else { $value='';$vless='y'; }
         wp_kses_attr_check($name,$value,$attr,$vless,$element,$allowed_html);
@@ -202,7 +202,7 @@ if(!function_exists('wp_kses_hair')){
             if(!isset($m[2])){ $arr[$n]=['name'=>$n,'value'=>'','whole'=>$n,'vless'=>'y'];continue; }
             $v=$m[2];$q='"';
             if(strlen($v)>=2&&($v[0]==='"'||$v[0]==="'")&&str_ends_with($v,$v[0])){ $q=$v[0];$v=substr($v,1,-1); }
-            if(in_array(strtolower($n),$uris,true))$v=rrw_ext_kses_protocol($v,$allowed_protocols);
+            if(in_array(strtolower($n),$uris,true))$v=elvado_ext_kses_protocol($v,$allowed_protocols);
             $arr[$n]=['name'=>$n,'value'=>$v,'whole'=>"$n=$q$v$q",'vless'=>'n'];
         }
         return $arr;
@@ -284,7 +284,7 @@ if(!function_exists('safecss_filter_attr')){
                 preg_match_all('/url\([^)]+\)/',$parts[1],$um);
                 foreach($um[0] as $u){
                     preg_match('/url\(\s*([\'"]?)(.*?)\1\s*\)/',$u,$p);$url=trim($p[2]??'');
-                    if($url===''||rrw_ext_kses_protocol($url,$protocols)!==$url){ $found=false;break; }
+                    if($url===''||elvado_ext_kses_protocol($url,$protocols)!==$url){ $found=false;break; }
                     $test=str_replace($u,'',$test);
                 }
             }

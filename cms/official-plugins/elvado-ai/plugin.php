@@ -11,7 +11,7 @@ use ElvadoPlugin\Ai\Ai;
 
 /** @var \Elvado\Plugin\Context $np */
 $ai = new Ai($np);
-$who = static fn(): string => (string)($GLOBALS['rrw_np_user'] ?? 'plugin');
+$who = static fn(): string => (string)($GLOBALS['elvado_np_user'] ?? 'plugin');
 
 $np->api('status', function () use ($ai, $np): array {
     return $ai->status() + ['editor_tools' => (bool)$np->setting('editor_tools'), 'app_tools' => (bool)$np->setting('app_tools'), 'text_actions' => Ai::TEXT_ACTIONS];

@@ -118,7 +118,7 @@ Mit **Speichern** gilt die neue Leiste sofort in allen installierten Apps (beim 
 
 Rechts neben dem Editor zeigt die **Live-Vorschau** die Website im Handy-Rahmen im App-Modus samt Tab-Leiste; Tabs lassen sich dort antippen. Für die Vorschau muss die Website unter der eingetragenen Adresse erreichbar sein.
 
-**App-Modus:** Die Apps hängen ihrem User-Agent `ElvadoPressApp/1.0 (brand=<id>; platform=android|windows)` an. Daran erkennt die Website die App und blendet – je nach Einstellung – Kopf und Fuß (`.site-header`, `#masthead`, `.site-footer`, `#colophon`) aus; das `<body>` bekommt die Klasse `elvado-app`. Eigene Elemente steuerst du mit den Klassen `elvado-hide-in-app` (nur im normalen Browser sichtbar) und `elvado-only-app` (nur in der App sichtbar, per CSS `display:none` für den Browser vorbelegen). Im Browser zum Ausprobieren: `?rrw_app=<id>` an die Adresse hängen (`?rrw_app=off` beendet das).
+**App-Modus:** Die Apps hängen ihrem User-Agent `ElvadoPressApp/1.0 (brand=<id>; platform=android|windows)` an. Daran erkennt die Website die App und blendet – je nach Einstellung – Kopf und Fuß (`.site-header`, `#masthead`, `.site-footer`, `#colophon`) aus; das `<body>` bekommt die Klasse `elvado-app`. Eigene Elemente steuerst du mit den Klassen `elvado-hide-in-app` (nur im normalen Browser sichtbar) und `elvado-only-app` (nur in der App sichtbar, per CSS `display:none` für den Browser vorbelegen). Im Browser zum Ausprobieren: `?elvado_app=<id>` an die Adresse hängen (`?elvado_app=off` beendet das).
 
 **Gut zu wissen**
 
@@ -129,7 +129,7 @@ Rechts neben dem Editor zeigt die **Live-Vorschau** die Website im Handy-Rahmen 
 
 ### Weitere Vorlagen
 
-Der Katalog der Vorlagen steht in [`templates.json`](templates.json). Eine neue Vorlage (z. B. Podcast-App, Community-App) besteht immer aus: einem Typ-Eintrag in `RRW_AB_TYPES` (`cms/lib/appbuild.php`), der Auswertung des Typs in `android/app/build.gradle` und `windows-native/Brand.cs` sowie den Einstellungen unter *Apps verwalten*. Siehe [VORLAGEN.md](VORLAGEN.md).
+Der Katalog der Vorlagen steht in [`templates.json`](templates.json). Eine neue Vorlage (z. B. Podcast-App, Community-App) besteht immer aus: einem Typ-Eintrag in `ELVADO_AB_TYPES` (`cms/lib/appbuild.php`), der Auswertung des Typs in `android/app/build.gradle` und `windows-native/Brand.cs` sowie den Einstellungen unter *Apps verwalten*. Siehe [VORLAGEN.md](VORLAGEN.md).
 
 ## 8. Selbst bauen (ohne GitHub)
 

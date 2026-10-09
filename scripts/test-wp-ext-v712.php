@@ -2,14 +2,14 @@
 // Prüft die ergänzenden Funktionen für WordPress 7.1 (cms/wp/core/ext/v712-*.php): UTF-8, Anmerkungen, Connectors, Abilities, Icons, Medien, Sonstiges.
 // Aufruf: php scripts/test-wp-ext-v712.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-extv712-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');
-$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['RRW_SITE']=[];
+$tmp=sys_get_temp_dir().'/elvado-extv712-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');
+$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['ELVADO_SITE']=[];
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
 
 // Vollständigkeit: alle Funktionen der Liste (keine Ausnahmen)
 $names=preg_split('/\s+/',trim(<<<'LISTE'
@@ -89,13 +89,13 @@ t('wp_add_crossorigin_attributes: unverändert',wp_add_crossorigin_attributes('<
 t('wp_js_dataset_name',wp_js_dataset_name('data-wp-foo-bar')==='wpFooBar'&&wp_js_dataset_name('foo')===null&&wp_js_dataset_name('data-')===null);
 t('wp_html_custom_data_attribute_name',wp_html_custom_data_attribute_name('wpFooBar')==='data-wp-foo-bar'&&wp_html_custom_data_attribute_name('foo-bar')===null&&wp_html_custom_data_attribute_name('')===null);
 wp_register_script('v712-s','https://example.test/wp-content/plugins/x/a.js',[],'1');
-t('_wp_scripts_add_args_data',_wp_scripts_add_args_data(null,'v712-s',['strategy'=>'defer','in_footer'=>true])&&$GLOBALS['rrw_wp_scripts']['reg']['v712-s']['data']['strategy']==='defer'&&!_wp_scripts_add_args_data(null,'unbekannt',[]));
-t('wp_set_script_module_translations',wp_set_script_module_translations('mod','dom','/p')&&$GLOBALS['rrw_wp_script_module_l10n']['mod']['domain']==='dom'&&!wp_set_script_module_translations(''));
+t('_wp_scripts_add_args_data',_wp_scripts_add_args_data(null,'v712-s',['strategy'=>'defer','in_footer'=>true])&&$GLOBALS['elvado_wp_scripts']['reg']['v712-s']['data']['strategy']==='defer'&&!_wp_scripts_add_args_data(null,'unbekannt',[]));
+t('wp_set_script_module_translations',wp_set_script_module_translations('mod','dom','/p')&&$GLOBALS['elvado_wp_script_module_l10n']['mod']['domain']==='dom'&&!wp_set_script_module_translations(''));
 t('load_script_module_textdomain: ohne Datei false',load_script_module_textdomain('v712-s','default')===false&&load_script_module_textdomain('nix')===false&&_load_script_textdomain_from_src('','default')===false);
 wp_enqueue_view_transitions_admin_css();
-t('View-Transitions-CSS',str_contains(wp_get_view_transitions_admin_css(),'@view-transition')&&isset($GLOBALS['rrw_wp_styles']['queue']['wp-view-transitions-admin']));
+t('View-Transitions-CSS',str_contains(wp_get_view_transitions_admin_css(),'@view-transition')&&isset($GLOBALS['elvado_wp_styles']['queue']['wp-view-transitions-admin']));
 wp_enqueue_img_auto_sizes_contain_css_fix();
-t('Auto-Sizes-Fix eingereiht',isset($GLOBALS['rrw_wp_styles']['reg']['wp-img-auto-sizes-contain-fix']['inline_after'][0]));
+t('Auto-Sizes-Fix eingereiht',isset($GLOBALS['elvado_wp_styles']['reg']['wp-img-auto-sizes-contain-fix']['inline_after'][0]));
 t('Editor-Oberflächen: No-ops',wp_enqueue_command_palette_assets()===null&&wp_admin_bar_command_palette_menu(null)===null&&wp_load_classic_theme_block_styles_on_demand()===false&&wp_hoist_late_printed_styles()===false&&wp_enqueue_block_editor_script_modules()===null);
 t('Speculative Loading: Standard',wp_get_speculation_rules_default_configuration()===['mode'=>'auto','eagerness'=>'conservative']&&wp_get_speculative_loading_override()===null);
 
@@ -103,12 +103,12 @@ t('Speculative Loading: Standard',wp_get_speculation_rules_default_configuration
 $cons=wp_get_connectors();
 t('Connectors: Standardanbieter',isset($cons['anthropic'],$cons['google'],$cons['openai'])&&wp_is_connector_registered('openai')&&!wp_is_connector_registered('nix')&&wp_get_connector('nix')===null);
 t('Connectors: Struktur',wp_get_connector('google')['id']==='google'&&wp_get_connector('google')['authentication']['setting_name']==='connectors_ai_google_api_key');
-$reg=$GLOBALS['rrw_wp_connectors'];
+$reg=$GLOBALS['elvado_wp_connectors'];
 t('Connectors: Registry register/unregister',$reg->register('mein',['name'=>'Mein','authentication'=>['method'=>'api_key']])!==null&&wp_is_connector_registered('mein')&&$reg->register('mein',['name'=>'x'])===null&&$reg->unregister('mein')!==null&&!wp_is_connector_registered('mein'));
 t('_wp_connectors_mask_api_key',_wp_connectors_mask_api_key('sk-abcdefgh1234')==="\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}1234"&&_wp_connectors_mask_api_key('abc')==="\u{2022}\u{2022}\u{2022}"&&_wp_connectors_mask_api_key('')==='');
-t('_wp_connectors_get_api_key_source',_wp_connectors_get_api_key_source('connectors_ai_zz_api_key','RRW_NIX_ENV','RRW_NIX_CONST')==='none');
-update_option('connectors_ai_zz_api_key','abc');putenv('RRW_V712_ENV=1');
-t('_wp_connectors_get_api_key_source: Datenbank/Umgebung',_wp_connectors_get_api_key_source('connectors_ai_zz_api_key')==='database'&&_wp_connectors_get_api_key_source('connectors_ai_zz_api_key','RRW_V712_ENV')==='env');
+t('_wp_connectors_get_api_key_source',_wp_connectors_get_api_key_source('connectors_ai_zz_api_key','ELVADO_NIX_ENV','ELVADO_NIX_CONST')==='none');
+update_option('connectors_ai_zz_api_key','abc');putenv('ELVADO_V712_ENV=1');
+t('_wp_connectors_get_api_key_source: Datenbank/Umgebung',_wp_connectors_get_api_key_source('connectors_ai_zz_api_key')==='database'&&_wp_connectors_get_api_key_source('connectors_ai_zz_api_key','ELVADO_V712_ENV')==='env');
 t('_wp_connectors_is_ai_api_key_valid',_wp_connectors_is_ai_api_key_valid('sk-12345678')&&!_wp_connectors_is_ai_api_key_valid('')&&!_wp_connectors_is_ai_api_key_valid('mit leer zeichen'));
 t('Anwendungspasswörter parsen/bereinigen',wp_connectors_parse_application_password_credentials('admin:abcd efgh')===['username'=>'admin','password'=>'abcdefgh']&&wp_connectors_parse_application_password_credentials('nur')===null&&wp_connectors_sanitize_application_password_credentials(' admin:ab cd ')==='admin:abcd'&&wp_connectors_sanitize_application_password_credentials('x')==='');
 t('wp_connectors_get_application_password_credentials: API-Key-Connector -> null',wp_connectors_get_application_password_credentials('openai')===null);
@@ -129,7 +129,7 @@ t('Abilities: Kategorien',wp_get_ability_category('daten') instanceof WP_Ability
 wp_register_ability('test/nein',['label'=>'Nein','description'=>'verboten','category'=>'daten','execute_callback'=>fn()=>1,'permission_callback'=>fn()=>false]);
 t('Abilities: Rechteprüfung',wp_get_ability('test/nein')->execute() instanceof WP_Error);
 t('Abilities: Filter category/meta',array_keys(wp_get_abilities(['category'=>'daten']))===['test/hallo','test/nein']&&array_keys(wp_get_abilities(['meta'=>['a'=>['b'=>1]]]))===['test/hallo']&&_wp_get_abilities_match_meta(['x'=>1,'y'=>['z'=>2]],['y'=>['z'=>2]])&&!_wp_get_abilities_match_meta(['x'=>1],['x'=>2]));
-$GLOBALS['rrw_wp_doing_it_wrong_silent']=true;
+$GLOBALS['elvado_wp_doing_it_wrong_silent']=true;
 t('Abilities: ungültig/doppelt abgelehnt',@wp_register_ability('ohne-slash',['label'=>'a','description'=>'b','execute_callback'=>'strlen'])===null&&@wp_register_ability('test/hallo',['label'=>'a','description'=>'b','execute_callback'=>'strlen'])===null);
 t('Abilities: unregister',wp_unregister_ability('test/nein') instanceof WP_Ability&&!wp_has_ability('test/nein')&&wp_unregister_ability('test/nein')===null&&wp_unregister_ability_category('daten')!==null&&!wp_has_ability_category('daten'));
 

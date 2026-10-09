@@ -1,17 +1,17 @@
 <?php
 // Standard-Haken wie in WordPress (wp_head, wp_footer, the_content …).
-function rrw_wp_add_default_filters(): void {
+function elvado_wp_add_default_filters(): void {
     // jQuery liegt lokal im CMS (kein CDN): Handle „jquery“ wie in WordPress
     wp_register_script('jquery-core','/cms/assets/vendor/jquery.min.js',[],'3.7.1');wp_register_script('jquery','',['jquery-core'],'3.7.1');
     // Inhalt: Absätze nur für Texte ohne HTML-Struktur; Beiträge/Seiten aus dem CMS sind bereits HTML.
     add_filter('the_content','do_blocks',9);
-    add_filter('the_content',function($c){ $p=get_post();return !empty($GLOBALS['rrw_wp_raw_html'])||rrw_wp_is_cms_html($p)||str_contains((string)$c,'</p>')||str_contains((string)$c,'<div')?$c:wpautop((string)$c); },10);
+    add_filter('the_content',function($c){ $p=get_post();return !empty($GLOBALS['elvado_wp_raw_html'])||elvado_wp_is_cms_html($p)||str_contains((string)$c,'</p>')||str_contains((string)$c,'<div')?$c:wpautop((string)$c); },10);
     add_filter('the_excerpt',function($c){ return preg_match('/<(p|div|ul|ol|h[1-6])[\s>]/i',(string)$c)?$c:wpautop((string)$c); },10);   // Auszüge sind Klartext → Absatz wie in WordPress
     add_filter('widget_text','wpautop',10);
     foreach(['the_title','the_content','the_excerpt','comment_text'] as $f){ }
     // wp_head
     add_action('wp_head','_wp_render_title_tag',1);
-    add_action('wp_head','rrw_wp_link_hash_script',1);
+    add_action('wp_head','elvado_wp_link_hash_script',1);
     add_action('wp_head','wp_enqueue_scripts_fire',1);
     add_action('wp_head','feed_links',2);
     add_action('wp_head','rel_canonical');

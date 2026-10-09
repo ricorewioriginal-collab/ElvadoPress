@@ -2,7 +2,7 @@
 // Prüft die Alt-Texte (cms/src/Ai/AltTexter.php, cms/lib/media.php): Speichern in der Mediathek (meta.json), Auswahl der Bild-Quelldatei, Bildeingabe je Anbieter
 // (OpenAI, Claude, Gemini) mit Fake-Transport, Rückfall auf Text, Bereinigung der KI-Antwort. Aufruf: php scripts/test-ai-alttext.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-alt-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/media');define('RRW_MEDIA_DIR',$tmp.'/media');
+$tmp=sys_get_temp_dir().'/elvado-alt-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/media');define('ELVADO_MEDIA_DIR',$tmp.'/media');
 require __DIR__.'/../cms/src/autoload.php';require __DIR__.'/../cms/lib/publish.php';require __DIR__.'/../cms/lib/media.php';
 use Elvado\Ai\{AiGatewayConfig,AiGatewayService,AiGatewayException,AltTexter};use Elvado\Support\{Http,HttpResponse};
 $fail=0;$n=0;
@@ -18,14 +18,14 @@ $id='20260101_000000_abcdef1234';$dir=$tmp.'/media/library/'.$id;mkdir($dir,0755
 $png=base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
 file_put_contents($dir.'/original.png',$png);file_put_contents($dir.'/w512.webp','RIFFxxxxWEBPfake');
 file_put_contents($dir.'/meta.json',json_encode(['id'=>$id,'name'=>'holz-tisch-pixabay-123456','mime'=>'image/png','original'=>['url'=>'/cms/media/library/'.$id.'/original.png','path'=>'library/'.$id.'/original.png','size'=>strlen($png)],'variants'=>[['width'=>512,'url'=>'/cms/media/library/'.$id.'/w512.webp','path'=>'library/'.$id.'/w512.webp']],'credit'=>['title'=>'Roter Holztisch','text'=>'Foto: X']]));
-$r=rrw_media_alt_save($id,"  Ein <b>roter</b>   Tisch \n aus Holz ");
-t('Alt speichern: bereinigt, in meta.json, in der Medienliste',$r['alt']==='Ein roter Tisch aus Holz'&&json_decode((string)file_get_contents($dir.'/meta.json'),true)['alt']==='Ein roter Tisch aus Holz'&&rrw_media_library_items([])[0]['alt']==='Ein roter Tisch aus Holz');
-rrw_media_alt_save($id,'');t('Alt leeren entfernt das Feld',!array_key_exists('alt',json_decode((string)file_get_contents($dir.'/meta.json'),true)));
-t('Alt speichern: ungültige Kennung und unbekanntes Bild',(function() use($id){foreach(['../x','a b','zzzzzz_nicht_da'] as $bad){try{rrw_media_alt_save($bad,'x');return false;}catch(RuntimeException $e){}}return true;})());
-$src=rrw_media_alt_source($id);
+$r=elvado_media_alt_save($id,"  Ein <b>roter</b>   Tisch \n aus Holz ");
+t('Alt speichern: bereinigt, in meta.json, in der Medienliste',$r['alt']==='Ein roter Tisch aus Holz'&&json_decode((string)file_get_contents($dir.'/meta.json'),true)['alt']==='Ein roter Tisch aus Holz'&&elvado_media_library_items([])[0]['alt']==='Ein roter Tisch aus Holz');
+elvado_media_alt_save($id,'');t('Alt leeren entfernt das Feld',!array_key_exists('alt',json_decode((string)file_get_contents($dir.'/meta.json'),true)));
+t('Alt speichern: ungültige Kennung und unbekanntes Bild',(function() use($id){foreach(['../x','a b','zzzzzz_nicht_da'] as $bad){try{elvado_media_alt_save($bad,'x');return false;}catch(RuntimeException $e){}}return true;})());
+$src=elvado_media_alt_source($id);
 t('Quelldatei: Original (PNG ≤ 1,2 MB), da Variante nur 512 aber nicht lesbar? → Variante wird bevorzugt',$src['file']!==''&&str_ends_with($src['file'],'w512.webp'));
 unlink($dir.'/w512.webp');$m=json_decode((string)file_get_contents($dir.'/meta.json'),true);unset($m['variants']);file_put_contents($dir.'/meta.json',json_encode($m));
-t('Quelldatei: ohne Variante das kleine Original',str_ends_with(rrw_media_alt_source($id)['file'],'original.png'));
+t('Quelldatei: ohne Variante das kleine Original',str_ends_with(elvado_media_alt_source($id)['file'],'original.png'));
 // Gateway
 $calls=[];$answer='"roter Tisch aus Holz."';$kind='openai';
 Http::useTransport(function(string $m,string $u,array $h,?string $b,array $o) use(&$calls,&$answer): HttpResponse {

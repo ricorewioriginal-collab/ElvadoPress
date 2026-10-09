@@ -19,7 +19,7 @@
   }
   window.addEventListener('message',function(e){
     if(!frame||e.source!==frame.contentWindow)return;
-    var h=e.data&&+e.data.rrwWpNotices;if(h>0&&h<2000)frame.style.height=h+'px';
+    var h=e.data&&+e.data.elvadoWpNotices;if(h>0&&h<2000)frame.style.height=h+'px';
   });
   window.WpNotices={refresh:refresh};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refresh);else refresh();

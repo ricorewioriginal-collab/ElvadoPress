@@ -27,7 +27,7 @@ if(!function_exists('wp_get_chromium_major_version')){ function wp_get_chromium_
 } }
 if(!function_exists('wp_enqueue_img_auto_sizes_contain_css_fix')){ function wp_enqueue_img_auto_sizes_contain_css_fix() {   // Inline-Style für sizes="auto"-Bilder; nur bei Aufruf
     $h='wp-img-auto-sizes-contain-fix';
-    if(!isset($GLOBALS['rrw_wp_styles']['reg'][$h]))wp_register_style($h,false);
+    if(!isset($GLOBALS['elvado_wp_styles']['reg'][$h]))wp_register_style($h,false);
     wp_add_inline_style($h,'img:is([sizes="auto" i], [sizes^="auto," i]) { contain-intrinsic-size: 3000px 1500px; }');
     wp_enqueue_style($h);
 } }
@@ -47,7 +47,7 @@ if(!function_exists('wp_hoist_late_printed_styles')){ function wp_hoist_late_pri
 if(!function_exists('wp_get_view_transitions_admin_css')){ function wp_get_view_transitions_admin_css() { return '@view-transition { navigation: auto; }'; } }
 if(!function_exists('wp_enqueue_view_transitions_admin_css')){ function wp_enqueue_view_transitions_admin_css() {
     $h='wp-view-transitions-admin';
-    if(!isset($GLOBALS['rrw_wp_styles']['reg'][$h]))wp_register_style($h,false);
+    if(!isset($GLOBALS['elvado_wp_styles']['reg'][$h]))wp_register_style($h,false);
     wp_add_inline_style($h,wp_get_view_transitions_admin_css());wp_enqueue_style($h);
 } }
 
@@ -63,14 +63,14 @@ if(!function_exists('wp_html_custom_data_attribute_name')){ function wp_html_cus
 
 /* ───────── Skript-Argumente, Skriptmodul-Übersetzungen ───────── */
 if(!function_exists('_wp_scripts_add_args_data')){ function _wp_scripts_add_args_data($wp_scripts, $handle, $args=[]) {   // strategy / in_footer / fetchpriority eines Skripts vermerken
-    $h=(string)$handle;$g=&$GLOBALS['rrw_wp_scripts'];if(!isset($g['reg'][$h])||!is_array($args))return false;
+    $h=(string)$handle;$g=&$GLOBALS['elvado_wp_scripts'];if(!isset($g['reg'][$h])||!is_array($args))return false;
     foreach(['strategy','fetchpriority'] as $k)if(isset($args[$k])&&is_string($args[$k]))$g['reg'][$h]['data'][$k]=$args[$k];
     if(!empty($args['in_footer']))$g['reg'][$h]['extra']=true;
     return true;
 } }
 if(!function_exists('wp_set_script_module_translations')){ function wp_set_script_module_translations($id, $domain='default', $path='') {   // vermerkt Textdomain/Pfad; nur für Module, die im Browser wp-i18n nutzen
     $id=(string)$id;if($id==='')return false;
-    $GLOBALS['rrw_wp_script_module_l10n'][$id]=['domain'=>(string)$domain,'path'=>(string)$path];return true;
+    $GLOBALS['elvado_wp_script_module_l10n'][$id]=['domain'=>(string)$domain,'path'=>(string)$path];return true;
 } }
 if(!function_exists('wp_enqueue_block_editor_script_modules')){ function wp_enqueue_block_editor_script_modules() { return null; } }   // No-op: der Block-Editor lädt Module selbst
 if(!function_exists('_load_script_textdomain_from_src')){ function _load_script_textdomain_from_src($src, $domain='default', $path='', $handle='') {   // JSON-Übersetzung zu einer Quell-URL (Relativpfad, ohne .min) aus dem Sprachordner
@@ -83,7 +83,7 @@ if(!function_exists('_load_script_textdomain_from_src')){ function _load_script_
     return false;
 } }
 if(!function_exists('load_script_module_textdomain')){ function load_script_module_textdomain($id, $domain='default', $path='') {   // Übersetzungen (JSON) eines Skriptmoduls oder false
-    $id=(string)$id;$src=(string)($GLOBALS['rrw_wp_scripts']['reg'][$id]['src']??'');
+    $id=(string)$id;$src=(string)($GLOBALS['elvado_wp_scripts']['reg'][$id]['src']??'');
     if($src==='')return false;
     return _load_script_textdomain_from_src($src,(string)$domain,(string)$path,$id);
 } }

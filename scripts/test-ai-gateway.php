@@ -7,7 +7,7 @@ use Elvado\Ai\{AiGatewayConfig,AiGatewayService,AiGatewayException};use Elvado\S
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function thr(callable $f,string $needle=''): ?AiGatewayException { try{ $f();return null; }catch(AiGatewayException $e){ return ($needle===''||str_contains($e->getMessage(),$needle))?$e:null; } }
-$tmp=sys_get_temp_dir().'/rrw-ai-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-ai-'.bin2hex(random_bytes(4));mkdir($tmp);
 $calls=[];$reply=null;
 Http::useTransport(function(string $m,string $u,array $h,?string $b,array $o) use(&$calls,&$reply): HttpResponse { $calls[]=['m'=>$m,'u'=>$u,'h'=>$h,'b'=>$b?json_decode($b,true):null,'o'=>$o];return $reply($u,$h,$b); });
 $openai=fn(string $text,array $usage=['prompt_tokens'=>11,'completion_tokens'=>22])=>new HttpResponse(200,json_encode(['choices'=>[['message'=>['content'=>$text]]],'usage'=>$usage]));

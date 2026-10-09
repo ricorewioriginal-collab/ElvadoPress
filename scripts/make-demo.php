@@ -11,6 +11,6 @@ foreach(array_slice($argv,2) as $a)if(str_starts_with($a,'--engine=')){   // --e
     [$h,$n,$u,$p,$pre]=array_pad(explode('|',substr($a,9)),5,'');
     $engine=['host'=>$h?:'localhost','name'=>$n,'user'=>$u,'pass'=>$p,'prefix'=>$pre?:'wpdemo_'];
 }
-rrw_demo_make($dir,$min,$engine);
-if($extras){ $r=rrw_demo_extras($dir);echo "Vorinstalliert: ".($r['ok']?implode(', ',$r['ok']):'nichts')."\n";foreach($r['failed'] as $n=>$why)fwrite(STDERR,"Warnung: $n nicht installiert ($why)\n"); }
+elvado_demo_make($dir,$min,$engine);
+if($extras){ $r=elvado_demo_extras($dir);echo "Vorinstalliert: ".($r['ok']?implode(', ',$r['ok']):'nichts')."\n";foreach($r['failed'] as $n=>$why)fwrite(STDERR,"Warnung: $n nicht installiert ($why)\n"); }
 echo "Demo vorbereitet: $dir (Zeitfenster $min Minuten)\n";

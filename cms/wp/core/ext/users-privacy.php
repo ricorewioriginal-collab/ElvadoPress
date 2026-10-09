@@ -16,9 +16,9 @@ if(!class_exists('WP_User_Request')){
     }
 }
 /** Status einer Anfrage direkt setzen (ohne Beitrags-Hooks und ohne Slug-Änderung). */
-function rrw_wpx_request_status(int $id, string $status, array $extra=[]): void {
+function elvado_wpx_request_status(int $id, string $status, array $extra=[]): void {
     global $wpdb;$now=current_time('mysql');$gmt=current_time('mysql',1);
-    $wpdb->update($wpdb->posts,array_merge(['post_status'=>$status,'post_modified'=>$now,'post_modified_gmt'=>$gmt],$extra),['ID'=>$id]);rrw_wp_post_cache_clear($id);
+    $wpdb->update($wpdb->posts,array_merge(['post_status'=>$status,'post_modified'=>$now,'post_modified_gmt'=>$gmt],$extra),['ID'=>$id]);elvado_wp_post_cache_clear($id);
 }
 
 if(!function_exists('_wp_privacy_action_request_types')){
@@ -42,20 +42,20 @@ if(!function_exists('wp_create_user_request')){
         $email=sanitize_email((string)$email_address);$action=sanitize_key((string)$action_name);
         if(!is_email($email))return new WP_Error('invalid_email','Ungültige E-Mail-Adresse.');
         if(!in_array($action,_wp_privacy_action_request_types(),true))return new WP_Error('invalid_action','Ungültige Aktion der Datenschutzanfrage.');
-        if(!rrw_wp_db_ready())return new WP_Error('no_database','Keine Datenbank verfügbar.');
+        if(!elvado_wp_db_ready())return new WP_Error('no_database','Keine Datenbank verfügbar.');
         $user=get_user_by('email',$email);$uid=$user?(int)$user->ID:0;
         $dup=$wpdb->get_var($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'user_request' AND post_name = %s AND post_title = %s AND post_status IN ('request-pending','request-confirmed') LIMIT 1",$action,$email));
         if($dup)return new WP_Error('duplicate_request','Für diese E-Mail-Adresse gibt es bereits eine ausstehende Anfrage.');
         $id=wp_insert_post(['post_author'=>$uid,'post_name'=>$action,'post_title'=>$email,'post_content'=>wp_json_encode($request_data),'post_status'=>'request-'.sanitize_key((string)$status),'post_type'=>'user_request','post_date'=>current_time('mysql',false),'post_date_gmt'=>current_time('mysql',true)],true);
         if(is_wp_error($id)||!$id)return is_wp_error($id)?$id:new WP_Error('db_insert_error','Die Anfrage konnte nicht gespeichert werden.');
-        $wpdb->update($wpdb->posts,['post_name'=>$action],['ID'=>(int)$id]);rrw_wp_post_cache_clear((int)$id);   // Slug nicht „-2“ nummerieren
+        $wpdb->update($wpdb->posts,['post_name'=>$action],['ID'=>(int)$id]);elvado_wp_post_cache_clear((int)$id);   // Slug nicht „-2“ nummerieren
         return (int)$id;
     }
 }
 if(!function_exists('wp_generate_user_request_key')){
     function wp_generate_user_request_key($request_id) {
         $key=wp_generate_password(20,false);
-        if(rrw_wp_db_ready())rrw_wpx_request_status((int)$request_id,'request-pending',['post_password'=>rrw_wpx_fast_hash($key)]);
+        if(elvado_wp_db_ready())elvado_wpx_request_status((int)$request_id,'request-pending',['post_password'=>elvado_wpx_fast_hash($key)]);
         return $key;
     }
 }
@@ -64,7 +64,7 @@ if(!function_exists('wp_validate_user_request_key')){
         $r=wp_get_user_request($request_id);
         if(!$r)return new WP_Error('invalid_request','Ungültige Anfrage.');
         if(!in_array($r->status,['request-pending','request-failed'],true))return new WP_Error('expired_request','<strong>Fehler:</strong> Dieser Link ist abgelaufen.');
-        if(empty($key)||$r->confirm_key===''||!$r->modified_timestamp||!rrw_wpx_fast_verify((string)$key,$r->confirm_key))return new WP_Error('invalid_key','<strong>Fehler:</strong> Ungültiger Schlüssel.');
+        if(empty($key)||$r->confirm_key===''||!$r->modified_timestamp||!elvado_wpx_fast_verify((string)$key,$r->confirm_key))return new WP_Error('invalid_key','<strong>Fehler:</strong> Ungültiger Schlüssel.');
         if(time()>$r->modified_timestamp+(int)apply_filters('user_request_key_expiration',DAY_IN_SECONDS))return new WP_Error('expired_key','<strong>Fehler:</strong> Dieser Link ist abgelaufen.');
         return true;
     }
@@ -73,13 +73,13 @@ if(!function_exists('wp_send_user_request')){
     /** Bestätigungs-E-Mail an den Antragsteller (Link mit action=confirmaction, request_id und confirm_key). */
     function wp_send_user_request($request_id) {
         $r=wp_get_user_request($request_id);if(!$r)return new WP_Error('invalid_request','Ungültige Anfrage.');
-        $key=wp_generate_user_request_key($r->ID);$site=rrw_wpx_site_name();
+        $key=wp_generate_user_request_key($r->ID);$site=elvado_wpx_site_name();
         $url=add_query_arg(['action'=>'confirmaction','request_id'=>$r->ID,'confirm_key'=>$key],wp_login_url());
         $desc=wp_user_request_action_description($r->action_name);
         $m=apply_filters('user_request_action_email_content',"Hallo,\n\nFür deine E-Mail-Adresse wurde auf $site eine Anfrage gestellt: $desc.\n\nZum Bestätigen öffne diese Adresse:\n$url\n\nWenn du die Anfrage nicht gestellt hast, ignoriere diese E-Mail.\n",['request'=>$r,'email'=>$r->email,'description'=>$desc,'confirm_url'=>$url,'sitename'=>$site]);
         $ok=wp_mail($r->email,'['.$site.'] Bestätigung: '.$desc,(string)$m);
         if(!$ok)return new WP_Error('privacy_email_error','Beim Senden der E-Mail ist ein Fehler aufgetreten.');
-        if(rrw_wp_db_ready())update_post_meta($r->ID,'_wp_user_request_last_notified',time());
+        if(elvado_wp_db_ready())update_post_meta($r->ID,'_wp_user_request_last_notified',time());
         return true;
     }
 }
@@ -87,7 +87,7 @@ if(!function_exists('_wp_privacy_account_request_confirmed')){
     function _wp_privacy_account_request_confirmed($request_id) {
         $r=wp_get_user_request($request_id);
         if(!$r||!in_array($r->status,['request-pending','request-failed'],true))return;
-        rrw_wpx_request_status($r->ID,'request-confirmed');
+        elvado_wpx_request_status($r->ID,'request-confirmed');
         update_post_meta($r->ID,'_wp_user_request_confirmed_timestamp',time());delete_post_meta($r->ID,'_wp_admin_notified');
     }
 }
@@ -105,7 +105,7 @@ if(!function_exists('_wp_privacy_send_request_confirmation_notification')){
     function _wp_privacy_send_request_confirmation_notification($request_id) {
         $r=wp_get_user_request($request_id);
         if(!$r||$r->status!=='request-confirmed'||get_post_meta($r->ID,'_wp_admin_notified',true))return;
-        $site=rrw_wpx_site_name();$desc=wp_user_request_action_description($r->action_name);
+        $site=elvado_wpx_site_name();$desc=wp_user_request_action_description($r->action_name);
         $m=apply_filters('user_confirmed_action_email_content',"Hallo,\n\n{$r->email} hat die Anfrage „{$desc}“ auf $site bestätigt.\n\nBearbeitung: ".admin_url('tools.php?page='.($r->action_name==='export_personal_data'?'export_personal_data':'remove_personal_data'))."\n",['request'=>$r,'email'=>$r->email,'description'=>$desc,'sitename'=>$site]);
         $to=apply_filters('user_request_confirmed_email_to',get_option('admin_email'),$r);
         $ok=wp_mail($to,'['.$site.'] Anfrage bestätigt: '.$desc,(string)$m);
@@ -116,7 +116,7 @@ if(!function_exists('_wp_privacy_send_erasure_fulfillment_notification')){
     function _wp_privacy_send_erasure_fulfillment_notification($request_id) {
         $r=wp_get_user_request($request_id);
         if(!$r||$r->action_name!=='remove_personal_data'||$r->status!=='request-completed'||get_post_meta($r->ID,'_wp_user_notified',true))return;
-        $site=rrw_wpx_site_name();
+        $site=elvado_wpx_site_name();
         $m=apply_filters('user_erasure_fulfillment_email_content',"Hallo,\n\ndeine Anfrage zum Löschen personenbezogener Daten auf $site wurde bearbeitet. Deine Daten wurden entfernt, soweit keine gesetzliche Pflicht zur Aufbewahrung besteht.\n",['request'=>$r,'email'=>$r->email,'sitename'=>$site]);
         $ok=wp_mail($r->email,'['.$site.'] Deine Daten wurden gelöscht',(string)$m);
         if($ok)update_post_meta($r->ID,'_wp_user_notified',true);

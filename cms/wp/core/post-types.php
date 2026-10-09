@@ -112,7 +112,7 @@ function is_taxonomy_hierarchical($taxonomy) { $t=get_taxonomy($taxonomy);return
 function is_taxonomy_viewable($t) { $x=is_scalar($t)?get_taxonomy($t):$t;return $x&&$x->publicly_queryable; }
 
 /** Standard-Typen und -Taxonomien von WordPress (beim Start). */
-function rrw_wp_register_default_types() {
+function elvado_wp_register_default_types() {
     $L=fn($n,$s)=>['name'=>$n,'singular_name'=>$s];
     register_post_type('post',['labels'=>$L('Beiträge','Beitrag'),'public'=>true,'_builtin'=>true,'capability_type'=>'post','hierarchical'=>false,'rewrite'=>false,'query_var'=>false,'delete_with_user'=>true,'supports'=>['title','editor','author','thumbnail','excerpt','trackbacks','custom-fields','comments','revisions','post-formats']]);
     register_post_type('page',['labels'=>$L('Seiten','Seite'),'public'=>true,'_builtin'=>true,'capability_type'=>'page','hierarchical'=>true,'rewrite'=>false,'query_var'=>false,'delete_with_user'=>true,'supports'=>['title','editor','author','thumbnail','page-attributes','custom-fields','comments','revisions']]);

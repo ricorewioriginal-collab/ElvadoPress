@@ -23,7 +23,7 @@ final class Ai
         if ($this->inject !== null) {
             return $this->inject;
         }
-        $site = (array)($GLOBALS['RRW_SITE'] ?? json_decode((string)@file_get_contents($this->dataDir() . '/site.json'), true));   // Konfiguration bei jedem Aufruf frisch lesen (Änderungen in der KI-Zentrale gelten sofort)
+        $site = (array)($GLOBALS['ELVADO_SITE'] ?? json_decode((string)@file_get_contents($this->dataDir() . '/site.json'), true));   // Konfiguration bei jedem Aufruf frisch lesen (Änderungen in der KI-Zentrale gelten sofort)
         return new AiGatewayService(AiGatewayConfig::load($this->dataDir(), $site), null, new \Elvado\Support\RateLimiter($this->dataDir() . '/.ai/ratelimit'));
     }
 

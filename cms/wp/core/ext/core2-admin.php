@@ -31,11 +31,11 @@ class WP_Privacy_Policy_Content {
     private static function hash() { return md5(serialize(self::get_suggested_policy_text())); }
     public static function _policy_page_updated($post_id) {   // Stand des Vorschlags an der Datenschutzseite merken
         if((int)$post_id!==(int)get_option('wp_page_for_privacy_policy'))return;
-        update_post_meta((int)$post_id,'_rrw_privacy_suggested_hash',self::hash());
+        update_post_meta((int)$post_id,'_elvado_privacy_suggested_hash',self::hash());
     }
     public static function text_change_check() {
         $id=(int)get_option('wp_page_for_privacy_policy');if(!$id)return false;
-        $old=get_post_meta($id,'_rrw_privacy_suggested_hash',true);
+        $old=get_post_meta($id,'_elvado_privacy_suggested_hash',true);
         return $old!==''&&$old!==self::hash();
     }
     public static function policy_text_changed_notice() {
@@ -228,7 +228,7 @@ class WP_Site_Health_Auto_Updates {
         return $bad?['description'=>'Konstanten verhindern automatische Updates: '.implode(', ',$bad).'.','severity'=>'fail']:['description'=>'Keine Konstante verhindert automatische Updates.','severity'=>'pass'];
     }
     public function test_wp_version_check_attached() {
-        if((!is_multisite()||is_main_site())&&!has_filter('wp_version_check','wp_version_check')&&!has_action('wp_version_check','wp_version_check')&&!defined('RRW_WP_VERSION_CHECK_EXTERNAL'))
+        if((!is_multisite()||is_main_site())&&!has_filter('wp_version_check','wp_version_check')&&!has_action('wp_version_check','wp_version_check')&&!defined('ELVADO_WP_VERSION_CHECK_EXTERNAL'))
             return ['description'=>'Die Versionsprüfung ist nicht an den Zeitplan angehängt.','severity'=>'warning'];
         return false;
     }

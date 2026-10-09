@@ -3,16 +3,16 @@
 // Nur Einzelseiten-Betrieb. Benutzer aus der Tabelle wp_users sind änderbar; reine CMS-Redakteure haben kein Passwort in der WordPress-Schicht.
 
 /** Standard-Filter der Anmeldung einmalig anmelden (statt beim Laden). */
-function rrw_wpx_auth_defaults(): void {
+function elvado_wpx_auth_defaults(): void {
     static $done=false;if($done)return;$done=true;
     foreach([['wp_authenticate_username_password',20],['wp_authenticate_email_password',20],['wp_authenticate_application_password',20],['wp_authenticate_cookie',30],['wp_authenticate_spam_check',99]] as [$f,$p])
         if(!has_filter('authenticate',$f))add_filter('authenticate',$f,$p,3);
 }
 /** Schneller Hash für Schlüssel (Zurücksetzen, Datenschutzanfragen). */
-function rrw_wpx_fast_hash(string $s): string { return '$generic$'.hash_hmac('sha256',$s,wp_salt('auth')); }
-function rrw_wpx_fast_verify(string $s, string $h): bool { return $h!==''&&hash_equals($h,rrw_wpx_fast_hash($s)); }
+function elvado_wpx_fast_hash(string $s): string { return '$generic$'.hash_hmac('sha256',$s,wp_salt('auth')); }
+function elvado_wpx_fast_verify(string $s, string $h): bool { return $h!==''&&hash_equals($h,elvado_wpx_fast_hash($s)); }
 /** phpass-Prüfsumme (portable Hashes „$P$“/„$H$“ älterer WordPress-Installationen). */
-function rrw_wpx_phpass(string $password, string $setting): string {
+function elvado_wpx_phpass(string $password, string $setting): string {
     $itoa='./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     if(!in_array(substr($setting,0,3),['$P$','$H$'],true))return '*0';
     $c=strpos($itoa,$setting[3]??'');if($c===false||$c<7||$c>30)return '*0';
@@ -24,11 +24,11 @@ function rrw_wpx_phpass(string $password, string $setting): string {
     return $out;
 }
 /** Sitzungen eines Benutzers (Benutzer-Meta „session_tokens“, Schlüssel = SHA-256 des Tokens), abgelaufene werden verworfen. */
-function rrw_wpx_sess_load(int $uid): array {
+function elvado_wpx_sess_load(int $uid): array {
     $s=get_user_meta($uid,'session_tokens',true);if(!is_array($s))return [];$now=time();
     return array_filter($s,fn($x)=>is_array($x)&&(int)($x['expiration']??0)>=$now);
 }
-function rrw_wpx_sess_save(int $uid, array $s): void { if($s)update_user_meta($uid,'session_tokens',$s);else delete_user_meta($uid,'session_tokens'); }
+function elvado_wpx_sess_save(int $uid, array $s): void { if($s)update_user_meta($uid,'session_tokens',$s);else delete_user_meta($uid,'session_tokens'); }
 
 /* ───────── Passwörter (pluggable.php) ───────── */
 if(!function_exists('wp_hash_password')){
@@ -43,10 +43,10 @@ if(!function_exists('wp_check_password')){
     function wp_check_password($password, $hash, $user_id='') {
         $password=(string)$password;$hash=(string)$hash;
         if(str_starts_with($hash,'$wp'))$check=password_verify(base64_encode(hash_hmac('sha384',trim($password),'wp-sha384',true)),substr($hash,3));
-        elseif(str_starts_with($hash,'$P$')||str_starts_with($hash,'$H$'))$check=hash_equals($hash,rrw_wpx_phpass($password,$hash));
+        elseif(str_starts_with($hash,'$P$')||str_starts_with($hash,'$H$'))$check=hash_equals($hash,elvado_wpx_phpass($password,$hash));
         elseif(str_starts_with($hash,'$'))$check=password_verify($password,$hash);
         else $check=strlen($hash)<=32&&hash_equals($hash,md5($password));
-        if($check&&$user_id&&(int)$user_id>=RRW_WP_ID_DB_MIN&&wp_password_needs_rehash($hash,$user_id))wp_set_password($password,(int)$user_id);
+        if($check&&$user_id&&(int)$user_id>=ELVADO_WP_ID_DB_MIN&&wp_password_needs_rehash($hash,$user_id))wp_set_password($password,(int)$user_id);
         return (bool)apply_filters('check_password',$check,$password,$hash,$user_id);
     }
 }
@@ -60,7 +60,7 @@ if(!function_exists('wp_password_needs_rehash')){
 if(!function_exists('wp_set_password')){
     /** Neues Passwort speichern (nur Benutzer der Tabelle wp_users); entwertet den Zurücksetzen-Schlüssel. */
     function wp_set_password($password, $user_id) {
-        global $wpdb;if(!rrw_wp_db_ready()||(int)$user_id<RRW_WP_ID_DB_MIN)return;
+        global $wpdb;if(!elvado_wp_db_ready()||(int)$user_id<ELVADO_WP_ID_DB_MIN)return;
         $old=get_userdata((int)$user_id);
         $wpdb->update($wpdb->users,['user_pass'=>wp_hash_password($password),'user_activation_key'=>''],['ID'=>(int)$user_id]);
         clean_user_cache((int)$user_id);
@@ -71,7 +71,7 @@ if(!function_exists('wp_set_password')){
 /* ───────── Authentifizierung (user.php, pluggable.php) ───────── */
 if(!function_exists('wp_authenticate')){
     function wp_authenticate($username, $password) {
-        rrw_wpx_auth_defaults();
+        elvado_wpx_auth_defaults();
         $username=sanitize_user((string)$username);$password=trim((string)$password);
         $user=apply_filters('authenticate',null,$username,$password);
         if(null==$user)$user=new WP_Error('authentication_failed','<strong>Fehler:</strong> Ungültiger Benutzername, ungültige E-Mail-Adresse oder falsches Passwort.');
@@ -177,8 +177,8 @@ if(!function_exists('wp_generate_auth_cookie')){
     /** Cookie-Wert „Login|Ablauf|Token|HMAC“ (Format wie in WordPress); der Token wird als Sitzung gespeichert. */
     function wp_generate_auth_cookie($user_id, $expiration, $scheme='auth', $token='') {
         $user=get_userdata((int)$user_id);if(!$user)return '';
-        if($token===''){ $token=bin2hex(random_bytes(16));$s=rrw_wpx_sess_load((int)$user_id);
-            $s[hash('sha256',$token)]=['expiration'=>(int)$expiration+12*HOUR_IN_SECONDS,'ip'=>$_SERVER['REMOTE_ADDR']??'','ua'=>substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),'login'=>time()];rrw_wpx_sess_save((int)$user_id,$s); }
+        if($token===''){ $token=bin2hex(random_bytes(16));$s=elvado_wpx_sess_load((int)$user_id);
+            $s[hash('sha256',$token)]=['expiration'=>(int)$expiration+12*HOUR_IN_SECONDS,'ip'=>$_SERVER['REMOTE_ADDR']??'','ua'=>substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255),'login'=>time()];elvado_wpx_sess_save((int)$user_id,$s); }
         $frag=substr((string)$user->user_pass,8,4);
         $key=wp_hash($user->user_login.'|'.$frag.'|'.$expiration.'|'.$token,$scheme);
         $hash=hash_hmac('sha256',$user->user_login.'|'.$expiration.'|'.$token,$key);
@@ -192,7 +192,7 @@ if(!function_exists('auth_redirect')){
         nocache_headers();
         $url=(is_ssl()?'https://':'http://').($_SERVER['HTTP_HOST']??'localhost').($_SERVER['REQUEST_URI']??'/');
         wp_redirect(wp_login_url($url),302);
-        if(empty($GLOBALS['rrw_wp_is_admin'])&&!defined('RRW_WP_TEST'))exit;
+        if(empty($GLOBALS['elvado_wp_is_admin'])&&!defined('ELVADO_WP_TEST'))exit;
     }
 }
 if(!function_exists('_wp_sanitize_utf8_in_redirect')){
@@ -210,7 +210,7 @@ if(!function_exists('clean_user_cache')){
     function clean_user_cache($user) {
         $u=is_numeric($user)?get_userdata((int)$user):$user;if(!$u instanceof WP_User)return;
         wp_cache_delete($u->ID,'users');wp_cache_delete($u->user_login,'userlogins');wp_cache_delete($u->user_email,'useremail');wp_cache_delete($u->user_nicename,'userslugs');
-        rrw_wp_users_all(true);wp_cache_set_users_last_changed();
+        elvado_wp_users_all(true);wp_cache_set_users_last_changed();
         do_action('clean_user_cache',$u->ID,$u);
     }
 }
@@ -271,7 +271,7 @@ if(!function_exists('get_blogs_of_user')){
     }
 }
 if(!function_exists('wp_update_user_counts')){
-    function wp_update_user_counts($network_id=null) { update_option('user_count',count(rrw_wp_users_all(true)));do_action('wp_update_user_counts'); }
+    function wp_update_user_counts($network_id=null) { update_option('user_count',count(elvado_wp_users_all(true)));do_action('wp_update_user_counts'); }
 }
 if(!function_exists('get_user_count')){
     /** Zwischengespeicherte Benutzerzahl; -1, wenn noch nie ermittelt. */
@@ -297,7 +297,7 @@ if(!function_exists('setup_userdata')){
     }
 }
 if(!function_exists('wp_get_users_with_no_role')){
-    function wp_get_users_with_no_role($site_id=null) { $o=[];foreach(rrw_wp_users_all() as $u)if(($u['role']??'')===''||$u['role']==='none')$o[]=(int)$u['ID'];return $o; }
+    function wp_get_users_with_no_role($site_id=null) { $o=[];foreach(elvado_wp_users_all() as $u)if(($u['role']??'')===''||$u['role']==='none')$o[]=(int)$u['ID'];return $o; }
 }
 if(!function_exists('_wp_get_current_user')){ function _wp_get_current_user() { return wp_get_current_user(); } }
 if(!function_exists('wp_is_password_reset_allowed_for_user')){
@@ -319,17 +319,17 @@ if(!function_exists('wp_get_session_token')){
     function wp_get_session_token() {
         $name=defined('LOGGED_IN_COOKIE')?LOGGED_IN_COOKIE:'wordpress_logged_in_'.COOKIEHASH;
         $p=explode('|',(string)($_COOKIE[$name]??''));
-        return count($p)===4?(string)$p[2]:rrw_wp_session_token();
+        return count($p)===4?(string)$p[2]:elvado_wp_session_token();
     }
 }
 if(!function_exists('wp_get_all_sessions')){
-    function wp_get_all_sessions() { $u=get_current_user_id();return $u?array_values(rrw_wpx_sess_load($u)):[]; }
+    function wp_get_all_sessions() { $u=get_current_user_id();return $u?array_values(elvado_wpx_sess_load($u)):[]; }
 }
 if(!function_exists('wp_destroy_current_session')){
-    function wp_destroy_current_session() { $u=get_current_user_id();$t=wp_get_session_token();if(!$u||$t==='')return;$s=rrw_wpx_sess_load($u);unset($s[hash('sha256',$t)]);rrw_wpx_sess_save($u,$s); }
+    function wp_destroy_current_session() { $u=get_current_user_id();$t=wp_get_session_token();if(!$u||$t==='')return;$s=elvado_wpx_sess_load($u);unset($s[hash('sha256',$t)]);elvado_wpx_sess_save($u,$s); }
 }
 if(!function_exists('wp_destroy_other_sessions')){
-    function wp_destroy_other_sessions() { $u=get_current_user_id();$t=wp_get_session_token();if(!$u||$t==='')return;$k=hash('sha256',$t);$s=rrw_wpx_sess_load($u);rrw_wpx_sess_save($u,isset($s[$k])?[$k=>$s[$k]]:[]); }
+    function wp_destroy_other_sessions() { $u=get_current_user_id();$t=wp_get_session_token();if(!$u||$t==='')return;$k=hash('sha256',$t);$s=elvado_wpx_sess_load($u);elvado_wpx_sess_save($u,isset($s[$k])?[$k=>$s[$k]]:[]); }
 }
 if(!function_exists('wp_destroy_all_sessions')){
     function wp_destroy_all_sessions() { $u=get_current_user_id();if($u)delete_user_meta($u,'session_tokens'); }
@@ -337,16 +337,16 @@ if(!function_exists('wp_destroy_all_sessions')){
 
 /* ───────── Passwort zurücksetzen, Registrierung, Benachrichtigungen ───────── */
 /** Zurücksetzen-Schlüssel erzeugen und gehasht speichern („Zeit:Hash“ in user_activation_key). Nur für Benutzer der Tabelle wp_users. */
-function rrw_wpx_reset_key(WP_User $user) {
+function elvado_wpx_reset_key(WP_User $user) {
     global $wpdb;
-    if(!rrw_wp_db_ready()||$user->ID<RRW_WP_ID_DB_MIN)return new WP_Error('no_reset','Passwort-Zurücksetzen läuft über das CMS.');
+    if(!elvado_wp_db_ready()||$user->ID<ELVADO_WP_ID_DB_MIN)return new WP_Error('no_reset','Passwort-Zurücksetzen läuft über das CMS.');
     $key=wp_generate_password(20,false);do_action('retrieve_password_key',$user->user_login,$key);
-    $wpdb->update($wpdb->users,['user_activation_key'=>time().':'.rrw_wpx_fast_hash($key)],['ID'=>$user->ID]);rrw_wp_users_all(true);
+    $wpdb->update($wpdb->users,['user_activation_key'=>time().':'.elvado_wpx_fast_hash($key)],['ID'=>$user->ID]);elvado_wp_users_all(true);
     return $key;
 }
 /** Kurzform: Mail über wp_mail mit entschlüsseltem Betreff. */
-function rrw_wpx_mail(array $m): bool { return !empty($m['to'])&&(bool)wp_mail($m['to'],wp_specialchars_decode((string)($m['subject']??'')),(string)($m['message']??''),$m['headers']??''); }
-function rrw_wpx_site_name(): string { return wp_specialchars_decode((string)get_option('blogname',''),ENT_QUOTES); }
+function elvado_wpx_mail(array $m): bool { return !empty($m['to'])&&(bool)wp_mail($m['to'],wp_specialchars_decode((string)($m['subject']??'')),(string)($m['message']??''),$m['headers']??''); }
+function elvado_wpx_site_name(): string { return wp_specialchars_decode((string)get_option('blogname',''),ENT_QUOTES); }
 
 if(!function_exists('check_password_reset_key')){
     function check_password_reset_key($key, $login) {
@@ -356,7 +356,7 @@ if(!function_exists('check_password_reset_key')){
         $user=get_user_by('login',$login);if(!$user)return $bad;
         $act=(string)$user->user_activation_key;if($act===''||!str_contains($act,':'))return $bad;
         [$time,$hash]=explode(':',$act,2);
-        if(!rrw_wpx_fast_verify($key,$hash))return $bad;
+        if(!elvado_wpx_fast_verify($key,$hash))return $bad;
         if(time()>(int)$time+(int)apply_filters('password_reset_expiration',DAY_IN_SECONDS))return new WP_Error('expired_key','Ungültiger Schlüssel.');
         return apply_filters('check_password_reset_key',$user,$key);
     }
@@ -384,14 +384,14 @@ if(!function_exists('retrieve_password')){
         $allow=wp_is_password_reset_allowed_for_user($user);
         if(is_wp_error($allow))return $allow;
         if(!$allow)return new WP_Error('no_password_reset','Für diesen Benutzer ist das Zurücksetzen des Passworts nicht erlaubt.');
-        $key=rrw_wpx_reset_key($user);
+        $key=elvado_wpx_reset_key($user);
         if(is_wp_error($key))return $key;
-        $site=rrw_wpx_site_name();
+        $site=elvado_wpx_site_name();
         $msg="Jemand hat das Zurücksetzen des Passworts für das folgende Konto angefordert:\n\nWebsite: ".network_home_url('/')."\nBenutzername: $login\n\nFalls das ein Irrtum war, ignoriere diese E-Mail einfach – es passiert nichts.\n\nZum Zurücksetzen des Passworts öffne diese Adresse:\n\n".network_site_url('wp-login.php?login='.rawurlencode($login).'&key='.$key.'&action=rp','login')."\n";
         $title=apply_filters('retrieve_password_title','['.$site.'] Passwort zurücksetzen',$login,$user);
         $msg=apply_filters('retrieve_password_message',$msg,$key,$login,$user);
         $mail=apply_filters('retrieve_password_notification_email',['to'=>$user->user_email,'subject'=>$title,'message'=>$msg,'headers'=>''],$key,$login,$user);
-        if(!is_array($mail)||!rrw_wpx_mail($mail))return new WP_Error('retrieve_password_email_failure','<strong>Fehler:</strong> Die E-Mail konnte nicht gesendet werden.');
+        if(!is_array($mail)||!elvado_wpx_mail($mail))return new WP_Error('retrieve_password_email_failure','<strong>Fehler:</strong> Die E-Mail konnte nicht gesendet werden.');
         return true;
     }
 }
@@ -422,23 +422,23 @@ if(!function_exists('wp_send_new_user_notifications')){
 if(!function_exists('wp_new_user_notification')){
     function wp_new_user_notification($user_id, $deprecated=null, $notify='') {
         $user=get_userdata((int)$user_id);if(!$user)return;
-        $site=rrw_wpx_site_name();
+        $site=elvado_wpx_site_name();
         if($notify!=='user'){
             $m=apply_filters('wp_new_user_notification_email_admin',['to'=>get_option('admin_email'),'subject'=>'['.$site.'] Neue Benutzerregistrierung','message'=>"Neuer Benutzer auf $site:\n\nBenutzername: {$user->user_login}\n\nE-Mail: {$user->user_email}\n",'headers'=>''],$user,$site);
-            if(is_array($m))rrw_wpx_mail($m);
+            if(is_array($m))elvado_wpx_mail($m);
         }
         if($notify==='admin'||($deprecated===null&&$notify===''))return;
-        $key=rrw_wpx_reset_key($user);if(is_wp_error($key))return;
+        $key=elvado_wpx_reset_key($user);if(is_wp_error($key))return;
         $m=apply_filters('wp_new_user_notification_email',['to'=>$user->user_email,'subject'=>'['.$site.'] Dein Benutzername und Passwort','message'=>"Benutzername: {$user->user_login}\n\nUm dein Passwort festzulegen, öffne diese Adresse:\n\n".network_site_url('wp-login.php?action=rp&key='.$key.'&login='.rawurlencode($user->user_login),'login')."\n\n".wp_login_url()."\n",'headers'=>''],$user,$site);
-        if(is_array($m))rrw_wpx_mail($m);
+        if(is_array($m))elvado_wpx_mail($m);
     }
 }
 if(!function_exists('wp_password_change_notification')){
     function wp_password_change_notification($user) {
         if(strcasecmp((string)$user->user_email,(string)get_option('admin_email'))===0)return;
-        $site=rrw_wpx_site_name();
+        $site=elvado_wpx_site_name();
         $m=apply_filters('wp_password_change_notification_email',['to'=>get_option('admin_email'),'subject'=>'['.$site.'] Passwort geändert','message'=>"Das Passwort des Benutzers {$user->user_login} wurde geändert.\n",'headers'=>''],$user,$site);
-        if(is_array($m))rrw_wpx_mail($m);
+        if(is_array($m))elvado_wpx_mail($m);
     }
 }
 if(!function_exists('send_confirmation_on_profile_email')){
@@ -452,7 +452,7 @@ if(!function_exists('send_confirmation_on_profile_email')){
         $other=email_exists($new);
         if($other&&(int)$other!==$cur->ID){ $errors->add('user_email','<strong>Fehler:</strong> Diese E-Mail-Adresse wird bereits verwendet.',['form-field'=>'email']);unset($_POST['email']);return; }
         $hash=md5($new.time().wp_rand());update_user_meta($cur->ID,'_new_email',['hash'=>$hash,'newemail'=>$new]);
-        $site=rrw_wpx_site_name();
+        $site=elvado_wpx_site_name();
         $m=apply_filters('new_user_email_content',"Hallo ###USERNAME###,\n\nDu hast deine E-Mail-Adresse geändert. Zur Bestätigung öffne:\n###ADMIN_URL###\n\nDie E-Mail-Adresse bleibt bis dahin unverändert.\n\n###SITENAME###\n###SITEURL###",['hash'=>$hash,'newemail'=>$new]);
         $m=str_replace(['###USERNAME###','###ADMIN_URL###','###EMAIL###','###SITENAME###','###SITEURL###'],[$cur->user_login,esc_url(admin_url('profile.php?newuseremail='.$hash)),$new,$site,home_url()],$m);
         wp_mail($new,'['.$site.'] E-Mail-Adresse bestätigen',$m);

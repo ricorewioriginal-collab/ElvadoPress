@@ -2,15 +2,15 @@
 // Prüft die ergänzenden System-Funktionen der WordPress-Schicht (cms/wp/core/ext/system-*.php): Hilfen, Start/Laufzeit, Dateien, Plugins, Übersetzung, Updates.
 // Aufruf: php scripts/test-wp-ext-system.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-extsys-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');
-$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['RRW_SITE']=[];
+$tmp=sys_get_temp_dir().'/elvado-extsys-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');
+$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['ELVADO_SITE']=[];
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
-$GLOBALS['rrw_wp_die_throws']=true;
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
+$GLOBALS['elvado_wp_die_throws']=true;
 
 // Vollständigkeit: alle Funktionen der Liste (keine Ausnahmen)
 $names=preg_split('/\s+/',trim(<<<'LISTE'
@@ -91,8 +91,8 @@ t('wp_get_image_mime',wp_get_image_mime($png)==='image/png'&&false===wp_get_imag
 t('wp_recursive_ksort',(function(){ $a=['b'=>['z'=>1,'a'=>2],'a'=>1];wp_recursive_ksort($a);return array_keys($a)===['a','b']&&array_keys($a['b'])===['a','z']; })());
 t('wp_privacy_anonymize_ip',wp_privacy_anonymize_ip('192.168.10.77')==='192.168.10.0'&&wp_privacy_anonymize_ip('2001:db8:1234:5678::1')==='2001:db8:1234::'&&wp_privacy_anonymize_ip('::ffff:10.1.2.3')==='10.1.2.0'&&wp_privacy_anonymize_ip('kaputt')==='0.0.0.0');
 t('_validate_cache_id / _get_non_cached_ids',_validate_cache_id(5)&&_validate_cache_id('7')&&!_validate_cache_id('7x')&&!_validate_cache_id(1.5));
-wp_cache_set(1,'a','rrw_g');t('_get_non_cached_ids',_get_non_cached_ids([1,2,3,'x'],'rrw_g')===[2,3]);
-t('wp_cache_replace / last_changed',!wp_cache_replace('nix','v','rrw_h')&&wp_cache_set('k','v1','rrw_h')&&wp_cache_replace('k','v2','rrw_h')&&wp_cache_get('k','rrw_h')==='v2'&&wp_cache_get_last_changed('rrw_h')===wp_cache_get_last_changed('rrw_h')&&(wp_cache_set_last_changed('rrw_h')!==''));
+wp_cache_set(1,'a','elvado_g');t('_get_non_cached_ids',_get_non_cached_ids([1,2,3,'x'],'elvado_g')===[2,3]);
+t('wp_cache_replace / last_changed',!wp_cache_replace('nix','v','elvado_h')&&wp_cache_set('k','v1','elvado_h')&&wp_cache_replace('k','v2','elvado_h')&&wp_cache_get('k','elvado_h')==='v2'&&wp_cache_get_last_changed('elvado_h')===wp_cache_get_last_changed('elvado_h')&&(wp_cache_set_last_changed('elvado_h')!==''));
 t('wp_find_hierarchy_loop: Schleife erkannt',(function(){ $p=[1=>2,2=>3,3=>1];$cb=fn($id)=>$p[$id]??0;$l=wp_find_hierarchy_loop($cb,1,2);return $l&&count($l)>=2; })());
 t('wp_find_hierarchy_loop: keine Schleife',(function(){ $p=[1=>2,2=>3,3=>0];$cb=fn($id)=>$p[$id]??0;return []===wp_find_hierarchy_loop($cb,1,2); })());
 t('_wp_json_sanity_check: Kodierung und Tiefe',mb_check_encoding(_wp_json_sanity_check(['a'=>"x\xE4"],10)['a'],'UTF-8')&&_wp_json_sanity_check(['k'=>['ü']],10)==['k'=>['ü']]&&(function(){ try{ _wp_json_sanity_check([[1]],0);return false; }catch(Exception $e){ return true; } })());
@@ -103,7 +103,7 @@ t('wp_get_admin_notice',wp_get_admin_notice('Hallo',['type'=>'error','dismissibl
 t('wp_get_update_php_url / default',wp_get_update_php_url()===wp_get_default_update_php_url()&&''===wp_get_update_php_annotation()&&''===wp_get_direct_php_update_url()&&str_starts_with(wp_get_update_https_url(),'https://'));
 
 // Die-Handler
-$out=function(callable $f){ ob_start();try{ $f(); }catch(RRW_WP_Die $e){} return ob_get_clean(); };
+$out=function(callable $f){ ob_start();try{ $f(); }catch(ELVADO_WP_Die $e){} return ob_get_clean(); };
 $j=json_decode($out(fn()=>_json_wp_die_handler(new WP_Error('boese','Schlecht',['status'=>418]),'',[])),true);
 t('_json_wp_die_handler',$j['code']==='boese'&&$j['message']==='Schlecht'&&$j['data']['status']===418);
 t('_xml_wp_die_handler',str_contains($out(fn()=>_xml_wp_die_handler('Fehler','T',['response'=>400])),'<status>400</status>'));
@@ -125,7 +125,7 @@ $_SERVER['HTTP_AUTHORIZATION']='Basic '.base64_encode('u:p:w');unset($_SERVER['P
 t('Basic-Auth aus Header',$_SERVER['PHP_AUTH_USER']==='u'&&$_SERVER['PHP_AUTH_PW']==='p:w'&&wp_is_site_protected_by_basic_auth());
 t('wp_get_active_and_valid_themes',is_array(wp_get_active_and_valid_themes()));
 t('is_protected_endpoint / ajax',!is_protected_endpoint()||is_admin());
-$GLOBALS['rrw_wp_doing_ajax']=true;$_REQUEST['action']='heartbeat';t('is_protected_ajax_action',is_protected_ajax_action());$GLOBALS['rrw_wp_doing_ajax']=false;
+$GLOBALS['elvado_wp_doing_ajax']=true;$_REQUEST['action']='heartbeat';t('is_protected_ajax_action',is_protected_ajax_action());$GLOBALS['elvado_wp_doing_ajax']=false;
 t('wp_is_ini_value_changeable',wp_is_ini_value_changeable('precision')&&!wp_is_ini_value_changeable('disable_functions'));
 t('_wp_call_all_hook ruft „all“',(function(){ $x=[];add_action('all',function(...$a) use(&$x){ $x[]=$a; });_wp_call_all_hook(['mein_hook',1]);remove_all_actions('all');return $x===[['mein_hook',1]]; })());
 
@@ -199,7 +199,7 @@ t('uninstall_plugin führt uninstall.php aus',true===uninstall_plugin('demo/demo
 $GLOBALS['_paused_plugins']=['demo'=>['type'=>'error','message'=>'x']];
 t('Pausierte Plugins',is_plugin_paused('demo/demo.php')&&wp_get_plugin_error('demo/demo.php')['type']==='error'&&[WP_PLUGIN_DIR.'/b/b.php']===array_values(wp_skip_paused_plugins([WP_PLUGIN_DIR.'/demo/demo.php',WP_PLUGIN_DIR.'/b/b.php'])));
 t('resume_plugin',true===resume_plugin('demo/demo.php')&&!is_plugin_paused('demo/demo.php')&&true===resume_plugin('demo/demo.php'));
-$GLOBALS['rrw_wp_menu']=[];add_menu_page('Seite','Menü','manage_options','mein-slug');add_submenu_page('mein-slug','Unter','Unter','nicht_vorhanden_recht','unter-slug');
+$GLOBALS['elvado_wp_menu']=[];add_menu_page('Seite','Menü','manage_options','mein-slug');add_submenu_page('mein-slug','Unter','Unter','nicht_vorhanden_recht','unter-slug');
 global $plugin_page,$pagenow;$plugin_page='unter-slug';$pagenow='admin.php';
 t('get_admin_page_parent / user_can_access_admin_page',get_admin_page_parent()==='mein-slug'&&!user_can_access_admin_page()&&get_admin_page_parent('themes.php')==='themes.php');
 $plugin_page='mein-slug';t('user_can_access_admin_page: Berechtigung',user_can_access_admin_page());
@@ -211,7 +211,7 @@ t('deactivated_plugins_notice: ohne Fehler still',''===(function(){ ob_start();d
 
 // Update-Verwaltung
 wp_clean_update_cache();wp_version_check([],true);
-$core=get_site_transient('update_core');t('wp_version_check legt Zwischenspeicher an',is_object($core)&&$core->updates===[]&&$core->version_checked===RRW_WP_VERSION);
+$core=get_site_transient('update_core');t('wp_version_check legt Zwischenspeicher an',is_object($core)&&$core->updates===[]&&$core->version_checked===ELVADO_WP_VERSION);
 t('get_preferred_from_update_core: aktuell',get_preferred_from_update_core()->response==='latest');
 t('wp_get_update_data ohne Updates',wp_get_update_data()['counts']['total']===0&&wp_get_update_data()['title']==='');
 set_site_transient('update_plugins',(object)['response'=>['a/a.php'=>(object)['new_version'=>'2']],'last_checked'=>time()],3600);
@@ -275,7 +275,7 @@ t('wp_scheduled_delete lässt andere Beiträge',(bool)get_post($pid));
 $GLOBALS['wp_query']->set('feed','rss2');$feedOut=(function(){ ob_start();try{ do_feed_rss2(); }catch(Throwable $e){}return ob_get_clean(); })();
 t('do_feed_rss2: gültiges XML',(bool)@simplexml_load_string($feedOut)&&str_contains($feedOut,'<rss version="2.0"'));
 t('do_feed_atom: gültiges XML',(bool)@simplexml_load_string((function(){ ob_start();do_feed_atom();return ob_get_clean(); })()));
-t('do_feed: unbekannter Feed → Fehler',(function(){ $GLOBALS['wp_query']->set('feed','nixfeed');try{ ob_start();do_feed();ob_end_clean();return false; }catch(RRW_WP_Die $e){ ob_end_clean();return $e->getCode()===404; } })());
+t('do_feed: unbekannter Feed → Fehler',(function(){ $GLOBALS['wp_query']->set('feed','nixfeed');try{ ob_start();do_feed();ob_end_clean();return false; }catch(ELVADO_WP_Die $e){ ob_end_clean();return $e->getCode()===404; } })());
 
 // Anzahl und Ergebnis
 echo $fail?"$fail Fehler von $n Prüfungen\n":"OK ($n Prüfungen)\n";

@@ -16,13 +16,13 @@ class NOOP_Translations {
     public function merge_with(&$other) {}
 }
 }
-if(!class_exists('RRW_Ext_Translations')){
+if(!class_exists('ELVADO_Ext_Translations')){
 /** Übersetzungsobjekt einer geladenen Textdomäne (liest über die Übersetzungs-Schicht des CMS). */
-class RRW_Ext_Translations extends NOOP_Translations {
+class ELVADO_Ext_Translations extends NOOP_Translations {
     public $domain;
     public function __construct($domain='default') { $this->domain=(string)$domain; }
-    public function translate($singular, $context=null) { return rrw_wp_tr((string)$singular,$this->domain,$context);}
-    public function translate_plural($singular, $plural, $count, $context=null) { return rrw_wp_trn((string)$singular,(string)$plural,(int)$count,$this->domain,$context); }
+    public function translate($singular, $context=null) { return elvado_wp_tr((string)$singular,$this->domain,$context);}
+    public function translate_plural($singular, $plural, $count, $context=null) { return elvado_wp_trn((string)$singular,(string)$plural,(int)$count,$this->domain,$context); }
 }
 }
 
@@ -31,13 +31,13 @@ if(!function_exists('load_default_textdomain')){ function load_default_textdomai
     $locale=$locale?:determine_locale();if($locale==='en_US')return true;
     return load_textdomain('default',WP_LANG_DIR.'/'.$locale.'.mo',$locale);
 } }
-if(!function_exists('_load_textdomain_just_in_time')){ function _load_textdomain_just_in_time($domain) { return rrw_wp_mo_domain((string)$domain)!==null; } }
+if(!function_exists('_load_textdomain_just_in_time')){ function _load_textdomain_just_in_time($domain) { return elvado_wp_mo_domain((string)$domain)!==null; } }
 if(!function_exists('get_translations_for_domain')){ function get_translations_for_domain($domain) {
-    return isset($GLOBALS['rrw_wp_mo'][$domain])||rrw_wp_mo_domain((string)$domain)?new RRW_Ext_Translations((string)$domain):new NOOP_Translations();
+    return isset($GLOBALS['elvado_wp_mo'][$domain])||elvado_wp_mo_domain((string)$domain)?new ELVADO_Ext_Translations((string)$domain):new NOOP_Translations();
 } }
 if(!function_exists('has_translation')){ function has_translation($text, $domain='default', $context='') {   // gibt es für den Text eine Übersetzung in der geladenen Sprache?
-    if(!rrw_wp_locale_active())return false;
-    $mo=rrw_wp_mo_domain($domain===''?'default':(string)$domain);if(!$mo)return false;
+    if(!elvado_wp_locale_active())return false;
+    $mo=elvado_wp_mo_domain($domain===''?'default':(string)$domain);if(!$mo)return false;
     $r=$mo->get(($context!==''?$context."\x04":'').$text);return $r!==null&&($r[0]??'')!=='';
 } }
 if(!function_exists('load_script_translations')){ function load_script_translations($file, $handle, $domain) {
@@ -47,7 +47,7 @@ if(!function_exists('load_script_translations')){ function load_script_translati
     return apply_filters('load_script_translations',(string)file_get_contents($file),$file,$handle,$domain);
 } }
 if(!function_exists('load_script_textdomain')){ function load_script_textdomain($handle, $domain='default', $path='') {
-    $src=(string)($GLOBALS['rrw_wp_scripts']['reg'][$handle]['src']??'');if($src===''||!is_string($src))return false;
+    $src=(string)($GLOBALS['elvado_wp_scripts']['reg'][$handle]['src']??'');if($src===''||!is_string($src))return false;
     $locale=determine_locale();if($locale==='en_US')return false;
     $dir=untrailingslashit($path?:WP_LANG_DIR);$base=trailingslashit(site_url());
     $rel=str_starts_with($src,$base)?substr($src,strlen($base)):ltrim((string)parse_url($src,PHP_URL_PATH),'/');

@@ -5,22 +5,22 @@ declare(strict_types=1);
 // Eine "Brand" (Marke) ist ein Satz Branding-Werte (Name, Logo, Favicon, Titel, Beschreibung,
 // Social-Bild, Canonical-Verhalten, optionale Text-/Rechts-Overrides), der an Domains hängt.
 // Welche Brand gilt, entscheidet der aufgerufene Hostname (z.B. shop.beispiel.de) - oder zur
-// Vorschau im CMS der Parameter ?rrw_brand=<id>. Alle Inhalte (Sender, News, Widgets, Themes,
+// Vorschau im CMS der Parameter ?elvado_brand=<id>. Alle Inhalte (Sender, News, Widgets, Themes,
 // Seiten, Menüs) bleiben gemeinsam; die Brand ändert nur, wie die Website "heißt" und aussieht.
 // Themes bestimmen Layout/Design, Brands bestimmen Marke/Assets - zwei getrennte Ebenen.
 // ---------------------------------------------------------------------------------------------
-if(!function_exists('rrw_read_json')){
-    function rrw_read_json(string $file,array $fallback=[]): array {
+if(!function_exists('elvado_read_json')){
+    function elvado_read_json(string $file,array $fallback=[]): array {
         if(!is_file($file))return $fallback;$d=json_decode((string)@file_get_contents($file),true);return is_array($d)?$d:$fallback;
     }
 }
-function rrw_brand_default_id(): string { return 'site'; }
+function elvado_brand_default_id(): string { return 'site'; }
 // Standard-Registry: nur die eigene Hauptmarke, benannt nach der Website.
-function rrw_brand_defaults(): array {
-    $nm=trim((string)($GLOBALS['RRW_SITE']['portal']['site_name']??''));if($nm==='')$nm='Meine Website';
-    return ['default'=>'site','items'=>[rrw_brand_blank(['id'=>'site','name'=>$nm,'short_name'=>$nm,'canonical_mode'=>'own','enabled'=>true,'builtin'=>true])]];
+function elvado_brand_defaults(): array {
+    $nm=trim((string)($GLOBALS['ELVADO_SITE']['portal']['site_name']??''));if($nm==='')$nm='Meine Website';
+    return ['default'=>'site','items'=>[elvado_brand_blank(['id'=>'site','name'=>$nm,'short_name'=>$nm,'canonical_mode'=>'own','enabled'=>true,'builtin'=>true])]];
 }
-function rrw_brand_blank(array $o=[]): array {
+function elvado_brand_blank(array $o=[]): array {
     return array_merge([
         'id'=>'','name'=>'','short_name'=>'','claim'=>'','enabled'=>true,'builtin'=>false,
         'primary_domain'=>'','domains'=>[],
@@ -32,28 +32,28 @@ function rrw_brand_blank(array $o=[]): array {
         'overrides'=>['portal'=>['site_name'=>'','hero_eyebrow'=>'','hero_title'=>'','hero_text'=>'','news_title'=>'','news_intro'=>'','footer_text'=>'','legal_notice'=>'']],
     ],$o);
 }
-function rrw_brand_id_clean(string $s): string { $s=strtolower(trim($s));$s=preg_replace('/[^a-z0-9-]+/','-',$s);return substr(trim((string)$s,'-'),0,40); }
-function rrw_brand_domain_clean(string $d): string {
+function elvado_brand_id_clean(string $s): string { $s=strtolower(trim($s));$s=preg_replace('/[^a-z0-9-]+/','-',$s);return substr(trim((string)$s,'-'),0,40); }
+function elvado_brand_domain_clean(string $d): string {
     $d=strtolower(trim($d));$d=preg_replace('#^https?://#','',$d);$d=explode('/',$d)[0];$d=explode(':',$d)[0];
     return preg_match('/^(?=.{1,253}$)([a-z0-9-]+\.)+[a-z]{2,}$/',$d)?$d:'';
 }
-function rrw_brand_asset_clean(string $v): string { $v=trim($v);if($v==='')return'';return preg_match('~^(https://|/)~i',$v)?mb_substr($v,0,1000):''; }
+function elvado_brand_asset_clean(string $v): string { $v=trim($v);if($v==='')return'';return preg_match('~^(https://|/)~i',$v)?mb_substr($v,0,1000):''; }
 // Bereinigt die komplette brands-Sektion (CMS-Speichern). Die zwei eingebauten Marken können nicht
 // gelöscht, aber frei bearbeitet werden; weitere Marken sind ohne Codeänderung möglich.
-function rrw_brands_clean($value): array {
-    $defaults=rrw_brand_defaults();$value=is_array($value)?$value:[];$items=[];$seen=[];
-    $safe=function_exists('rrw_safe_html')?'rrw_safe_html':fn(string $h)=>strip_tags($h);
+function elvado_brands_clean($value): array {
+    $defaults=elvado_brand_defaults();$value=is_array($value)?$value:[];$items=[];$seen=[];
+    $safe=function_exists('elvado_safe_html')?'elvado_safe_html':fn(string $h)=>strip_tags($h);
     foreach(array_slice((array)($value['items']??[]),0,20) as $b){
-        if(!is_array($b))continue;$id=rrw_brand_id_clean((string)($b['id']??''));if($id===''||isset($seen[$id]))continue;$seen[$id]=true;
-        $domains=[];foreach(array_slice((array)($b['domains']??[]),0,10) as $d){$d=rrw_brand_domain_clean((string)$d);if($d!=='')$domains[]=$d;}
-        $primary=rrw_brand_domain_clean((string)($b['primary_domain']??''));
+        if(!is_array($b))continue;$id=elvado_brand_id_clean((string)($b['id']??''));if($id===''||isset($seen[$id]))continue;$seen[$id]=true;
+        $domains=[];foreach(array_slice((array)($b['domains']??[]),0,10) as $d){$d=elvado_brand_domain_clean((string)$d);if($d!=='')$domains[]=$d;}
+        $primary=elvado_brand_domain_clean((string)($b['primary_domain']??''));
         $domains=array_values(array_unique(array_filter($domains,fn($d)=>$d!==$primary)));
         $legal=is_array($b['legal']??null)?$b['legal']:[];$ov=is_array($b['overrides']['portal']??null)?$b['overrides']['portal']:[];$colors=is_array($b['colors']??null)?$b['colors']:[];
         $col=fn($c)=>preg_match('/^#[0-9a-f]{3,8}$/i',(string)$c)?strtolower((string)$c):'';
         $items[]=['id'=>$id,'name'=>mb_substr(trim((string)($b['name']??$id)),0,80),'short_name'=>mb_substr(trim((string)($b['short_name']??'')),0,40),'claim'=>mb_substr(trim((string)($b['claim']??'')),0,160),
             'enabled'=>!array_key_exists('enabled',$b)||!empty($b['enabled']),'builtin'=>$id==='site',
             'primary_domain'=>$primary,'domains'=>$domains,
-            'logo'=>rrw_brand_asset_clean((string)($b['logo']??'')),'logo_dark'=>rrw_brand_asset_clean((string)($b['logo_dark']??'')),'logo_light'=>rrw_brand_asset_clean((string)($b['logo_light']??'')),'favicon'=>rrw_brand_asset_clean((string)($b['favicon']??'')),'touch_icon'=>rrw_brand_asset_clean((string)($b['touch_icon']??'')),'og_image'=>rrw_brand_asset_clean((string)($b['og_image']??'')),'social_image'=>rrw_brand_asset_clean((string)($b['social_image']??'')),
+            'logo'=>elvado_brand_asset_clean((string)($b['logo']??'')),'logo_dark'=>elvado_brand_asset_clean((string)($b['logo_dark']??'')),'logo_light'=>elvado_brand_asset_clean((string)($b['logo_light']??'')),'favicon'=>elvado_brand_asset_clean((string)($b['favicon']??'')),'touch_icon'=>elvado_brand_asset_clean((string)($b['touch_icon']??'')),'og_image'=>elvado_brand_asset_clean((string)($b['og_image']??'')),'social_image'=>elvado_brand_asset_clean((string)($b['social_image']??'')),
             'title'=>mb_substr(trim((string)($b['title']??'')),0,120),'title_suffix'=>mb_substr(trim((string)($b['title_suffix']??'')),0,80),'description'=>mb_substr(trim((string)($b['description']??'')),0,400),'manifest_name'=>mb_substr(trim((string)($b['manifest_name']??'')),0,60),'manifest_short_name'=>mb_substr(trim((string)($b['manifest_short_name']??'')),0,30),
             'colors'=>['theme'=>$col($colors['theme']??''),'accent'=>$col($colors['accent']??'')],
             'app_prefix'=>preg_replace('/[^A-Za-z0-9-]/','',(string)($b['app_prefix']??'')),
@@ -64,17 +64,17 @@ function rrw_brands_clean($value): array {
     }
     // Eingebaute Marken dürfen nicht fehlen (sonst Standard-Eintrag ergänzen).
     foreach($defaults['items'] as $d)if(!isset($seen[$d['id']]))$items[]=$d;
-    $fallbackDefault=rrw_brand_default_id();
-    $default=rrw_brand_id_clean((string)($value['default']??$fallbackDefault));
+    $fallbackDefault=elvado_brand_default_id();
+    $default=elvado_brand_id_clean((string)($value['default']??$fallbackDefault));
     if(!in_array($default,array_column($items,'id'),true))$default=$fallbackDefault;
     return ['default'=>$default,'items'=>$items];
 }
-function rrw_brands_registry(array $site): array { return rrw_brands_clean($site['brands']??rrw_brand_defaults()); }
-function rrw_brand_host_normalize(string $host): string { $host=strtolower(trim($host));$host=explode(':',$host)[0];return $host; }
+function elvado_brands_registry(array $site): array { return elvado_brands_clean($site['brands']??elvado_brand_defaults()); }
+function elvado_brand_host_normalize(string $host): string { $host=strtolower(trim($host));$host=explode(':',$host)[0];return $host; }
 // Welche Brand gehört zu diesem Hostname? Vergleich mit und ohne "www."; unbekannte Hosts
 // (z.B. Vorschau-Server, IP, localhost) landen bei der Standardmarke.
-function rrw_brand_id_for_host(array $site,string $host): string {
-    $reg=rrw_brands_registry($site);$h=rrw_brand_host_normalize($host);$hNoWww=preg_replace('/^www\./','',$h);
+function elvado_brand_id_for_host(array $site,string $host): string {
+    $reg=elvado_brands_registry($site);$h=elvado_brand_host_normalize($host);$hNoWww=preg_replace('/^www\./','',$h);
     foreach($reg['items'] as $b){
         if(empty($b['enabled']))continue;
         $all=array_merge([$b['primary_domain']],(array)$b['domains']);
@@ -84,13 +84,13 @@ function rrw_brand_id_for_host(array $site,string $host): string {
 }
 // Die wirksame Brand: Werte der Marke, bei leeren Feldern Rückgriff auf die bisherigen globalen
 // Einstellungen (branding/seo/portal) - so bleibt die Website exakt wie vorher.
-function rrw_brand_resolve(array $site,string $host,?string $forced=null): array {
-    $reg=rrw_brands_registry($site);$id=$forced!==null?rrw_brand_id_clean($forced):'';
+function elvado_brand_resolve(array $site,string $host,?string $forced=null): array {
+    $reg=elvado_brands_registry($site);$id=$forced!==null?elvado_brand_id_clean($forced):'';
     $by=[];foreach($reg['items'] as $b)$by[$b['id']]=$b;
-    if($id===''||!isset($by[$id])||empty($by[$id]['enabled']))$id=rrw_brand_id_for_host($site,$host);
-    $b=$by[$id]??$by[$reg['default']]??rrw_brand_defaults()['items'][0];
+    if($id===''||!isset($by[$id])||empty($by[$id]['enabled']))$id=elvado_brand_id_for_host($site,$host);
+    $b=$by[$id]??$by[$reg['default']]??elvado_brand_defaults()['items'][0];
     $isDefault=$id===$reg['default'];
-    $branding=(array)($site['branding']??[]);$seo=function_exists('rrw_seo_defaults')?rrw_seo_defaults($site):(array)($site['seo']??[]);$portal=(array)($site['portal']??[]);
+    $branding=(array)($site['branding']??[]);$seo=function_exists('elvado_seo_defaults')?elvado_seo_defaults($site):(array)($site['seo']??[]);$portal=(array)($site['portal']??[]);
     $g=fn(string $k,string $fallback='')=>trim((string)($b[$k]??''))!==''?(string)$b[$k]:$fallback;
     $logo=$g('logo',(string)($branding['portal_logo']??'/logo-lockup.png'));
     $favicon=$g('favicon',(string)($branding['favicon']??'/icon-192.png'));
@@ -99,8 +99,8 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
     $title=$g('title',(string)($seo['site_title']??$portal['site_name']??$b['name']));
     $suffix=$g('title_suffix',$isDefault?$b['name']:$title);
     $desc=$g('description',(string)($seo['description']??$portal['news_intro']??''));
-    $primary=$b['primary_domain']!==''?$b['primary_domain']:rrw_brand_host_normalize($host);
-    $hostNorm=rrw_brand_host_normalize($host);
+    $primary=$b['primary_domain']!==''?$b['primary_domain']:elvado_brand_host_normalize($host);
+    $hostNorm=elvado_brand_host_normalize($host);
     $origin='https://'.($hostNorm!==''&&$hostNorm!=='localhost'&&!preg_match('/^(127\.|\d+\.\d+\.\d+\.\d+$)/',$hostNorm)?$hostNorm:$primary);
     $mainBase=rtrim((string)($seo['canonical_base']??'https://'.($primary!==''?$primary:($hostNorm!==''?$hostNorm:'localhost'))),'/');
     // Hauptmarke: Links (og:url, Share, RSS) bleiben wie bisher auf der Canonical-Basis
@@ -121,14 +121,14 @@ function rrw_brand_resolve(array $site,string $host,?string $forced=null): array
             'imprint_mode'=>($legal['imprint_mode']??'shared')==='custom'?'custom':'shared','imprint_url'=>(string)($legal['imprint_url']??''),'imprint_content'=>(string)($legal['imprint_content']??''),
             'privacy_mode'=>($legal['privacy_mode']??'shared')==='custom'?'custom':'shared','privacy_url'=>(string)($legal['privacy_url']??''),'privacy_content'=>(string)($legal['privacy_content']??''),
         ],
-        'overrides'=>['portal'=>rrw_brand_portal_overrides($b,$isDefault)],
-        'partners'=>rrw_brand_partners($reg,$id,$branding,$mainBase),
+        'overrides'=>['portal'=>elvado_brand_portal_overrides($b,$isDefault)],
+        'partners'=>elvado_brand_partners($reg,$id,$branding,$mainBase),
     ];
 }
 // Schwestermarken (alle anderen aktiven Marken) fuer den Partner-Hinweis im Willkommensbereich:
 // Jede Marke zeigt die Logos der anderen mit Link. Link: eigene Domain, solange die
 // Domain noch nicht freigeschaltet ist (Canonical 'main') die Markenansicht auf der Hauptdomain.
-function rrw_brand_partners(array $reg,string $currentId,array $branding,string $mainBase): array {
+function elvado_brand_partners(array $reg,string $currentId,array $branding,string $mainBase): array {
     $out=[];
     foreach($reg['items'] as $o){
         if(($o['id']??'')===$currentId||empty($o['enabled']))continue;
@@ -138,7 +138,7 @@ function rrw_brand_partners(array $reg,string $currentId,array $branding,string 
         if($isDef)$url=$mainBase.'/';
         elseif(($o['canonical_mode']??'own')==='own'&&$primary!=='')$url='https://'.$primary.'/';
         elseif(($o['canonical_mode']??'')==='custom'&&trim((string)($o['canonical_base']??''))!=='')$url=rtrim((string)$o['canonical_base'],'/').'/';
-        else $url=$mainBase.'/?rrw_brand='.rawurlencode((string)$o['id']);
+        else $url=$mainBase.'/?elvado_brand='.rawurlencode((string)$o['id']);
         $out[]=['id'=>(string)$o['id'],'name'=>(string)($o['name']??$o['id']),'short_name'=>(string)(($o['short_name']??'')?:($o['name']??$o['id'])),'claim'=>(string)($o['claim']??''),'logo'=>$logo,'url'=>$url];
     }
     return $out;
@@ -146,7 +146,7 @@ function rrw_brand_partners(array $reg,string $currentId,array $branding,string 
 // Texte der Startseite/News/Footer je Marke: was im CMS (Domains & Branding → Texte überschreiben)
 // leer bleibt, bekommt bei Zweitmarken einen markeneigenen Standard statt der Texte der Hauptmarke;
 // die Hauptmarke nutzt weiterhin die gemeinsamen Portal-Texte.
-function rrw_brand_portal_overrides(array $b,bool $isDefault): array {
+function elvado_brand_portal_overrides(array $b,bool $isDefault): array {
     $ov=array_filter((array)($b['overrides']['portal']??[]),fn($v)=>trim((string)$v)!=='');
     if($isDefault)return $ov;
     $name=trim((string)($b['name']??''))?:'Radio';$claim=trim((string)($b['claim']??''));
@@ -160,19 +160,19 @@ function rrw_brand_portal_overrides(array $b,bool $isDefault): array {
     return array_merge($defaults,$ov);
 }
 // Absolute URL für Social-Vorschauen (Crawler verlangen absolute Bild-/Seiten-URLs).
-function rrw_brand_abs(string $origin,string $path): string { if($path==='')return'';if(preg_match('~^https?://~i',$path))return $path;return rtrim($origin,'/').'/'.ltrim($path,'/'); }
-function rrw_brand_forced_from_request(): ?string {
-    $q=$_GET['rrw_brand']??$_GET['cms_brand_preview']??null;return is_string($q)&&$q!==''?$q:null;
+function elvado_brand_abs(string $origin,string $path): string { if($path==='')return'';if(preg_match('~^https?://~i',$path))return $path;return rtrim($origin,'/').'/'.ltrim($path,'/'); }
+function elvado_brand_forced_from_request(): ?string {
+    $q=$_GET['elvado_brand']??$_GET['cms_brand_preview']??null;return is_string($q)&&$q!==''?$q:null;
 }
 // Öffentliche Sicht auf eine Brand (keine Verwaltungsdaten - die Registry enthält ohnehin keine
 // Geheimnisse, aber diese Form ist stabil für die API).
-function rrw_brand_public_payload(array $brand): array {
+function elvado_brand_public_payload(array $brand): array {
     return ['brand'=>$brand['id'],'name'=>$brand['name'],'short_name'=>$brand['short_name'],'claim'=>$brand['claim'],'hostname'=>$brand['hostname'],'primary_domain'=>$brand['primary_domain'],'domains'=>$brand['domains'],'origin'=>$brand['origin'],'is_default'=>$brand['is_default'],
         'logo'=>$brand['logo'],'logo_dark'=>$brand['logo_dark'],'logo_light'=>$brand['logo_light'],'favicon'=>$brand['favicon'],'touch_icon'=>$brand['touch_icon'],'og_image'=>$brand['og_image'],'social_image'=>$brand['social_image'],
         'title'=>$brand['title'],'title_suffix'=>$brand['title_suffix'],'description'=>$brand['description'],'manifest_name'=>$brand['manifest_name'],'manifest_short_name'=>$brand['manifest_short_name'],'colors'=>$brand['colors'],
         'canonical_mode'=>$brand['canonical_mode'],'canonical_url'=>$brand['canonical_url'],'app_prefix'=>$brand['app_prefix'],'legal'=>$brand['legal'],'overrides'=>$brand['overrides'],'partners'=>$brand['partners']??[]];
 }
-function rrw_brand_manifest(array $brand): array {
+function elvado_brand_manifest(array $brand): array {
     $icons=[];
     if($brand['is_default']){
         $icons=[['src'=>'icon-192.png','sizes'=>'192x192','type'=>'image/png','purpose'=>'any'],['src'=>'icon-512.png','sizes'=>'512x512','type'=>'image/png','purpose'=>'any'],['src'=>'icon-512-maskable.png','sizes'=>'512x512','type'=>'image/png','purpose'=>'maskable']];
@@ -188,7 +188,7 @@ function rrw_brand_manifest(array $brand): array {
 
 // ───────── Marken anlegen, Domains absichern ─────────
 /** Jede Domain (mit/ohne „www.“) gehört genau einer Marke. @param list<array<string,mixed>> $items @return list<array{domain:string,brands:list<string>}> */
-function rrw_brand_domain_conflicts(array $items): array {
+function elvado_brand_domain_conflicts(array $items): array {
     $seen=[];
     foreach($items as $b){
         foreach(array_filter(array_merge([(string)($b['primary_domain']??'')],(array)($b['domains']??[]))) as $d){$seen[preg_replace('/^www\./','',(string)$d)][(string)($b['id']??'')]=true;}
@@ -197,7 +197,7 @@ function rrw_brand_domain_conflicts(array $items): array {
     return $out;
 }
 /** Teile einer Marke, die beim Anlegen „als Kopie von …“ übernommen werden können. */
-const RRW_BRAND_COPY_GROUPS=[
+const ELVADO_BRAND_COPY_GROUPS=[
     'design'=>['logo','logo_dark','logo_light','favicon','touch_icon','og_image','social_image','colors'],
     'seo'=>['title','title_suffix','description','manifest_name','manifest_short_name','canonical_mode','canonical_base'],
     'texts'=>['claim','overrides'],
@@ -209,34 +209,34 @@ const RRW_BRAND_COPY_GROUPS=[
  * @return list<array<string,mixed>> neue Markenliste (noch nicht bereinigt/gespeichert)
  * @throws InvalidArgumentException mit verständlicher Meldung
  */
-function rrw_brand_create(array $reg,array $in): array {
+function elvado_brand_create(array $reg,array $in): array {
     $items=array_values((array)($reg['items']??[]));
     $name=mb_substr(trim((string)($in['name']??'')),0,80);
-    $id=rrw_brand_id_clean((string)($in['id']??'')!==''?(string)$in['id']:$name);
+    $id=elvado_brand_id_clean((string)($in['id']??'')!==''?(string)$in['id']:$name);
     if($id==='')throw new InvalidArgumentException('Bitte einen Namen oder eine Kennung angeben.');
     foreach($items as $x)if(($x['id']??'')===$id)throw new InvalidArgumentException('Die Kennung „'.$id.'“ gibt es schon.');
     if(count($items)>=20)throw new InvalidArgumentException('Es sind höchstens 20 Marken möglich.');
     if($name==='')$name=$id;
-    $primaryRaw=trim((string)($in['primary_domain']??''));$primary=rrw_brand_domain_clean($primaryRaw);
+    $primaryRaw=trim((string)($in['primary_domain']??''));$primary=elvado_brand_domain_clean($primaryRaw);
     if($primaryRaw!==''&&$primary==='')throw new InvalidArgumentException('Die Hauptdomain „'.$primaryRaw.'“ ist ungültig (Beispiel: meine-marke.de).');
     $extra=[];
-    foreach((array)($in['domains']??[]) as $d){$d=trim((string)$d);if($d==='')continue;$c=rrw_brand_domain_clean($d);if($c==='')throw new InvalidArgumentException('Die Domain „'.$d.'“ ist ungültig.');if($c!==$primary)$extra[]=$c;}
-    $b=rrw_brand_blank(['id'=>$id,'name'=>$name,'short_name'=>mb_substr(trim((string)($in['short_name']??''))!==''?trim((string)$in['short_name']):$name,0,40),'primary_domain'=>$primary,'domains'=>array_values(array_unique($extra)),'enabled'=>!empty($in['enabled']),'builtin'=>false]);
-    $from=rrw_brand_id_clean((string)($in['copy_from']??''));
+    foreach((array)($in['domains']??[]) as $d){$d=trim((string)$d);if($d==='')continue;$c=elvado_brand_domain_clean($d);if($c==='')throw new InvalidArgumentException('Die Domain „'.$d.'“ ist ungültig.');if($c!==$primary)$extra[]=$c;}
+    $b=elvado_brand_blank(['id'=>$id,'name'=>$name,'short_name'=>mb_substr(trim((string)($in['short_name']??''))!==''?trim((string)$in['short_name']):$name,0,40),'primary_domain'=>$primary,'domains'=>array_values(array_unique($extra)),'enabled'=>!empty($in['enabled']),'builtin'=>false]);
+    $from=elvado_brand_id_clean((string)($in['copy_from']??''));
     if($from!==''){
         $src=null;foreach($items as $x)if(($x['id']??'')===$from)$src=$x;
         if($src===null)throw new InvalidArgumentException('Die Vorlage-Marke „'.$from.'“ gibt es nicht.');
-        $groups=array_values(array_intersect(array_keys(RRW_BRAND_COPY_GROUPS),array_map('strval',(array)($in['copy']??['design','texts','legal']))));
-        foreach($groups as $g)foreach(RRW_BRAND_COPY_GROUPS[$g] as $k)if(array_key_exists($k,$src))$b[$k]=$src[$k];
+        $groups=array_values(array_intersect(array_keys(ELVADO_BRAND_COPY_GROUPS),array_map('strval',(array)($in['copy']??['design','texts','legal']))));
+        foreach($groups as $g)foreach(ELVADO_BRAND_COPY_GROUPS[$g] as $k)if(array_key_exists($k,$src))$b[$k]=$src[$k];
         if(in_array('texts',$groups,true)&&isset($b['overrides']['portal']['site_name'])&&$b['overrides']['portal']['site_name']!=='')$b['overrides']['portal']['site_name']=$name;
     }
     $items[]=$b;
-    $cf=rrw_brand_domain_conflicts($items);
-    if($cf)throw new InvalidArgumentException(rrw_brand_conflict_message($cf,$items));
+    $cf=elvado_brand_domain_conflicts($items);
+    if($cf)throw new InvalidArgumentException(elvado_brand_conflict_message($cf,$items));
     return $items;
 }
 /** @param list<array{domain:string,brands:list<string>}> $cf @param list<array<string,mixed>> $items */
-function rrw_brand_conflict_message(array $cf,array $items): string {
+function elvado_brand_conflict_message(array $cf,array $items): string {
     $nm=[];foreach($items as $x)$nm[(string)($x['id']??'')]=(string)($x['name']??$x['id']??'');
     return 'Jede Domain darf nur zu einer Marke gehören: '.implode('; ',array_map(fn($c)=>$c['domain'].' → '.implode(' und ',array_map(fn($i)=>'„'.($nm[$i]??$i).'“',$c['brands'])),$cf)).'.';
 }
@@ -244,11 +244,11 @@ function rrw_brand_conflict_message(array $cf,array $items): string {
  * DNS-Prüfung einer Domain: zeigt sie auf denselben Server wie diese Verwaltung? (nur Namensauflösung, keine Anfrage an die Domain)
  * @return array{ok:bool,domain:string,ips:list<string>,server_ips:list<string>,match:bool,message:string}
  */
-function rrw_brand_domain_dns(string $domain,?string $adminHost=null): array {
-    $d=rrw_brand_domain_clean($domain);
+function elvado_brand_domain_dns(string $domain,?string $adminHost=null): array {
+    $d=elvado_brand_domain_clean($domain);
     if($d==='')return ['ok'=>false,'domain'=>'','ips'=>[],'server_ips'=>[],'match'=>false,'message'=>'Ungültige Domain.'];
     $ips=array_values(array_unique(array_map('strval',(array)(@gethostbynamel($d)?:[]))));
-    $host=rrw_brand_host_normalize((string)($adminHost??($_SERVER['HTTP_HOST']??'')));
+    $host=elvado_brand_host_normalize((string)($adminHost??($_SERVER['HTTP_HOST']??'')));
     $mine=[];if(($sa=(string)($_SERVER['SERVER_ADDR']??''))!=='')$mine[]=$sa;
     if($host!==''&&!preg_match('/^[0-9.:]+$/',$host))foreach((array)(@gethostbynamel($host)?:[]) as $ip)$mine[]=(string)$ip;
     $mine=array_values(array_unique($mine));$match=(bool)array_intersect($ips,$mine);

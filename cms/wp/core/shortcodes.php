@@ -46,7 +46,7 @@ function do_shortcode_tag($m) {
     $pre=apply_filters('pre_do_shortcode_tag',false,$tag,$attr,$m);
     if(false!==$pre)return $pre;
     try{ $output=$m[1].call_user_func($shortcode_tags[$tag],$attr,$content,$tag).$m[6]; }
-    catch(Throwable $e){ rrw_wp_log('Shortcode ['.$tag.'] Fehler: '.$e->getMessage()); $output=''; }
+    catch(Throwable $e){ elvado_wp_log('Shortcode ['.$tag.'] Fehler: '.$e->getMessage()); $output=''; }
     return apply_filters('do_shortcode_tag',$output,$tag,$attr,$m);
 }
 function shortcode_parse_atts($text) {

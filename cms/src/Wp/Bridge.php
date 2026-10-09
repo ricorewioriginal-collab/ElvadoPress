@@ -112,7 +112,7 @@ final class Bridge
     /** @return bool Läuft echtes WordPress bereits in dieser Anfrage? */
     public static function booted(): bool
     {
-        return defined('ABSPATH') && function_exists('wp_count_posts') && function_exists('add_action') && !function_exists('rrw_wp_boot');
+        return defined('ABSPATH') && function_exists('wp_count_posts') && function_exists('add_action') && !function_exists('elvado_wp_boot');
     }
 
     /**
@@ -121,7 +121,7 @@ final class Bridge
      */
     public static function prepare(Engine $e, DbConfig $db, array $opts = []): array
     {
-        if (function_exists('rrw_wp_boot')) {
+        if (function_exists('elvado_wp_boot')) {
             throw new \RuntimeException('Die WordPress-Nachbildung ist in dieser Anfrage bereits geladen – echtes WordPress kann nicht zusätzlich starten.');
         }
         $core = $e->corePath();

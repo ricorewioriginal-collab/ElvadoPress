@@ -8,13 +8,13 @@ function rmrf(string $d): void { if (!is_dir($d)) return; foreach (scandir($d) a
 // Kindprozess: Tabellen einer Website einrichten (echtes WordPress im globalen Gültigkeitsbereich)
 if (($argv[1] ?? '') === '--child') {
     $c = (string)$argv[2]; $siteId = (string)$argv[3]; $title = (string)$argv[4];
-    define('RRW_SITES_BASE', $c);
+    define('ELVADO_SITES_BASE', $c);
     require __DIR__ . '/../cms/lib/sites.php';
     require __DIR__ . '/../cms/src/autoload.php';
-    rrw_site_use($siteId);
-    $GLOBALS['rrw_wpe_engine'] = new Elvado\Wp\Engine($c, $siteId === '' ? "$c/data" : rrw_site_dir('data'));
-    $GLOBALS['rrw_wpe_db'] = new Elvado\Wp\DbConfig($GLOBALS['rrw_wpe_engine']);
-    $GLOBALS['rrw_wpe_opts'] = ['installing' => true];
+    elvado_site_use($siteId);
+    $GLOBALS['elvado_wpe_engine'] = new Elvado\Wp\Engine($c, $siteId === '' ? "$c/data" : elvado_site_dir('data'));
+    $GLOBALS['elvado_wpe_db'] = new Elvado\Wp\DbConfig($GLOBALS['elvado_wpe_engine']);
+    $GLOBALS['elvado_wpe_opts'] = ['installing' => true];
     $_SERVER['HTTP_HOST'] = 'example.test';
     require __DIR__ . '/../cms/wp-engine-boot.php';
     $r = Elvado\Wp\Bridge::installSchema($title, 'test@example.invalid');
@@ -34,7 +34,7 @@ register_shutdown_function(function () use ($pdo, &$prefixes, $tmp) {
     foreach ($prefixes as $p) { foreach ($pdo->query("SHOW TABLES LIKE '" . $p . "%'")->fetchAll(PDO::FETCH_COLUMN) as $tb) { $pdo->exec('DROP TABLE `' . $tb . '`'); } }
     rmrf($tmp);
 });
-define('RRW_SITES_BASE', $cms);
+define('ELVADO_SITES_BASE', $cms);
 require __DIR__ . '/../cms/lib/sites.php';
 require __DIR__ . '/../cms/src/autoload.php';
 use Elvado\Wp\{Engine, DbConfig, CoreInstaller};
@@ -43,7 +43,7 @@ preg_match('/\$wp_version\s*=\s*\'([^\']+)\'/', (string)$z->getFromName('wordpre
 
 // Gemeinsame Verbindung des CMS
 file_put_contents("$cms/data/database.local.php", '<?php return ' . var_export(['driver' => 'mariadb', 'host' => $host, 'port' => (int)$port, 'database' => $name, 'user' => $u, 'password' => $pw, 'prefix' => 'wpl_'], true) . ';');
-rrw_site_create(['name' => 'Zweite', 'domains' => ['zweite.test'], 'enabled' => true]);
+elvado_site_create(['name' => 'Zweite', 'domains' => ['zweite.test'], 'enabled' => true]);
 
 // Hauptwebsite
 $main = new Engine($cms, "$cms/data");
@@ -54,15 +54,15 @@ exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' --child ' .
 t('Hauptwebsite: Core und WordPress-Tabellen', $inst['ok'] && $rc === 0, ($inst['message'] ?? '') . implode("\n", $o));
 
 // Zweite Website: eigener Zustand, eigenes Präfix, gleiche Datenbank
-rrw_site_use('zweite');
-$sec = new Engine($cms, rrw_site_dir('data'));
+elvado_site_use('zweite');
+$sec = new Engine($cms, elvado_site_dir('data'));
 $sd = new DbConfig($sec); $sp = $sd->defaultPrefix(); $prefixes[] = $sp;
 $inst2 = (new CoreInstaller($sec))->install($zip, $m[1], sha1_file($zip));
 $sd->save(['prefix' => $sp]); $sec->save(['db' => ['ready' => true]]);
 $o = [];
 exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' --child ' . escapeshellarg($cms) . ' zweite "Zweite Seite" 2>&1', $o, $rc2);
 t('Zweite Website: Core erkannt und eigene Tabellen angelegt', $inst2['ok'] && $rc2 === 0, ($inst2['message'] ?? '') . implode("\n", $o));
-rrw_site_use('');
+elvado_site_use('');
 
 $has = fn(string $p): bool => (bool)$pdo->query("SHOW TABLES LIKE '" . $p . "posts'")->fetchColumn();
 t('Beide Websites haben eigene Tabellen in derselben Datenbank', $has($mp) && $has($sp) && $mp !== $sp);

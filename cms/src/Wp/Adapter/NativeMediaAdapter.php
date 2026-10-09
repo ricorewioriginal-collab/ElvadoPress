@@ -57,8 +57,8 @@ final class NativeMediaAdapter implements MediaAdapter
     private function all(): array
     {
         $rows = [];
-        if (function_exists('rrw_media_library_items')) {
-            $rows = rrw_media_library_items([]);
+        if (function_exists('elvado_media_library_items')) {
+            $rows = elvado_media_library_items([]);
         } else {   // ohne die Bibliothek der Verwaltung: Dateien einfach auflisten
             $base = $this->cmsDir . '/media';
             if (is_dir($base)) {

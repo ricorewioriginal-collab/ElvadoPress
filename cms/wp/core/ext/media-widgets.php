@@ -1,10 +1,10 @@
 <?php
 // Ergänzende Widget-Funktionen (wp-includes/widgets.php, wp-admin/includes/widgets.php): Steuerelemente, Seitenleisten-Zuordnung,
 // RSS-Ausgabe, Konvertierung alter Widgets. Die Registrierung der Widgets läuft hier über die Widget-Fabrik ($wp_widget_factory);
-// $wp_registered_widgets füllt die Schicht nicht, die Funktionen berücksichtigen deshalb beides (_rrw_m_widget_known).
+// $wp_registered_widgets füllt die Schicht nicht, die Funktionen berücksichtigen deshalb beides (_elvado_m_widget_known).
 
-if(!function_exists('_rrw_m_widget_known')){ /** Ist die Widget-ID bekannt (registriertes Widget oder Instanz einer Widget-Klasse)? */
-function _rrw_m_widget_known($id) {
+if(!function_exists('_elvado_m_widget_known')){ /** Ist die Widget-ID bekannt (registriertes Widget oder Instanz einer Widget-Klasse)? */
+function _elvado_m_widget_known($id) {
     if(isset($GLOBALS['wp_registered_widgets'][$id]))return true;
     $base=_get_widget_id_base((string)$id);foreach($GLOBALS['wp_widget_factory']->widgets??[] as $w)if($w->id_base===$base)return true;
     return false;
@@ -50,7 +50,7 @@ if(!function_exists('_register_widget_form_callback')){ function _register_widge
 } }
 if(!function_exists('is_dynamic_sidebar')){ function is_dynamic_sidebar() {
     $sw=get_option('sidebars_widgets');
-    foreach((array)$GLOBALS['wp_registered_sidebars'] as $index=>$_)if(!empty($sw[$index]))foreach((array)$sw[$index] as $w)if(_rrw_m_widget_known($w))return true;
+    foreach((array)$GLOBALS['wp_registered_sidebars'] as $index=>$_)if(!empty($sw[$index]))foreach((array)$sw[$index] as $w)if(_elvado_m_widget_known($w))return true;
     return false;
 } }
 if(!function_exists('wp_get_widget_defaults')){ function wp_get_widget_defaults() { $d=[];foreach((array)$GLOBALS['wp_registered_sidebars'] as $i=>$_)$d[$i]=[];return $d; } }
@@ -68,7 +68,7 @@ if(!function_exists('wp_convert_widget_settings')){ function wp_convert_widget_s
 } }
 if(!function_exists('_wp_remove_unregistered_widgets')){ function _wp_remove_unregistered_widgets($sidebars_widgets,$allowed_widget_ids=[]) {
     foreach($sidebars_widgets as $sb=>$widgets)if(is_array($widgets))
-        $sidebars_widgets[$sb]=array_values(array_filter($widgets,fn($w)=>$allowed_widget_ids?in_array($w,$allowed_widget_ids,true):_rrw_m_widget_known($w)));
+        $sidebars_widgets[$sb]=array_values(array_filter($widgets,fn($w)=>$allowed_widget_ids?in_array($w,$allowed_widget_ids,true):_elvado_m_widget_known($w)));
     return $sidebars_widgets;
 } }
 if(!function_exists('wp_map_sidebars_widgets')){ function wp_map_sidebars_widgets($existing_sidebars_widgets) {
@@ -111,14 +111,14 @@ if(!function_exists('wp_assign_widget_to_sidebar')){ function wp_assign_widget_t
 } }
 if(!function_exists('wp_render_widget')){ /** Gibt das Widget so aus, wie es in der Seitenleiste erscheint (Rückgabe: ob das Widget bekannt war). */
 function wp_render_widget($widget_id,$sidebar_id) {
-    $r=rrw_wp_widget_instance((string)$widget_id);if(!$r)return false;[$w,$inst]=$r;
+    $r=elvado_wp_widget_instance((string)$widget_id);if(!$r)return false;[$w,$inst]=$r;
     $sb=$GLOBALS['wp_registered_sidebars'][$sidebar_id]??['before_widget'=>'<section id="%1$s" class="widget %2$s">','after_widget'=>'</section>','before_title'=>'<h2 class="widget-title">','after_title'=>'</h2>'];
     $cls=$w->widget_options['classname']??$w->id_base;
     $args=array_merge($sb,['widget_id'=>$widget_id,'widget_name'=>$w->name,'before_widget'=>sprintf($sb['before_widget'],$widget_id,$cls)]);
     $w->display_callback($args,$inst);return true;
 } }
 if(!function_exists('wp_render_widget_control')){ function wp_render_widget_control($id) {
-    $r=rrw_wp_widget_instance((string)$id);if(!$r)return null;[$w,$inst]=$r;
+    $r=elvado_wp_widget_instance((string)$id);if(!$r)return null;[$w,$inst]=$r;
     ob_start();$w->form($inst);$form=ob_get_clean();
     return '<div class="widget-inside"><div class="widget-content">'.$form.'</div></div>';
 } }
@@ -129,17 +129,17 @@ if(!function_exists('wp_check_widget_editor_deps')){ function wp_check_widget_ed
 } }
 if(!function_exists('wp_setup_widgets_block_editor')){ function wp_setup_widgets_block_editor() { add_theme_support('widgets-block-editor'); } }
 if(!function_exists('wp_use_widgets_block_editor')){ function wp_use_widgets_block_editor() { return apply_filters('use_widgets_block_editor',get_theme_support('widgets-block-editor')); } }
-if(!function_exists('wp_widgets_init')){ function wp_widgets_init() { if(!is_blog_installed())return;rrw_wp_register_core_widgets();do_action('widgets_init'); } }
+if(!function_exists('wp_widgets_init')){ function wp_widgets_init() { if(!is_blog_installed())return;elvado_wp_register_core_widgets();do_action('widgets_init'); } }
 if(!function_exists('_wp_block_theme_register_classic_sidebars')){ function _wp_block_theme_register_classic_sidebars() {
     if(!wp_is_block_theme())return;$c=get_theme_mod('wp_classic_sidebars');if(empty($c))return;
     foreach((array)$c as $sb)if(!empty($sb['id']))$GLOBALS['wp_registered_sidebars'][$sb['id']]=$sb;
 } }
 
 /* ───────── RSS-Widget ───────── */
-if(!function_exists('_rrw_m_fetch_feed')){ /** Lädt einen RSS-/Atom-Feed und liefert Einträge als Arrays (title, link, date, description, author) oder WP_Error. 12 Stunden zwischengespeichert. */
-function _rrw_m_fetch_feed($url) {
+if(!function_exists('_elvado_m_fetch_feed')){ /** Lädt einen RSS-/Atom-Feed und liefert Einträge als Arrays (title, link, date, description, author) oder WP_Error. 12 Stunden zwischengespeichert. */
+function _elvado_m_fetch_feed($url) {
     $url=trim((string)$url);if($url==='')return new WP_Error('empty_url','Die Feed-Adresse fehlt.');
-    $key='rrw_feed_'.md5($url);$c=get_transient($key);if(is_array($c))return $c;
+    $key='elvado_feed_'.md5($url);$c=get_transient($key);if(is_array($c))return $c;
     $r=wp_remote_get($url,['timeout'=>10]);if(is_wp_error($r))return $r;
     if((int)wp_remote_retrieve_response_code($r)!==200)return new WP_Error('feed_http','Der Feed konnte nicht geladen werden.');
     $prev=libxml_use_internal_errors(true);$x=simplexml_load_string((string)wp_remote_retrieve_body($r),'SimpleXMLElement',LIBXML_NONET|LIBXML_NOCDATA);libxml_use_internal_errors($prev);
@@ -152,8 +152,8 @@ function _rrw_m_fetch_feed($url) {
     $out=['items'=>$items,'link'=>isset($x->channel->link)?(string)$x->channel->link:''];set_transient($key,$out,12*HOUR_IN_SECONDS);return $out;
 } }
 if(!function_exists('wp_widget_rss_output')){ function wp_widget_rss_output($rss,$args=[]) {
-    if(is_string($rss))$rss=_rrw_m_fetch_feed($rss);
-    elseif(is_array($rss)&&isset($rss['url'])){ $args=$rss;$rss=_rrw_m_fetch_feed($rss['url']); }
+    if(is_string($rss))$rss=_elvado_m_fetch_feed($rss);
+    elseif(is_array($rss)&&isset($rss['url'])){ $args=$rss;$rss=_elvado_m_fetch_feed($rss['url']); }
     elseif(is_object($rss)&&method_exists($rss,'get_items')){   // SimplePie-ähnliches Objekt
         $it=[];foreach($rss->get_items() as $i){ $a=method_exists($i,'get_author')?$i->get_author():null;
             $it[]=['title'=>$i->get_title(),'link'=>$i->get_link(),'date'=>(int)$i->get_date('U'),'description'=>$i->get_description(),'author'=>is_object($a)?$a->get_name():''];}
@@ -189,7 +189,7 @@ if(!function_exists('wp_widget_rss_process')){ function wp_widget_rss_process($w
     $items=(int)($widget_rss['items']??10);if($items<1||$items>20)$items=10;
     $url=sanitize_url(strip_tags((string)($widget_rss['url']??'')));$title=isset($widget_rss['title'])?trim(strip_tags((string)$widget_rss['title'])):'';
     $show_summary=(int)($widget_rss['show_summary']??0);$show_author=(int)($widget_rss['show_author']??0);$show_date=(int)($widget_rss['show_date']??0);$error=false;$link='';
-    if($check_feed){ $f=_rrw_m_fetch_feed($url);
+    if($check_feed){ $f=_elvado_m_fetch_feed($url);
         if(is_wp_error($f))$error=$f->get_error_message();else{ $link=esc_url(strip_tags((string)($f['link']??'')));while($link!==''&&stristr($link,'http')!==$link)$link=substr($link,1); } }
     return compact('title','url','link','items','error','show_summary','show_author','show_date');
 } }
@@ -214,7 +214,7 @@ if(!function_exists('wp_list_widgets')){ function wp_list_widgets() {
         echo '<div id="'.$id.'" class="widget"><div class="widget-top"><div class="widget-title ui-draggable-handle"><h3>'.esc_html($x['name']).'<span class="in-widget-title"></span></h3></div></div><div class="widget-description">'.esc_html($x['desc']).'</div></div>'."\n"; }
 } }
 if(!function_exists('wp_widget_control')){ function wp_widget_control($sidebar_args) {
-    $wid=(string)($sidebar_args['widget_id']??($sidebar_args[0]['widget_id']??''));$r=$wid!==''?rrw_wp_widget_instance($wid):null;if(!$r)return null;[$w,$inst]=$r;
+    $wid=(string)($sidebar_args['widget_id']??($sidebar_args[0]['widget_id']??''));$r=$wid!==''?elvado_wp_widget_instance($wid):null;if(!$r)return null;[$w,$inst]=$r;
     $sb=(string)($sidebar_args['id']??'');
     echo '<div class="widget-top"><div class="widget-title"><h3>'.esc_html($w->name).'<span class="in-widget-title"></span></h3></div></div><div class="widget-inside"><form method="post"><div class="widget-content">';
     $ret=$w->form($inst);

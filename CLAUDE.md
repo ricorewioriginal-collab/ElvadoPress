@@ -14,7 +14,7 @@ Nicht automatisch das gesamte Repository neu analysieren.
 ## Projekt und Zweck
 ElvadoPress ist ein eigenständiges, erweiterbares PHP-CMS für Websites mit Themes, Plugins, visueller Verwaltung, Datei-Storage, optionalem Datenbankspiegel und WordPress-Kompatibilitätsschicht. Optionale neutrale Erweiterungen umfassen App-Baukasten, Alexa-Skill-Baukasten und KI-Assistent. ElvadoPress ist ein allgemeines CMS; Radio-Funktionen sind kein Standard.
 
-Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderwelt* werden seit Oktober 2026 **unabhängig** von ElvadoPress entwickelt; es gibt keinen Sync mehr und ElvadoPress nimmt keine Rücksicht auf deren Paket-Tests.
+Dieses Repository ist die **Hauptquelle des CMS**. ElvadoPress ist unabhängig; es gibt keinen Sync mit anderen Projekten.
 
 ## Architektur in Kürze
 - PHP 8.1+; kein Build-Schritt für das CMS.
@@ -33,7 +33,6 @@ Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderw
 | **CMS** | Beiträge, Seiten, Medien, Kommentare, Einstellungen, WordPress-Schicht, Themes/Plugins, Benutzer, Formulare, Community, Demo-Betrieb | **hier** |
 | **Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
 | **Radio** | Radio-Seiten, Player, Sendeplan, Radio-Widgets | **nicht im Kern**; später optionales Plugin „Elvado Radio / Audio“ |
-| **RicoReWi / Senderwelt** | Portal, Portal-Themes, paketgebundene Radio-/Netzwerkfunktionen, Marken-Inhalte | **eigenständig, nicht hier** |
 
 ## Core oder Plugin (verbindlich)
 - **Core bleibt:** Plugin-System, Themes/Customizer, Block-Editor, Medien, Benutzer/Rollen/Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit, Installer, KI-Infrastruktur (KI-Zentrale, Gateway, Bild/Video, Website-Generator), WordPress-Schicht, vorhandene Weiterleitungs-Engine.
@@ -84,11 +83,11 @@ Dieses Repository ist die **Hauptquelle des CMS**. *RicoReWi Radio* und *Senderw
 - Bevorzugter Ablauf: Branch → Pull Request → CI grün → Merge.
 - Release: Tag `v<Version>` erzeugt über Workflow *Release* ein Installations-ZIP.
 
-## Abgrenzung zu RicoReWi / Senderwelt
-- Keine RicoReWi- oder Senderwelt-Inhalte in dieses Repository aufnehmen.
-- Es gibt keinen Sync nach *ricorewi-radio* mehr; Änderungen unter `cms/` müssen dessen Paket-Tests nicht bestehen.
-- Die RicoReWi-Paketzweige in PHP, Verwaltungsoberfläche und JavaScript sind entfernt (`data-pack`, `CMS_PACKS`, Reiter Radioverzeichnis/Website-Inhalte/Sender-Netzwerk). Erhalten bleibt nur der generische Theme-Paket-Mechanismus (`rrw_pack_available($pack)` in `cms/lib/pack.php`). Die Control-Center-Anbindung ist ebenfalls entfernt (nur lokale Anmeldung, Header `X-ElvadoPress-Token`). Das Theme `rrw-classic` ist **kein** Rest, sondern das neutrale Standard-Theme der Einrichtung (`cms/lib/install.php`) und bleibt erhalten.
-- Brand-/Produktdateien (`cms/lib/product.default.json`, `cms/assets/brand/**`, `cms/lib/alexa-skill/*`) gehören jetzt allein zu ElvadoPress.
+## Abgrenzung
+- Keine Marken-, Portal- oder Betreiber-Inhalte fremder Projekte in dieses Repository aufnehmen; `cms/` bleibt neutral.
+- Es gibt keinen Sync mit anderen Repositories. Erhalten bleibt nur der generische Theme-Paket-Mechanismus (`elvado_pack_available($pack)` in `cms/lib/pack.php`).
+- Anmeldung nur lokal (Header `X-ElvadoPress-Token`). Interne Namen tragen das Präfix `elvado_`/`ELVADO_`; das neutrale Standard-Theme heißt `elvado-classic` (Einrichtung, `cms/lib/install.php`).
+- Brand-/Produktdateien (`cms/lib/product.default.json`, `cms/assets/brand/**`, `cms/lib/alexa-skill/*`) gehören allein zu ElvadoPress.
 
 ## Dokumentation nach größeren Aufgaben
 Nicht bei Kleinigkeiten alle Dateien umschreiben:

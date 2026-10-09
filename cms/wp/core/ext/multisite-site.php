@@ -1,29 +1,29 @@
 <?php
 // Ergänzende WordPress-Funktionen (Bereich Multisite, Teil 1): Sites, Netzwerke, Site-Metadaten, Blog-Funktionen, Laden/Konstanten (ms-site, ms-blogs, ms-network, ms-load).
 // Die Schicht ist ein Einzelseiten-Betrieb: is_multisite() bleibt false, es gibt genau eine Site (ID 1) in genau einem Netzwerk (ID 1).
-// Die Werte kommen aus den Optionen; Status-Flags und Site-Metadaten liegen in den Optionen rrw_ms_site_flags / rrw_ms_sitemeta.
+// Die Werte kommen aus den Optionen; Status-Flags und Site-Metadaten liegen in den Optionen elvado_ms_site_flags / elvado_ms_sitemeta.
 // Funktionen, die weitere Sites anlegen oder löschen würden, melden einen WP_Error („nicht unterstützt“).
 
 /* ───────── Hilfen ───────── */
-if(!function_exists('rrw_ms_site_row')){
+if(!function_exists('elvado_ms_site_row')){
     /** Die eine Site als Zeile (Werte als Zeichenketten wie in der Datenbank). */
-    function rrw_ms_site_row(): array {
-        $u=parse_url((string)home_url());$port=!empty($u['port'])?':'.$u['port']:'';$f=(array)get_option('rrw_ms_site_flags',[]);
+    function elvado_ms_site_row(): array {
+        $u=parse_url((string)home_url());$port=!empty($u['port'])?':'.$u['port']:'';$f=(array)get_option('elvado_ms_site_flags',[]);
         $reg=(string)($f['registered']??'0000-00-00 00:00:00');
         return ['blog_id'=>'1','domain'=>strtolower((string)($u['host']??'localhost')).$port,'path'=>trailingslashit((string)($u['path']??'')),'site_id'=>'1','registered'=>$reg,'last_updated'=>(string)($f['last_updated']??$reg),
             'public'=>(string)(int)get_option('blog_public',1),'archived'=>(string)(int)($f['archived']??0),'mature'=>(string)(int)($f['mature']??0),'spam'=>(string)(int)($f['spam']??0),'deleted'=>(string)(int)($f['deleted']??0),'lang_id'=>(string)(int)($f['lang_id']??0)];
     }
 }
-if(!function_exists('rrw_ms_network_row')){
-    function rrw_ms_network_row(): array { $s=rrw_ms_site_row();return ['id'=>'1','domain'=>$s['domain'],'path'=>$s['path']]; }
+if(!function_exists('elvado_ms_network_row')){
+    function elvado_ms_network_row(): array { $s=elvado_ms_site_row();return ['id'=>'1','domain'=>$s['domain'],'path'=>$s['path']]; }
 }
-if(!function_exists('rrw_ms_sitemeta_load')){
+if(!function_exists('elvado_ms_sitemeta_load')){
     /** Site-Metadaten: ['seq'=>int,'data'=>[Schlüssel=>[[mid,Wert],…]]]. */
-    function rrw_ms_sitemeta_load(): array { $m=get_option('rrw_ms_sitemeta');return is_array($m)&&isset($m['data'])?$m:['seq'=>0,'data'=>[]]; }
+    function elvado_ms_sitemeta_load(): array { $m=get_option('elvado_ms_sitemeta');return is_array($m)&&isset($m['data'])?$m:['seq'=>0,'data'=>[]]; }
 }
-if(!function_exists('rrw_ms_site_id')){
+if(!function_exists('elvado_ms_site_id')){
     /** Site-ID aus Zahl oder Objekt (0 bei Unbekanntem). */
-    function rrw_ms_site_id($site): int { return is_object($site)?(int)($site->blog_id??$site->id??0):(int)$site; }
+    function elvado_ms_site_id($site): int { return is_object($site)?(int)($site->blog_id??$site->id??0):(int)$site; }
 }
 
 /* ───────── Klassen ───────── */
@@ -32,7 +32,7 @@ if(!class_exists('WP_Site')){
 class WP_Site {
     public $blog_id='0';public $domain='';public $path='';public $site_id='0';public $registered='0000-00-00 00:00:00';public $last_updated='0000-00-00 00:00:00';
     public $public='1';public $archived='0';public $mature='0';public $spam='0';public $deleted='0';public $lang_id='0';
-    public static function get_instance($site_id) { return (int)$site_id===1?new WP_Site((object)rrw_ms_site_row()):false; }
+    public static function get_instance($site_id) { return (int)$site_id===1?new WP_Site((object)elvado_ms_site_row()):false; }
     public function __construct($site) { foreach(get_object_vars((object)$site) as $k=>$v)$this->$k=$v; }
     public function to_array() { return get_object_vars($this); }
     public function __get($key) {
@@ -45,7 +45,7 @@ if(!class_exists('WP_Network')){
 #[AllowDynamicProperties]
 class WP_Network {
     public $id;public $domain='';public $path='';private $blog_id=0;public $cookie_domain='';public $site_name='';
-    public static function get_instance($network_id) { return (int)$network_id===1?new WP_Network((object)rrw_ms_network_row()):false; }
+    public static function get_instance($network_id) { return (int)$network_id===1?new WP_Network((object)elvado_ms_network_row()):false; }
     public function __construct($network) { foreach(get_object_vars((object)$network) as $k=>$v)$this->$k=$v;$this->_set_site_name();$this->_set_cookie_domain(); }
     public function __get($key) { return match($key){'blog_id'=>(string)$this->get_main_site_id(),'site_id'=>$this->get_main_site_id(),default=>null}; }
     public function __isset($key) { return in_array($key,['blog_id','site_id'],true); }
@@ -68,7 +68,7 @@ class WP_Network_Query {
         $this->parse_query();do_action_ref_array('pre_get_networks',[&$this]);$q=&$this->query_vars;
         $pre=apply_filters_ref_array('networks_pre_query',[null,&$this]);
         if($pre!==null)return $this->networks=$pre;
-        $row=rrw_ms_network_row();$ok=true;   // genau ein Netzwerk; die Filter prüfen, ob es passt
+        $row=elvado_ms_network_row();$ok=true;   // genau ein Netzwerk; die Filter prüfen, ob es passt
         $ids=wp_parse_id_list($q['network__in']);$not=wp_parse_id_list($q['network__not_in']);
         if($ids&&!in_array(1,$ids,true))$ok=false;if($not&&in_array(1,$not,true))$ok=false;
         if($q['domain']!==''&&strcasecmp((string)$q['domain'],$row['domain'])!==0)$ok=false;if($q['path']!==''&&(string)$q['path']!==$row['path'])$ok=false;
@@ -104,7 +104,7 @@ if(!function_exists('wp_get_network')){
 if(!function_exists('get_network_by_path')){
     function get_network_by_path($domain,$path,$segments=null) {
         $pre=apply_filters('pre_get_network_by_path',null,$domain,$path,$segments);if($pre!==null)return $pre;
-        $n=rrw_ms_network_row();$d=preg_replace('/^www\./','',strtolower((string)$domain));
+        $n=elvado_ms_network_row();$d=preg_replace('/^www\./','',strtolower((string)$domain));
         if($d!==preg_replace('/^www\./','',$n['domain']))return false;
         return WP_Network::get_instance(1);
     }
@@ -112,7 +112,7 @@ if(!function_exists('get_network_by_path')){
 if(!function_exists('get_site_by_path')){
     function get_site_by_path($domain,$path,$segments=null) {
         $pre=apply_filters('pre_get_site_by_path',null,$domain,$path,$segments);if($pre!==null)return $pre;
-        $s=rrw_ms_site_row();$d=preg_replace('/^www\./','',strtolower((string)$domain));
+        $s=elvado_ms_site_row();$d=preg_replace('/^www\./','',strtolower((string)$domain));
         if($d!==preg_replace('/^www\./','',$s['domain'])||!str_starts_with(trailingslashit((string)$path),$s['path']))return false;
         return WP_Site::get_instance(1);
     }
@@ -127,7 +127,7 @@ if(!function_exists('ms_load_current_site_and_network')){
     }
 }
 if(!function_exists('wpmu_current_site')){
-    function wpmu_current_site() { _deprecated_function(__FUNCTION__,'3.9.0','ms_load_current_site_and_network()');$n=rrw_ms_network_row();ms_load_current_site_and_network($n['domain'],$n['path']); }
+    function wpmu_current_site() { _deprecated_function(__FUNCTION__,'3.9.0','ms_load_current_site_and_network()');$n=elvado_ms_network_row();ms_load_current_site_and_network($n['domain'],$n['path']); }
 }
 if(!function_exists('ms_not_installed')){
     function ms_not_installed($domain,$path) { wp_die(sprintf(__('Error establishing a database connection for %s.'),esc_html($domain.$path)),__('Error'),['response'=>500]); }
@@ -149,7 +149,7 @@ if(!function_exists('ms_site_check')){
     // true, wenn die Site erreichbar ist; sonst Abbruch mit 410 (gelöscht, Spam, archiviert).
     function ms_site_check() {
         $pre=apply_filters('ms_site_check',null);if($pre!==null)return true;
-        $s=rrw_ms_site_row();
+        $s=elvado_ms_site_row();
         if($s['deleted']==='1')wp_die(__('This site is no longer available.'),'',['response'=>410]);
         if($s['archived']==='1'||$s['spam']==='1')wp_die(__('This site has been archived or suspended.'),'',['response'=>410]);
         return true;
@@ -217,11 +217,11 @@ if(!function_exists('wp_update_site')){
         $old=WP_Site::get_instance((int)$site_id);if(!$old)return new WP_Error('site_not_exist',__('Site does not exist.'));
         $data=wp_normalize_site_data($data);$errors=new WP_Error();wp_validate_site_data($errors,array_diff_key($data,['domain'=>1,'path'=>1]),$old);
         if($errors->has_errors())return $errors;
-        $f=(array)get_option('rrw_ms_site_flags',[]);
+        $f=(array)get_option('elvado_ms_site_flags',[]);
         foreach(['archived','mature','spam','deleted','lang_id'] as $k)if(array_key_exists($k,$data))$f[$k]=(int)$data[$k];
         foreach(['registered','last_updated'] as $k)if(!empty($data[$k]))$f[$k]=$data[$k];
         if(!array_key_exists('last_updated',$data))$f['last_updated']=gmdate('Y-m-d H:i:s');
-        update_option('rrw_ms_site_flags',$f);
+        update_option('elvado_ms_site_flags',$f);
         if(array_key_exists('public',$data))update_option('blog_public',(string)(int)$data['public']);
         clean_blog_cache($old);$new=WP_Site::get_instance(1);
         do_action('wp_update_site',$new,$old);
@@ -237,7 +237,7 @@ if(!function_exists('wp_delete_site')){
 if(!function_exists('wp_is_site_initialized')){
     function wp_is_site_initialized($site_id) {
         $pre=apply_filters('pre_wp_is_site_initialized',null,$site_id);if($pre!==null)return (bool)$pre;
-        return rrw_ms_site_id($site_id)===1;
+        return elvado_ms_site_id($site_id)===1;
     }
 }
 if(!function_exists('wp_initialize_site')){
@@ -256,7 +256,7 @@ if(!function_exists('wp_uninitialize_site')){
 }
 if(!function_exists('clean_blog_cache')){
     function clean_blog_cache($blog) {
-        $id=rrw_ms_site_id($blog);if($id<=0)return;
+        $id=elvado_ms_site_id($blog);if($id<=0)return;
         foreach(['sites','site-details','blog-details','blog-lookup','blog-id-cache'] as $g)wp_cache_delete($id,$g);
         wp_cache_set_sites_last_changed();do_action('clean_site_cache',$id,$blog);
     }
@@ -265,24 +265,24 @@ if(!function_exists('_prime_site_caches')){ function _prime_site_caches($ids,$up
 if(!function_exists('wp_lazyload_site_meta')){ function wp_lazyload_site_meta(array $site_ids) {} }
 if(!function_exists('update_site_cache')){ function update_site_cache($sites,$update_meta_cache=true) { foreach((array)$sites as $s)if(is_object($s))wp_cache_set($s->blog_id,$s,'sites'); } }
 if(!function_exists('update_sitemeta_cache')){
-    function update_sitemeta_cache($site_ids) { $m=rrw_ms_sitemeta_load();$o=[];foreach(wp_parse_id_list($site_ids) as $i)if($i===1)foreach($m['data'] as $k=>$vals)$o[1][$k]=array_column($vals,1);return $o; }
+    function update_sitemeta_cache($site_ids) { $m=elvado_ms_sitemeta_load();$o=[];foreach(wp_parse_id_list($site_ids) as $i)if($i===1)foreach($m['data'] as $k=>$vals)$o[1][$k]=array_column($vals,1);return $o; }
 }
 if(!function_exists('wp_check_site_meta_support_prefilter')){ function wp_check_site_meta_support_prefilter($check) { return $check; } }   // Site-Metadaten sind verfügbar
 
-/* ───────── Site-Metadaten (in der Option rrw_ms_sitemeta) ───────── */
+/* ───────── Site-Metadaten (in der Option elvado_ms_sitemeta) ───────── */
 if(!function_exists('add_site_meta')){
     function add_site_meta($site_id,$meta_key,$meta_value,$unique=false) {
         if((int)$site_id!==1||!is_scalar($meta_key)||$meta_key==='')return false;
-        $m=rrw_ms_sitemeta_load();$meta_value=wp_unslash($meta_value);
+        $m=elvado_ms_sitemeta_load();$meta_value=wp_unslash($meta_value);
         if($unique&&!empty($m['data'][$meta_key]))return false;
-        $m['seq']++;$m['data'][$meta_key][]=[$m['seq'],$meta_value];update_option('rrw_ms_sitemeta',$m,false);
+        $m['seq']++;$m['data'][$meta_key][]=[$m['seq'],$meta_value];update_option('elvado_ms_sitemeta',$m,false);
         return $m['seq'];
     }
 }
 if(!function_exists('get_site_meta')){
     function get_site_meta($site_id,$key='',$single=false) {
         if((int)$site_id!==1)return $single?'':[];
-        $m=rrw_ms_sitemeta_load();
+        $m=elvado_ms_sitemeta_load();
         if($key==='')return array_map(fn($v)=>array_column($v,1),$m['data']);
         $vals=array_column($m['data'][$key]??[],1);
         return $single?($vals[0]??''):$vals;
@@ -291,21 +291,21 @@ if(!function_exists('get_site_meta')){
 if(!function_exists('update_site_meta')){
     function update_site_meta($site_id,$meta_key,$meta_value,$prev_value='') {
         if((int)$site_id!==1||!is_scalar($meta_key)||$meta_key==='')return false;
-        $m=rrw_ms_sitemeta_load();$meta_value=wp_unslash($meta_value);
+        $m=elvado_ms_sitemeta_load();$meta_value=wp_unslash($meta_value);
         if(empty($m['data'][$meta_key]))return add_site_meta($site_id,$meta_key,$meta_value);
         $changed=false;
         foreach($m['data'][$meta_key] as &$e){ if($prev_value!==''&&$e[1]!=$prev_value)continue;if($e[1]!==$meta_value){$e[1]=$meta_value;$changed=true;} }
-        unset($e);if($changed)update_option('rrw_ms_sitemeta',$m,false);
+        unset($e);if($changed)update_option('elvado_ms_sitemeta',$m,false);
         return $changed;
     }
 }
 if(!function_exists('delete_site_meta')){
     function delete_site_meta($site_id,$meta_key,$meta_value='') {
-        if((int)$site_id!==1||empty($m=rrw_ms_sitemeta_load())||!isset($m['data'][$meta_key]))return false;
+        if((int)$site_id!==1||empty($m=elvado_ms_sitemeta_load())||!isset($m['data'][$meta_key]))return false;
         $keep=array_values(array_filter($m['data'][$meta_key],fn($e)=>$meta_value!==''&&$e[1]!=$meta_value));
         if(count($keep)===count($m['data'][$meta_key]))return false;
         if($keep)$m['data'][$meta_key]=$keep;else unset($m['data'][$meta_key]);
-        update_option('rrw_ms_sitemeta',$m,false);return true;
+        update_option('elvado_ms_sitemeta',$m,false);return true;
     }
 }
 if(!function_exists('delete_site_meta_by_key')){ function delete_site_meta_by_key($meta_key) { return delete_site_meta(1,$meta_key); } }
@@ -357,14 +357,14 @@ if(!function_exists('get_blogaddress_by_id')){
 }
 if(!function_exists('get_blogaddress_by_name')){
     function get_blogaddress_by_name($blogname) {
-        $n=rrw_ms_network_row();$u=parse_url((string)home_url());$scheme=($u['scheme']??'http').'://';
+        $n=elvado_ms_network_row();$u=parse_url((string)home_url());$scheme=($u['scheme']??'http').'://';
         if($blogname==='main'||$blogname==='')return esc_url($scheme.$n['domain'].$n['path']);
         return esc_url($scheme.$n['domain'].$n['path'].$blogname.'/');
     }
 }
 if(!function_exists('get_id_from_blogname')){
     function get_id_from_blogname($slug) {
-        $n=rrw_ms_network_row();$slug=trim((string)$slug,'/');
+        $n=elvado_ms_network_row();$slug=trim((string)$slug,'/');
         $id=(int)get_blog_id_from_url($n['domain'],$n['path'].$slug.'/');
         return $slug===''||!$id?($slug===''?1:null):$id;
     }
@@ -373,7 +373,7 @@ if(!function_exists('wp_switch_roles_and_user')){ function wp_switch_roles_and_u
 if(!function_exists('get_last_updated')){
     function get_last_updated($deprecated='',$start=0,$quantity=40) {
         if((int)$start>0||(int)$quantity<1)return [];
-        $s=rrw_ms_site_row();$s['post_count']=(string)(int)get_option('post_count',0);
+        $s=elvado_ms_site_row();$s['post_count']=(string)(int)get_option('post_count',0);
         return [$s];
     }
 }
@@ -398,7 +398,7 @@ if(!function_exists('_update_posts_count_on_transition_post_status')){
 }
 if(!function_exists('wp_count_sites')){
     function wp_count_sites($network_id=null) {
-        $s=rrw_ms_site_row();$c=['all'=>1,'public'=>0,'archived'=>0,'mature'=>0,'spam'=>0,'deleted'=>0];
+        $s=elvado_ms_site_row();$c=['all'=>1,'public'=>0,'archived'=>0,'mature'=>0,'spam'=>0,'deleted'=>0];
         foreach(['public','archived','mature','spam','deleted'] as $k)$c[$k]=(int)$s[$k];
         return $c;
     }

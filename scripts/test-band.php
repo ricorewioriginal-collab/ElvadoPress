@@ -1,8 +1,8 @@
 <?php
 // Prüft die Theme-Konfiguration (cms/lib/themeconf.php, band.php) und das Theme elvado-band: Bereinigung nach Schema, Menü-Zustand, Ausgabe (Konzerte, Musik, Player nach Klick, Strukturdaten), Erweiterbarkeit durch Plugins. Aufruf: php scripts/test-band.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-bd-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');mkdir($tmp.'/wp-content/themes');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';$_SERVER['REMOTE_ADDR']='203.0.113.5';
+$tmp=sys_get_temp_dir().'/elvado-bd-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');mkdir($tmp.'/wp-content/themes');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';$_SERVER['REMOTE_ADDR']='203.0.113.5';
 $themesSrc=__DIR__.'/../cms/wp-content/themes';
 $news=[];
 for($i=1;$i<=5;$i++)$news[]=['id'=>$i,'slug'=>"beitrag-$i",'title'=>"Beitrag $i".($i===2?' <script>alert(1)</script>':''),'category'=>$i%2?'News':'Events','tags'=>$i<3?'musik, radio':'','excerpt'=>"Auszug $i",'body_html'=>"<p>Inhalt von Beitrag $i [forum]</p>",'status'=>'published','published_at'=>"2026-0$i-10 10:00:00",'author'=>'Anna Autor','image_url'=>$i===1?'/img/a.jpg':''];
@@ -12,20 +12,20 @@ file_put_contents($tmp.'/cms/site.json',json_encode(['portal'=>['site_name'=>'Me
  'pages'=>[['id'=>'ueber','slug'=>'ueber-uns','title'=>'Über uns','type'=>'custom','enabled'=>true,'blocks_before'=>[['type'=>'html','html'=>'<p>Wir sind ein Radio.</p>']],'blocks_after'=>[]],['id'=>'sender','type'=>'system','system_target'=>'sender','enabled'=>true,'headline'=>'Unsere Sender','intro'=>'Alle Sender im Überblick.','blocks_before'=>[],'blocks_after'=>[]]]]));
 mkdir($tmp.'/themes-native');
 // das mitgelieferte Standard-Theme bereitstellen
-define('RRW_WP_TEST_NATIVE',dirname(__DIR__).'/cms/themes');
+define('ELVADO_WP_TEST_NATIVE',dirname(__DIR__).'/cms/themes');
 require __DIR__."/_testdb.php";
 require __DIR__.'/../cms/wp/load.php';require __DIR__.'/../cms/wp/router.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-function page(string $uri): array { return rrw_wp_dispatch($uri,'GET',[],[]); }
-$GLOBALS['RRW_SITE']=json_decode((string)file_get_contents($tmp.'/cms/site.json'),true);
+function page(string $uri): array { return elvado_wp_dispatch($uri,'GET',[],[]); }
+$GLOBALS['ELVADO_SITE']=json_decode((string)file_get_contents($tmp.'/cms/site.json'),true);
 require_once __DIR__.'/../cms/lib/themeconf.php';
 $data=$tmp.'/cms';
 $d=fn($n)=>date('Y-m-d',strtotime(($n>=0?'+':'').$n.' days'));
 // ── Konfiguration: Registrierung, Schema, Bereinigung
-$reg=rrw_tc_registry();
+$reg=elvado_tc_registry();
 t('Band-Konfiguration registriert',isset($reg['band'])&&$reg['band']['theme']==='elvado-band'&&$reg['band']['menu']==='Band');
-$sc=rrw_tc_public_schema('band');
+$sc=elvado_tc_public_schema('band');
 t('Schema für den Editor (ohne Funktionen)',$sc['id']==='band'&&count($sc['sections'])>=8&&json_encode($sc)!==false&&$sc['sections'][1]['id']==='shows');
 $in=['band'=>['name'=>'  <b>Die</b> Beispiel Band ','tagline'=>str_repeat('x',500),'hero_image'=>'javascript:alert(1)','press_photo'=>'/cms/media/library/x/orig.jpg','bio'=>"Absatz <script>x</script>1\n\n\n\nAbsatz 2",'ignored'=>'x'],
  'shows'=>[
@@ -44,7 +44,7 @@ $in=['band'=>['name'=>'  <b>Die</b> Beispiel Band ','tagline'=>str_repeat('x',50
  'links'=>[['type'=>'spotify','label'=>'','url'=>'https://open.spotify.com/artist/x'],['type'=>'unbekannt','url'=>'https://x.example'],['type'=>'instagram','url'=>'javascript:1']],
  'booking'=>['heading'=>'Booking','text'=>'Schreib uns','email'=>'booking@band.example','presskit_url'=>'https://band.example/presskit.zip','phone'=>'+49 30 1'],
  'display'=>['show_news'=>false,'past_shows'=>true]];
-$c=rrw_tc_clean(rrw_band_schema(),$in);
+$c=elvado_tc_clean(elvado_band_schema(),$in);
 t('Text: Tags/Leerraum entfernt, Länge begrenzt',$c['band']['name']==='Die Beispiel Band'&&mb_strlen($c['band']['tagline'])===160);
 t('Bild: unsicher → leer, Pfad auf eigener Seite ok',$c['band']['hero_image']===''&&$c['band']['press_photo']==='/cms/media/library/x/orig.jpg');
 t('Langtext: Absätze bleiben, Tags weg, unbekannte Felder entfallen',!str_contains($c['band']['bio'],'<script>')&&str_contains($c['band']['bio'],"\n\nAbsatz 2")&&!isset($c['band']['ignored']));
@@ -54,17 +54,17 @@ t('Releases: ohne Titel entfallen',count($c['releases'])===2);
 t('Videos: ohne Link entfallen; Mitglieder/Galerie ohne Pflichtfeld entfallen',count($c['videos'])===2&&count($c['members'])===1&&count($c['gallery'])===1);
 t('Links: Dienst-Auswahl, unsichere URL entfällt',count($c['links'])===2&&$c['links'][1]['type']==='spotify');
 t('Anzeige-Schalter: Vorgabe an, gesetzte übernommen',$c['display']['show_news']===false&&$c['display']['show_shows']===true&&$c['display']['past_shows']===true);
-t('Leere Eingabe ergibt vollständige Struktur',count(rrw_tc_clean(rrw_band_schema(),null))===count(rrw_band_schema())&&rrw_tc_clean(rrw_band_schema(),'x')['shows']===[]);
-$big=['shows'=>array_fill(0,300,['date'=>$d(3),'venue'=>'x'])];t('Listen sind begrenzt',count(rrw_tc_clean(rrw_band_schema(),$big)['shows'])===200);
+t('Leere Eingabe ergibt vollständige Struktur',count(elvado_tc_clean(elvado_band_schema(),null))===count(elvado_band_schema())&&elvado_tc_clean(elvado_band_schema(),'x')['shows']===[]);
+$big=['shows'=>array_fill(0,300,['date'=>$d(3),'venue'=>'x'])];t('Listen sind begrenzt',count(elvado_tc_clean(elvado_band_schema(),$big)['shows'])===200);
 // Speichern/Laden, Menü-Zustand
-rrw_tc_save($data,'band',$in);
-t('Speichern/Laden',rrw_tc_load($data,'band')==$c&&is_file($data.'/.tools/.htaccess'));
-try{ rrw_tc_save($data,'gibtsnicht',[]);$e=false; }catch(Throwable $x){ $e=true; }t('Unbekannte Konfiguration abgelehnt',$e&&rrw_tc_entry('gibtsnicht')===null&&rrw_tc_load($data,'../x')===[]);
-t('Menü inaktiv ohne aktives Theme',rrw_tc_state($data)['band']['active']===false);
-@mkdir(RRW_WP_DATA,0775,true);touch(RRW_WP_DATA.'/front-on');update_option('stylesheet','elvado-band');update_option('template','elvado-band');
-t('Menü aktiv bei aktivem Theme (Flag + Option)',rrw_tc_state($data)['band']['active']===true&&rrw_tc_theme_active($data,'elvado-band')&&!rrw_tc_theme_active($data,'elvado-baukasten'));
+elvado_tc_save($data,'band',$in);
+t('Speichern/Laden',elvado_tc_load($data,'band')==$c&&is_file($data.'/.tools/.htaccess'));
+try{ elvado_tc_save($data,'gibtsnicht',[]);$e=false; }catch(Throwable $x){ $e=true; }t('Unbekannte Konfiguration abgelehnt',$e&&elvado_tc_entry('gibtsnicht')===null&&elvado_tc_load($data,'../x')===[]);
+t('Menü inaktiv ohne aktives Theme',elvado_tc_state($data)['band']['active']===false);
+@mkdir(ELVADO_WP_DATA,0775,true);touch(ELVADO_WP_DATA.'/front-on');update_option('stylesheet','elvado-band');update_option('template','elvado-band');
+t('Menü aktiv bei aktivem Theme (Flag + Option)',elvado_tc_state($data)['band']['active']===true&&elvado_tc_theme_active($data,'elvado-band')&&!elvado_tc_theme_active($data,'elvado-baukasten'));
 // ── Theme
-rrw_wp_boot(['theme'=>true]);
+elvado_wp_boot(['theme'=>true]);
 t('Theme geladen',get_stylesheet()==='elvado-band');
 $r=page('/');$b=$r['body'];
 t('Startseite 200',$r['status']===200,(string)$r['status']);
@@ -90,12 +90,12 @@ set_theme_mod('bd_scheme','ink');set_theme_mod('bd_accent','#00aa55');set_theme_
 $b2=page('/')['body'];t('Customizer: dunkel, Akzent, Schrift',str_contains($b2,'scheme-ink')&&str_contains($b2,'font-mono')&&str_contains($b2,'--accent:#00aa55')&&str_contains($b2,'--on-accent:#ffffff'));
 set_theme_mod('bd_accent','#ffee00');t('Textfarbe auf heller Akzentfarbe dunkel',str_contains(page('/')['body'],'--on-accent:#111111'));
 // Anzeige-Schalter und Inhalte
-$in2=$in;$in2['display']=['show_shows'=>false,'show_music'=>false,'show_booking'=>false,'show_band'=>false,'show_videos'=>false,'show_gallery'=>false,'show_news'=>false,'show_newsletter'=>false];rrw_tc_save($data,'band',$in2);elvado_bd_cfg(true);
+$in2=$in;$in2['display']=['show_shows'=>false,'show_music'=>false,'show_booking'=>false,'show_band'=>false,'show_videos'=>false,'show_gallery'=>false,'show_news'=>false,'show_newsletter'=>false];elvado_tc_save($data,'band',$in2);elvado_bd_cfg(true);
 $b3=page('/')['body'];t('Alle Abschnitte abschaltbar (Hero bleibt)',!str_contains($b3,'id="shows"')&&!str_contains($b3,'id="music"')&&!str_contains($b3,'id="booking"')&&str_contains($b3,'bd-hero'));
-rrw_tc_save($data,'band',['band'=>['name'=>'Nur Name']]);elvado_bd_cfg(true);
+elvado_tc_save($data,'band',['band'=>['name'=>'Nur Name']]);elvado_bd_cfg(true);
 $b4=page('/')['body'];t('Nur Name eingetragen: Seite funktioniert ohne leere Abschnitte',str_contains($b4,'<h1>Nur Name</h1>')&&!str_contains($b4,'id="shows"')&&!str_contains($b4,'id="music"')&&!str_contains($b4,'id="band"'));
 // ── Erweiterbarkeit durch Plugins (WordPress-Haken)
-rrw_tc_save($data,'band',$in);elvado_bd_cfg(true);
+elvado_tc_save($data,'band',$in);elvado_bd_cfg(true);
 add_filter('elvado_bd_sections',function($s){ array_splice($s,2,0,['merch']);return $s; });
 add_filter('elvado_bd_section_merch',fn($h)=>'<section id="merch">MERCH-PLUGIN</section>');
 $seen=[];add_action('elvado_bd_before_section',function($id) use(&$seen){ $seen[]=$id; });
@@ -110,7 +110,7 @@ t('Skripte/Stile über wp_enqueue',str_contains($b5,'elvado-band-css')&&str_cont
 $s2=page('/beitrag-1/');t('Beitrag im Band-Layout',$s2['status']===200&&str_contains($s2['body'],'site-content')&&!str_contains($s2['body'],'bd-hero'));
 foreach(['/ueber-uns/','/category/news/','/?s=Beitrag','/gibtsnicht/'] as $u){ $x=page($u);t("Unterseite $u",in_array($x['status'],[200,404],true)&&str_contains($x['body'],'site-footer'),(string)$x['status']); }
 // Customizer
-require_once __DIR__.'/../cms/wp/customizer-api.php';$ids=array_keys(rrw_wpc_items()['items']);
+require_once __DIR__.'/../cms/wp/customizer-api.php';$ids=array_keys(elvado_wpc_items()['items']);
 t('Customizer: Band-Einstellungen',in_array('bd_accent',$ids,true)&&in_array('bd_scheme',$ids,true)&&in_array('bd_font',$ids,true));
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

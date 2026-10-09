@@ -34,8 +34,8 @@
     if(search)search.addEventListener('input',function(){tabs.classList.toggle('searching',!!search.value.trim())});
     var fold=document.getElementById('cmsFoldBtn');
     function setFold(f){document.body.classList.toggle('cms-folded',f);if(fold){fold.title=f?'Menü ausklappen':'Menü einklappen';var l=fold.querySelector('span');if(l)l.textContent=f?'':'Menü einklappen'}}
-    if(fold)fold.addEventListener('click',function(){var f=!document.body.classList.contains('cms-folded');setFold(f);store('rrw_cms_folded',f?'1':'0')});
-    if(store('rrw_cms_folded')==='1')setFold(true);
+    if(fold)fold.addEventListener('click',function(){var f=!document.body.classList.contains('cms-folded');setFold(f);store('elvado_cms_folded',f?'1':'0')});
+    if(store('elvado_cms_folded')==='1')setFold(true);
     var orig=window.cmsTab;
     if(typeof orig==='function'){window.cmsTab=function(){var r=orig.apply(this,arguments);syncOpen();return r}}
     syncOpen();
@@ -72,5 +72,5 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
 /* Willkommens-Kasten auf dem Dashboard ausblendbar (merkt sich die Wahl nur im Browser) */
-window.cmsWelcomeHide=function(){var el=document.getElementById('cmsWelcome');if(el)el.style.display='none';try{localStorage.setItem('rrw_cms_welcome','0')}catch(e){}};
-(function(){try{if(localStorage.getItem('rrw_cms_welcome')==='0'){var el=document.getElementById('cmsWelcome');if(el)el.style.display='none'}}catch(e){}})();
+window.cmsWelcomeHide=function(){var el=document.getElementById('cmsWelcome');if(el)el.style.display='none';try{localStorage.setItem('elvado_cms_welcome','0')}catch(e){}};
+(function(){try{if(localStorage.getItem('elvado_cms_welcome')==='0'){var el=document.getElementById('cmsWelcome');if(el)el.style.display='none'}}catch(e){}})();

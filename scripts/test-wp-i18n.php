@@ -1,8 +1,8 @@
 <?php
 // Prüft die Übersetzungs-Engine (.mo lesen, __/_x/_n/_nx, Textdomänen). Aufruf: php scripts/test-wp-i18n.php [--live] (--live lädt zusätzlich echte Sprachpakete von WordPress.org)
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-wpi18n-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/wp-content/languages/themes');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');
+$tmp=sys_get_temp_dir().'/elvado-wpi18n-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/wp-content/languages/themes');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 /** Minimaler .mo-Schreiber (little endian). */
@@ -35,11 +35,11 @@ t('defekte .mo wird abgelehnt',!load_textdomain('k',$tmp.'/kaputt.mo')&&__('Sear
 update_option('WPLANG','en_US');t('Englisch: keine Übersetzung',__('Search')==='Search');update_option('WPLANG','de_DE');
 if(in_array('--live',$argv,true)){
     require __DIR__.'/../cms/lib/theme-directory.php';require __DIR__.'/../cms/wp/installer.php';
-    $GLOBALS['rrw_wp_mo']=[];$GLOBALS['rrw_wp_mo_tried']=[];unlink(WP_CONTENT_DIR.'/languages/de_DE.mo');
-    t('Live: Core-Sprachpaket',rrw_wpi_fetch_translation('core','',RRW_WP_VERSION)&&is_file(WP_CONTENT_DIR.'/languages/de_DE.mo'));
+    $GLOBALS['elvado_wp_mo']=[];$GLOBALS['elvado_wp_mo_tried']=[];unlink(WP_CONTENT_DIR.'/languages/de_DE.mo');
+    t('Live: Core-Sprachpaket',elvado_wpi_fetch_translation('core','',ELVADO_WP_VERSION)&&is_file(WP_CONTENT_DIR.'/languages/de_DE.mo'));
     t('Live: Core-Text übersetzt',__('Search')==='Suche'||__('Search')==='Suchen',__('Search'));
-    t('Live: Theme-Sprachpaket',rrw_wpi_fetch_translation('theme','twentytwentyone','2.4')&&is_file(WP_CONTENT_DIR.'/languages/themes/twentytwentyone-de_DE.mo'));
-    t('Live: unbekanntes Plugin → false',!rrw_wpi_fetch_translation('plugin','gibts-garantiert-nicht-xyz','1.0'));
+    t('Live: Theme-Sprachpaket',elvado_wpi_fetch_translation('theme','twentytwentyone','2.4')&&is_file(WP_CONTENT_DIR.'/languages/themes/twentytwentyone-de_DE.mo'));
+    t('Live: unbekanntes Plugin → false',!elvado_wpi_fetch_translation('plugin','gibts-garantiert-nicht-xyz','1.0'));
 }
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

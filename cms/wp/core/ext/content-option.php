@@ -25,11 +25,11 @@ if(!function_exists('wp_set_option_autoload_values')){
         foreach($options as $o=>$al){
             wp_protect_special_option($o);$res[$o]=false;
             $new=(is_bool($al)?($al?'yes':'no'):(in_array(strtolower((string)$al),$yes,true)?'yes':'no'));
-            [$found]=rrw_wp_opts_get_raw((string)$o);if(!$found)continue;
-            $cur=(rrw_wp_opts_load()[$o]['a']??'yes')==='no'?'no':'yes';
+            [$found]=elvado_wp_opts_get_raw((string)$o);if(!$found)continue;
+            $cur=(elvado_wp_opts_load()[$o]['a']??'yes')==='no'?'no':'yes';
             if($cur!==$new)$todo[$o]=$new;
         }
-        if($todo){ rrw_wp_opts_mutate(function(&$all) use($todo){ foreach($todo as $o=>$n)if(isset($all[$o]))$all[$o]['a']=$n; });foreach($todo as $o=>$n)$res[$o]=true; }
+        if($todo){ elvado_wp_opts_mutate(function(&$all) use($todo){ foreach($todo as $o=>$n)if(isset($all[$o]))$all[$o]['a']=$n; });foreach($todo as $o=>$n)$res[$o]=true; }
         return $res;
     }
 }
@@ -57,7 +57,7 @@ if(!function_exists('wp_filter_default_autoload_value_via_option_size')){
 }
 if(!function_exists('delete_expired_transients')){
     function delete_expired_transients($force_db=false) {
-        $n=0;$all=rrw_wp_opts_load(true);$now=time();
+        $n=0;$all=elvado_wp_opts_load(true);$now=time();
         foreach($all as $k=>$row){
             if(!str_starts_with($k,'_transient_timeout_'))continue;
             $t=(int)@unserialize((string)$row['v']);

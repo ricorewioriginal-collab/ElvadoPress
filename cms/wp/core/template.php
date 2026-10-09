@@ -8,10 +8,10 @@ function the_ID() { echo get_the_ID(); }
 function get_the_title($post=0) { $p=get_post($post);$t=isset($p->post_title)?$p->post_title:'';$id=isset($p->ID)?$p->ID:0;return apply_filters('the_title',$t,$id); }
 function the_title($before='', $after='', $display=true) { $t=get_the_title();if($t==='')return;$o=$before.$t.$after;if($display)echo $o;else return $o; }
 function the_title_attribute($args='') { $a=wp_parse_args($args,['before'=>'','after'=>'','echo'=>true,'post'=>get_post()]);$t=strip_tags(get_the_title($a['post']));$t=$a['before'].esc_attr($t).$a['after'];if($a['echo'])echo $t;else return $t; }
-function rrw_wp_is_cms_html(?WP_Post $p): bool { return $p&&in_array($p->rrw_source,['news','page'],true); }
+function elvado_wp_is_cms_html(?WP_Post $p): bool { return $p&&in_array($p->elvado_source,['news','page'],true); }
 function get_the_content($more_link_text=null, $strip_teaser=false, $post=null) {
     $p=get_post($post);if(!$p)return '';$c=$p->post_content;
-    if(!rrw_wp_is_cms_html($p)&&preg_match('/<!--more(.*?)?-->/',$c,$m)){ $parts=preg_split('/<!--more(.*?)?-->/',$c,2);$c=$parts[0].(is_singular()?'':'<a href="'.esc_url(get_permalink($p)).'" class="more-link">'.esc_html($more_link_text??'Weiterlesen').'</a>'); }
+    if(!elvado_wp_is_cms_html($p)&&preg_match('/<!--more(.*?)?-->/',$c,$m)){ $parts=preg_split('/<!--more(.*?)?-->/',$c,2);$c=$parts[0].(is_singular()?'':'<a href="'.esc_url(get_permalink($p)).'" class="more-link">'.esc_html($more_link_text??'Weiterlesen').'</a>'); }
     return $c;
 }
 function the_content($more_link_text=null, $strip_teaser=false) {
@@ -38,7 +38,7 @@ function get_edit_post_link($post=0, $context='display') { return null; }
 function edit_comment_link($text=null, $before='', $after='') {}
 function get_edit_comment_link($c=0) { return ''; }
 function wp_get_post_parent_id($post=null) { $p=get_post($post);return $p?(int)$p->post_parent:0; }
-function attachment_url_to_postid($url) { foreach((array)($GLOBALS['rrw_wp_cms_attachments']??[]) as $id=>$u)if($u===$url)return (int)$id;return 0; }
+function attachment_url_to_postid($url) { foreach((array)($GLOBALS['elvado_wp_cms_attachments']??[]) as $id=>$u)if($u===$url)return (int)$id;return 0; }
 function is_page_template($template='') { return false; }
 function get_page_template_slug($post=null) { return (string)get_post_meta((int)(get_post($post)->ID??0),'_wp_page_template',true); }
 function tag_escape($t) { return strtolower(preg_replace('/[^%a-zA-Z0-9_-]/','',(string)$t)); }
@@ -54,7 +54,7 @@ function add_theme_support_dummy() {}
 function register_rest_route($ns, $route, $args=[], $override=false) {
     $key='/'.trim((string)$ns,'/').'/'.trim((string)$route,'/');$eps=isset($args['callback'])||isset($args['methods'])?[$args]:array_values(array_filter((array)$args,fn($v,$k)=>is_int($k)&&is_array($v),ARRAY_FILTER_USE_BOTH));
     foreach($eps as &$e)if(is_array($e)&&isset($args['args'])&&!isset($e['args'])&&$e===$args)$e['args']=$args['args'];unset($e);
-    $GLOBALS['rrw_wp_rest_routes'][$key]=$override?$eps:array_merge($GLOBALS['rrw_wp_rest_routes'][$key]??[],$eps);return true;
+    $GLOBALS['elvado_wp_rest_routes'][$key]=$override?$eps:array_merge($GLOBALS['elvado_wp_rest_routes'][$key]??[],$eps);return true;
 }
 function rest_ensure_response($response) { if(is_wp_error($response)||$response instanceof WP_REST_Response)return $response;return new WP_REST_Response($response,200); }
 function rest_url($path='') { return home_url('/wp-json/'.ltrim($path,'/')); }
@@ -62,20 +62,20 @@ function get_rest_url($b=null,$path='') { return rest_url($path); }
 
 /* ───────── Links ───────── */
 /* ───────── Link-Form (Einstellungen → Permalinks) ───────── */
-const RRW_WP_LINK_TOKENS=['%year%'=>'year','%monthnum%'=>'monthnum','%day%'=>'day','%hour%'=>'hour','%minute%'=>'minute','%second%'=>'second','%post_id%'=>'post_id','%postname%'=>'postname','%category%'=>'category','%author%'=>'author'];
+const ELVADO_WP_LINK_TOKENS=['%year%'=>'year','%monthnum%'=>'monthnum','%day%'=>'day','%hour%'=>'hour','%minute%'=>'minute','%second%'=>'second','%post_id%'=>'post_id','%postname%'=>'postname','%category%'=>'category','%author%'=>'author'];
 /** Aufbau der Beitrags-Adressen: '' = einfach (?p=123), '/%postname%/' = Standard, sonst Struktur mit Platzhaltern (/%year%/%monthnum%/%postname%/, /blog/%postname%/ …). */
-function rrw_wp_link_structure(): string { $s=get_option('permalink_structure','/%postname%/');return is_string($s)?$s:'/%postname%/'; }
+function elvado_wp_link_structure(): string { $s=get_option('permalink_structure','/%postname%/');return is_string($s)?$s:'/%postname%/'; }
 /** Struktur mit Platzhaltern über den Standard hinaus? (Beiträge werden dann über die Struktur gefunden und ausgeliefert.) */
-function rrw_wp_link_custom(): bool { $s=rrw_wp_link_structure();return $s!==''&&$s!=='/%postname%/'&&str_contains($s,'%'); }
+function elvado_wp_link_custom(): bool { $s=elvado_wp_link_structure();return $s!==''&&$s!=='/%postname%/'&&str_contains($s,'%'); }
 /** Hash-Form: Adressen als /#/seite (die Startseite leitet im Browser auf den Pfad weiter). */
-function rrw_wp_link_hash(): bool { return (bool)get_option('rrw_link_hash',0); }
-function rrw_wp_link_wrap(string $url): string {
-    if(!rrw_wp_link_hash())return $url;
+function elvado_wp_link_hash(): bool { return (bool)get_option('elvado_link_hash',0); }
+function elvado_wp_link_wrap(string $url): string {
+    if(!elvado_wp_link_hash())return $url;
     $home=home_url('/');if(!str_starts_with($url,$home)||str_contains($url,'?')||str_contains($url,'#'))return $url;
     $rest=substr($url,strlen($home));if($rest===''||str_contains($rest,'.')||preg_match('~^(wp-|cms/)~',$rest))return $url;   // Dateien und Systempfade bleiben unverändert
     return $home.'#/'.$rest;
 }
-function rrw_wp_structure_url(WP_Post $p, string $st): string {
+function elvado_wp_structure_url(WP_Post $p, string $st): string {
     $t=strtotime((string)$p->post_date)?:time();$cat='uncategorized';
     if(str_contains($st,'%category%')&&function_exists('get_the_category')){ $c=get_the_category($p->ID);if($c&&!empty($c[0]->slug))$cat=(string)$c[0]->slug; }
     $au='';if(str_contains($st,'%author%')){ $u=get_userdata((int)$p->post_author);$au=$u?sanitize_title((string)($u->user_nicename?:$u->user_login)):'autor'; }
@@ -84,36 +84,36 @@ function rrw_wp_structure_url(WP_Post $p, string $st): string {
     return home_url('/'.ltrim((string)$path,'/'));
 }
 /** Passt der Pfad zur Link-Struktur? Gibt die Platzhalter-Werte zurück (year, monthnum, day, post_id, postname, category, author …) oder null. */
-function rrw_wp_structure_match(string $path): ?array {
-    if(!rrw_wp_link_custom())return null;
-    $re=preg_quote(trim(rrw_wp_link_structure(),'/'),'#');
-    foreach(RRW_WP_LINK_TOKENS as $tok=>$name){ $q=preg_quote($tok,'#');$pat=match($name){'year'=>'\d{4}','monthnum','day','hour','minute','second'=>'\d{1,2}','post_id'=>'\d+','category'=>'.+?',default=>'[^/]+'};$re=str_replace($q,'(?P<'.$name.'>'.$pat.')',$re); }
+function elvado_wp_structure_match(string $path): ?array {
+    if(!elvado_wp_link_custom())return null;
+    $re=preg_quote(trim(elvado_wp_link_structure(),'/'),'#');
+    foreach(ELVADO_WP_LINK_TOKENS as $tok=>$name){ $q=preg_quote($tok,'#');$pat=match($name){'year'=>'\d{4}','monthnum','day','hour','minute','second'=>'\d{1,2}','post_id'=>'\d+','category'=>'.+?',default=>'[^/]+'};$re=str_replace($q,'(?P<'.$name.'>'.$pat.')',$re); }
     return preg_match('#^'.$re.'/?$#',trim($path,'/'),$m)?array_filter($m,'is_string',ARRAY_FILTER_USE_KEY):null;
 }
 /** Hash-Form: /#/seite → /seite (läuft nur auf der Startseite, ohne Neuladen-Schleife). */
-function rrw_wp_link_hash_script() {
-    if(!rrw_wp_link_hash())return;
+function elvado_wp_link_hash_script() {
+    if(!elvado_wp_link_hash())return;
     $base=(string)(parse_url(home_url('/'),PHP_URL_PATH)?:'/');
     echo '<script>(function(){var h=location.hash,b='.wp_json_encode($base).';if(h.indexOf("#/")===0&&location.pathname===b&&!location.search)location.replace(b+h.slice(2))})();</script>'."\n";
 }
 /** Schreibt eine alte oder abweichende Beitrags-Adresse auf die eingestellte Form um (nur bei eigener Struktur; sonst null). */
-function rrw_wp_canonical_redirect(string $uri): ?string {
-    global $wp_query;if(!$wp_query||!rrw_wp_link_custom()||!$wp_query->is_single||str_contains($uri,'?'))return null;
+function elvado_wp_canonical_redirect(string $uri): ?string {
+    global $wp_query;if(!$wp_query||!elvado_wp_link_custom()||!$wp_query->is_single||str_contains($uri,'?'))return null;
     $o=$wp_query->queried_object;if(!($o instanceof WP_Post)||$o->post_type!=='post'||$o->post_status!=='publish')return null;
-    $want=(string)parse_url(rrw_wp_permalink_core($o),PHP_URL_PATH);$have=(string)parse_url($uri,PHP_URL_PATH);
+    $want=(string)parse_url(elvado_wp_permalink_core($o),PHP_URL_PATH);$have=(string)parse_url($uri,PHP_URL_PATH);
     return rtrim(rawurldecode($want),'/')!==rtrim(rawurldecode($have),'/')?$want:null;
 }
-function rrw_wp_permalink_for(WP_Post $p): string { return rrw_wp_link_wrap(rrw_wp_permalink_core($p)); }
-function rrw_wp_permalink_core(WP_Post $p): string {
-    $st=rrw_wp_link_structure();
+function elvado_wp_permalink_for(WP_Post $p): string { return elvado_wp_link_wrap(elvado_wp_permalink_core($p)); }
+function elvado_wp_permalink_core(WP_Post $p): string {
+    $st=elvado_wp_link_structure();
     if($st===''&&$p->post_type!=='attachment'&&in_array($p->post_type,['post','page'],true)&&$p->post_status==='publish')return home_url('/?'.($p->post_type==='page'?'page_id=':'p=').$p->ID);   // einfach
-    if($p->post_type==='post'&&$p->post_status==='publish'&&rrw_wp_link_custom())return rrw_wp_structure_url($p,$st);
-    return rrw_wp_permalink_default($p);
+    if($p->post_type==='post'&&$p->post_status==='publish'&&elvado_wp_link_custom())return elvado_wp_structure_url($p,$st);
+    return elvado_wp_permalink_default($p);
 }
-function rrw_wp_permalink_default(WP_Post $p): string {
-    if($p->rrw_source!=='news'&&$p->rrw_source!=='page'&&$p->post_status!=='publish'&&in_array($p->post_status,['draft','pending','auto-draft','future'],true))return home_url('/?'.($p->post_type==='page'?'page_id=':'p=').$p->ID.($p->post_type==='page'||$p->post_type==='post'?'':'&post_type='.rawurlencode($p->post_type)));
-    if($p->rrw_source==='news')return home_url('/'.rawurlencode($p->post_name).'/');
-    if($p->rrw_source==='page')return home_url('/'.rawurlencode($p->post_name).'/');
+function elvado_wp_permalink_default(WP_Post $p): string {
+    if($p->elvado_source!=='news'&&$p->elvado_source!=='page'&&$p->post_status!=='publish'&&in_array($p->post_status,['draft','pending','auto-draft','future'],true))return home_url('/?'.($p->post_type==='page'?'page_id=':'p=').$p->ID.($p->post_type==='page'||$p->post_type==='post'?'':'&post_type='.rawurlencode($p->post_type)));
+    if($p->elvado_source==='news')return home_url('/'.rawurlencode($p->post_name).'/');
+    if($p->elvado_source==='page')return home_url('/'.rawurlencode($p->post_name).'/');
     if($p->post_type==='page')return home_url('/'.get_page_uri($p).'/');
     if($p->post_type==='attachment')return $p->guid?:home_url('/?attachment_id='.$p->ID);
     if($p->post_type==='post')return home_url('/'.rawurlencode($p->post_name?:(string)$p->ID).'/');
@@ -121,7 +121,7 @@ function rrw_wp_permalink_default(WP_Post $p): string {
     if($o&&$o->public&&$p->post_name!=='')return home_url('/'.rawurlencode($p->post_type).'/'.rawurlencode($p->post_name).'/');
     return home_url('/?p='.$p->ID.'&post_type='.rawurlencode($p->post_type));
 }
-function get_permalink($post=0, $leavename=false) { $p=get_post($post);if(!$p)return false;return apply_filters($p->post_type==='page'?'page_link':'post_link',rrw_wp_permalink_for($p),$p,$leavename); }
+function get_permalink($post=0, $leavename=false) { $p=get_post($post);if(!$p)return false;return apply_filters($p->post_type==='page'?'page_link':'post_link',elvado_wp_permalink_for($p),$p,$leavename); }
 function get_the_permalink($post=0, $leavename=false) { return get_permalink($post,$leavename); }
 function the_permalink($post=0) { echo esc_url(apply_filters('the_permalink',get_permalink($post),$post)); }
 function get_page_link($post=false, $leavename=false, $sample=false) { return get_permalink($post); }
@@ -149,7 +149,7 @@ function the_modified_date($format='', $before='', $after='', $display=true) { $
 function get_the_modified_time($format='', $post=null) { $p=get_post($post);if(!$p)return false;$f=$format!==''?$format:get_option('time_format','H:i');return mysql2date($f,$p->post_modified); }
 function the_modified_time($format='') { echo get_the_modified_time($format); }
 function get_post_modified_time($format='U', $gmt=false, $post=null, $translate=false) { $p=get_post($post);return $p?mysql2date($format,$gmt?$p->post_modified_gmt:$p->post_modified,$translate):false; }
-function get_the_author($deprecated='') { global $authordata;$p=get_post();if($p&&$p->rrw_source==='news'&&!empty($p->rrw_data['author']))return apply_filters('the_author',(string)$p->rrw_data['author']);return apply_filters('the_author',is_object($authordata)?(string)$authordata->display_name:''); }
+function get_the_author($deprecated='') { global $authordata;$p=get_post();if($p&&$p->elvado_source==='news'&&!empty($p->elvado_data['author']))return apply_filters('the_author',(string)$p->elvado_data['author']);return apply_filters('the_author',is_object($authordata)?(string)$authordata->display_name:''); }
 function the_author($deprecated='', $deprecated_echo=true) { $a=get_the_author();if($deprecated_echo)echo $a;return $a; }
 function get_the_author_meta($field='', $user_id=false) {
     $u=get_userdata($user_id?:(int)(get_post()->post_author??0));if(!$u)return '';
@@ -163,7 +163,7 @@ function get_the_author_posts_link() { return '<a href="'.esc_url(get_author_pos
 function the_author_posts_link($deprecated='') { echo get_the_author_posts_link(); }
 function get_the_author_posts() { $p=get_post();if(!$p)return 0;return count(get_posts(['author'=>(int)$p->post_author,'numberposts'=>-1,'fields'=>'ids']));  }
 function the_author_posts() { echo get_the_author_posts(); }
-function is_multi_author() { return count(array_unique(array_map(fn($p)=>$p->post_author,rrw_wp_cms_posts())))>1; }
+function is_multi_author() { return count(array_unique(array_map(fn($p)=>$p->post_author,elvado_wp_cms_posts())))>1; }
 
 /* ───────── Kategorien / Schlagwörter ───────── */
 function get_the_term_list($post, $taxonomy, $before='', $sep='', $after='') {
@@ -251,7 +251,7 @@ function load_template($_template_file, $load_once=true, $args=[]) {
     if(is_array($wp_query->query_vars??null))extract($wp_query->query_vars,EXTR_SKIP);
     if(isset($s))$s=esc_attr($s);
     // „einmal je Seitenaufruf“: dispatch() setzt die Liste zurück, damit mehrere Aufrufe im selben Prozess (Tests, Vorschau) funktionieren
-    if($load_once){ if(isset($GLOBALS['rrw_wp_tpl_loaded'][$_template_file]))return; $GLOBALS['rrw_wp_tpl_loaded'][$_template_file]=true; }
+    if($load_once){ if(isset($GLOBALS['elvado_wp_tpl_loaded'][$_template_file]))return; $GLOBALS['elvado_wp_tpl_loaded'][$_template_file]=true; }
     require $_template_file;
 }
 function get_template_part($slug, $name=null, $args=[]) {
@@ -262,18 +262,18 @@ function get_template_part($slug, $name=null, $args=[]) {
 }
 function get_header($name=null, $args=[]) {
     do_action('get_header',$name,$args);$t=[];$name=(string)$name;if($name!=='')$t[]="header-{$name}.php";$t[]='header.php';
-    if(locate_template($t,true,true,$args)==='')rrw_wp_default_header();
+    if(locate_template($t,true,true,$args)==='')elvado_wp_default_header();
 }
 function get_footer($name=null, $args=[]) {
     do_action('get_footer',$name,$args);$t=[];$name=(string)$name;if($name!=='')$t[]="footer-{$name}.php";$t[]='footer.php';
-    if(locate_template($t,true,true,$args)==='')rrw_wp_default_footer();
+    if(locate_template($t,true,true,$args)==='')elvado_wp_default_footer();
 }
 function get_sidebar($name=null, $args=[]) {
     do_action('get_sidebar',$name,$args);$t=[];$name=(string)$name;if($name!=='')$t[]="sidebar-{$name}.php";$t[]='sidebar.php';
     if(locate_template($t,true,true,$args)==='')dynamic_sidebar('sidebar-1');
 }
-function rrw_wp_default_header() { echo '<!doctype html><html '.get_language_attributes().'><head><meta charset="'.esc_attr(get_bloginfo('charset')).'"><meta name="viewport" content="width=device-width, initial-scale=1">';wp_head();echo '</head><body '.get_body_class_attr().'>';wp_body_open(); }
-function rrw_wp_default_footer() { wp_footer();echo '</body></html>'; }
+function elvado_wp_default_header() { echo '<!doctype html><html '.get_language_attributes().'><head><meta charset="'.esc_attr(get_bloginfo('charset')).'"><meta name="viewport" content="width=device-width, initial-scale=1">';wp_head();echo '</head><body '.get_body_class_attr().'>';wp_body_open(); }
+function elvado_wp_default_footer() { wp_footer();echo '</body></html>'; }
 function get_body_class_attr() { return 'class="'.esc_attr(implode(' ',get_body_class())).'"'; }
 function wp_head() { do_action('wp_head'); }
 function wp_footer() { do_action('wp_footer'); }
@@ -286,9 +286,9 @@ function wlwmanifest_link() {}
 function wp_generator() { echo '<meta name="generator" content="WordPress '.esc_attr(get_bloginfo('version')).'" />'."\n"; }
 function rel_canonical() {
     if(!is_singular())return;$o=get_queried_object();if(!($o instanceof WP_Post))return;
-    $c=($o->rrw_source??'')==='news'?(string)($o->rrw_data['canonical_url']??''):'';   // eigene kanonische Adresse des Beitrags (Zweitveröffentlichung)
+    $c=($o->elvado_source??'')==='news'?(string)($o->elvado_data['canonical_url']??''):'';   // eigene kanonische Adresse des Beitrags (Zweitveröffentlichung)
     echo '<link rel="canonical" href="'.esc_url($c!==''?$c:get_permalink($o)).'" />'."\n";
-    if(($o->rrw_source??'')==='news'&&!empty($o->rrw_data['noindex']))echo '<meta name="robots" content="noindex,follow" />'."\n";
+    if(($o->elvado_source??'')==='news'&&!empty($o->elvado_data['noindex']))echo '<meta name="robots" content="noindex,follow" />'."\n";
 }
 function wp_resource_hints() {}
 function wp_robots() {}
@@ -304,10 +304,10 @@ function get_search_form($args=[]) {
 }
 
 /* Logo / Kopfbild */
-function has_custom_logo($blog_id=0) { return (bool)get_theme_mod('custom_logo')||(bool)rrw_wp_site_logo(); }
-function rrw_wp_site_logo(): string { $s=$GLOBALS['RRW_SITE']??[];return (string)($s['branding']['portal_logo']??''); }
+function has_custom_logo($blog_id=0) { return (bool)get_theme_mod('custom_logo')||(bool)elvado_wp_site_logo(); }
+function elvado_wp_site_logo(): string { $s=$GLOBALS['ELVADO_SITE']??[];return (string)($s['branding']['portal_logo']??''); }
 function get_custom_logo($blog_id=0) {
-    $u=rrw_wp_site_logo();if($u==='')return '';
+    $u=elvado_wp_site_logo();if($u==='')return '';
     $html=sprintf('<a href="%1$s" class="custom-logo-link" rel="home"><img src="%2$s" class="custom-logo" alt="%3$s" decoding="async" /></a>',esc_url(home_url('/')),esc_url(home_url($u)),esc_attr(get_bloginfo('name')));
     return apply_filters('get_custom_logo',$html,$blog_id);
 }

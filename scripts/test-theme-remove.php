@@ -43,8 +43,8 @@ t('Zurückholen blendet es wieder ein', ($r['status'] ?? '') === 'ok' && in_arra
 // WordPress-Themes (Theme-Laufzeit): Themes aus dem Code werden ausgeblendet, das Standard-Theme bleibt
 $wl = fn() => array_column(api('wp_themes', null, $tok)['themes'] ?? [], 'slug');
 $before = $wl();
-t('WordPress-Themes werden gelistet (mitgelieferte vorhanden)', in_array('rrw-classic', $before, true) && in_array('elvado-band', $before, true), json_encode($before));
-$r = api('wp_theme_delete', ['slug' => 'rrw-classic'], $tok);
+t('WordPress-Themes werden gelistet (mitgelieferte vorhanden)', in_array('elvado-classic', $before, true) && in_array('elvado-band', $before, true), json_encode($before));
+$r = api('wp_theme_delete', ['slug' => 'elvado-classic'], $tok);
 t('WordPress: Standard-Theme lässt sich nicht entfernen', ($r['status'] ?? '') === 'error');
 $r = api('wp_theme_delete', ['slug' => 'elvado-band'], $tok);
 t('WordPress: mitgeliefertes Theme wird ausgeblendet (Dateien bleiben)', ($r['status'] ?? '') === 'ok' && !empty($r['hidden']) && !in_array('elvado-band', $wl(), true) && is_dir("$cms/themes/elvado-band"));

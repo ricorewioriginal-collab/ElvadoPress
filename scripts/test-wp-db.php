@@ -1,20 +1,20 @@
 <?php
 // Prüft $wpdb (SQLite-Übersetzung), dbDelta und das WordPress-Schema. Aufruf: php scripts/test-wp-db.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-wpdb-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/data/.wp');$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-wpdb-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/data/.wp');$_SERVER['HTTP_HOST']='example.test';
 require __DIR__."/_testdb.php";
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name\n";} }
-global $wpdb;rrw_wp_init_db();
+global $wpdb;elvado_wp_init_db();
 t('wpdb vorhanden',$wpdb instanceof wpdb&&$wpdb->prefix==='wp_'&&$wpdb->posts==='wp_posts');
 t('Verbindung (lazy)',$wpdb->get_var('SELECT 1')==='1'||$wpdb->get_var('SELECT 1')===1);
-t(defined('RRW_TEST_DB_NAME')?'MySQL/MariaDB erkannt':'SQLite erkannt',defined('RRW_TEST_DB_NAME')?$wpdb->is_mysql():!$wpdb->is_mysql());
+t(defined('ELVADO_TEST_DB_NAME')?'MySQL/MariaDB erkannt':'SQLite erkannt',defined('ELVADO_TEST_DB_NAME')?$wpdb->is_mysql():!$wpdb->is_mysql());
 // Schema
-t('Schema anlegen',rrw_wp_install_schema());
+t('Schema anlegen',elvado_wp_install_schema());
 foreach(['posts','postmeta','comments','commentmeta','terms','termmeta','term_taxonomy','term_relationships','users','usermeta','options','links'] as $tb)t("Tabelle wp_$tb",$wpdb->table_exists($wpdb->prefix.$tb));
-t('Schema ist wiederholbar',rrw_wp_install_schema());
+t('Schema ist wiederholbar',elvado_wp_install_schema());
 // prepare
 t('prepare %s %d',$wpdb->prepare("SELECT * FROM t WHERE a=%s AND b=%d",'x',"7abc")==="SELECT * FROM t WHERE a='x' AND b=7");
 t('prepare maskiert Anführungszeichen',str_contains($wpdb->prepare("SELECT %s","o'brien"),"o''brien")||str_contains($wpdb->prepare("SELECT %s","o'brien"),"o\\'brien"));

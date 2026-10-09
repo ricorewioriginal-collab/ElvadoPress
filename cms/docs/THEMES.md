@@ -74,7 +74,7 @@ Radio ist kein Bestandteil des Kerns mehr (Radio-Theme, Radio-Menü, Player, Sen
 - **Suchmaschinen:** strukturierte Daten (`MusicGroup`, kommende `MusicEvent`s mit Ticket-Angebot, ohne abgesagte).
 - **Customizer („Band: Design“):** Akzentfarbe (Textfarbe darauf wird automatisch hell/dunkel), Grundton Papier/Schwarz, Schlagzeilen-Schrift (schmal, Serifen, Schreibmaschine), Anzahl sichtbarer Konzerte und News.
 - **Menü „Band“ im CMS:** erscheint automatisch, solange das Theme aktiv ist, und verschwindet beim Wechsel. Der Editor baut sich aus einem Schema auf (Auftritt, Konzerte, Veröffentlichungen, Videos, Mitglieder, Galerie, Links, Booking, Anzeige; Listen mit Hinzufügen/Sortieren/Duplizieren, Bilder aus der Mediathek). Daten: `cms/data/.tools/themeconf-band.json`.
-- **Eigene Theme-Menüs (Grundlage für weitere Themes):** `cms/lib/themeconf.php` stellt Schema → Menü, Editor (`cms/assets/theme-config.js`, Panel `panel-themeconf.php`), Speichern (`themeconf_get/save/state` in `cms/api.php`) und Bereinigung bereit. Ein Theme registriert sein Schema in `rrw_tc_registry()` (Vorbild `cms/lib/band.php`), liest die Daten mit `rrw_tc_load()`. Feldtypen: Text, Langtext, URL, Bild, E-Mail, Datum, Uhrzeit, Auswahl, Ja/Nein, Zahl.
+- **Eigene Theme-Menüs (Grundlage für weitere Themes):** `cms/lib/themeconf.php` stellt Schema → Menü, Editor (`cms/assets/theme-config.js`, Panel `panel-themeconf.php`), Speichern (`themeconf_get/save/state` in `cms/api.php`) und Bereinigung bereit. Ein Theme registriert sein Schema in `elvado_tc_registry()` (Vorbild `cms/lib/band.php`), liest die Daten mit `elvado_tc_load()`. Feldtypen: Text, Langtext, URL, Bild, E-Mail, Datum, Uhrzeit, Auswahl, Ja/Nein, Zahl.
 - **Erweiterbar durch Plugins** (gilt für alle mitgelieferten Themes): `wp_head`/`wp_footer`, `wp_enqueue_*`, Widget-Bereiche (Seitenleiste, bei Band/Radio zusätzlich „Startseite: Zusatzbereich“), Shortcodes in Inhalten, Menüs. Eigene Haken: Band `elvado_bd_sections` (Filter: Abschnitte ergänzen/umordnen), `elvado_bd_section_<id>` (Filter: HTML eines Abschnitts), `elvado_bd_before_section`/`elvado_bd_after_section`; Radio `elvado_rd_after_hero`, `elvado_rd_after_sections`; Baukasten `elvado_bk_before_section`/`elvado_bk_after_section`/`elvado_bk_after_sections`.
 - Tests: `php scripts/test-band.php`.
 
@@ -83,7 +83,7 @@ Radio ist kein Bestandteil des Kerns mehr (Radio-Theme, Radio-Menü, Player, Sen
 `cms/themes/elvado-creator` ist ein WordPress-Theme für Creator und Influencer. Optisch bewusst eigenständig: **weiche Farbverläufe, runde Glas-Karten, Pillen-Knöpfe**, Handy-Leiste am unteren Rand (Radio = dunkles Neon, Band = Poster/kantig). Neutral, ohne Beispieldaten.
 
 - **Startseite:** Profilkarte (Titelbild, Profilbild, Themen-Chips, Bio, Haupt-Knopf, **Zahlen**, **Plattformen** mit Reichweite), **Highlights** (runde Story-Bilder), **Meine Links**, **Drops & Termine** mit Live-Countdown, **Feed** (handverlesenes Bilderraster, öffnet den Beitrag bei der Plattform – keine Einbettung, kein Tracking), **Videos** (YouTube/Vimeo erst nach Klick), **Empfehlungen** mit Rabattcode (Kopieren-Knopf), **Kooperationen**, **Mediakit** (Zielgruppe, Pakete, Download), **FAQ**, **News**, **Newsletter** (`[newsletter]`), **Kontakt**. Leere Abschnitte fehlen von selbst.
-- **Link-in-Bio-Seite `/links/`:** schmale Seite für die Instagram-/TikTok-Biografie (Profil, Plattformen, Knopfliste mit hervorgehobenen Links, Teilen-Knopf), funktioniert **ohne** angelegte CMS-Seite (der Router meldet dafür über den Filter `rrw_wp_404_status` den Status 200). Links lassen sich mit **Zeitfenster** (ab/bis) planen, bekommen Symbol und Etikett (NEU, −20 %).
+- **Link-in-Bio-Seite `/links/`:** schmale Seite für die Instagram-/TikTok-Biografie (Profil, Plattformen, Knopfliste mit hervorgehobenen Links, Teilen-Knopf), funktioniert **ohne** angelegte CMS-Seite (der Router meldet dafür über den Filter `elvado_wp_404_status` den Status 200). Links lassen sich mit **Zeitfenster** (ab/bis) planen, bekommen Symbol und Etikett (NEU, −20 %).
 - **Werbekennzeichnung:** Als „Werbung/Affiliate“ markierte Links und Empfehlungen erhalten das Etikett „Anzeige“, `rel="sponsored nofollow noopener"` und den Hinweistext aus dem Kontakt-Bereich (Vorgabe: Affiliate-Hinweis). Die rechtliche Prüfung deiner Kennzeichnung bleibt bei dir.
 - **Suchmaschinen:** strukturierte Daten (`Person` mit `sameAs`, `FAQPage`). **Customizer („Creator: Design“):** Farbwelt (Sunset, Ocean, Lilac, Mono, Night), eigene Akzentfarbe, Formen (rund/dezent/kantig), Schrift (modern/Magazin/freundlich), News-Anzahl.
 - **Menü „Creator“ im CMS:** erscheint automatisch, solange das Theme aktiv ist (Schema `cms/lib/creator.php`, Editor aus `themeconf.php`; 15 Bereiche mit Listen, Bild-Auswahl inkl. „Freie Bilder“). Daten: `cms/data/.tools/themeconf-creator.json`.
@@ -109,7 +109,7 @@ Der Customizer unterstützt unter anderem:
 
 ## Mitgelieferte freie Themes
 
-- Classic (`rrw-classic`, neutrales Standard-Theme)
+- Classic (`elvado-classic`, neutrales Standard-Theme)
 - Elvado Baukasten
 - Elvado Creator
 - Elvado Band

@@ -6,7 +6,7 @@ use Elvado\Ai\{AiGatewayConfig,AiGatewayService,AiGatewayException,MediaGenerato
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function thr(callable $f,string $needle=''): bool { try{ $f();return false; }catch(AiGatewayException $e){ return $needle===''||str_contains($e->getMessage(),$needle); } }
-$tmp=sys_get_temp_dir().'/rrw-aim-'.bin2hex(random_bytes(4));mkdir($tmp);
+$tmp=sys_get_temp_dir().'/elvado-aim-'.bin2hex(random_bytes(4));mkdir($tmp);
 $calls=[];$reply=null;
 Http::useTransport(function(string $m,string $u,array $h,?string $b,array $o) use(&$calls,&$reply): HttpResponse { $calls[]=['m'=>$m,'u'=>$u,'h'=>$h,'b'=>$b?json_decode($b,true):null];return $reply($m,$u); });
 $cfg=AiGatewayConfig::load($tmp);$mg=new MediaGenerator($cfg);

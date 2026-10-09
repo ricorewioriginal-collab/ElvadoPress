@@ -2,26 +2,26 @@
 // Ergänzende WordPress-Funktionen (Bereich Admin, Teil 2): Ajax-Handler wp_ajax_* für Widgets, Medien, Themes/Plugins, Datenschutz und Website-Zustand.
 // Installieren/Aktualisieren läuft über den CMS-Installer (installer.php, autoupdate.php); ohne diesen melden die Handler einen Fehler im JSON-Format von WordPress.
 
-if(!function_exists('rrw_adm_widget_obj')){ function rrw_adm_widget_obj($base) {   // Widget-Objekt zu einer id_base
+if(!function_exists('elvado_adm_widget_obj')){ function elvado_adm_widget_obj($base) {   // Widget-Objekt zu einer id_base
     foreach(($GLOBALS['wp_widget_factory']->widgets??[]) as $w)if($w->id_base===$base)return $w;
     return null;
 } }
-if(!function_exists('rrw_adm_widget_save')){ function rrw_adm_widget_save($base, $n, $post, $add=false) {   // Widget-Instanz aus Formulardaten speichern und in eine Seitenleiste einhängen; liefert [Widget, Instanz]
-    $w=rrw_adm_widget_obj($base);if(!$w)return null;
+if(!function_exists('elvado_adm_widget_save')){ function elvado_adm_widget_save($base, $n, $post, $add=false) {   // Widget-Instanz aus Formulardaten speichern und in eine Seitenleiste einhängen; liefert [Widget, Instanz]
+    $w=elvado_adm_widget_obj($base);if(!$w)return null;
     $opts=get_option('widget_'.$base,[]);$opts=is_array($opts)?$opts:[];
     $new=(array)($post['widget-'.$base][$n]??[]);$w->_set($n);
     $inst=$w->update($new,$opts[$n]??[]);if($inst===false)$inst=$opts[$n]??[];
     $opts[$n]=$inst;$opts['_multiwidget']=1;update_option('widget_'.$base,$opts);
     return [$w,$inst];
 } }
-if(!function_exists('rrw_adm_widget_remove')){ function rrw_adm_widget_remove($wid) {   // Widget aus allen Seitenleisten und aus den Optionen entfernen
+if(!function_exists('elvado_adm_widget_remove')){ function elvado_adm_widget_remove($wid) {   // Widget aus allen Seitenleisten und aus den Optionen entfernen
     $sw=wp_get_sidebars_widgets();foreach($sw as $k=>$l)if(is_array($l))$sw[$k]=array_values(array_diff($l,[$wid]));wp_set_sidebars_widgets($sw);
     if(preg_match('/^(.+)-(\d+)$/',(string)$wid,$m)){ $o=get_option('widget_'.$m[1],[]);if(is_array($o)&&isset($o[(int)$m[2]])){ unset($o[(int)$m[2]]);update_option('widget_'.$m[1],$o); } }
 } }
 
 /* ───────── Widgets ───────── */
 if(!function_exists('wp_ajax_widgets_order')){ function wp_ajax_widgets_order() {
-    check_ajax_referer('save-sidebar-widgets','savewidgets');rrw_adm_need('edit_theme_options');
+    check_ajax_referer('save-sidebar-widgets','savewidgets');elvado_adm_need('edit_theme_options');
     if(!isset($_POST['sidebars'])||!is_array($_POST['sidebars']))wp_die(-1);
     $sw=wp_get_sidebars_widgets();
     foreach($_POST['sidebars'] as $key=>$val){
@@ -32,12 +32,12 @@ if(!function_exists('wp_ajax_widgets_order')){ function wp_ajax_widgets_order() 
     wp_set_sidebars_widgets($sw);wp_die(1);
 } }
 if(!function_exists('wp_ajax_save_widget')){ function wp_ajax_save_widget() {   // Widget speichern, löschen oder neu anlegen; Antwort ist das Formular bzw. „deleted:ID“
-    check_ajax_referer('save-sidebar-widgets','savewidgets');rrw_adm_need('edit_theme_options');
-    $base=(string)rrw_adm_req('id_base');$wid=(string)rrw_adm_req('widget-id');$sb=(string)rrw_adm_req('sidebar');$multi=(int)rrw_adm_req('multi_number',0);
+    check_ajax_referer('save-sidebar-widgets','savewidgets');elvado_adm_need('edit_theme_options');
+    $base=(string)elvado_adm_req('id_base');$wid=(string)elvado_adm_req('widget-id');$sb=(string)elvado_adm_req('sidebar');$multi=(int)elvado_adm_req('multi_number',0);
     if($base===''||$wid==='')wp_die('<p>Fehler: Das Widget wurde nicht gefunden.</p>');
     $p=wp_unslash($_POST);$n=!empty($p['add_new'])&&$multi?$multi:(preg_match('/-(\d+)$/',$wid,$m)?(int)$m[1]:0);$id=$base.'-'.$n;
-    if(!empty($p['delete_widget'])){ rrw_adm_widget_remove($id);echo 'deleted:'.$id;wp_die(); }
-    $r=$n>0?rrw_adm_widget_save($base,$n,$p):null;
+    if(!empty($p['delete_widget'])){ elvado_adm_widget_remove($id);echo 'deleted:'.$id;wp_die(); }
+    $r=$n>0?elvado_adm_widget_save($base,$n,$p):null;
     if(!$r)wp_die('<p>Fehler: Das Widget wurde nicht gefunden.</p>');
     if($sb!==''){ $sw=wp_get_sidebars_widgets();$in=false;foreach($sw as $l)if(is_array($l)&&in_array($id,$l,true))$in=true;if(!$in){ $sw[$sb][]=$id;wp_set_sidebars_widgets($sw); } }
     if(!empty($p['add_new']))wp_die();
@@ -46,14 +46,14 @@ if(!function_exists('wp_ajax_save_widget')){ function wp_ajax_save_widget() {   
 if(!function_exists('wp_ajax_update_widget')){ function wp_ajax_update_widget() {   // Live-Vorschau-Aktualisierung: Instanz und Formular als JSON
     check_ajax_referer('update-widget','nonce');
     if(!current_user_can('edit_theme_options'))wp_send_json_error(['message'=>'Du darfst keine Widgets bearbeiten.'],403);
-    $base=(string)rrw_adm_req('id_base');$wid=(string)rrw_adm_req('widget-id');
+    $base=(string)elvado_adm_req('id_base');$wid=(string)elvado_adm_req('widget-id');
     $n=preg_match('/-(\d+)$/',$wid,$m)?(int)$m[1]:0;if($base===''||$n<1)wp_send_json_error(['message'=>'Ungültiges Widget.'],400);
-    $r=rrw_adm_widget_save($base,$n,wp_unslash($_POST));if(!$r)wp_send_json_error(['message'=>'Unbekanntes Widget.'],404);
+    $r=elvado_adm_widget_save($base,$n,wp_unslash($_POST));if(!$r)wp_send_json_error(['message'=>'Unbekanntes Widget.'],404);
     ob_start();$r[0]->form($r[1]);wp_send_json_success(['form'=>ob_get_clean(),'instance'=>$r[1]]);
 } }
 if(!function_exists('wp_ajax_delete_inactive_widgets')){ function wp_ajax_delete_inactive_widgets() {
-    check_ajax_referer('remove-inactive-widgets','removeinactivewidgets');rrw_adm_need('edit_theme_options');
-    $sw=wp_get_sidebars_widgets();foreach((array)($sw['wp_inactive_widgets']??[]) as $wid)rrw_adm_widget_remove($wid);
+    check_ajax_referer('remove-inactive-widgets','removeinactivewidgets');elvado_adm_need('edit_theme_options');
+    $sw=wp_get_sidebars_widgets();foreach((array)($sw['wp_inactive_widgets']??[]) as $wid)elvado_adm_widget_remove($wid);
     $sw=wp_get_sidebars_widgets();$sw['wp_inactive_widgets']=[];wp_set_sidebars_widgets($sw);wp_die('deleted');
 } }
 
@@ -155,7 +155,7 @@ if(!function_exists('wp_ajax_send_link_to_editor')){ function wp_ajax_send_link_
     wp_send_json_success(apply_filters('media_send_to_editor',$html,0,['url'=>$link]));
 } }
 if(!function_exists('wp_ajax_set_post_thumbnail')){ function wp_ajax_set_post_thumbnail() {
-    $json=!empty($_REQUEST['json']);$pid=(int)($_POST['post_id']??0);rrw_adm_need('edit_post',$pid);
+    $json=!empty($_REQUEST['json']);$pid=(int)($_POST['post_id']??0);elvado_adm_need('edit_post',$pid);
     $tid=(int)($_POST['thumbnail_id']??0);
     if($json)check_ajax_referer("update-post_$pid");else check_ajax_referer("set_post_thumbnail-$pid");
     if($tid==-1){ if(delete_post_thumbnail($pid)){ $r=_wp_post_thumbnail_html(null,$pid);$json?wp_send_json_success($r):wp_die($r); } wp_die(0); }
@@ -163,7 +163,7 @@ if(!function_exists('wp_ajax_set_post_thumbnail')){ function wp_ajax_set_post_th
     wp_die(0);
 } }
 if(!function_exists('wp_ajax_get_post_thumbnail_html')){ function wp_ajax_get_post_thumbnail_html() {
-    $pid=(int)($_POST['post_id']??0);rrw_adm_need('edit_post',$pid);
+    $pid=(int)($_POST['post_id']??0);elvado_adm_need('edit_post',$pid);
     check_ajax_referer("update-post_$pid");
     $tid=(int)($_POST['thumbnail_id']??0);if($tid==-1)$tid=null;
     wp_send_json_success(_wp_post_thumbnail_html($tid,$pid));
@@ -225,18 +225,18 @@ if(!function_exists('wp_ajax_parse_media_shortcode')){ function wp_ajax_parse_me
 } }
 
 /* ───────── Themes und Plugins (über den CMS-Installer) ───────── */
-if(!function_exists('rrw_adm_installer')){ function rrw_adm_installer() {   // Installer-Funktionen verfügbar machen
-    if(!function_exists('rrw_wpi_download_plugin')&&function_exists('rrw_td_get')&&is_file(dirname(__DIR__,2).'/installer.php'))require_once dirname(__DIR__,2).'/installer.php';
-    return function_exists('rrw_wpi_download_plugin');
+if(!function_exists('elvado_adm_installer')){ function elvado_adm_installer() {   // Installer-Funktionen verfügbar machen
+    if(!function_exists('elvado_wpi_download_plugin')&&function_exists('elvado_td_get')&&is_file(dirname(__DIR__,2).'/installer.php'))require_once dirname(__DIR__,2).'/installer.php';
+    return function_exists('elvado_wpi_download_plugin');
 } }
-if(!function_exists('rrw_adm_update_err')){ function rrw_adm_update_err($msg, $extra=[]) { wp_send_json_error($extra+['errorCode'=>'unable_to_connect_to_filesystem','errorMessage'=>$msg]); } }
+if(!function_exists('elvado_adm_update_err')){ function elvado_adm_update_err($msg, $extra=[]) { wp_send_json_error($extra+['errorCode'=>'unable_to_connect_to_filesystem','errorMessage'=>$msg]); } }
 if(!function_exists('wp_ajax_install_plugin')){ function wp_ajax_install_plugin() {
     check_ajax_referer('updates');
     $slug=sanitize_key(wp_unslash($_POST['slug']??''));$st=['install'=>'plugin','slug'=>$slug];
     if(empty($slug))wp_send_json_error($st+['errorCode'=>'no_plugin_specified','errorMessage'=>'Es wurde kein Plugin angegeben.']);
     if(!current_user_can('install_plugins'))wp_send_json_error($st+['errorMessage'=>'Du darfst keine Plugins installieren.']);
-    if(!wp_is_file_mod_allowed('install_plugins')||!rrw_adm_installer())wp_send_json_error($st+['errorMessage'=>'Plugins können hier nicht installiert werden.']);
-    try{ $zip=rrw_wpi_download_plugin($slug);$r=rrw_wpi_install_plugin_zip($zip,$slug);@unlink($zip); }
+    if(!wp_is_file_mod_allowed('install_plugins')||!elvado_adm_installer())wp_send_json_error($st+['errorMessage'=>'Plugins können hier nicht installiert werden.']);
+    try{ $zip=elvado_wpi_download_plugin($slug);$r=elvado_wpi_install_plugin_zip($zip,$slug);@unlink($zip); }
     catch(Throwable $e){ wp_send_json_error($st+['errorMessage'=>$e->getMessage()]); }
     wp_send_json_success($st+['pluginName'=>$slug,'activateUrl'=>wp_nonce_url(admin_url('plugins.php?action=activate&plugin='.rawurlencode($r['slug'].'/'.($r['files'][0]??''))),'activate-plugin_'.$r['slug'].'/'.($r['files'][0]??''))]);
 } }
@@ -244,7 +244,7 @@ if(!function_exists('wp_ajax_activate_plugin')){ function wp_ajax_activate_plugi
     check_ajax_referer('updates');
     $pl=(string)wp_unslash($_POST['plugin']??'');$st=['activate'=>'plugin','slug'=>(string)wp_unslash($_POST['slug']??''),'plugin'=>$pl];
     if($pl==='')wp_send_json_error($st+['errorMessage'=>'Es wurde kein Plugin angegeben.']);
-    if(!rrw_adm_can('activate_plugins',''))wp_send_json_error($st+['errorMessage'=>'Du darfst dieses Plugin nicht aktivieren.']);
+    if(!elvado_adm_can('activate_plugins',''))wp_send_json_error($st+['errorMessage'=>'Du darfst dieses Plugin nicht aktivieren.']);
     $r=activate_plugin($pl);if(is_wp_error($r))wp_send_json_error($st+['errorCode'=>$r->get_error_code(),'errorMessage'=>$r->get_error_message()]);
     wp_send_json_success($st);
 } }
@@ -253,8 +253,8 @@ if(!function_exists('wp_ajax_update_plugin')){ function wp_ajax_update_plugin() 
     $pl=(string)wp_unslash($_POST['plugin']??'');$slug=sanitize_key(wp_unslash($_POST['slug']??''));$st=['update'=>'plugin','slug'=>$slug,'oldVersion'=>'','newVersion'=>''];
     if($pl===''||$slug==='')wp_send_json_error($st+['errorMessage'=>'Es wurde kein Plugin angegeben.']);
     if(!current_user_can('update_plugins')||0!==validate_file($pl))wp_send_json_error($st+['errorMessage'=>'Du darfst keine Plugins aktualisieren.']);
-    if(!wp_is_file_mod_allowed('update_plugins')||!rrw_adm_installer()||!function_exists('rrw_wpau_update_one'))wp_send_json_error($st+['errorMessage'=>'Plugins können hier nicht aktualisiert werden.']);
-    $r=rrw_wpau_update_one('plugin',$slug);if(empty($r['ok']))wp_send_json_error($st+['errorMessage'=>(string)($r['msg']??'Die Aktualisierung ist fehlgeschlagen.')]);
+    if(!wp_is_file_mod_allowed('update_plugins')||!elvado_adm_installer()||!function_exists('elvado_wpau_update_one'))wp_send_json_error($st+['errorMessage'=>'Plugins können hier nicht aktualisiert werden.']);
+    $r=elvado_wpau_update_one('plugin',$slug);if(empty($r['ok']))wp_send_json_error($st+['errorMessage'=>(string)($r['msg']??'Die Aktualisierung ist fehlgeschlagen.')]);
     wp_send_json_success($st);
 } }
 if(!function_exists('wp_ajax_delete_plugin')){ function wp_ajax_delete_plugin() {
@@ -270,16 +270,16 @@ if(!function_exists('wp_ajax_delete_plugin')){ function wp_ajax_delete_plugin() 
 if(!function_exists('wp_ajax_search_plugins')){ function wp_ajax_search_plugins() {   // Suche im Plugin-Verzeichnis über den Installer
     check_ajax_referer('updates');
     if(!current_user_can('install_plugins'))wp_send_json_error(['message'=>'Du darfst keine Plugins installieren.']);
-    if(!rrw_adm_installer()||!function_exists('rrw_wpi_search_plugins'))wp_send_json_error(['message'=>'Die Plugin-Suche ist nicht verfügbar.']);
-    $r=rrw_wpi_search_plugins(dirname(RRW_WP_DATA),(string)wp_unslash($_REQUEST['s']??($_REQUEST['q']??'')),max(1,(int)($_REQUEST['paged']??1)));
+    if(!elvado_adm_installer()||!function_exists('elvado_wpi_search_plugins'))wp_send_json_error(['message'=>'Die Plugin-Suche ist nicht verfügbar.']);
+    $r=elvado_wpi_search_plugins(dirname(ELVADO_WP_DATA),(string)wp_unslash($_REQUEST['s']??($_REQUEST['q']??'')),max(1,(int)($_REQUEST['paged']??1)));
     if(empty($r['ok']))wp_send_json_error(['message'=>(string)($r['message']??'Die Suche ist fehlgeschlagen.')]);
     wp_send_json_success(['items'=>$r['items'],'pages'=>$r['pages'],'page'=>$r['page']]);
 } }
 if(!function_exists('wp_ajax_search_install_plugins')){ function wp_ajax_search_install_plugins() { wp_ajax_search_plugins(); } }
 if(!function_exists('wp_ajax_query_themes')){ function wp_ajax_query_themes() {
     if(!current_user_can('install_themes'))wp_send_json_error(['message'=>'Du darfst keine Themes installieren.']);
-    if(!rrw_adm_installer()||!function_exists('rrw_wpi_search_themes'))wp_send_json_error(['message'=>'Die Theme-Suche ist nicht verfügbar.']);
-    $r=rrw_wpi_search_themes(dirname(RRW_WP_DATA),(string)wp_unslash($_REQUEST['request']['search']??($_REQUEST['s']??'')),max(1,(int)($_REQUEST['request']['page']??1)));
+    if(!elvado_adm_installer()||!function_exists('elvado_wpi_search_themes'))wp_send_json_error(['message'=>'Die Theme-Suche ist nicht verfügbar.']);
+    $r=elvado_wpi_search_themes(dirname(ELVADO_WP_DATA),(string)wp_unslash($_REQUEST['request']['search']??($_REQUEST['s']??'')),max(1,(int)($_REQUEST['request']['page']??1)));
     if(empty($r['ok']))wp_send_json_error(['message'=>(string)($r['message']??'Die Suche ist fehlgeschlagen.')]);
     wp_send_json_success(['info'=>['page'=>$r['page'],'pages'=>$r['pages']],'themes'=>$r['items']]);
 } }
@@ -288,8 +288,8 @@ if(!function_exists('wp_ajax_install_theme')){ function wp_ajax_install_theme() 
     $slug=sanitize_key(wp_unslash($_POST['slug']??''));$st=['install'=>'theme','slug'=>$slug];
     if($slug==='')wp_send_json_error($st+['errorMessage'=>'Es wurde kein Theme angegeben.']);
     if(!current_user_can('install_themes'))wp_send_json_error($st+['errorMessage'=>'Du darfst keine Themes installieren.']);
-    if(!wp_is_file_mod_allowed('install_themes')||!rrw_adm_installer())wp_send_json_error($st+['errorMessage'=>'Themes können hier nicht installiert werden.']);
-    try{ $zip=rrw_wpi_download_theme($slug);rrw_wpi_install_theme_zip($zip,$slug);@unlink($zip); }
+    if(!wp_is_file_mod_allowed('install_themes')||!elvado_adm_installer())wp_send_json_error($st+['errorMessage'=>'Themes können hier nicht installiert werden.']);
+    try{ $zip=elvado_wpi_download_theme($slug);elvado_wpi_install_theme_zip($zip,$slug);@unlink($zip); }
     catch(Throwable $e){ wp_send_json_error($st+['errorMessage'=>$e->getMessage()]); }
     wp_send_json_success($st+['themeName'=>$slug]);
 } }
@@ -298,8 +298,8 @@ if(!function_exists('wp_ajax_update_theme')){ function wp_ajax_update_theme() {
     $slug=sanitize_key(wp_unslash($_POST['slug']??''));$st=['update'=>'theme','slug'=>$slug,'oldVersion'=>'','newVersion'=>''];
     if($slug==='')wp_send_json_error($st+['errorMessage'=>'Es wurde kein Theme angegeben.']);
     if(!current_user_can('update_themes'))wp_send_json_error($st+['errorMessage'=>'Du darfst keine Themes aktualisieren.']);
-    if(!wp_is_file_mod_allowed('update_themes')||!rrw_adm_installer()||!function_exists('rrw_wpau_update_one'))wp_send_json_error($st+['errorMessage'=>'Themes können hier nicht aktualisiert werden.']);
-    $r=rrw_wpau_update_one('theme',$slug);if(empty($r['ok']))wp_send_json_error($st+['errorMessage'=>(string)($r['msg']??'Die Aktualisierung ist fehlgeschlagen.')]);
+    if(!wp_is_file_mod_allowed('update_themes')||!elvado_adm_installer()||!function_exists('elvado_wpau_update_one'))wp_send_json_error($st+['errorMessage'=>'Themes können hier nicht aktualisiert werden.']);
+    $r=elvado_wpau_update_one('theme',$slug);if(empty($r['ok']))wp_send_json_error($st+['errorMessage'=>(string)($r['msg']??'Die Aktualisierung ist fehlgeschlagen.')]);
     wp_send_json_success($st);
 } }
 if(!function_exists('wp_ajax_delete_theme')){ function wp_ajax_delete_theme() {
@@ -340,7 +340,7 @@ if(!function_exists('wp_ajax_edit_theme_plugin_file')){ function wp_ajax_edit_th
 if(!function_exists('wp_ajax_wp_privacy_export_personal_data')){ function wp_ajax_wp_privacy_export_personal_data() {
     if(empty($_POST['id']))wp_send_json_error('Ungültige Anfrage-ID.');
     $rid=(int)$_POST['id'];check_ajax_referer('wp-privacy-export-personal-data-'.$rid,'security');
-    if(!rrw_adm_can('export_others_personal_data'))wp_send_json_error('Du darfst keine personenbezogenen Daten exportieren.');
+    if(!elvado_adm_can('export_others_personal_data'))wp_send_json_error('Du darfst keine personenbezogenen Daten exportieren.');
     $req=wp_get_user_request($rid);if(!$req||'export_personal_data'!==$req->action_name)wp_send_json_error('Ungültige Anfrage-ID.');
     $email=$req->email;if(!is_email($email))wp_send_json_error('Ungültige E-Mail-Adresse in der Anfrage.');
     if(!isset($_POST['exporter']))wp_send_json_error('Ungültiger Exporter-Index.');
@@ -355,7 +355,7 @@ if(!function_exists('wp_ajax_wp_privacy_export_personal_data')){ function wp_aja
 if(!function_exists('wp_ajax_wp_privacy_erase_personal_data')){ function wp_ajax_wp_privacy_erase_personal_data() {
     if(empty($_POST['id']))wp_send_json_error('Ungültige Anfrage-ID.');
     $rid=(int)$_POST['id'];check_ajax_referer('wp-privacy-erase-personal-data-'.$rid,'security');
-    if(!rrw_adm_can('erase_others_personal_data')||!current_user_can('delete_users'))wp_send_json_error('Du darfst keine personenbezogenen Daten löschen.');
+    if(!elvado_adm_can('erase_others_personal_data')||!current_user_can('delete_users'))wp_send_json_error('Du darfst keine personenbezogenen Daten löschen.');
     $req=wp_get_user_request($rid);if(!$req||'remove_personal_data'!==$req->action_name)wp_send_json_error('Ungültige Anfrage-ID.');
     $email=$req->email;if(!is_email($email))wp_send_json_error('Ungültige E-Mail-Adresse in der Anfrage.');
     if(!isset($_POST['eraser']))wp_send_json_error('Ungültiger Löschfunktions-Index.');
@@ -369,30 +369,30 @@ if(!function_exists('wp_ajax_wp_privacy_erase_personal_data')){ function wp_ajax
 } }
 
 /* ───────── Website-Zustand (Health Check) ───────── */
-if(!function_exists('rrw_adm_health_check')){ function rrw_adm_health_check() { check_ajax_referer('health-check-site-status');if(!rrw_adm_can('view_site_health_checks'))wp_die(-1); } }
-if(!function_exists('rrw_adm_health_result')){ function rrw_adm_health_result($label, $status, $desc, $test) {
+if(!function_exists('elvado_adm_health_check')){ function elvado_adm_health_check() { check_ajax_referer('health-check-site-status');if(!elvado_adm_can('view_site_health_checks'))wp_die(-1); } }
+if(!function_exists('elvado_adm_health_result')){ function elvado_adm_health_result($label, $status, $desc, $test) {
     return ['label'=>$label,'status'=>$status,'badge'=>['label'=>'Sicherheit','color'=>'blue'],'description'=>'<p>'.esc_html($desc).'</p>','actions'=>'','test'=>$test];
 } }
 if(!function_exists('wp_ajax_health_check_dotorg_communication')){ function wp_ajax_health_check_dotorg_communication() {   // keine Prüfung gegen wordpress.org (kein Netzabruf)
-    rrw_adm_health_check();
-    wp_send_json_success(rrw_adm_health_result('Die Verbindung zu wordpress.org wird nicht geprüft','good','Das CMS ruft wordpress.org nur bei Installation und Aktualisierung auf.','dotorg_communication'));
+    elvado_adm_health_check();
+    wp_send_json_success(elvado_adm_health_result('Die Verbindung zu wordpress.org wird nicht geprüft','good','Das CMS ruft wordpress.org nur bei Installation und Aktualisierung auf.','dotorg_communication'));
 } }
 if(!function_exists('wp_ajax_health_check_background_updates')){ function wp_ajax_health_check_background_updates() {
-    rrw_adm_health_check();
-    $on=function_exists('rrw_wpau_get')&&function_exists('rrw_wpau_enabled')&&rrw_wpau_enabled(rrw_wpau_get());
-    wp_send_json_success(rrw_adm_health_result($on?'Automatische Updates sind aktiv':'Automatische Updates sind ausgeschaltet',$on?'good':'recommended','Der Zeitplan des CMS aktualisiert Plugins, Themes und Übersetzungen nach den eingestellten Regeln.','background_updates'));
+    elvado_adm_health_check();
+    $on=function_exists('elvado_wpau_get')&&function_exists('elvado_wpau_enabled')&&elvado_wpau_enabled(elvado_wpau_get());
+    wp_send_json_success(elvado_adm_health_result($on?'Automatische Updates sind aktiv':'Automatische Updates sind ausgeschaltet',$on?'good':'recommended','Der Zeitplan des CMS aktualisiert Plugins, Themes und Übersetzungen nach den eingestellten Regeln.','background_updates'));
 } }
 if(!function_exists('wp_ajax_health_check_loopback_requests')){ function wp_ajax_health_check_loopback_requests() {   // Zeitplan-Aufrufe laufen über das CMS, nicht über Loopback
-    rrw_adm_health_check();
-    wp_send_json_success(rrw_adm_health_result('Loopback-Anfragen werden nicht benötigt','good','Geplante Aufgaben werden vom CMS selbst ausgelöst.','loopback_requests'));
+    elvado_adm_health_check();
+    wp_send_json_success(elvado_adm_health_result('Loopback-Anfragen werden nicht benötigt','good','Geplante Aufgaben werden vom CMS selbst ausgelöst.','loopback_requests'));
 } }
 if(!function_exists('wp_ajax_health_check_site_status_result')){ function wp_ajax_health_check_site_status_result() {
-    rrw_adm_health_check();
+    elvado_adm_health_check();
     set_transient('health-check-site-status-result',wp_json_encode(array_map('intval',(array)($_POST['counts']??[]))));
     wp_send_json_success();
 } }
 if(!function_exists('wp_ajax_health_check_get_sizes')){ function wp_ajax_health_check_get_sizes() {   // Verzeichnisgrößen (nur auf Anforderung berechnet)
-    rrw_adm_health_check();
+    elvado_adm_health_check();
     $up=wp_upload_dir();$dirs=['wordpress_size'=>ABSPATH,'themes_size'=>get_theme_root(),'plugins_size'=>WP_PLUGIN_DIR,'uploads_size'=>$up['basedir']??''];$out=[];
     foreach($dirs as $k=>$d){ $s=$d!==''&&is_dir($d)?(int)get_dirsize($d):0;$out[$k]=['size'=>size_format($s),'debug'=>size_format($s),'raw'=>$s]; }
     $out['total_size']=['size'=>size_format(array_sum(array_column($out,'raw'))),'debug'=>'','raw'=>array_sum(array_column($out,'raw'))];
@@ -400,7 +400,7 @@ if(!function_exists('wp_ajax_health_check_get_sizes')){ function wp_ajax_health_
 } }
 
 /* ───────── Registrierung der Aktionen ───────── */
-rrw_adm_hook(['widgets-order'=>'wp_ajax_widgets_order','save-widget'=>'wp_ajax_save_widget','update-widget'=>'wp_ajax_update_widget','delete-inactive-widgets'=>'wp_ajax_delete_inactive_widgets',
+elvado_adm_hook(['widgets-order'=>'wp_ajax_widgets_order','save-widget'=>'wp_ajax_save_widget','update-widget'=>'wp_ajax_update_widget','delete-inactive-widgets'=>'wp_ajax_delete_inactive_widgets',
     'media-create-image-subsizes'=>'wp_ajax_media_create_image_subsizes','upload-attachment'=>'wp_ajax_upload_attachment','get-attachment'=>'wp_ajax_get_attachment','query-attachments'=>'wp_ajax_query_attachments',
     'save-attachment'=>'wp_ajax_save_attachment','save-attachment-compat'=>'wp_ajax_save_attachment_compat','save-attachment-order'=>'wp_ajax_save_attachment_order','send-attachment-to-editor'=>'wp_ajax_send_attachment_to_editor',
     'send-link-to-editor'=>'wp_ajax_send_link_to_editor','set-post-thumbnail'=>'wp_ajax_set_post_thumbnail','get-post-thumbnail-html'=>'wp_ajax_get_post_thumbnail_html','set-attachment-thumbnail'=>'wp_ajax_set_attachment_thumbnail',

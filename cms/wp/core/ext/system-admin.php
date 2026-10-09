@@ -48,7 +48,7 @@ if(!function_exists('update_recently_edited')){ function update_recently_edited(
     if($old){ array_unshift($old,$file);$old=array_values(array_unique($old));if(count($old)>5)array_pop($old); } else $old[]=$file;
     update_option('recently_edited',$old);
 } }
-if(!function_exists('rrw_ext_file_tree')){ function rrw_ext_file_tree($files) {   // Pfadliste (oder relativ=>voll) in verschachtelten Baum umwandeln
+if(!function_exists('elvado_ext_file_tree')){ function elvado_ext_file_tree($files) {   // Pfadliste (oder relativ=>voll) in verschachtelten Baum umwandeln
     $tree=[];
     foreach((array)$files as $k=>$v){
         $rel=is_string($k)?$k:(string)$v;$parts=explode('/',$rel);$ref=&$tree;
@@ -57,22 +57,22 @@ if(!function_exists('rrw_ext_file_tree')){ function rrw_ext_file_tree($files) { 
     }
     return $tree;
 } }
-if(!function_exists('rrw_ext_print_tree')){ function rrw_ext_print_tree($tree, $page, $qkey, $qval, $current) {
+if(!function_exists('elvado_ext_print_tree')){ function elvado_ext_print_tree($tree, $page, $qkey, $qval, $current) {
     foreach($tree as $label=>$node){
-        if(is_array($node)){ echo '<li role="treeitem" aria-expanded="true"><span class="folder-label">'.esc_html($label).'</span><ul role="group" class="tree-folder">';rrw_ext_print_tree($node,$page,$qkey,$qval,$current);echo '</ul></li>';continue; }
+        if(is_array($node)){ echo '<li role="treeitem" aria-expanded="true"><span class="folder-label">'.esc_html($label).'</span><ul role="group" class="tree-folder">';elvado_ext_print_tree($node,$page,$qkey,$qval,$current);echo '</ul></li>';continue; }
         $url=add_query_arg(['file'=>rawurlencode($node),$qkey=>rawurlencode($qval)],self_admin_url($page));
         echo '<li role="none" class="'.($node===$current?'current-file':'').'"><a role="treeitem" href="'.esc_url($url).'">'.esc_html($label).'</a></li>';
     }
 } }
-if(!function_exists('wp_make_theme_file_tree')){ function wp_make_theme_file_tree($allowed_files) { return rrw_ext_file_tree($allowed_files); } }
-if(!function_exists('wp_make_plugin_file_tree')){ function wp_make_plugin_file_tree($plugin_editable_files) { return rrw_ext_file_tree($plugin_editable_files); } }
+if(!function_exists('wp_make_theme_file_tree')){ function wp_make_theme_file_tree($allowed_files) { return elvado_ext_file_tree($allowed_files); } }
+if(!function_exists('wp_make_plugin_file_tree')){ function wp_make_plugin_file_tree($plugin_editable_files) { return elvado_ext_file_tree($plugin_editable_files); } }
 if(!function_exists('wp_print_theme_file_tree')){ function wp_print_theme_file_tree($tree, $level=2, $size=1, $index=1) {
     global $relative_file,$stylesheet;if(!is_array($tree))return;
-    rrw_ext_print_tree($tree,'theme-editor.php','theme',(string)($stylesheet??get_stylesheet()),(string)($relative_file??''));
+    elvado_ext_print_tree($tree,'theme-editor.php','theme',(string)($stylesheet??get_stylesheet()),(string)($relative_file??''));
 } }
 if(!function_exists('wp_print_plugin_file_tree')){ function wp_print_plugin_file_tree($tree, $label='', $level=2, $size=1, $index=1) {
     global $file,$plugin;if(!is_array($tree))return;
-    rrw_ext_print_tree($tree,'plugin-editor.php','plugin',(string)($plugin??''),(string)($file??''));
+    elvado_ext_print_tree($tree,'plugin-editor.php','plugin',(string)($plugin??''),(string)($file??''));
 } }
 if(!function_exists('wp_reset_vars')){ function wp_reset_vars($vars) {
     foreach((array)$vars as $v)$GLOBALS[$v]=!empty($_POST[$v])?$_POST[$v]:(!empty($_GET[$v])?$_GET[$v]:'');
@@ -215,7 +215,7 @@ if(!function_exists('get_cli_args')){ function get_cli_args($param, $required=fa
         elseif($last!==null){ $out[$last]=$a;$last=null; }
     }
     if(isset($out[$param]))return $out[$param];
-    if($required){ echo "\"$param\" parameter is required but was not specified\n";if(!empty($GLOBALS['rrw_wp_die_throws']))throw new RRW_WP_Die('cli',1);exit(1); }
+    if($required){ echo "\"$param\" parameter is required but was not specified\n";if(!empty($GLOBALS['elvado_wp_die_throws']))throw new ELVADO_WP_Die('cli',1);exit(1); }
     return null;
 } }
 if(!function_exists('export_wp')){ function export_wp($args=[]) {

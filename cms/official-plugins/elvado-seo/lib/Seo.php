@@ -37,8 +37,8 @@ final class Seo
 
     private function siteDefaults(): array
     {
-        $site = (array)($GLOBALS['RRW_SITE'] ?? []);
-        $d = function_exists('rrw_seo_defaults') ? rrw_seo_defaults($site) : [];
+        $site = (array)($GLOBALS['ELVADO_SITE'] ?? []);
+        $d = function_exists('elvado_seo_defaults') ? elvado_seo_defaults($site) : [];
         return ['title' => trim((string)($d['site_title'] ?? '')) ?: (string)get_bloginfo('name'), 'description' => trim((string)($d['description'] ?? '')), 'og_image' => trim((string)($d['og_image'] ?? '')), 'robots' => (string)($d['robots'] ?? 'index,follow'),
             'name' => (string)get_bloginfo('name') ?: (trim((string)($d['site_title'] ?? '')) ?: 'Website'), 'logo' => (string)($site['branding']['logo'] ?? $site['portal']['logo'] ?? '')];
     }
@@ -78,8 +78,8 @@ final class Seo
 
     private function fromPost(\WP_Post $o, array $c): array
     {
-        $d = is_array($o->rrw_data ?? null) ? $o->rrw_data : [];
-        $src = (string)($o->rrw_source ?? 'db');
+        $d = is_array($o->elvado_data ?? null) ? $o->elvado_data : [];
+        $src = (string)($o->elvado_source ?? 'db');
         $c['post'] = $o;
         $c['kind'] = $o->post_type === 'page' ? ($c['kind'] === 'front' ? 'front' : 'page') : 'post';
         $c['title'] = (string)$o->post_title;
@@ -340,8 +340,8 @@ final class Seo
     public function generate(): array
     {
         try {
-            if (function_exists('rrw_wp_boot')) {
-                rrw_wp_boot(['theme' => true]);   // mit Theme: ein früher Start ohne Theme würde ihn für den Rest der Anfrage festschreiben
+            if (function_exists('elvado_wp_boot')) {
+                elvado_wp_boot(['theme' => true]);   // mit Theme: ein früher Start ohne Theme würde ihn für den Rest der Anfrage festschreiben
             }
             if (!class_exists('WP_Query')) {
                 return ['ok' => false, 'message' => 'Die WordPress-Schicht ist nicht verfügbar.', 'count' => 0];
@@ -352,7 +352,7 @@ final class Seo
                 if (!($p instanceof \WP_Post) || !empty($p->post_password)) {
                     continue;
                 }
-                $d = is_array($p->rrw_data ?? null) ? $p->rrw_data : [];
+                $d = is_array($p->elvado_data ?? null) ? $p->elvado_data : [];
                 if (!empty($d['noindex']) || (string)get_post_meta($p->ID, '_elvado_seo_noindex', true) === '1') {
                     continue;
                 }
@@ -398,7 +398,7 @@ final class Seo
         require_once $this->np->cmsDir() . '/lib/publish.php';
         $res = ['news' => 0, 'pages' => 0];
         $nf = $this->dataDir() . '/news.json';
-        $news = rrw_read_json($nf, []);
+        $news = elvado_read_json($nf, []);
         $chg = false;
         foreach ($news as &$a) {
             if (!is_array($a) || !empty($a['deleted_at']) || trim((string)($a['seo_description'] ?? '')) !== '') {
@@ -413,10 +413,10 @@ final class Seo
         }
         unset($a);
         if ($chg) {
-            rrw_write_atomic($nf, json_encode($news, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
+            elvado_write_atomic($nf, json_encode($news, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
         }
         $sf = $this->dataDir() . '/site.json';
-        $site = rrw_read_json($sf, []);
+        $site = elvado_read_json($sf, []);
         $chg = false;
         foreach ((array)($site['pages'] ?? []) as $i => $p) {
             if (!is_array($p) || trim((string)($p['meta_description'] ?? '')) !== '') {
@@ -434,7 +434,7 @@ final class Seo
             }
         }
         if ($chg) {
-            rrw_write_atomic($sf, json_encode($site, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
+            elvado_write_atomic($sf, json_encode($site, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
         }
         return $res;
     }
@@ -443,11 +443,11 @@ final class Seo
     public function overview(): array
     {
         require_once $this->np->cmsDir() . '/lib/publish.php';
-        $news = array_filter((array)rrw_read_json($this->dataDir() . '/news.json', []), static fn($a) => is_array($a) && empty($a['deleted_at']) && ($a['status'] ?? '') === 'published');
+        $news = array_filter((array)elvado_read_json($this->dataDir() . '/news.json', []), static fn($a) => is_array($a) && empty($a['deleted_at']) && ($a['status'] ?? '') === 'published');
         $noDesc = count(array_filter($news, static fn($a) => trim((string)($a['seo_description'] ?? '')) === '' && trim((string)($a['excerpt'] ?? '')) === ''));
         $noIndex = count(array_filter($news, static fn($a) => !empty($a['noindex'])));
-        $site = (array)rrw_read_json($this->dataDir() . '/site.json', []);
-        $d = function_exists('rrw_seo_defaults') ? rrw_seo_defaults($site) : [];
+        $site = (array)elvado_read_json($this->dataDir() . '/site.json', []);
+        $d = function_exists('elvado_seo_defaults') ? elvado_seo_defaults($site) : [];
         $sm = $this->np->rootDir() . '/sitemap.xml';
         $smOurs = is_file($sm) && str_contains((string)@file_get_contents($sm, false, null, 0, 200), 'Elvado SEO');
         $checks = [];

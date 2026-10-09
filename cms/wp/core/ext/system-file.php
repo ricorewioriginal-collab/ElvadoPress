@@ -1,7 +1,7 @@
 <?php
 // Ergänzende WordPress-Funktionen (Bereich System, Teil 5): Dateien – Auflisten, Hochladen, Prüfsummen, ZIP, Verschieben, Datei-Editor.
 
-if(!function_exists('rrw_ext_rmtree')){ function rrw_ext_rmtree($dir) {   // Ordner samt Inhalt löschen (Symlinks werden nur entfernt, nicht verfolgt)
+if(!function_exists('elvado_ext_rmtree')){ function elvado_ext_rmtree($dir) {   // Ordner samt Inhalt löschen (Symlinks werden nur entfernt, nicht verfolgt)
     $dir=rtrim((string)$dir,'/');if($dir===''||$dir==='/')return false;
     if(is_link($dir)||is_file($dir))return @unlink($dir);
     if(!is_dir($dir))return true;
@@ -122,7 +122,7 @@ if(!function_exists('wp_zip_file_is_valid')){ function wp_zip_file_is_valid($fil
 } }
 if(!function_exists('_unzip_file_ziparchive')){ function _unzip_file_ziparchive($file, $to, $needed_dirs=[]) {
     $z=new ZipArchive();if($z->open($file,ZipArchive::CHECKCONS)!==true)return new WP_Error('incompatible_archive',__('Incompatible Archive.'));
-    $to=trailingslashit($to);$total=0;$max=(int)apply_filters('rrw_unzip_max_bytes',1073741824);$names=[];
+    $to=trailingslashit($to);$total=0;$max=(int)apply_filters('elvado_unzip_max_bytes',1073741824);$names=[];
     for($i=0;$i<$z->numFiles;$i++){
         $s=$z->statIndex($i);if(!$s){ $z->close();return new WP_Error('stat_failed_ziparchive',__('Could not retrieve file from archive.')); }
         $n=str_replace('\\','/',(string)$s['name']);if(str_starts_with($n,'__MACOSX/'))continue;
@@ -149,12 +149,12 @@ if(!function_exists('move_dir')){ function move_dir($from, $to, $overwrite=false
     $from=untrailingslashit((string)$from);$to=untrailingslashit((string)$to);
     if(strtolower($from)===strtolower($to))return new WP_Error('source_destination_same_move_dir',__('The source and destination are the same.'));
     if(!is_dir($from))return new WP_Error('source_missing_move_dir',__('The source directory does not exist.'));
-    if(file_exists($to)){ if(!$overwrite)return new WP_Error('destination_already_exists_move_dir',__('The destination folder already exists.'),$to);rrw_ext_rmtree($to); }
+    if(file_exists($to)){ if(!$overwrite)return new WP_Error('destination_already_exists_move_dir',__('The destination folder already exists.'),$to);elvado_ext_rmtree($to); }
     wp_mkdir_p(dirname($to));
     if(@rename($from,$to))return true;
     if(!wp_mkdir_p($to))return new WP_Error('mkdir_failed_move_dir',__('Could not create directory.'),$to);
     $r=copy_dir($from,$to);if(is_wp_error($r))return $r;
-    rrw_ext_rmtree($from);return true;
+    elvado_ext_rmtree($from);return true;
 } }
 if(!function_exists('wp_print_request_filesystem_credentials_modal')){ function wp_print_request_filesystem_credentials_modal() { /* direkter Dateizugriff: keine Zugangsdaten nötig, also kein Dialog */ } }
 if(!function_exists('wp_opcache_invalidate')){ function wp_opcache_invalidate($filepath, $force=false) {

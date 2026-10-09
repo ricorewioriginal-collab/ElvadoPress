@@ -56,7 +56,7 @@ t('Stile: versteckte Einträge bleiben versteckt', str_contains($css, '.tabs .ta
 t('Cache-Version erhöht', preg_match('/shell\.css\?v=([2-9]|\d{2,})/', (string)file_get_contents("$cms/index.php")) === 1);
 $alx = (string)file_get_contents("$cms/assets/alexa-manager.js");
 t('Alexa-Verwaltung: Zusatzabschnitte für Pakete (ohne Projektinhalte im Kern)', str_contains($alx, 'registerSection') && !str_contains($alx, 'Amazon Store-Auftritt') && !str_contains($alx, 'Senderwelt'));
-t('Paket-Skripte der Verwaltung nur für vorhandene Pakete', str_contains((string)file_get_contents("$cms/index.php"), "packs/*/admin.js") && str_contains((string)file_get_contents("$cms/index.php"), 'rrw_pack_available($pk)'));
+t('Paket-Skripte der Verwaltung nur für vorhandene Pakete', str_contains((string)file_get_contents("$cms/index.php"), "packs/*/admin.js") && str_contains((string)file_get_contents("$cms/index.php"), 'elvado_pack_available($pk)'));
 t('Systemstatus-Panel vorhanden und im Menü (System, Updates)', is_file("$cms/views/panel-sysstatus.php") && str_contains($side, "cmsTab('sysstatus'") && substr_count($side, 'data-tab="sysstatus"') === 2 && str_contains((string)file_get_contents("$cms/index.php"), 'panel-sysstatus.php'));
 $shJs=(string)file_get_contents(__DIR__.'/../cms/assets/shell.js');$lbJs=(string)file_get_contents(__DIR__.'/../cms/assets/live-builder.js');
 t('Marken-Umschalter: nur bei mehreren Marken, Auswahl gemerkt, Ereignis cms:brand',str_contains($shJs,'brands_public')&&str_contains($shJs,'list.length<2')&&str_contains($shJs,"localStorage.setItem('cms.brand'")&&str_contains($shJs,"new CustomEvent('cms:brand'"));

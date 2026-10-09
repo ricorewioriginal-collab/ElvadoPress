@@ -27,13 +27,13 @@
   - Widget-Bereiche lassen sich nur mit klassischen Themes sinnvoll testen; Werkzeugleisten-Aktionen der Vorschau-Brücke sind nicht per Klick getestet.
   - Migration: Inhalte werden als HTML übernommen (kein Umbau in Blöcke), Widgets müssen von Hand eingerichtet werden, Papierkorb wird nicht übernommen.
   - Verwaltungs-Oberfläche: Zähler-Abzeichen an „Plugins“/„Updates“ und ein Menüpunkt „Automatisierung“ fehlen mangels Funktion.
-- **Nächste Untersuchung:** Panels auf die Engine umstellen (Golden-Test aus ricorewi-radio entfällt), danach die Emulation entfernen.
+- **Nächste Untersuchung:** Panels auf die Engine umstellen, danach die Emulation entfernen.
 
 ## Mehrere eigenständige Websites (Multisite)
 - Grundlage steht (`cms/lib/sites.php`, `scripts/test-sites.php`, `cms/docs/MULTISITE.md`), ist aber noch **nicht eingebunden**: Auslieferung, Verwaltung (Website-Umschalter, Bereich „Websites“), WordPress-Emulation und -Engine je Website folgen in Stufen (siehe Dokument). Bis dahin ändert sich am Betrieb nichts.
 
 ## Demo-Bereitstellung
-- **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig über AnMaCha Universal Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.
+- **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig per Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.
 
 ## Radio-Reste in den nativen App-Clients
 - **Stand:** Die Radio-Erweiterung (Theme, Menü, `radio.php`, Sendeplan-API, Radio-Widgets), der Radio-Modus des KI-Assistenten und der Radio-App-Typ im App-Baukasten (Builder, Hörstatistik, Radio-Funktionen, Vorlagenkatalog) sind entfernt. Neue Apps sind Website- oder Baukasten-Apps; der frühere Typ „radio“ gilt als Website-App.

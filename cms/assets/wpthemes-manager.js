@@ -34,7 +34,7 @@
         +(t.error?'<div class="hint" style="color:var(--bad);margin-top:4px"><i class="fas fa-triangle-exclamation"></i> '+esc(t.error)+'</div>':'')+'</div>'
         +'<div style="display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap">'+(t.error?'':'<button class="btn-g" onclick="WpThemes.preview('+i+')"><i class="fas fa-eye"></i> Vorschau</button><button class="btn-g" onclick="WpThemes.customize('+i+')"><i class="fas fa-sliders"></i> Anpassen</button>')
         +(t.active||t.error?'':'<button class="btn-a" onclick="WpThemes.activate('+i+')">Aktivieren</button>')
-        +(t.active||t.slug==='rrw-classic'?'':'<button class="btn-g" style="color:var(--bad)" title="'+(t.bundled?'Ausblenden (liegt im Code)':'Löschen')+'" onclick="WpThemes.del('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div>';
+        +(t.active||t.slug==='elvado-classic'?'':'<button class="btn-g" style="color:var(--bad)" title="'+(t.bundled?'Ausblenden (liegt im Code)':'Löschen')+'" onclick="WpThemes.del('+i+')"><i class="fas fa-trash"></i></button>')+'</div></div>';
     }).join('')||'<div class="hint">Keine Themes installiert.</div>';
     if(window.DesignHub)DesignHub.refresh();
   }
@@ -71,7 +71,7 @@
     $('wtPrevOpen').hidden=true;$('wtPrevNote').textContent='Vorschau (15 Minuten gültig)';$('wtPrevAct').innerHTML='<i class="fas fa-check"></i> Aktivieren';
     $('wtPrev').style.display='none';$('wtFrame').src='about:blank';
     if(!prevSlug)return;
-    fetch('/?rrw_wp_preview=off',{redirect:'manual',credentials:'same-origin'}).catch(function(){});   // Vorschau-Cookie beenden
+    fetch('/?elvado_wp_preview=off',{redirect:'manual',credentials:'same-origin'}).catch(function(){});   // Vorschau-Cookie beenden
   }
   async function search(p){
     page=p||1;var box=$('wtResults');box.innerHTML='<div class="hint">Suche läuft …</div>';
@@ -154,7 +154,7 @@
   }
   /* Marke der Vorschau (Kopf-Umschalter): Adresse des WordPress-Customizers um die gewählte Marke ergänzen */
   function czBrandUrl(u){
-    try{var b=window.CMS_BRAND||'',def=(window.CMS&&CMS.brands&&CMS.brands.default)||'';var x=new URL(u,location.origin);x.searchParams.delete('rrw_brand');if(b&&b!==def)x.searchParams.set('rrw_brand',b);return x.pathname+x.search+x.hash}catch(e){return u}
+    try{var b=window.CMS_BRAND||'',def=(window.CMS&&CMS.brands&&CMS.brands.default)||'';var x=new URL(u,location.origin);x.searchParams.delete('elvado_brand');if(b&&b!==def)x.searchParams.set('elvado_brand',b);return x.pathname+x.search+x.hash}catch(e){return u}
   }
   window.addEventListener('cms:brand',function(){
     try{if(!(window.WpThemes&&WpThemes.czActive&&WpThemes.czActive())||!cz||!cz.url)return;var f=$('themeCustomizerFrame');if(f)f.src=czBrandUrl(cz.url)}catch(e){}
@@ -239,7 +239,7 @@
     var pk=cz&&e.target.closest&&e.target.closest('[data-czpick]');if(pk){czPicker(pk.getAttribute('data-czpick'));return}
     var cl=cz&&e.target.closest&&e.target.closest('[data-czclear]');if(cl){czSetImage(cl.getAttribute('data-czclear'),'');return}
     if(!cz||!e.target.closest||!e.target.closest('[data-czedit]'))return;
-    call('wp_session_open','',{to:'admin.php?page=rrw-site-editor'}).then(function(r){window.open(r.url,'_blank','noopener')}).catch(function(x){toast(x.message,true)});
+    call('wp_session_open','',{to:'admin.php?page=elvado-site-editor'}).then(function(r){window.open(r.url,'_blank','noopener')}).catch(function(x){toast(x.message,true)});
   }
   function czOnInput(e){
     var el=e.target;if(!cz||!el.dataset||!el.dataset.cz||(el.type==='radio'&&!el.checked))return;
@@ -259,7 +259,7 @@
     if(!from||!f.contentWindow){cz.pending=true;return}
     var key=id+Date.now();
     cz.acks[key]={id:id,from:from,t:setTimeout(function(){delete mine.acks[key];mine.rendered[id]=from;mine.pending=true;czSchedule()},400)};
-    f.contentWindow.postMessage({type:'rrw-wpc-live',id:key,changes:[{from:from,to:to}]},location.origin);
+    f.contentWindow.postMessage({type:'elvado-wpc-live',id:key,changes:[{from:from,to:to}]},location.origin);
     cz.rendered[id]=to;
   }
   window.addEventListener('message',function(e){
@@ -269,7 +269,7 @@
       if(m.type==='hello'){czBridge({type:'init',edit:false,regions:[],labels:{}});return}
       if(m.type==='structure'&&m.token===cz.stoken&&Array.isArray(m.nodes)){cz.struct=m.nodes.slice(0,200);if(!cz.sec)czDraw();return}
     }
-    var d=e.data,a=cz&&d&&d.type==='rrw-wpc-ack'?cz.acks[d.id]:null;if(e.origin!==location.origin||!a)return;
+    var d=e.data,a=cz&&d&&d.type==='elvado-wpc-ack'?cz.acks[d.id]:null;if(e.origin!==location.origin||!a)return;
     clearTimeout(a.t);delete cz.acks[d.id];
     if(!d.count){cz.rendered[a.id]=a.from;cz.pending=true;czSchedule()}
   });
@@ -297,7 +297,7 @@
     $('czGear').hidden=true;$('czActions').hidden=true;$('czActions').innerHTML='';$('czThemeRow').hidden=true;
     sh.querySelector('.theme-customizer-publish .btn-a').innerHTML=czSaved.pub;sh.querySelector('.theme-customizer-heading .btn-g').innerHTML=czSaved.reset;
     var h=sh.querySelector('.theme-customizer-heading .hint');if(h&&czSaved.hint)h.textContent=czSaved.hint;
-    cz=null;fetch('/?rrw_wp_preview=off',{redirect:'manual',credentials:'same-origin'}).catch(function(){});   // Vorschau-Cookies beenden
+    cz=null;fetch('/?elvado_wp_preview=off',{redirect:'manual',credentials:'same-origin'}).catch(function(){});   // Vorschau-Cookies beenden
   }
   function czClose(force){
     if(!cz)return;

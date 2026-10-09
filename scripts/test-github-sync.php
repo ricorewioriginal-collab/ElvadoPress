@@ -7,7 +7,7 @@ use Elvado\GitHub\{GitHubSyncService,GitHubSyncException,WebhookController};use 
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function thr(callable $f,string $needle=''): bool { try{ $f();return false; }catch(GitHubSyncException $e){ return $needle===''||str_contains($e->getMessage(),$needle); } }
-$tmp=sys_get_temp_dir().'/rrw-gh-'.bin2hex(random_bytes(4));mkdir($tmp);$front=$tmp.'/frontend/lovable';
+$tmp=sys_get_temp_dir().'/elvado-gh-'.bin2hex(random_bytes(4));mkdir($tmp);$front=$tmp.'/frontend/lovable';
 $sha1=str_repeat('a',40);$sha2=str_repeat('b',40);
 function makeZip(string $file,array $entries,array $symlinks=[]): void { $z=new ZipArchive();$z->open($file,ZipArchive::CREATE|ZipArchive::OVERWRITE);foreach($entries as $name=>$c){ $z->addFromString($name,$c); }foreach($symlinks as $name=>$target){ $z->addFromString($name,$target);$z->setExternalAttributesName($name,ZipArchive::OPSYS_UNIX,(0120777<<16)); }$z->close(); }
 $good=['own-repo-'.$sha1.'/src/App.tsx'=>'export default 1;','own-repo-'.$sha1.'/src/components/Hero.tsx'=>'hero','own-repo-'.$sha1.'/src/index.css'=>'body{}','own-repo-'.$sha1.'/public/logo.svg'=>'<svg/>','own-repo-'.$sha1.'/package.json'=>'{"name":"x"}','own-repo-'.$sha1.'/index.html'=>'<div id=root>',

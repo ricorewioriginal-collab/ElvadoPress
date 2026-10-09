@@ -2,14 +2,14 @@
 // Prüft die ergänzenden Ausgabe-Funktionen der WordPress-Schicht (cms/wp/core/ext/output-*.php): Formatierung, kses, Links, Feed, Einbettung,
 // Seitenausgabe, Admin-Leiste, Robots, Shortcodes, Menüs. Aufruf: php scripts/test-wp-ext-output.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-extout-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');
-$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['RRW_SITE']=[];
+$tmp=sys_get_temp_dir().'/elvado-extout-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');
+$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['ELVADO_SITE']=[];
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
 
 // Alle Funktionen der Liste müssen existieren (Ausnahmeliste: bewusst ausgelassen)
 $skip=[];
@@ -172,17 +172,17 @@ t('rss_enclosure / atom_enclosure',(function(){ ob_start();rss_enclosure();atom_
 t('get_comment_guid: ohne Kommentar false',get_comment_guid(999999)===false);
 t('rss2_site_icon / atom_site_icon ohne Icon',(function(){ ob_start();rss2_site_icon();atom_site_icon();return ob_get_clean()===''; })());
 t('fetch_feed: ungültige Adresse',is_wp_error(fetch_feed('ftp://x')));
-$f=RRW_WP_Feed::parse('<rss version="2.0"><channel><title>T</title><link>http://a.de/</link><description>D</description><item><title>I1</title><link>http://a.de/1</link><description>d1</description><pubDate>Mon, 01 Jan 2024 10:00:00 +0000</pubDate></item></channel></rss>');
-t('RRW_WP_Feed: RSS',$f&&$f->get_title()==='T'&&$f->get_item_quantity()===1&&$f->get_items()[0]->get_permalink()==='http://a.de/1'&&$f->get_items()[0]->get_date('Y-m-d')==='2024-01-01');
-$f=RRW_WP_Feed::parse('<feed xmlns="http://www.w3.org/2005/Atom"><title>AT</title><link href="http://a.de/"/><entry><title>E</title><link href="http://a.de/e"/><id>x</id><updated>2024-02-03T10:00:00Z</updated><summary>S</summary></entry></feed>');
-t('RRW_WP_Feed: Atom',$f&&$f->get_title()==='AT'&&$f->get_link()==='http://a.de/'&&$f->get_items(0,1)[0]->get_title()==='E'&&$f->get_items()[0]->get_description()==='S');
-t('RRW_WP_Feed: kein Feed',RRW_WP_Feed::parse('<html/>')===null);
+$f=ELVADO_WP_Feed::parse('<rss version="2.0"><channel><title>T</title><link>http://a.de/</link><description>D</description><item><title>I1</title><link>http://a.de/1</link><description>d1</description><pubDate>Mon, 01 Jan 2024 10:00:00 +0000</pubDate></item></channel></rss>');
+t('ELVADO_WP_Feed: RSS',$f&&$f->get_title()==='T'&&$f->get_item_quantity()===1&&$f->get_items()[0]->get_permalink()==='http://a.de/1'&&$f->get_items()[0]->get_date('Y-m-d')==='2024-01-01');
+$f=ELVADO_WP_Feed::parse('<feed xmlns="http://www.w3.org/2005/Atom"><title>AT</title><link href="http://a.de/"/><entry><title>E</title><link href="http://a.de/e"/><id>x</id><updated>2024-02-03T10:00:00Z</updated><summary>S</summary></entry></feed>');
+t('ELVADO_WP_Feed: Atom',$f&&$f->get_title()==='AT'&&$f->get_link()==='http://a.de/'&&$f->get_items(0,1)[0]->get_title()==='E'&&$f->get_items()[0]->get_description()==='S');
+t('ELVADO_WP_Feed: kein Feed',ELVADO_WP_Feed::parse('<html/>')===null);
 
 // ── Einbettung ──
 wp_oembed_add_provider('https://*.beispiel.de/v/*','https://beispiel.de/oembed');
-t('wp_oembed_add_provider: Platzhalter',rrw_ext_oembed_provider_for('https://x.beispiel.de/v/12')==='https://beispiel.de/oembed');
-t('wp_oembed_add_provider: eingebauter Anbieter',rrw_ext_oembed_provider_for('https://www.youtube.com/watch?v=abc')==='https://www.youtube.com/oembed');
-t('wp_oembed_remove_provider',wp_oembed_remove_provider('https://*.beispiel.de/v/*')&&rrw_ext_oembed_provider_for('https://x.beispiel.de/v/12')===false&&!wp_oembed_remove_provider('gibt-es-nicht'));
+t('wp_oembed_add_provider: Platzhalter',elvado_ext_oembed_provider_for('https://x.beispiel.de/v/12')==='https://beispiel.de/oembed');
+t('wp_oembed_add_provider: eingebauter Anbieter',elvado_ext_oembed_provider_for('https://www.youtube.com/watch?v=abc')==='https://www.youtube.com/oembed');
+t('wp_oembed_remove_provider',wp_oembed_remove_provider('https://*.beispiel.de/v/*')&&elvado_ext_oembed_provider_for('https://x.beispiel.de/v/12')===false&&!wp_oembed_remove_provider('gibt-es-nicht'));
 t('wp_embed_handler_youtube',str_contains(wp_embed_handler_youtube([0,'','abc'],['width'=>300,'height'=>200],'https://youtube.com/embed/abc',[]),'src="https://www.youtube.com/embed/abc"'));
 t('wp_embed_handler_audio / video',wp_embed_handler_audio([],[],'https://a.de/x.mp3',[])==='[audio src="https://a.de/x.mp3" /]'&&wp_embed_handler_video([],[],'https://a.de/x.mp4',['width'=>3,'height'=>2])==='[video width="3" height="2" src="https://a.de/x.mp4" /]');
 t('get_post_embed_url',str_contains((string)get_post_embed_url($ids[1]),'embed=true'));
@@ -283,7 +283,7 @@ ob_start();$bar->output('');$html=ob_get_clean();t('WP_Admin_Bar::output',str_co
 t('_get_admin_bar_pref',_get_admin_bar_pref('front',1)===true);
 t('_wp_admin_bar_init ohne Leiste',_wp_admin_bar_init()===false);
 wp_enqueue_admin_bar_header_styles();wp_enqueue_admin_bar_bump_styles();
-t('Admin-Leisten-Stile',!empty($GLOBALS['rrw_wp_styles']['reg']['admin-bar']['inline_after']));
+t('Admin-Leisten-Stile',!empty($GLOBALS['elvado_wp_styles']['reg']['admin-bar']['inline_after']));
 
 echo $fail===0?"OK: $n Prüfungen bestanden\n":"$fail von $n Prüfungen fehlgeschlagen\n";
 exit($fail===0?0:1);

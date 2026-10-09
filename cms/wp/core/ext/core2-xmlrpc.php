@@ -185,7 +185,7 @@ class IXR_Server {
         $xml='<?xml version="1.0"?>'."\n".$xml;
         if(!headers_sent()){ header('Connection: close');header('Content-Length: '.strlen($xml));header('Content-Type: text/xml');header('Date: '.gmdate('r')); }
         echo $xml;
-        if(!defined('RRW_WP_TESTING'))exit;   // im Testbetrieb (RRW_WP_TESTING) nicht beenden
+        if(!defined('ELVADO_WP_TESTING'))exit;   // im Testbetrieb (ELVADO_WP_TESTING) nicht beenden
     }
     public function hasMethod($method) { return in_array($method,array_keys($this->callbacks),true); }
     public function setCapabilities() {

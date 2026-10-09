@@ -10,7 +10,7 @@ window.WpEngine=(()=>{
   let d;try{d=await r.json();}catch(e){throw new Error('Unerwartete Antwort des Servers');}
   return d;
  }
- const DEMO=()=>!!(window.RRW_DEMO&&window.RRW_DEMO.engine);
+ const DEMO=()=>!!(window.ELVADO_DEMO&&window.ELVADO_DEMO.engine);
  const BADGE={ok:['OK','#22a06b'],warn:['Warnung','#e0a100'],fail:['Fehler','#e5484d']};
  function badge(st){const b=BADGE[st]||BADGE.warn;return '<span style="color:#fff;background:'+b[1]+';border-radius:6px;padding:1px 8px;font-size:.74rem;font-weight:700">'+b[0]+'</span>';}
  function reqList(req){

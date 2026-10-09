@@ -64,27 +64,27 @@ class WP_Query {
         if($st==='any'||(is_array($st)&&in_array('any',$st,true))){$anyStatus=true;$want=[];}
         else{ $want=$st===''||$st===null?['publish']:array_values(array_filter(array_map('trim',is_array($st)?$st:explode(',',(string)$st)))); if(!$st&&current_user_can('read_private_posts'))$want[]='private';
             // Angemeldete Redakteure sehen Entwürfe über ihre Adresse (Vorschau, z. B. im Elementor-Editor)
-            if(!$st&&!empty($GLOBALS['rrw_wp_sess_user'])&&($q['page_id']||$q['p']))$want=array_merge($want,['draft','pending','future','private']); }
+            if(!$st&&!empty($GLOBALS['elvado_wp_sess_user'])&&($q['page_id']||$q['p']))$want=array_merge($want,['draft','pending','future','private']); }
         // Kandidaten sammeln
         $cands=[];
-        if(in_array('post',$types,true)&&$this->match_status('publish',$want,$anyStatus))foreach(rrw_wp_cms_posts() as $p)$cands[]=$p;
-        if(in_array('page',$types,true)&&$this->match_status('publish',$want,$anyStatus))foreach(rrw_wp_cms_pages() as $p)$cands[]=$p;
+        if(in_array('post',$types,true)&&$this->match_status('publish',$want,$anyStatus))foreach(elvado_wp_cms_posts() as $p)$cands[]=$p;
+        if(in_array('page',$types,true)&&$this->match_status('publish',$want,$anyStatus))foreach(elvado_wp_cms_pages() as $p)$cands[]=$p;
         // Schreibbrücke: Entwürfe/geplante/gelöschte CMS-Beiträge, deaktivierte Seiten und Medien der CMS-Bibliothek
-        if(function_exists('rrw_wp_bridge')){
+        if(function_exists('elvado_wp_bridge')){
             $others=array_values(array_diff($anyStatus?['draft','pending','private','future']:$want,['publish']));
             if($others||$anyStatus){
-                if(in_array('post',$types,true)&&rrw_wp_bridge('posts'))foreach(rrw_wp_cms_posts_any() as $p)if($p->post_status!=='publish'&&in_array($p->post_status,$anyStatus?['draft','pending','private','future']:$want,true))$cands[]=$p;
-                if(in_array('page',$types,true)&&rrw_wp_bridge('pages'))foreach(rrw_wp_cms_pages_any() as $p)if($p->post_status!=='publish'&&($anyStatus||in_array($p->post_status,$want,true)))$cands[]=$p;
+                if(in_array('post',$types,true)&&elvado_wp_bridge('posts'))foreach(elvado_wp_cms_posts_any() as $p)if($p->post_status!=='publish'&&in_array($p->post_status,$anyStatus?['draft','pending','private','future']:$want,true))$cands[]=$p;
+                if(in_array('page',$types,true)&&elvado_wp_bridge('pages'))foreach(elvado_wp_cms_pages_any() as $p)if($p->post_status!=='publish'&&($anyStatus||in_array($p->post_status,$want,true)))$cands[]=$p;
             }
-            if(in_array('attachment',$types,true)&&($anyStatus||in_array('inherit',$want,true)))foreach(rrw_wp_cms_media_posts() as $p)$cands[]=$p;
+            if(in_array('attachment',$types,true)&&($anyStatus||in_array('inherit',$want,true)))foreach(elvado_wp_cms_media_posts() as $p)$cands[]=$p;
         }
         global $wpdb;
-        if($wpdb&&$wpdb->ready&&rrw_wp_db_ready()){
+        if($wpdb&&$wpdb->ready&&elvado_wp_db_ready()){
             $in=implode(',',array_map(fn($t)=>"'".$wpdb->_real_escape($t)."'",$types));
             $sql="SELECT * FROM {$wpdb->posts} WHERE post_type IN ($in)";
             if(!$anyStatus&&$want)$sql.=" AND post_status IN (".implode(',',array_map(fn($t)=>"'".$wpdb->_real_escape($t)."'",$want)).")";elseif($anyStatus)$sql.=" AND post_status NOT IN ('trash','auto-draft')";
             if(!empty($q['p']))$sql.=" AND ID = ".(int)$q['p'];
-            $rows=$wpdb->get_results($sql);foreach((array)$rows as $r){$r->filter='raw';$p=new WP_Post($r);rrw_wp_post_cache_set((int)$p->ID,$p);$cands[]=$p;}
+            $rows=$wpdb->get_results($sql);foreach((array)$rows as $r){$r->filter='raw';$p=new WP_Post($r);elvado_wp_post_cache_set((int)$p->ID,$p);$cands[]=$p;}
         }
         // Filter
         $res=array_values(array_filter($cands,fn($p)=>$this->matches($p,$q)));
@@ -148,7 +148,7 @@ class WP_Query {
         if(!$this->tax_ok($p,$q))return false;
         // Meta
         if(!$this->meta_ok($p,$q))return false;
-        return apply_filters('rrw_wp_query_matches',true,$p,$q);
+        return apply_filters('elvado_wp_query_matches',true,$p,$q);
     }
     private function search_ok(WP_Post $p, string $s, bool $exact, bool $sentence): bool {
         $hay=mb_strtolower($p->post_title."\n".$p->post_excerpt."\n".wp_strip_all_tags($p->post_content));
@@ -281,29 +281,29 @@ function get_queried_object_id() { global $wp_query;return $wp_query?$wp_query->
 function get_query_var($var, $default_value='') { global $wp_query;return $wp_query?$wp_query->get($var,$default_value):$default_value; }
 function set_query_var($var, $value) { global $wp_query;if($wp_query)$wp_query->set($var,$value); }
 function get_search_query($escaped=true) { $q=get_query_var('s');return $escaped?esc_attr($q):$q; }
-function rrw_wp_flag(string $f): bool { global $wp_query;return $wp_query&&!empty($wp_query->$f); }
-function is_home() { return rrw_wp_flag('is_home'); }
-function is_front_page() { global $wp_query;if(!$wp_query)return false;return 'posts'===get_option('show_on_front')?is_home():rrw_wp_flag('is_front_page'); }
-function is_single($post='') { global $wp_query;if(!rrw_wp_flag('is_single'))return false;if($post==='')return true;$o=get_queried_object();return $o&&(in_array($o->ID,(array)$post)||in_array($o->post_name,(array)$post)||in_array($o->post_title,(array)$post)); }
-function is_page($page='') { global $wp_query;if(!rrw_wp_flag('is_page'))return false;if($page==='')return true;$o=get_queried_object();return $o&&(in_array($o->ID,(array)$page)||in_array($o->post_name,(array)$page)||in_array($o->post_title,(array)$page)); }
-function is_singular($post_types='') { if(!rrw_wp_flag('is_singular'))return false;if($post_types==='')return true;$o=get_queried_object();return $o&&in_array($o->post_type,(array)$post_types,true); }
-function is_attachment($p='') { return rrw_wp_flag('is_attachment'); }
-function is_archive() { return rrw_wp_flag('is_archive'); }
-function is_category($c='') { return rrw_wp_flag('is_category'); }
-function is_tag($t='') { return rrw_wp_flag('is_tag'); }
-function is_tax($t='', $term='') { return rrw_wp_flag('is_tax'); }
-function is_author($a='') { return rrw_wp_flag('is_author'); }
-function is_date() { return rrw_wp_flag('is_date'); }
-function is_year() { return rrw_wp_flag('is_year'); }
-function is_month() { return rrw_wp_flag('is_month'); }
-function is_day() { return rrw_wp_flag('is_day'); }
-function is_time() { return rrw_wp_flag('is_time'); }
-function is_search() { return rrw_wp_flag('is_search'); }
-function is_404() { return rrw_wp_flag('is_404'); }
-function is_feed($f='') { return rrw_wp_flag('is_feed'); }
-function is_paged() { return rrw_wp_flag('is_paged'); }
-function is_preview() { return rrw_wp_flag('is_preview'); }
-function is_post_type_archive($pt='') { return rrw_wp_flag('is_post_type_archive'); }
+function elvado_wp_flag(string $f): bool { global $wp_query;return $wp_query&&!empty($wp_query->$f); }
+function is_home() { return elvado_wp_flag('is_home'); }
+function is_front_page() { global $wp_query;if(!$wp_query)return false;return 'posts'===get_option('show_on_front')?is_home():elvado_wp_flag('is_front_page'); }
+function is_single($post='') { global $wp_query;if(!elvado_wp_flag('is_single'))return false;if($post==='')return true;$o=get_queried_object();return $o&&(in_array($o->ID,(array)$post)||in_array($o->post_name,(array)$post)||in_array($o->post_title,(array)$post)); }
+function is_page($page='') { global $wp_query;if(!elvado_wp_flag('is_page'))return false;if($page==='')return true;$o=get_queried_object();return $o&&(in_array($o->ID,(array)$page)||in_array($o->post_name,(array)$page)||in_array($o->post_title,(array)$page)); }
+function is_singular($post_types='') { if(!elvado_wp_flag('is_singular'))return false;if($post_types==='')return true;$o=get_queried_object();return $o&&in_array($o->post_type,(array)$post_types,true); }
+function is_attachment($p='') { return elvado_wp_flag('is_attachment'); }
+function is_archive() { return elvado_wp_flag('is_archive'); }
+function is_category($c='') { return elvado_wp_flag('is_category'); }
+function is_tag($t='') { return elvado_wp_flag('is_tag'); }
+function is_tax($t='', $term='') { return elvado_wp_flag('is_tax'); }
+function is_author($a='') { return elvado_wp_flag('is_author'); }
+function is_date() { return elvado_wp_flag('is_date'); }
+function is_year() { return elvado_wp_flag('is_year'); }
+function is_month() { return elvado_wp_flag('is_month'); }
+function is_day() { return elvado_wp_flag('is_day'); }
+function is_time() { return elvado_wp_flag('is_time'); }
+function is_search() { return elvado_wp_flag('is_search'); }
+function is_404() { return elvado_wp_flag('is_404'); }
+function is_feed($f='') { return elvado_wp_flag('is_feed'); }
+function is_paged() { return elvado_wp_flag('is_paged'); }
+function is_preview() { return elvado_wp_flag('is_preview'); }
+function is_post_type_archive($pt='') { return elvado_wp_flag('is_post_type_archive'); }
 function is_comments_popup() { return false; }
 function is_embed() { return false; }
 function is_trackback() { return false; }

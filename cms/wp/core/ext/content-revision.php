@@ -3,18 +3,18 @@
 // Revisionen sind Zeilen in wp_posts (post_type „revision“, post_status „inherit“, post_parent = Beitrag). Die Revisionen werden hier direkt aus der
 // Tabelle gelesen, unabhängig von den Platzhaltern wp_get_post_revisions()/wp_revisions_enabled() des Kerns.
 
-if(!function_exists('rrw_wp_x_revisions')){
+if(!function_exists('elvado_wp_x_revisions')){
     /** Revisionen/Autospeicherungen eines Beitrags, neueste zuerst. @return WP_Post[] */
-    function rrw_wp_x_revisions($post_id, bool $autosaves=true): array {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return [];
+    function elvado_wp_x_revisions($post_id, bool $autosaves=true): array {
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return [];
         $ids=$wpdb->get_col($wpdb->prepare("SELECT ID FROM {$wpdb->posts} WHERE post_parent = %d AND post_type = 'revision' AND post_status = 'inherit' ORDER BY post_date DESC, ID DESC",(int)$post_id));
         $o=[];foreach((array)$ids as $id){ $p=get_post((int)$id);if($p&&($autosaves||!str_contains((string)$p->post_name,'-autosave-v')))$o[(int)$p->ID]=$p; }
         return $o;
     }
 }
-if(!function_exists('rrw_wp_x_text_diff')){
+if(!function_exists('elvado_wp_x_text_diff')){
     /** Zeilenweiser Vergleich als Tabelle (links alt, rechts neu); leer, wenn identisch. */
-    function rrw_wp_x_text_diff($from, $to, bool $always=false): string {
+    function elvado_wp_x_text_diff($from, $to, bool $always=false): string {
         $a=(string)$from===''?[]:preg_split('/\R/',(string)$from);$b=(string)$to===''?[]:preg_split('/\R/',(string)$to);
         if($from===$to&&!$always)return '';
         $n=count($a);$m=count($b);$ops=[];
@@ -120,7 +120,7 @@ if(!function_exists('wp_restore_post_revision')){
 if(!function_exists('wp_get_latest_revision_id_and_total_count')){
     function wp_get_latest_revision_id_and_total_count($post=0) {
         $p=get_post($post);if(!$p)return new WP_Error('invalid_post','Ungültiger Beitrag.');
-        $r=array_keys(rrw_wp_x_revisions($p->ID));
+        $r=array_keys(elvado_wp_x_revisions($p->ID));
         return $r?['latest_id'=>$r[0],'count'=>count($r)]:['latest_id'=>0,'count'=>0];
     }
 }
@@ -236,15 +236,15 @@ if(!function_exists('the_meta')){
         if($li)echo "<ul class='post-meta'>\n{$li}</ul>\n";
     }
 }
-if(!function_exists('rrw_wp_x_page_tree')){
+if(!function_exists('elvado_wp_x_page_tree')){
     /** Baum aus Seiten: [Eltern-ID => [Seiten]], oberste Ebene unter 0. */
-    function rrw_wp_x_page_tree(array $pages): array { return rrw_wp_x_term_tree($pages,'post_parent','ID'); }
+    function elvado_wp_x_page_tree(array $pages): array { return elvado_wp_x_term_tree($pages,'post_parent','ID'); }
 }
 if(!function_exists('walk_page_tree')){
     function walk_page_tree($pages, $depth, $current_page, $args) {
         $w=$args['walker']??null;
         if($w instanceof Walker&&get_class($w)!=='Walker_Page'){ foreach((array)$pages as $p)if($p->post_parent)$args['pages_with_children'][$p->post_parent]=true;return $w->walk($pages,$depth,$args,$current_page); }
-        $map=rrw_wp_x_page_tree((array)$pages);$depth=(int)$depth;
+        $map=elvado_wp_x_page_tree((array)$pages);$depth=(int)$depth;
         $render=function($pid,$lvl) use(&$render,$map,$depth,$current_page,$args){
             $o='';
             foreach($map[$pid]??[] as $p){
@@ -262,7 +262,7 @@ if(!function_exists('walk_page_dropdown_tree')){
     function walk_page_dropdown_tree(...$args) {
         $r=(array)($args[2]??[]);$w=$r['walker']??null;
         if($w instanceof Walker&&get_class($w)!=='Walker_PageDropdown')return $w->walk(...$args);
-        $map=rrw_wp_x_page_tree((array)($args[0]??[]));$depth=(int)($args[1]??0);$vf=$r['value_field']??'ID';$sel=$r['selected']??0;
+        $map=elvado_wp_x_page_tree((array)($args[0]??[]));$depth=(int)($args[1]??0);$vf=$r['value_field']??'ID';$sel=$r['selected']??0;
         $render=function($pid,$lvl) use(&$render,$map,$depth,$vf,$sel){
             $o='';
             foreach($map[$pid]??[] as $p){
@@ -317,7 +317,7 @@ if(!function_exists('wp_post_revision_title_expanded')){
 if(!function_exists('wp_list_post_revisions')){
     function wp_list_post_revisions($post=0, $type='all') {
         $p=get_post($post);if(!$p)return;$rows='';
-        foreach(rrw_wp_x_revisions($p->ID) as $r){
+        foreach(elvado_wp_x_revisions($p->ID) as $r){
             if(!current_user_can('read_post',$r->ID))continue;$auto=str_contains((string)$r->post_name,'-autosave-v');
             if(('revision'===$type&&$auto)||('autosave'===$type&&!$auto))continue;
             $rows.="\t<li>".wp_post_revision_title_expanded($r)."</li>\n";
@@ -338,7 +338,7 @@ if(!function_exists('wp_get_revision_ui_diff')){
         $ret=[];
         foreach(_wp_post_revision_fields($post) as $f=>$name){
             $a=$from?apply_filters("_wp_post_revision_field_{$f}",$from->$f,$f,$from,'from'):'';$b=apply_filters("_wp_post_revision_field_{$f}",$to->$f,$f,$to,'to');
-            $d=rrw_wp_x_text_diff($a,$b,'post_title'===$f);   // Der Titel wird auch ohne Änderung gezeigt
+            $d=elvado_wp_x_text_diff($a,$b,'post_title'===$f);   // Der Titel wird auch ohne Änderung gezeigt
             if($d!=='')$ret[]=['id'=>$f,'name'=>$name,'diff'=>$d];
         }
         return apply_filters('wp_get_revision_ui_diff',$ret,$compare_from,$compare_to);
@@ -347,7 +347,7 @@ if(!function_exists('wp_get_revision_ui_diff')){
 if(!function_exists('wp_prepare_revisions_for_js')){
     function wp_prepare_revisions_for_js($post, $selected_revision_id, $from=null) {
         $post=get_post($post);if(!$post)return [];$authors=[];$now=time();$out=[];
-        $list=rrw_wp_x_revisions($post->ID);$list=[$post->ID=>$post]+$list;
+        $list=elvado_wp_x_revisions($post->ID);$list=[$post->ID=>$post]+$list;
         foreach($list as $r){
             $mod=(int)strtotime($r->post_modified);$gmt=(int)strtotime($r->post_modified_gmt.' UTC');
             $authors[$r->post_author]=$authors[$r->post_author]??['id'=>(int)$r->post_author,'avatar'=>get_avatar($r->post_author,32),'name'=>get_the_author_meta('display_name',$r->post_author)];

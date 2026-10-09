@@ -3,18 +3,18 @@
 // die mit React gebaut sind (WooCommerce Admin, Yoast SEO …). Sie werden einmalig von wordpress.org geladen und nach cms/wp-core/ entpackt.
 require_once __DIR__.'/installer.php';
 
-function rrw_wp_core_dir(): string { return defined('RRW_WP_CORE_DIR')?RRW_WP_CORE_DIR:dirname(__DIR__).'/wp-core'; }
-function rrw_wp_core_url(): string { return defined('RRW_WP_CORE_URL')?RRW_WP_CORE_URL:home_url('/cms/wp-core'); }
-function rrw_wp_core_ready(): bool { return is_file(rrw_wp_core_dir().'/assets/script-loader-packages.php')&&is_file(rrw_wp_core_dir().'/js/dist/element.min.js'); }
-function rrw_wp_core_status(): array {
-    $d=rrw_wp_core_dir();$v=is_file($d.'/version.txt')?trim((string)file_get_contents($d.'/version.txt')):'';
+function elvado_wp_core_dir(): string { return defined('ELVADO_WP_CORE_DIR')?ELVADO_WP_CORE_DIR:dirname(__DIR__).'/wp-core'; }
+function elvado_wp_core_url(): string { return defined('ELVADO_WP_CORE_URL')?ELVADO_WP_CORE_URL:home_url('/cms/wp-core'); }
+function elvado_wp_core_ready(): bool { return is_file(elvado_wp_core_dir().'/assets/script-loader-packages.php')&&is_file(elvado_wp_core_dir().'/js/dist/element.min.js'); }
+function elvado_wp_core_status(): array {
+    $d=elvado_wp_core_dir();$v=is_file($d.'/version.txt')?trim((string)file_get_contents($d.'/version.txt')):'';
     $rev=is_file($d.'/rev.txt')?(int)file_get_contents($d.'/rev.txt'):1;
-    return ['installed'=>rrw_wp_core_ready()&&$rev>=RRW_WP_CORE_REV,'version'=>$v,'zip'=>class_exists('ZipArchive'),'writable'=>is_dir($d)?is_writable($d):is_writable(dirname($d))];
+    return ['installed'=>elvado_wp_core_ready()&&$rev>=ELVADO_WP_CORE_REV,'version'=>$v,'zip'=>class_exists('ZipArchive'),'writable'=>is_dir($d)?is_writable($d):is_writable(dirname($d))];
 }
 /** Welche Dateien aus dem WordPress-Paket gebraucht werden (Pfad relativ zu wp-includes/). */
-/** Stand der mitgelieferten Dateiauswahl: erhöhen, wenn rrw_wp_core_wanted() wächst (bestehende Installationen bieten dann die Aktualisierung an). */
-const RRW_WP_CORE_REV=2;
-function rrw_wp_core_wanted(string $rel): bool {
+/** Stand der mitgelieferten Dateiauswahl: erhöhen, wenn elvado_wp_core_wanted() wächst (bestehende Installationen bieten dann die Aktualisierung an). */
+const ELVADO_WP_CORE_REV=2;
+function elvado_wp_core_wanted(string $rel): bool {
     if(preg_match('#\.(map|php)$#',$rel))return $rel==='assets/script-loader-packages.php'||$rel==='php/class-wp-list-table.php';
     if(preg_match('#^js/dist/(vendor/)?[a-z0-9._-]+\.min\.js$#i',$rel))return true;
     if(preg_match('#^css/dist/[a-z0-9-]+/(style|common|content|default-editor-styles|editor-elements|classic|theme|editor)\.min\.css$#i',$rel))return true;
@@ -28,17 +28,17 @@ function rrw_wp_core_wanted(string $rel): bool {
     return false;
 }
 /** Lädt WordPress und entpackt die benötigten Ressourcen. @return array{ok:bool,message:string,files?:int,version?:string} */
-function rrw_wp_core_install(?string $zipPath=null, ?string $version=null, bool $keepPrev=false): array {
+function elvado_wp_core_install(?string $zipPath=null, ?string $version=null, bool $keepPrev=false): array {
     if(!class_exists('ZipArchive'))return ['ok'=>false,'message'=>'ZIP-Unterstützung fehlt auf dem Server'];
     $own=false;
     if($zipPath===null){
         // Passend zur gemeldeten WordPress-Version (Plugins sind dagegen getestet); ersatzweise die neueste
-        $data=rrw_td_get('https://wordpress.org/wordpress-'.($version??RRW_WP_VERSION).'.zip',104857600,240);
-        if(($data===null||strlen($data)<1000000)&&$version===null)$data=rrw_td_get('https://wordpress.org/latest.zip',104857600,240);
+        $data=elvado_td_get('https://wordpress.org/wordpress-'.($version??ELVADO_WP_VERSION).'.zip',104857600,240);
+        if(($data===null||strlen($data)<1000000)&&$version===null)$data=elvado_td_get('https://wordpress.org/latest.zip',104857600,240);
         if($data===null||strlen($data)<1000000)return ['ok'=>false,'message'=>'WordPress konnte nicht von wordpress.org geladen werden.'];
-        $zipPath=tempnam(sys_get_temp_dir(),'rrwcore');file_put_contents($zipPath,$data);unset($data);$own=true;
+        $zipPath=tempnam(sys_get_temp_dir(),'elvadocore');file_put_contents($zipPath,$data);unset($data);$own=true;
     }
-    $dest=rrw_wp_core_dir();$tmp=$dest.'.tmp-'.bin2hex(random_bytes(3));
+    $dest=elvado_wp_core_dir();$tmp=$dest.'.tmp-'.bin2hex(random_bytes(3));
     try{
         $z=new ZipArchive();if($z->open($zipPath)!==true)throw new RuntimeException('ZIP konnte nicht geöffnet werden');
         $count=0;$total=0;$prefix='wordpress/wp-includes/';
@@ -48,7 +48,7 @@ function rrw_wp_core_install(?string $zipPath=null, ?string $version=null, bool 
             if($name==='wordpress/wp-admin/includes/class-wp-list-table.php')$rel='php/class-wp-list-table.php';
             elseif(str_starts_with($name,'wordpress/wp-admin/js/'))$rel='admin/'.substr($name,strlen('wordpress/wp-admin/js/'));
             elseif(str_starts_with($name,$prefix))$rel=substr($name,strlen($prefix));
-            else continue;if(rrw_wpi_clean_name($rel)===null||!rrw_wp_core_wanted($rel))continue;
+            else continue;if(elvado_wpi_clean_name($rel)===null||!elvado_wp_core_wanted($rel))continue;
             $st=$z->statIndex($i);$size=(int)($st['size']??0);$total+=$size;if($size>8388608||$total>80*1048576||++$count>3000)throw new RuntimeException('Das Paket ist größer als erwartet');
             $target=$tmp.'/'.$rel;if(!is_dir(dirname($target)))@mkdir(dirname($target),0755,true);
             $in=$z->getStream($name);if(!$in)continue;$out=fopen($target,'wb');stream_copy_to_stream($in,$out);fclose($out);fclose($in);
@@ -56,30 +56,30 @@ function rrw_wp_core_install(?string $zipPath=null, ?string $version=null, bool 
         $ver='';$vf=$z->getFromName('wordpress/wp-includes/version.php');if($vf&&preg_match('/\$wp_version\s*=\s*\'([\d.]+)/',$vf,$m))$ver=$m[1];
         $z->close();
         if(!is_file($tmp.'/assets/script-loader-packages.php')||!is_file($tmp.'/js/dist/element.min.js'))throw new RuntimeException('Die benötigten Dateien fehlen im Paket');
-        file_put_contents($tmp.'/version.txt',$ver."\n");file_put_contents($tmp.'/rev.txt',(string)RRW_WP_CORE_REV);
+        file_put_contents($tmp.'/version.txt',$ver."\n");file_put_contents($tmp.'/rev.txt',(string)ELVADO_WP_CORE_REV);
         file_put_contents($tmp.'/index.html','');
         file_put_contents($tmp.'/.htaccess',"# Skripte, Stile und Schriften des Rahmens (abgeschottet, daher ohne Herkunft) – PHP-Dateien sind nie direkt aufrufbar\n<IfModule mod_headers.c>\nHeader set Access-Control-Allow-Origin \"*\"\n</IfModule>\n<FilesMatch \"\\.php$\">\nRequire all denied\n</FilesMatch>\n");
         if(is_dir($dest)){
             $old=$dest.'.tmp-old'.bin2hex(random_bytes(2));if(!@rename($dest,$old))throw new RuntimeException('Alter Ordner kann nicht ersetzt werden');
             if($keepPrev){   // vorherige Fassung für „Zurücksetzen“ aufheben
                 $prev=$dest.'.prev';
-                if(is_dir($prev)){ $gone=$dest.'.tmp-gone'.bin2hex(random_bytes(2));if(@rename($prev,$gone))rrw_wpi_rm_tmp($gone); }
-                if(!@rename($old,$prev)&&is_dir($old))rrw_wpi_rm_tmp($old);
+                if(is_dir($prev)){ $gone=$dest.'.tmp-gone'.bin2hex(random_bytes(2));if(@rename($prev,$gone))elvado_wpi_rm_tmp($gone); }
+                if(!@rename($old,$prev)&&is_dir($old))elvado_wpi_rm_tmp($old);
             }
-            else rrw_wpi_rm_tmp($old);
+            else elvado_wpi_rm_tmp($old);
         }
         if(!@rename($tmp,$dest))throw new RuntimeException('Zielordner kann nicht ersetzt werden');
         return ['ok'=>true,'message'=>'WordPress-Kernressourcen '.($ver?:'').' installiert.','files'=>$count,'version'=>$ver];
     }catch(Throwable $e){
-        if(is_dir($tmp))rrw_wpi_rm_tmp($tmp);
+        if(is_dir($tmp))elvado_wpi_rm_tmp($tmp);
         return ['ok'=>false,'message'=>$e->getMessage()];
     } finally { if($own&&is_file($zipPath))@unlink($zipPath); }
 }
 
 /** Skripte und Stile registrieren (nur wenn die Ressourcen vorhanden sind). */
-function rrw_wp_core_register(bool $force=false): void {
-    static $done=false;if(($done&&!$force)||!rrw_wp_core_ready())return;$done=true;
-    $d=rrw_wp_core_dir();$u=rrw_wp_core_url();$ver=trim((string)@file_get_contents($d.'/version.txt'))?:RRW_WP_VERSION;
+function elvado_wp_core_register(bool $force=false): void {
+    static $done=false;if(($done&&!$force)||!elvado_wp_core_ready())return;$done=true;
+    $d=elvado_wp_core_dir();$u=elvado_wp_core_url();$ver=trim((string)@file_get_contents($d.'/version.txt'))?:ELVADO_WP_VERSION;
     $reg=function(string $h,string $rel,array $deps=[],$v=null) use($d,$u,$ver){ if(is_file($d.'/'.$rel))wp_register_script($h,$u.'/'.$rel,$deps,$v??$ver,['in_footer'=>true]); };
     $reg('wp-polyfill','js/dist/vendor/wp-polyfill.min.js',['regenerator-runtime']);
     $reg('regenerator-runtime','js/dist/vendor/regenerator-runtime.min.js');
@@ -101,7 +101,7 @@ function rrw_wp_core_register(bool $force=false): void {
         if(!is_wp_error($me))wp_add_inline_script('wp-core-data','window.wp&&wp.data&&wp.data.dispatch("core").receiveCurrentUser('.wp_json_encode($me->get_data()).');','after');
     }
     // Eigener Tab (z. B. Elementor): wpApiSettings wie von wp-api, gültig mit dem Nonce der Sitzung
-    if(!empty($GLOBALS['rrw_wp_native_admin'])&&is_file($d.'/js/jquery/jquery.min.js')){
+    if(!empty($GLOBALS['elvado_wp_native_admin'])&&is_file($d.'/js/jquery/jquery.min.js')){
         $reg('jquery-core','js/jquery/jquery.min.js');
         wp_add_inline_script('jquery-core','var wpApiSettings='.wp_json_encode(['root'=>esc_url_raw(rest_url()),'nonce'=>wp_create_nonce('wp_rest'),'versionString'=>'wp/v2/']).';','before');
     }
@@ -133,7 +133,7 @@ function rrw_wp_core_register(bool $force=false): void {
     if(is_file($d.'/css/dashicons.min.css'))wp_register_style('dashicons',$u.'/css/dashicons.min.css',[],$ver);
     if(is_file($d.'/css/buttons.min.css'))wp_register_style('buttons',$u.'/css/buttons.min.css',[],$ver);
     // apiFetch: Aufrufe an /wp-json laufen über die Brücke zum CMS (angemeldet als Administration)
-    if(!empty($GLOBALS['rrw_wp_native_admin']))wp_add_inline_script('wp-api-fetch','wp.apiFetch.use(wp.apiFetch.createRootURLMiddleware('.wp_json_encode(esc_url_raw(rest_url())).'));wp.apiFetch.nonceMiddleware=wp.apiFetch.createNonceMiddleware('.wp_json_encode(wp_create_nonce('wp_rest')).');wp.apiFetch.use(wp.apiFetch.nonceMiddleware);','after');
-    wp_add_inline_script('wp-api-fetch','window.wp&&wp.apiFetch&&window.rrwRestFetch&&wp.apiFetch.setFetchHandler(window.rrwRestFetch);','after');
+    if(!empty($GLOBALS['elvado_wp_native_admin']))wp_add_inline_script('wp-api-fetch','wp.apiFetch.use(wp.apiFetch.createRootURLMiddleware('.wp_json_encode(esc_url_raw(rest_url())).'));wp.apiFetch.nonceMiddleware=wp.apiFetch.createNonceMiddleware('.wp_json_encode(wp_create_nonce('wp_rest')).');wp.apiFetch.use(wp.apiFetch.nonceMiddleware);','after');
+    wp_add_inline_script('wp-api-fetch','window.wp&&wp.apiFetch&&window.elvadoRestFetch&&wp.apiFetch.setFetchHandler(window.elvadoRestFetch);','after');
     wp_add_inline_script('wp-date','window.wp&&wp.date&&wp.date.setSettings&&wp.date.setSettings('.wp_json_encode(['l10n'=>['locale'=>get_locale(),'months'=>array_map(fn($m)=>wp_date('F',mktime(0,0,0,$m,1,2024)),range(1,12)),'monthsShort'=>array_map(fn($m)=>wp_date('M',mktime(0,0,0,$m,1,2024)),range(1,12)),'weekdays'=>array_map(fn($d)=>wp_date('l',strtotime("Sunday +$d days")),range(0,6)),'weekdaysShort'=>array_map(fn($d)=>wp_date('D',strtotime("Sunday +$d days")),range(0,6)),'meridiem'=>['am'=>'am','pm'=>'pm','AM'=>'AM','PM'=>'PM'],'relative'=>['future'=>'%s from now','past'=>'%s ago'],'startOfWeek'=>1],'formats'=>['time'=>'H:i','date'=>'j. F Y','datetime'=>'j. F Y H:i','datetimeAbbreviated'=>'j. M Y H:i'],'timezone'=>['offset'=>(float)get_option('gmt_offset',0),'offsetFormatted'=>'0','string'=>(string)(get_option('timezone_string')?:'UTC'),'abbr'=>'']]).');','after');
 }

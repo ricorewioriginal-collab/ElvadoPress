@@ -503,7 +503,7 @@ final class Forms
             $host = preg_replace('/^www\./', '', (string)preg_replace('/:\d+$/', '', (string)($_SERVER['HTTP_HOST'] ?? 'localhost')));
             $fromEmail = 'noreply@' . (preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/i', $host) ? $host : 'localhost.localdomain');
         }
-        $fromName = trim((string)$this->s('from_name')) ?: (string)($GLOBALS['RRW_SITE']['portal']['site_name'] ?? 'ElvadoPress');
+        $fromName = trim((string)$this->s('from_name')) ?: (string)($GLOBALS['ELVADO_SITE']['portal']['site_name'] ?? 'ElvadoPress');
         $host = trim((string)$this->s('smtp_host'));
         $subject = trim((string)preg_replace('/[\r\n]+/', ' ', $subject));
         if ($host !== '') {
@@ -511,7 +511,7 @@ final class Forms
             return;
         }
         require_once $this->np->cmsDir() . '/lib/mail.php';
-        if (!rrw_send_mail($to, $subject, $body, $fromEmail, $fromName)) {
+        if (!elvado_send_mail($to, $subject, $body, $fromEmail, $fromName)) {
             throw new \RuntimeException('Der Server konnte die E-Mail nicht senden (PHP mail()). Bitte einen SMTP-Server in den Plugin-Einstellungen eintragen.');
         }
     }

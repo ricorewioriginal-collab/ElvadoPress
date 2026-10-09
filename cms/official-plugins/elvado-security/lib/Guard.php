@@ -245,7 +245,7 @@ final class Guard
             $perm = fileperms($auth) & 0777;
             $add('Zugangsdatei', ($perm & 0007) === 0 ? 'ok' : 'warn', ($perm & 0007) === 0 ? 'Die Zugangsdatei ist nicht für alle lesbar.' : 'Die Zugangsdatei ist für alle Benutzer des Servers lesbar (Rechte ' . decoct($perm) . ').');
         }
-        $users = function_exists('rrw_local_users') ? rrw_local_users() : [];
+        $users = function_exists('elvado_local_users') ? elvado_local_users() : [];
         $names = array_map(static fn($u) => mb_strtolower((string)($u['username'] ?? '')), $users);
         $weak = array_values(array_intersect($names, ['admin', 'administrator', 'root', 'test']));
         $add('Benutzernamen', $weak ? 'warn' : 'ok', $weak ? 'Es gibt ein Konto mit leicht erratbarem Namen („' . $weak[0] . '“). Ein individueller Benutzername erschwert Angriffe.' : (count($users) . ' Benutzerkonto' . (count($users) === 1 ? '' : 'en') . ', keine leicht erratbaren Namen.'));

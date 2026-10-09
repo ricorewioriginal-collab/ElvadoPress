@@ -3,16 +3,16 @@
 if(!defined('ABSPATH'))exit;
 
 function elvado_cr_lib(): bool {
-    if(function_exists('rrw_tc_load'))return true;
-    $d=(defined('RRW_WP_NATIVE_THEMES')?dirname(RRW_WP_NATIVE_THEMES):dirname(__DIR__,3)).'/lib';
+    if(function_exists('elvado_tc_load'))return true;
+    $d=(defined('ELVADO_WP_NATIVE_THEMES')?dirname(ELVADO_WP_NATIVE_THEMES):dirname(__DIR__,3)).'/lib';
     if(!is_file($d.'/themeconf.php')||!is_file($d.'/creator.php'))return false;
     require_once $d.'/creator.php';require_once $d.'/themeconf.php';return true;
 }
-function elvado_cr_data_dir(): string { return dirname(RRW_WP_DATA); }
+function elvado_cr_data_dir(): string { return dirname(ELVADO_WP_DATA); }
 function elvado_cr_cfg(bool $reset=false): array {
     static $c=null;if($reset)$c=null;
     if($c===null){
-        $c=elvado_cr_lib()?rrw_tc_load(elvado_cr_data_dir(),'creator'):[];
+        $c=elvado_cr_lib()?elvado_tc_load(elvado_cr_data_dir(),'creator'):[];
         foreach(['profile','mediakit','contact','display'] as $k)$c[$k]=(array)($c[$k]??[]);
         foreach(['stats','platforms','links','highlights','feed','videos','favorites','drops','collabs','packages','faq'] as $k)$c[$k]=(array)($c[$k]??[]);
         foreach(['name','handle','tagline','bio','niches','location','avatar','cover','cta_label','cta_url'] as $k)$c['profile'][$k]=(string)($c['profile'][$k]??'');
@@ -29,9 +29,9 @@ function elvado_cr_contrast(string $hex): string {
 function elvado_cr_today(): string { return (string)wp_date('Y-m-d'); }
 function elvado_cr_paragraphs(string $t): string { $o='';foreach(preg_split('/\n{2,}/',trim($t)) as $p)if(trim($p)!=='')$o.='<p>'.nl2br(esc_html(trim($p))).'</p>';return $o; }
 function elvado_cr_disclosure(): string { return trim((string)(elvado_cr_cfg()['contact']['disclosure']??'')); }
-/** Ist die angefragte Adresse die Link-Seite (/links/ ohne angelegte CMS-Seite)? Der Router meldet den Pfad über den Filter rrw_wp_404_status. */
+/** Ist die angefragte Adresse die Link-Seite (/links/ ohne angelegte CMS-Seite)? Der Router meldet den Pfad über den Filter elvado_wp_404_status. */
 function elvado_cr_is_links_request(): bool { return !empty($GLOBALS['elvado_cr_links_req'])&&is_404(); }
-add_filter('rrw_wp_404_status',function($status,$path){
+add_filter('elvado_wp_404_status',function($status,$path){
     $GLOBALS['elvado_cr_links_req']=trim((string)$path,'/')==='links';
     return $GLOBALS['elvado_cr_links_req']?200:$status;
 },10,2);
@@ -48,7 +48,7 @@ function elvado_cr_icon(string $n): string {
     return '<svg viewBox="0 0 24 24" aria-hidden="true">'.($p[$n]??$p['link']).'</svg>';
 }
 function elvado_cr_abbr(string $t): string { return ['instagram'=>'IG','tiktok'=>'TT','youtube'=>'YT','twitch'=>'TV','x'=>'X','threads'=>'@','pinterest'=>'P','snapchat'=>'SC','linkedin'=>'in','facebook'=>'f','podcast'=>'♪','newsletter'=>'✉','website'=>'www'][$t]??'•'; }
-function elvado_cr_plat_name(string $t): string { return defined('RRW_CREATOR_PLATFORMS')?(RRW_CREATOR_PLATFORMS[$t]??'Link'):'Link'; }
+function elvado_cr_plat_name(string $t): string { return defined('ELVADO_CREATOR_PLATFORMS')?(ELVADO_CREATOR_PLATFORMS[$t]??'Link'):'Link'; }
 function elvado_cr_rel(bool $sponsored): string { return $sponsored?'sponsored nofollow noopener':'noopener'; }
 /** Player-Adresse (nur YouTube nocookie und Vimeo; sonst null). */
 function elvado_cr_embed_src(string $url): ?string {

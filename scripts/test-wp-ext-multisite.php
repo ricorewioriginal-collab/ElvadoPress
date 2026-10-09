@@ -1,15 +1,15 @@
 <?php
 // Prüft die ergänzenden Multisite-Funktionen der WordPress-Schicht (cms/wp/core/ext/multisite-*.php):
 // Einzelseiten-Betrieb mit einer Site/einem Netzwerk, Site-Daten und -Metadaten, Anmeldungen, Speicherplatz, Netzwerk-Abfragen, Listen-Tabellen. Aufruf: php scripts/test-wp-ext-multisite.php
-$tmp=sys_get_temp_dir().'/rrw-xm-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');define('RRW_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-xm-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');define('ELVADO_WP_TEST',1);$_SERVER['HTTP_HOST']='example.test';
 file_put_contents($tmp.'/cms/news.json',json_encode([['id'=>1,'slug'=>'erster','title'=>'Erster Beitrag','category'=>'News','status'=>'published','published_at'=>'2026-01-10 10:00:00','author'=>'Anna Autor','body_html'=>'<p>Hallo</p>']]));
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
-$GLOBALS['rrw_wp_die_throws']=true;
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'admin@example.test','role'=>'administrator']]);
+$GLOBALS['elvado_wp_die_throws']=true;
 update_option('home','http://example.test');update_option('siteurl','http://example.test');update_option('blogname','Testradio');update_option('admin_email','chef@example.test');
 $mails=[];add_filter('pre_wp_mail',function($pre,$atts) use(&$mails){ $mails[]=$atts;return true; },10,2);
 /** Ausgabe puffern. */
@@ -39,7 +39,7 @@ t('WP_Network_Query: Seitenzahl',count($r)===1&&$q->found_networks===1&&$q->max_
 t('get_network_by_path / get_site_by_path',get_network_by_path('www.example.test','/')instanceof WP_Network&&get_network_by_path('x.test','/')===false&&get_site_by_path('example.test','/hallo/') instanceof WP_Site&&get_site_by_path('x.test','/')===false);
 t('ms_load_current_site_and_network setzt Globals',ms_load_current_site_and_network('example.test','/')&&$GLOBALS['blog_id']===1&&$GLOBALS['current_site']->domain==='example.test'&&!ms_load_current_site_and_network('x.test','/'));
 t('get_current_site_name',get_current_site_name((object)['domain'=>'example.test'])->site_name==='Example.test');
-t('ms_site_check: erreichbar, dann gesperrt',ms_site_check()===true&&(function(){ update_blog_status(1,'archived',1);try{ ms_site_check();return false; }catch(RRW_WP_Die $e){ update_blog_status(1,'archived',0);return $e->getCode()===410; } })()&&ms_site_check()===true);
+t('ms_site_check: erreichbar, dann gesperrt',ms_site_check()===true&&(function(){ update_blog_status(1,'archived',1);try{ ms_site_check();return false; }catch(ELVADO_WP_Die $e){ update_blog_status(1,'archived',0);return $e->getCode()===410; } })()&&ms_site_check()===true);
 t('wp_get_active_network_plugins',wp_get_active_network_plugins()===[]);
 t('wpmu_current_site (veraltet) setzt Globals',(function(){ unset($GLOBALS['current_site']);wpmu_current_site();return $GLOBALS['current_site'] instanceof WP_Network; })());
 
@@ -97,7 +97,7 @@ update_option('banned_email_domains',['spam.test']);
 t('is_email_address_unsafe',is_email_address_unsafe('x@spam.test')&&is_email_address_unsafe('x@mail.spam.test')&&!is_email_address_unsafe('x@gut.test')&&wpmu_validate_user_signup('anton99','x@spam.test')['errors']->has_errors());
 delete_option('banned_email_domains');
 $mails=[];wpmu_signup_user('anton99','anton@example.test',['k'=>'v']);
-$sg=array_values(rrw_ms_signups());$key=$sg[0]['activation_key'];
+$sg=array_values(elvado_ms_signups());$key=$sg[0]['activation_key'];
 t('wpmu_signup_user speichert',count($sg)===1&&$sg[0]['user_login']==='anton99'&&strlen($key)===16&&$sg[0]['meta']===['k'=>'v']);
 t('Anmeldung blockiert denselben Namen',wpmu_validate_user_signup('anton99','neu@example.test')['errors']->get_error_message('user_name')!==''&&wpmu_validate_user_signup('anton99','anton@example.test')['errors']->has_errors());
 t('wpmu_signup_user_notification: E-Mail mit Link',wpmu_signup_user_notification('anton99','anton@example.test',$key)&&str_contains($mails[0]['message'],'wp-activate.php?key='.$key)&&$mails[0]['to']==='anton@example.test');
@@ -114,9 +114,9 @@ t('Willkommens-E-Mail zur Site',wpmu_welcome_notification(1,$act['user_id'],'pw1
 t('welcome_user_msg_filter',str_contains(welcome_user_msg_filter(''),'Testradio')&&welcome_user_msg_filter('Eigen')==='Eigen');
 t('wpmu_create_user',(function(){ $id=wpmu_create_user('berta77','pw-123456','berta@example.test');return $id>0&&wpmu_create_user('berta77','x','b2@example.test')===false; })());
 wpmu_signup_user('claus55','claus@example.test');
-$ck=array_values(array_filter(rrw_ms_signups(),fn($x)=>$x['user_login']==='claus55'))[0]['activation_key'];
+$ck=array_values(array_filter(elvado_ms_signups(),fn($x)=>$x['user_login']==='claus55'))[0]['activation_key'];
 $cid=wpmu_create_user('claus55','x1','claus@example.test');wp_delete_signup_on_user_delete($cid);
-t('wp_delete_signup_on_user_delete',!array_filter(rrw_ms_signups(),fn($x)=>$x['user_login']==='claus55')&&wpmu_activate_signup($ck)->get_error_code()==='invalid_key');
+t('wp_delete_signup_on_user_delete',!array_filter(elvado_ms_signups(),fn($x)=>$x['user_login']==='claus55')&&wpmu_activate_signup($ck)->get_error_code()==='invalid_key');
 
 /* ───────── Site-Anmeldung ───────── */
 $b=wpmu_validate_blog_signup('radio','Radio Titel');
@@ -124,7 +124,7 @@ t('Site-Anmeldung: gültig (Unterverzeichnis)',!$b['errors']->has_errors()&&$b['
 t('Site-Anmeldung: reserviert, kurz, Ziffern, Sonderzeichen',wpmu_validate_blog_signup('blog','x')['errors']->has_errors()&&wpmu_validate_blog_signup('ab','x')['errors']->has_errors()&&wpmu_validate_blog_signup('1234','x')['errors']->has_errors()&&wpmu_validate_blog_signup('Gro-ss','x')['errors']->has_errors()&&wpmu_validate_blog_signup('radio','')['errors']->get_error_message('blog_title')!=='');
 t('Site-Anmeldung: Unterverzeichnis-Namen reserviert',in_array('wp-json',get_subdirectory_reserved_names(),true)&&in_array('feed',get_subdirectory_reserved_names(),true));
 wpmu_signup_blog('example.test','/radio/','Radio','anton99','anton@example.test');
-$bk=array_values(array_filter(rrw_ms_signups(),fn($x)=>$x['domain']!==''))[0]['activation_key'];
+$bk=array_values(array_filter(elvado_ms_signups(),fn($x)=>$x['domain']!==''))[0]['activation_key'];
 t('Site-Anmeldung belegt die Adresse zeitweise',wpmu_validate_blog_signup('radio','Radio')['errors']->has_errors());
 t('Site-Aktivierung nicht möglich',wpmu_activate_signup($bk)->get_error_code()==='multisite_unsupported'&&wpmu_create_blog('neu.test','/','T',1)->get_error_code()==='multisite_unsupported'&&wpmu_create_blog('example.test','/','T',1)->get_error_code()==='blog_taken');
 $mails=[];
@@ -140,7 +140,7 @@ $mails=[];update_network_option_new_admin_email('chef@example.test','neu@example
 t('Netzwerk-Admin-E-Mail: Bestätigung und Hinweis',count($mails)===2&&$mails[0]['to']==='neu@example.test'&&str_contains($mails[0]['message'],'network_admin_hash=')&&is_array(get_network_option(1,'network_admin_hash'))&&$mails[1]['to']==='chef@example.test');
 t('Netzwerk-Admin-E-Mail: ungültig oder unverändert',(function(){ $b=count($GLOBALS['mails']);update_network_option_new_admin_email('a','kaputt');update_network_option_new_admin_email('a','chef@example.test');return count($GLOBALS['mails'])===$b; })());
 wpmu_log_new_registrations(1,$act['user_id']);
-t('Registrierungs-Protokoll',get_option('rrw_ms_registration_log')[0]['email']==='anton@example.test');
+t('Registrierungs-Protokoll',get_option('elvado_ms_registration_log')[0]['email']==='anton@example.test');
 
 /* ───────── Benutzer zur Site hinzufügen ───────── */
 $bid=wpmu_create_user('dora88','pw-123456','dora@example.test');
@@ -151,9 +151,9 @@ t('add_new_user_to_blog',get_userdata($bid)->roles===['author']&&get_user_meta($
 t('remove_user_from_blog',remove_user_from_blog($bid,1)===true&&remove_user_from_blog(999999999,1)->get_error_code()==='user_does_not_exist');
 update_option('new_user_abc123',['user_id'=>$bid,'email'=>'dora@example.test','role'=>'contributor']);
 $_SERVER['REQUEST_URI']='/newbloguser/abc123/';
-$ok=false;try{ maybe_add_existing_user_to_blog(); }catch(RRW_WP_Die $e){ $ok=$e->getCode()===200; }
+$ok=false;try{ maybe_add_existing_user_to_blog(); }catch(ELVADO_WP_Die $e){ $ok=$e->getCode()===200; }
 t('maybe_add_existing_user_to_blog: Einladung einlösen',$ok&&get_userdata($bid)->roles===['contributor']&&get_option('new_user_abc123')===false);
-$_SERVER['REQUEST_URI']='/newbloguser/unbekannt/';$ok=false;try{ maybe_add_existing_user_to_blog(); }catch(RRW_WP_Die $e){ $ok=str_contains($e->getMessage(),'error occurred'); }
+$_SERVER['REQUEST_URI']='/newbloguser/unbekannt/';$ok=false;try{ maybe_add_existing_user_to_blog(); }catch(ELVADO_WP_Die $e){ $ok=str_contains($e->getMessage(),'error occurred'); }
 t('maybe_add_existing_user_to_blog: ungültiger Schlüssel',$ok);
 $_SERVER['REQUEST_URI']='/';
 t('get_active_blog_for_user / get_most_recent_post_of_user / is_user_spammy',get_active_blog_for_user($bid) instanceof WP_Site&&get_active_blog_for_user(999999999)===null&&is_array(get_most_recent_post_of_user($bid))&&!is_user_spammy('dora88')&&!is_user_spammy());
@@ -170,7 +170,7 @@ t('update_blog_public',(function(){ update_blog_public(1,0);$a=get_option('blog_
 t('fix_phpmailer_messageid',(function(){ $p=new stdClass;fix_phpmailer_messageid($p);return $p->Hostname==='example.test'; })());
 t('signup_nonce_fields / signup_nonce_check',(function(){ $o=cap('signup_nonce_fields');$_SERVER['PHP_SELF']='/wp-signup.php';
     preg_match("/value='(\d+)'/",$o,$m);$_POST=['signup_form_id'=>$m[1],'_signup_form'=>wp_create_nonce('signup_form_'.$m[1])];$a=signup_nonce_check('ok');
-    $_POST['_signup_form']='falsch';$thrown=false;try{ signup_nonce_check('ok'); }catch(RRW_WP_Die $e){ $thrown=true; }
+    $_POST['_signup_form']='falsch';$thrown=false;try{ signup_nonce_check('ok'); }catch(ELVADO_WP_Die $e){ $thrown=true; }
     $_SERVER['PHP_SELF']='/index.php';$b=signup_nonce_check('x');$_POST=[];return str_contains($o,'_signup_form')&&$a==='ok'&&$thrown&&$b==='x'; })());
 t('upload_is_file_too_big',(function(){ update_option('upload_space_check_disabled',0);$a=upload_is_file_too_big(['bits'=>str_repeat('a',2000*1024)]);$b=upload_is_file_too_big(['bits'=>'kurz']);delete_option('upload_space_check_disabled');return is_string($a)&&$b===['bits'=>'kurz']&&upload_is_file_too_big('x')==='x'; })());
 t('maybe_redirect_404 ohne Konstante wirkungslos',maybe_redirect_404()===null);
@@ -193,7 +193,7 @@ update_option('upload_space_check_disabled',0);
 t('Platz mit Prüfung: Rest',abs(get_upload_space_available()-7*MB_IN_BYTES)<20000&&is_upload_space_available()&&upload_size_limit_filter(50*MB_IN_BYTES)===1500*1024);
 update_option('blog_upload_space',2);
 t('Platz überschritten',get_upload_space_available()===0&&!is_upload_space_available()&&upload_is_user_over_quota(false)&&fix_import_form_size(1000)===0&&str_contains(cap(fn()=>upload_is_user_over_quota(true)),'2 MB'));
-$tmpf=$tmp.'/kl.txt';file_put_contents($tmpf,'abc');$fe=false;try{ check_upload_size(['tmp_name'=>$tmpf,'error'=>0,'size'=>3]); }catch(RRW_WP_Die $e){ $fe=str_contains($e->getMessage(),'space quota'); }
+$tmpf=$tmp.'/kl.txt';file_put_contents($tmpf,'abc');$fe=false;try{ check_upload_size(['tmp_name'=>$tmpf,'error'=>0,'size'=>3]); }catch(ELVADO_WP_Die $e){ $fe=str_contains($e->getMessage(),'space quota'); }
 t('check_upload_size: Kontingent aufgebraucht',$fe);
 update_option('upload_space_check_disabled',1);
 t('check_upload_size: Prüfung aus',check_upload_size(['tmp_name'=>$tmpf,'error'=>0])['error']===0);
@@ -210,7 +210,7 @@ t('format_code_lang: bekannt und unbekannt',format_code_lang('fr')==='French'&&f
 $opts=cap(fn()=>mu_dropdown_languages(['/x/de_DE.mo','/x/en_GB.mo'],'de_DE'));
 t('mu_dropdown_languages',str_contains($opts,'value="de_DE" selected')&&str_contains($opts,'British English')&&!str_contains($opts,'American')&&str_contains(cap(fn()=>mu_dropdown_languages([],'')),'American English'));
 t('can_edit_network / check_import_new_users / refresh_user_details',can_edit_network(1)&&!can_edit_network(2)&&refresh_user_details('5')===5&&check_import_new_users(true)!==null);
-t('wp_ensure_editable_role',(function(){ wp_ensure_editable_role('editor');try{ wp_ensure_editable_role('gibtsnicht');return false; }catch(RRW_WP_Die $e){ return $e->getCode()===403; } })());
+t('wp_ensure_editable_role',(function(){ wp_ensure_editable_role('editor');try{ wp_ensure_editable_role('gibtsnicht');return false; }catch(ELVADO_WP_Die $e){ return $e->getCode()===403; } })());
 t('allow_subdomain_install / allow_subdirectory_install',allow_subdomain_install()===true&&is_bool(allow_subdirectory_install())&&get_clean_basedomain()==='example.test'&&network_domain_check()===false);
 t('avoid_blog_page_permalink_collision',avoid_blog_page_permalink_collision(['post_type'=>'post','post_name'=>'x'],[])['post_name']==='x'&&avoid_blog_page_permalink_collision(['post_type'=>'page','post_name'=>'seite'],[])['post_name']==='seite');
 t('_access_denied_splash: mit Rolle kein Abbruch',_access_denied_splash()===null);

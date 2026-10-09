@@ -8,7 +8,7 @@ final class WP_Post {
     public $post_modified='0000-00-00 00:00:00';public $post_modified_gmt='0000-00-00 00:00:00';public $post_content_filtered='';public $post_parent=0;public $guid='';public $menu_order=0;
     public $post_type='post';public $post_mime_type='';public $comment_count=0;public $filter;
     /** Herkunft: db (Tabelle wp_posts) | news (CMS-Beitrag) | page (CMS-Seite) – nur für die Laufzeit, wird nicht gespeichert. */
-    public $rrw_source='db';
+    public $elvado_source='db';
     public static function get_instance($post_id) { return get_post((int)$post_id) ?: false; }
     public function __construct($post) { foreach(get_object_vars($post) as $k=>$v)$this->$k=$v; }
     public function __isset($key) { return in_array($key,['page_template','post_category','tags_input','ancestors'],true)?true:false; }
@@ -22,7 +22,7 @@ final class WP_Post {
         return null;
     }
     public function filter($filter) { if($this->filter===$filter)return $this;return $filter==='raw'?self::get_instance($this->ID):sanitize_post($this,$filter); }
-    public function to_array() { $p=get_object_vars($this);unset($p['rrw_source']);foreach(['ancestors','page_template','post_category','tags_input'] as $k)if(isset($p[$k]))unset($p[$k]);return $p; }
+    public function to_array() { $p=get_object_vars($this);unset($p['elvado_source']);foreach(['ancestors','page_template','post_category','tags_input'] as $k)if(isset($p[$k]))unset($p[$k]);return $p; }
 }
 #[AllowDynamicProperties]
 final class WP_Term {

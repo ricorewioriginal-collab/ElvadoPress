@@ -47,15 +47,15 @@ if (($argv[1] ?? '') === '--fake') {
     exit(0);
 }
 
-$tmp = sys_get_temp_dir() . '/rrw-mail-' . bin2hex(random_bytes(4)); mkdir($tmp); mkdir($tmp . '/wp-content'); mkdir($tmp . '/cms');
-define('WP_CONTENT_DIR', $tmp . '/wp-content'); define('RRW_WP_DATA', $tmp . '/cms/.wp'); define('RRW_WP_CMS_DATA', $tmp . '/cms');
-$_SERVER['HTTP_HOST'] = 'example.test'; file_put_contents($tmp . '/cms/site.json', '{}'); $GLOBALS['RRW_SITE'] = [];
+$tmp = sys_get_temp_dir() . '/elvado-mail-' . bin2hex(random_bytes(4)); mkdir($tmp); mkdir($tmp . '/wp-content'); mkdir($tmp . '/cms');
+define('WP_CONTENT_DIR', $tmp . '/wp-content'); define('ELVADO_WP_DATA', $tmp . '/cms/.wp'); define('ELVADO_WP_CMS_DATA', $tmp . '/cms');
+$_SERVER['HTTP_HOST'] = 'example.test'; file_put_contents($tmp . '/cms/site.json', '{}'); $GLOBALS['ELVADO_SITE'] = [];
 require __DIR__ . '/_testdb.php';
 require __DIR__ . '/../cms/wp/load.php';
 use PHPMailer\PHPMailer\PHPMailer; use PHPMailer\PHPMailer\SMTP; use PHPMailer\PHPMailer\Exception as MailEx;
 $fail = 0; $n = 0;
 function t(string $name, bool $ok, string $extra = ''): void { global $fail, $n; $n++; if (!$ok) { $fail++; echo "FEHLER: $name $extra\n"; } }
-rrw_wp_boot(['theme' => false, 'user' => ['id' => 1, 'login' => 'admin', 'name' => 'Administration', 'email' => 'a@example.test', 'role' => 'administrator']]);
+elvado_wp_boot(['theme' => false, 'user' => ['id' => 1, 'login' => 'admin', 'name' => 'Administration', 'email' => 'a@example.test', 'role' => 'administrator']]);
 
 /** Fake-Server starten: liefert [Prozess, Port, Ausgabedatei]. */
 function fake(string $flags = ''): array {
@@ -287,7 +287,7 @@ $mo = is_file($tmp . '/mail.out') ? (string) file_get_contents($tmp . '/mail.out
 t('mail()-Pfad liefert true', trim((string) $res) === 'OK', (string) $res);
 t('mail()-Pfad: Kopf + Betreff + Bcc', str_contains($mo, 'To: A <a@example.com>') && str_contains($mo, 'Subject: =?UTF-8?B?') && str_contains($mo, 'Bcc: b@example.com'));
 // Laden: Klassen nicht beim Start geladen
-$out = shell_exec(escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg('define("RRW_WP_DATA",' . var_export($tmp . '/cms/.wp', true) . '); echo "x";') . ' 2>&1');
+$out = shell_exec(escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg('define("ELVADO_WP_DATA",' . var_export($tmp . '/cms/.wp', true) . '); echo "x";') . ' 2>&1');
 t('Dateien ohne Seiteneffekte', is_file(ABSPATH . WPINC . '/class-phpmailer.php'));
 
 echo $fail ? "\n$fail von $n Prüfungen FEHLGESCHLAGEN\n" : "OK: alle $n Prüfungen bestanden\n";

@@ -21,24 +21,24 @@ if(!function_exists('populate_options')){ function populate_options($options=[])
     $d=array_merge($d,(array)$options);
     foreach($d as $k=>$v){ if(($k==='siteurl'||$k==='home')&&$v==='')continue;add_option($k,$v); }
 } }
-if(!function_exists('rrw_adm_role_caps')){ function rrw_adm_role_caps($role, array $caps) {   // fehlende Rechte einer Rolle ergänzen
+if(!function_exists('elvado_adm_role_caps')){ function elvado_adm_role_caps($role, array $caps) {   // fehlende Rechte einer Rolle ergänzen
     $r=get_role($role);if(!$r)return;
     foreach($caps as $c)if(!$r->has_cap($c))$r->add_cap($c);
 } }
 if(!function_exists('populate_roles_160')){ function populate_roles_160() {   // Grundrollen sicherstellen (fehlende werden angelegt)
-    foreach(['administrator'=>'Administrator','editor'=>'Redakteur','author'=>'Autor','contributor'=>'Mitarbeiter','subscriber'=>'Abonnent'] as $r=>$n)if(!get_role($r))add_role($r,$n,rrw_wp_caps_for_role($r,false));
-    rrw_adm_role_caps('administrator',['switch_themes','edit_themes','activate_plugins','edit_plugins','edit_users','edit_files','manage_options','moderate_comments','manage_categories','manage_links','upload_files','import','unfiltered_html','edit_posts','edit_others_posts','edit_published_posts','publish_posts','edit_pages','read']);
+    foreach(['administrator'=>'Administrator','editor'=>'Redakteur','author'=>'Autor','contributor'=>'Mitarbeiter','subscriber'=>'Abonnent'] as $r=>$n)if(!get_role($r))add_role($r,$n,elvado_wp_caps_for_role($r,false));
+    elvado_adm_role_caps('administrator',['switch_themes','edit_themes','activate_plugins','edit_plugins','edit_users','edit_files','manage_options','moderate_comments','manage_categories','manage_links','upload_files','import','unfiltered_html','edit_posts','edit_others_posts','edit_published_posts','publish_posts','edit_pages','read']);
 } }
 if(!function_exists('populate_roles_210')){ function populate_roles_210() {
     $c=['edit_others_pages','edit_published_pages','publish_pages','delete_pages','delete_others_pages','delete_published_pages','delete_posts','delete_others_posts','delete_published_posts','delete_private_posts','edit_private_posts','read_private_posts','delete_private_pages','edit_private_pages','read_private_pages'];
-    rrw_adm_role_caps('administrator',array_merge($c,['delete_users','create_users']));rrw_adm_role_caps('editor',$c);
+    elvado_adm_role_caps('administrator',array_merge($c,['delete_users','create_users']));elvado_adm_role_caps('editor',$c);
 } }
-if(!function_exists('populate_roles_230')){ function populate_roles_230() { rrw_adm_role_caps('administrator',['unfiltered_upload']); } }
-if(!function_exists('populate_roles_250')){ function populate_roles_250() { rrw_adm_role_caps('administrator',['edit_dashboard']); } }
-if(!function_exists('populate_roles_260')){ function populate_roles_260() { rrw_adm_role_caps('administrator',['update_plugins','delete_plugins']); } }
-if(!function_exists('populate_roles_270')){ function populate_roles_270() { rrw_adm_role_caps('administrator',['install_plugins','install_themes']); } }
-if(!function_exists('populate_roles_280')){ function populate_roles_280() { rrw_adm_role_caps('administrator',['update_themes','update_core']); } }
-if(!function_exists('populate_roles_300')){ function populate_roles_300() { rrw_adm_role_caps('administrator',['list_users','remove_users','promote_users','edit_theme_options','delete_themes','export']); } }
+if(!function_exists('populate_roles_230')){ function populate_roles_230() { elvado_adm_role_caps('administrator',['unfiltered_upload']); } }
+if(!function_exists('populate_roles_250')){ function populate_roles_250() { elvado_adm_role_caps('administrator',['edit_dashboard']); } }
+if(!function_exists('populate_roles_260')){ function populate_roles_260() { elvado_adm_role_caps('administrator',['update_plugins','delete_plugins']); } }
+if(!function_exists('populate_roles_270')){ function populate_roles_270() { elvado_adm_role_caps('administrator',['install_plugins','install_themes']); } }
+if(!function_exists('populate_roles_280')){ function populate_roles_280() { elvado_adm_role_caps('administrator',['update_themes','update_core']); } }
+if(!function_exists('populate_roles_300')){ function populate_roles_300() { elvado_adm_role_caps('administrator',['list_users','remove_users','promote_users','edit_theme_options','delete_themes','export']); } }
 if(!function_exists('populate_roles')){ function populate_roles() { populate_roles_160();populate_roles_210();populate_roles_230();populate_roles_250();populate_roles_260();populate_roles_270();populate_roles_280();populate_roles_300(); } }
 if(!function_exists('install_network')){ function install_network() {} }   // Netzwerktabellen entfallen (Einzelseite)
 if(!function_exists('populate_network')){ function populate_network($network_id=1, $domain='', $email='', $site_name='', $path='/', $subdomain_install=false) {   // kein Netzwerk anlegbar
@@ -47,7 +47,7 @@ if(!function_exists('populate_network')){ function populate_network($network_id=
 if(!function_exists('populate_network_meta')){ function populate_network_meta($network_id, array $meta=[]) { if((int)$network_id===1)foreach($meta as $k=>$v)update_site_option($k,$v); } }
 if(!function_exists('populate_site_meta')){ function populate_site_meta($site_id, array $meta=[]) {   // Websitemeta der einen Website als Option
     if((int)$site_id!==1||!$meta)return;
-    update_option('rrw_site_meta',array_merge((array)get_option('rrw_site_meta',[]),$meta));
+    update_option('elvado_site_meta',array_merge((array)get_option('elvado_site_meta',[]),$meta));
 } }
 
 /* ───────── Installation ───────── */
@@ -106,7 +106,7 @@ if(!function_exists('update_core')){ function update_core($from, $to) {   // Ker
 if(!function_exists('_preload_old_requests_classes_and_interfaces')){ function _preload_old_requests_classes_and_interfaces($to) {} }   // Requests-Bibliothek wird nicht ausgetauscht
 if(!function_exists('_redirect_to_about_wordpress')){ function _redirect_to_about_wordpress($new_version) {
     wp_redirect(self_admin_url('about.php?updated'));
-    if(!empty($GLOBALS['rrw_wp_die_throws']))throw new RRW_WP_Die('redirect',302);
+    if(!empty($GLOBALS['elvado_wp_die_throws']))throw new ELVADO_WP_Die('redirect',302);
     exit;
 } }
 if(!function_exists('_upgrade_422_find_genericons_files_in_folder')){ function _upgrade_422_find_genericons_files_in_folder($directory) {   // example.html in „genericons“-Ordnern (bekannte XSS-Quelle)
@@ -201,8 +201,8 @@ if(!function_exists('wp_can_install_language_pack')){ function wp_can_install_la
 if(!function_exists('wp_download_language_pack')){ function wp_download_language_pack($download) {   // lädt das Sprachpaket über den CMS-Installer; liefert den Sprachcode oder false
     if($download===''||!preg_match('/^[a-z]{2,3}(_[A-Za-z0-9]+)*$/',$download))return false;
     if(in_array($download,get_available_languages(),true))return $download;
-    if(!wp_can_install_language_pack()||!function_exists('rrw_wpi_fetch_translation'))return false;
-    return rrw_wpi_fetch_translation('core','default',RRW_WP_VERSION,$download)?$download:false;
+    if(!wp_can_install_language_pack()||!function_exists('elvado_wpi_fetch_translation'))return false;
+    return elvado_wpi_fetch_translation('core','default',ELVADO_WP_VERSION,$download)?$download:false;
 } }
 if(!function_exists('wp_install_language_form')){ function wp_install_language_form($languages) {   // Auswahlliste (aus wp_get_available_translations())
     echo '<fieldset class="language-chooser"><legend class="screen-reader-text">Sprache</legend><ul>';

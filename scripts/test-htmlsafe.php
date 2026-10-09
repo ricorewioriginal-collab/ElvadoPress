@@ -5,7 +5,7 @@ declare(strict_types=1);
 require __DIR__.'/../cms/lib/htmlsafe.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-$s=fn(string $h,bool $u=false)=>rrw_html_sanitize($h,$u);
+$s=fn(string $h,bool $u=false)=>elvado_html_sanitize($h,$u);
 // Erhalten
 t('Text, Umlaute, Emoji bleiben',$s('<p>Hallo <b>Welt</b> äöü € 😀</p>')==='<p>Hallo <b>Welt</b> äöü € 😀</p>',$s('<p>Hallo <b>Welt</b> äöü € 😀</p>'));
 t('Block-Kommentare (ep:/wp:) bleiben, fremde Kommentare entfallen',$s('<!-- ep:paragraph {"align":"center"} --><p>x</p><!-- /ep:paragraph --><!-- böse --><!-- wp:heading --><h2>y</h2><!-- /wp:heading -->')==='<!-- ep:paragraph {"align":"center"} --><p>x</p><!-- /ep:paragraph --><!-- wp:heading --><h2>y</h2><!-- /wp:heading -->');
@@ -28,8 +28,8 @@ t('Raw-HTML-Block ohne Recht: Inhalt wird bereinigt (Block-Marker bleiben)',$s($
 t('Raw-HTML-Block mit Recht (Administrator): unverändert',$s($raw,true)===$raw,$s($raw,true));
 t('Wirkt nur im Raw-Block: Skripte außerhalb bleiben auch mit Recht draußen',!str_contains($s('<script>x</script>'.$raw,true),'<script>x</script>')&&str_contains($s('<script>x</script>'.$raw,true),'<script>alert(2)</script>'));
 t('Eingeschleuste Platzhalter-Kommentare ohne Recht wirkungslos',!str_contains($s('<!--epraw-0--><p>a</p>',false),'epraw')&&$s('<!--epraw-0--><p>a</p>',false)==='<p>a</p>');
-$GLOBALS['rrw_html_unfiltered']=true;t('Anfrage-Schalter $GLOBALS[rrw_html_unfiltered] wirkt',rrw_html_sanitize($raw)===$raw);
-define('RRW_DEMO',true);t('In der Demo nie ungefiltert',rrw_html_sanitize($raw)!==$raw);
-t('Sehr lange Eingabe wird begrenzt',strlen(rrw_html_sanitize(str_repeat('<p>x</p>',100000),false,2000))<2400);
-t('Rückfall ohne DOM filtert ebenfalls',!str_contains(rrw_html_sanitize_basic('<p onclick="x()">a</p><script>alert(1)</script><a href="javascript:x">b</a>'),'script'));
+$GLOBALS['elvado_html_unfiltered']=true;t('Anfrage-Schalter $GLOBALS[elvado_html_unfiltered] wirkt',elvado_html_sanitize($raw)===$raw);
+define('ELVADO_DEMO',true);t('In der Demo nie ungefiltert',elvado_html_sanitize($raw)!==$raw);
+t('Sehr lange Eingabe wird begrenzt',strlen(elvado_html_sanitize(str_repeat('<p>x</p>',100000),false,2000))<2400);
+t('Rückfall ohne DOM filtert ebenfalls',!str_contains(elvado_html_sanitize_basic('<p onclick="x()">a</p><script>alert(1)</script><a href="javascript:x">b</a>'),'script'));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

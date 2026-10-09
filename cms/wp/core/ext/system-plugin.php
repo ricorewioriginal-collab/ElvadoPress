@@ -62,7 +62,7 @@ if(!function_exists('uninstall_plugin')){ function uninstall_plugin($plugin) {
     if(has_action('uninstall_'.$f)||isset($u[$f])){
         if(isset($u[$f])){ unset($u[$f]);update_option('uninstall_plugins',$u); }
         wp_register_plugin_realpath(WP_PLUGIN_DIR.'/'.$f);
-        if(is_file(WP_PLUGIN_DIR.'/'.$f))rrw_wp_include_plugin($f);
+        if(is_file(WP_PLUGIN_DIR.'/'.$f))elvado_wp_include_plugin($f);
         do_action('uninstall_'.$f);return true;
     }
     return null;
@@ -70,18 +70,18 @@ if(!function_exists('uninstall_plugin')){ function uninstall_plugin($plugin) {
 if(!function_exists('add_links_page')){ function add_links_page($page_title, $menu_title, $capability, $menu_slug, $callback='', $position=null) { return add_submenu_page('link-manager.php',$page_title,$menu_title,$capability,$menu_slug,$callback,$position); } }
 if(!function_exists('add_comments_page')){ function add_comments_page($page_title, $menu_title, $capability, $menu_slug, $callback='', $position=null) { return add_submenu_page('edit-comments.php',$page_title,$menu_title,$capability,$menu_slug,$callback,$position); } }
 if(!function_exists('get_admin_page_parent')){ function get_admin_page_parent($parent='') {
-    global $pagenow,$plugin_page;$menu=$GLOBALS['rrw_wp_menu']??[];
+    global $pagenow,$plugin_page;$menu=$GLOBALS['elvado_wp_menu']??[];
     if(!empty($parent)&&$parent!=='admin.php')return $parent;
     $slug=(string)($plugin_page??'');
     if($slug!==''&&isset($menu[$slug]))return $menu[$slug]['parent']!==''?$menu[$slug]['parent']:$slug;
     return (string)($pagenow??'');
 } }
 if(!function_exists('get_plugin_page_hook')){ function get_plugin_page_hook($plugin_page, $parent_page) {
-    foreach([$GLOBALS['rrw_wp_menu'][$plugin_page]['hook']??'',get_plugin_page_hookname($plugin_page,$parent_page)] as $h)if($h!==''&&has_action($h))return $h;
+    foreach([$GLOBALS['elvado_wp_menu'][$plugin_page]['hook']??'',get_plugin_page_hookname($plugin_page,$parent_page)] as $h)if($h!==''&&has_action($h))return $h;
     return null;
 } }
 if(!function_exists('user_can_access_admin_page')){ function user_can_access_admin_page() {
-    global $plugin_page;$menu=$GLOBALS['rrw_wp_menu']??[];
+    global $plugin_page;$menu=$GLOBALS['elvado_wp_menu']??[];
     if(empty($plugin_page))return true;
     return isset($menu[$plugin_page])&&current_user_can($menu[$plugin_page]['cap']);
 } }
@@ -103,7 +103,7 @@ if(!function_exists('resume_plugin')){ function resume_plugin($plugin, $redirect
     if(!is_plugin_paused($plugin))return true;
     $v=validate_plugin($plugin);if(is_wp_error($v))return $v;
     $k=dirname($plugin)==='.'?$plugin:dirname($plugin);unset($GLOBALS['_paused_plugins'][$k]);
-    $e=(array)get_option('rrw_wp_plugin_errors',[]);if(isset($e[$plugin])){ unset($e[$plugin]);update_option('rrw_wp_plugin_errors',$e); }
+    $e=(array)get_option('elvado_wp_plugin_errors',[]);if(isset($e[$plugin])){ unset($e[$plugin]);update_option('elvado_wp_plugin_errors',$e); }
     return true;
 } }
 if(!function_exists('paused_plugins_notice')){ function paused_plugins_notice() {
@@ -111,7 +111,7 @@ if(!function_exists('paused_plugins_notice')){ function paused_plugins_notice() 
     echo wp_get_admin_notice(sprintf(__('One or more plugins failed to load properly. You can find more details and make changes on the <a href="%s">Plugins screen</a>.'),esc_url(admin_url('plugins.php'))),['type'=>'error']);
 } }
 if(!function_exists('deactivated_plugins_notice')){ function deactivated_plugins_notice() {
-    $e=(array)get_option('rrw_wp_plugin_errors',[]);if(!$e||!current_user_can('activate_plugins'))return;
+    $e=(array)get_option('elvado_wp_plugin_errors',[]);if(!$e||!current_user_can('activate_plugins'))return;
     $l='';foreach($e as $p=>$m)$l.='<li><strong>'.esc_html(basename((string)dirname((string)$p)==='.'?(string)$p:dirname((string)$p))).'</strong>: '.esc_html((string)$m).'</li>';
     echo wp_get_admin_notice(__('The following plugins were deactivated because of an error:').'<ul>'.$l.'</ul>',['type'=>'error','paragraph_wrap'=>false]);
 } }

@@ -46,12 +46,12 @@ if(!function_exists('update_meta')){
 }
 if(!function_exists('has_meta')){
     function has_meta($postid) {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return [];
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return [];
         return $wpdb->get_results($wpdb->prepare("SELECT meta_key, meta_value, meta_id, post_id FROM {$wpdb->postmeta} WHERE post_id = %d ORDER BY meta_key, meta_id",$postid),ARRAY_A);
     }
 }
 if(!function_exists('get_meta_keys')){
-    function get_meta_keys() { global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return [];return $wpdb->get_col("SELECT DISTINCT meta_key FROM {$wpdb->postmeta} ORDER BY meta_key"); }
+    function get_meta_keys() { global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return [];return $wpdb->get_col("SELECT DISTINCT meta_key FROM {$wpdb->postmeta} ORDER BY meta_key"); }
 }
 if(!function_exists('add_meta')){
     function add_meta($post_id) {
@@ -125,7 +125,7 @@ if(!function_exists('bulk_edit_posts')){
         foreach(['post_author','comment_status','ping_status','post_status','post_format','_status','sticky','post_parent','page_template'] as $k)if(isset($post_data[$k])&&(-1==$post_data[$k]||''===$post_data[$k]))unset($post_data[$k]);
         if(!empty($post_data['_status'])&&empty($post_data['post_status']))$post_data['post_status']=$post_data['_status'];
         foreach($ids as $id){
-            $p=get_post($id);if(!$p||!current_user_can('edit_post',$id)||(int)$p->ID<RRW_WP_ID_DB_MIN){ $r['skipped'][]=$id;continue; }
+            $p=get_post($id);if(!$p||!current_user_can('edit_post',$id)||(int)$p->ID<ELVADO_WP_ID_DB_MIN){ $r['skipped'][]=$id;continue; }
             if(wp_check_post_lock($id)){ $r['locked'][]=$id;continue; }
             $new=['ID'=>$id];
             foreach(['post_author','comment_status','ping_status','post_status','post_parent'] as $k)if(isset($post_data[$k]))$new[$k]=$post_data[$k];

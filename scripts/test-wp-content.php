@@ -1,8 +1,8 @@
 <?php
 // Prüft das WordPress-Inhaltsmodell: CMS-Beiträge/-Seiten als WP_Post, WP_Query, Taxonomien, Meta, Benutzer, eigene Beitragstypen. Aufruf: php scripts/test-wp-content.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-wpc-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';
+$tmp=sys_get_temp_dir().'/elvado-wpc-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';
 $news=[
  ['id'=>1,'slug'=>'erster','title'=>'Erster Beitrag','category'=>'News','tags'=>'radio, musik','excerpt'=>'Kurz eins','body_html'=>'<p>Hallo Welt vom Radio</p>','status'=>'published','published_at'=>'2026-01-10 10:00:00','author'=>'Anna Autor','image_url'=>'/img/a.jpg','updated_at'=>'2026-01-11 10:00:00'],
  ['id'=>2,'slug'=>'zweiter','title'=>'Zweiter Beitrag','category'=>'Events','tags'=>'musik','excerpt'=>'','body_html'=>'<p>Konzert im Park</p>','status'=>'published','published_at'=>'2026-02-10 10:00:00','author'=>'Ben Bauer'],
@@ -16,7 +16,7 @@ require __DIR__."/_testdb.php";
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name\n";} }
-rrw_wp_boot();
+elvado_wp_boot();
 
 /* CMS-Beiträge als WP_Post */
 $q=new WP_Query(['post_type'=>'post']);
@@ -30,7 +30,7 @@ t('get_post_field/status/type',get_post_field('post_title',1)==='Erster Beitrag'
 t('Titelbild',has_post_thumbnail(1)&&get_the_post_thumbnail_url(1)==='/img/a.jpg'&&!has_post_thumbnail(2));
 t('Seite aus CMS',(function(){ $pg=get_page_by_path('ueber-uns');return $pg&&$pg->post_type==='page'&&str_contains($pg->post_content,'Wir sind ein Radio')&&$pg->post_title==='Über uns'; })());
 t('deaktivierte/System-Seiten nicht sichtbar',count(get_pages())===1);
-t('Seiten-ID stabil',get_page_by_path('ueber-uns')->ID===get_page_by_path('ueber-uns')->ID&&get_page_by_path('ueber-uns')->ID>=RRW_WP_ID_PAGE_BASE);
+t('Seiten-ID stabil',get_page_by_path('ueber-uns')->ID===get_page_by_path('ueber-uns')->ID&&get_page_by_path('ueber-uns')->ID>=ELVADO_WP_ID_PAGE_BASE);
 
 /* Taxonomien */
 t('Kategorien',array_column(get_categories(),'name')===['Events','News']||array_column(get_terms(['taxonomy'=>'category']),'name')===['Events','News']);
@@ -53,7 +53,7 @@ t('Sortierung ID aufsteigend',(new WP_Query(['orderby'=>'ID','order'=>'ASC']))->
 t('post__in',(new WP_Query(['post__in'=>[1,2],'orderby'=>'post__in']))->posts[0]->ID===1&&(new WP_Query(['post__in'=>[2,1],'orderby'=>'post__in']))->posts[0]->ID===2);
 t('post__not_in',(new WP_Query(['post__not_in'=>[3]]))->post_count===2);
 t('name',(new WP_Query(['name'=>'zweiter']))->post_count===1);
-t('Autor-Filter',(new WP_Query(['author'=>rrw_wp_cms_author_id('Anna Autor')]))->post_count===2);
+t('Autor-Filter',(new WP_Query(['author'=>elvado_wp_cms_author_id('Anna Autor')]))->post_count===2);
 t('Datum year/monthnum',(new WP_Query(['year'=>2026,'monthnum'=>2]))->post_count===1);
 t('date_query',(new WP_Query(['date_query'=>[['after'=>'2026-02-01','inclusive'=>true]]]))->post_count===2);
 $pq=new WP_Query(['posts_per_page'=>2,'paged'=>1]);t('Seitenaufteilung',$pq->post_count===2&&$pq->found_posts===3&&$pq->max_num_pages===2);
@@ -112,10 +112,10 @@ t('Termmeta',(function() use($b){ $tt=get_term_by('slug','thriller','genre');ret
 t('any enthält öffentliche Typen',(new WP_Query(['post_type'=>'any']))->post_count>=5);
 
 /* Hooks der Abfrage */
-add_action('pre_get_posts',function($q){ if($q->get('rrw_test')==='1')$q->set('posts_per_page',1); });
-t('pre_get_posts',(new WP_Query(['rrw_test'=>'1','post_type'=>'post']))->post_count===1);
-add_filter('the_posts',function($posts,$q){ if($q->get('rrw_test')==='2')return array_slice($posts,0,2);return $posts; },10,2);
-t('the_posts',(new WP_Query(['rrw_test'=>'2','post_type'=>'post']))->post_count===2);
+add_action('pre_get_posts',function($q){ if($q->get('elvado_test')==='1')$q->set('posts_per_page',1); });
+t('pre_get_posts',(new WP_Query(['elvado_test'=>'1','post_type'=>'post']))->post_count===1);
+add_filter('the_posts',function($posts,$q){ if($q->get('elvado_test')==='2')return array_slice($posts,0,2);return $posts; },10,2);
+t('the_posts',(new WP_Query(['elvado_test'=>'2','post_type'=>'post']))->post_count===2);
 
 /* Die Schleife */
 $GLOBALS['wp_query']=new WP_Query(['post_type'=>'post','posts_per_page'=>3]);$titles=[];$seen=null;
@@ -128,7 +128,7 @@ t('Bedingungen: Seite',(function(){ $GLOBALS['wp_query']=new WP_Query(['pagename
 t('Bedingungen: Kategorie-Archiv',(function(){ $GLOBALS['wp_query']=new WP_Query(['category_name'=>'news']);return is_category()&&is_archive(); })());
 
 /* Benutzer */
-t('Autoren aus Beiträgen',get_user_by('login','anna-autor')!==false&&get_userdata(rrw_wp_cms_author_id('Ben Bauer'))->display_name==='Ben Bauer');
+t('Autoren aus Beiträgen',get_user_by('login','anna-autor')!==false&&get_userdata(elvado_wp_cms_author_id('Ben Bauer'))->display_name==='Ben Bauer');
 t('get_users',count(get_users())>=2);
 $uid=wp_create_user('neuling','geheim-123','n@example.com');
 t('wp_create_user',!is_wp_error($uid)&&get_user_by('email','n@example.com')!==false&&username_exists('neuling')===$uid);

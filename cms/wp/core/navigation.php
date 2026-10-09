@@ -3,7 +3,7 @@
 
 /* ───────── Seitenzahlen ───────── */
 function get_pagenum_link($pagenum=1, $escape=true) {
-    $r=$GLOBALS['rrw_wp_request']??['path'=>'/','query'=>[]];$base=home_url(rtrim($r['path'],'/').'/');
+    $r=$GLOBALS['elvado_wp_request']??['path'=>'/','query'=>[]];$base=home_url(rtrim($r['path'],'/').'/');
     $url=(int)$pagenum>1?$base.'page/'.(int)$pagenum.'/':$base;
     $qs=$r['query'];unset($qs['paged'],$qs['page']);if($qs)$url.='?'.http_build_query($qs);
     return $escape?esc_url($url):esc_url_raw($url);
@@ -137,7 +137,7 @@ class Walker_Comment extends Walker {
     public function start_el(&$output, $data_object, $depth=0, $args=[], $current_object_id=0) {
         $GLOBALS['comment']=$data_object;$GLOBALS['comment_depth']=$depth+1;$args=is_array($args)?$args:(array)$args;
         if(!empty($args['callback'])){ ob_start();call_user_func($args['callback'],$data_object,$args,$depth+1);$output.=ob_get_clean();return; }
-        ob_start();rrw_wp_default_comment($data_object,$args,$depth+1);$output.=ob_get_clean();
+        ob_start();elvado_wp_default_comment($data_object,$args,$depth+1);$output.=ob_get_clean();
     }
     public function end_el(&$output, $data_object, $depth=0, $args=[]) { $args=is_array($args)?$args:(array)$args;if(!empty($args['end-callback'])){ob_start();call_user_func($args['end-callback'],$data_object,$args,$depth+1);$output.=ob_get_clean();return;}$output.="</li><!-- #comment-## -->\n"; }
 }
@@ -156,14 +156,14 @@ function get_nav_menu_locations() {
     foreach($saved as $loc=>$m)if(isset($out[$loc])&&in_array($m,['top','bottom',''],true))$out[$loc]=$m;   // gespeicherte Zuordnung ('' = kein Menü) hat Vorrang
     return $out;
 }
-function rrw_wp_cms_menu_items(string $menu): array {
-    $site=rrw_wp_cms_data()['site'];$raw=(array)($site['menus'][$menu]??[]);$items=[];$pageUrl=[];
-    foreach(rrw_wp_cms_pages() as $pg)$pageUrl[(string)($pg->rrw_data['id']??'')]=$pg;
-    if(rrw_wp_bridge('menus'))foreach(rrw_wp_cms_pages() as $pg)$pageUrl[$pg->post_name]=$pageUrl[$pg->post_name]??$pg;   // Menüziele „page:<Adresse>“ wie im CMS-Menü-Editor
+function elvado_wp_cms_menu_items(string $menu): array {
+    $site=elvado_wp_cms_data()['site'];$raw=(array)($site['menus'][$menu]??[]);$items=[];$pageUrl=[];
+    foreach(elvado_wp_cms_pages() as $pg)$pageUrl[(string)($pg->elvado_data['id']??'')]=$pg;
+    if(elvado_wp_bridge('menus'))foreach(elvado_wp_cms_pages() as $pg)$pageUrl[$pg->post_name]=$pageUrl[$pg->post_name]??$pg;   // Menüziele „page:<Adresse>“ wie im CMS-Menü-Editor
     $i=0;
     foreach($raw as $m){
         if(!is_array($m)||empty($m['enabled']))continue;$t=(string)($m['target']??'');[$kind,$val]=array_pad(explode(':',$t,2),2,'');$url='#';$type='custom';$object='custom';$oid=0;
-        if($kind==='system'){ $url=$val==='start'?home_url('/'):rrw_wp_system_url($val); }
+        if($kind==='system'){ $url=$val==='start'?home_url('/'):elvado_wp_system_url($val); }
         elseif($kind==='page'&&isset($pageUrl[$val])){ $url=get_permalink($pageUrl[$val]);$type='post_type';$object='page';$oid=(int)$pageUrl[$val]->ID; }
         elseif($kind==='url'||$kind==='action'||preg_match('~^https?://~',$t)){ $url=$kind==='url'?$val:(preg_match('~^https?://~',$t)?$t:'#'); }
         $id=crc32((string)($m['id']??$i))%900000+3000000;
@@ -172,19 +172,19 @@ function rrw_wp_cms_menu_items(string $menu): array {
     return $items;
 }
 /** Adresse eines Portal-Bereichs (Sender, Sendeplan, News …): die vorhandene Seite der Website (z. B. /sender.html), sonst wie bisher der Anker (/#sender) – im Theme führt ein Anker ins Leere. */
-function rrw_wp_system_url(string $target): string {
-    $sl=rrw_wp_system_slug($target);if($sl!==''){ foreach(rrw_wp_cms_pages() as $pg)if($pg->post_name===$sl&&(($pg->rrw_data['type']??'')==='system'))return get_permalink($pg); }   // eigene Theme-Seite des Portal-Bereichs
+function elvado_wp_system_url(string $target): string {
+    $sl=elvado_wp_system_slug($target);if($sl!==''){ foreach(elvado_wp_cms_pages() as $pg)if($pg->post_name===$sl&&(($pg->elvado_data['type']??'')==='system'))return get_permalink($pg); }   // eigene Theme-Seite des Portal-Bereichs
     if($target==='news'){ $pp=(int)get_option('page_for_posts');if(get_option('show_on_front')==='page'&&$pp&&($pg=get_post($pp)))return get_permalink($pg);return home_url('/'); }   // die Beitragsübersicht des Themes
-    static $map=null;if($map===null){ $f=dirname(__DIR__,2).'/lib/seo.php';$map=[];if(is_file($f)){ if(!function_exists('rrw_seo_system_map'))require_once $f;$map=rrw_seo_system_map(); } }
+    static $map=null;if($map===null){ $f=dirname(__DIR__,2).'/lib/seo.php';$map=[];if(is_file($f)){ if(!function_exists('elvado_seo_system_map'))require_once $f;$map=elvado_seo_system_map(); } }
     $file=$map[$target]??'';
-    if($file!==''&&preg_match('/^[a-z0-9_-]+$/',$file)&&is_file(rrw_wp_cms_root().'/'.$file.'.html'))return home_url('/'.$file.'.html');
+    if($file!==''&&preg_match('/^[a-z0-9_-]+$/',$file)&&is_file(elvado_wp_cms_root().'/'.$file.'.html'))return home_url('/'.$file.'.html');
     return home_url('/#'.$target);
 }
-function wp_get_nav_menu_items($menu, $args=[]) { $name=is_object($menu)?$menu->slug:(string)$menu;if(!in_array($name,['top','bottom'],true))return false;return rrw_wp_cms_menu_items($name); }
-function wp_get_nav_menu_object($menu) { $n=is_object($menu)?$menu->slug:(string)$menu;return in_array($n,['top','bottom'],true)?(object)['term_id'=>$n==='top'?1:2,'name'=>$n==='top'?'Hauptmenü':'Fußmenü','slug'=>$n,'count'=>count(rrw_wp_cms_menu_items($n))]:false; }
+function wp_get_nav_menu_items($menu, $args=[]) { $name=is_object($menu)?$menu->slug:(string)$menu;if(!in_array($name,['top','bottom'],true))return false;return elvado_wp_cms_menu_items($name); }
+function wp_get_nav_menu_object($menu) { $n=is_object($menu)?$menu->slug:(string)$menu;return in_array($n,['top','bottom'],true)?(object)['term_id'=>$n==='top'?1:2,'name'=>$n==='top'?'Hauptmenü':'Fußmenü','slug'=>$n,'count'=>count(elvado_wp_cms_menu_items($n))]:false; }
 function wp_get_nav_menus($args=[]) { return [wp_get_nav_menu_object('top'),wp_get_nav_menu_object('bottom')]; }
 function is_nav_menu($menu) { return (bool)wp_get_nav_menu_object($menu); }
-function has_nav_menu($location) { $l=get_nav_menu_locations();return isset($l[$location],$GLOBALS['_wp_registered_nav_menus'][$location])&&(bool)rrw_wp_cms_menu_items((string)$l[$location]); }
+function has_nav_menu($location) { $l=get_nav_menu_locations();return isset($l[$location],$GLOBALS['_wp_registered_nav_menus'][$location])&&(bool)elvado_wp_cms_menu_items((string)$l[$location]); }
 function wp_nav_menu($args=[]) {
     $d=['menu'=>'','menu_class'=>'menu','menu_id'=>'','container'=>'div','container_class'=>'','container_id'=>'','container_aria_label'=>'','fallback_cb'=>'wp_page_menu','before'=>'','after'=>'','link_before'=>'','link_after'=>'','echo'=>true,'depth'=>0,'walker'=>'','theme_location'=>'','items_wrap'=>'<ul id="%1$s" class="%2$s">%3$s</ul>','item_spacing'=>'preserve'];
     $a=(object)apply_filters('wp_nav_menu_args',wp_parse_args($args,$d));
@@ -193,7 +193,7 @@ function wp_nav_menu($args=[]) {
     $items=$name!==''?wp_get_nav_menu_items($name):false;
     if(!$items){ if(is_callable($a->fallback_cb)&&$a->fallback_cb!==''){ if(!$a->echo){ ob_start();call_user_func($a->fallback_cb,(array)$a);return ob_get_clean(); } return call_user_func($a->fallback_cb,(array)$a); } return false; }
     // aktuelle Seite markieren
-    $cur=rtrim((string)strtok(home_url(($GLOBALS['rrw_wp_request']['path']??'/')),'?'),'/');
+    $cur=rtrim((string)strtok(home_url(($GLOBALS['elvado_wp_request']['path']??'/')),'?'),'/');
     foreach($items as $it){ $it->classes=array_values(array_filter(array_merge((array)$it->classes,['menu-item','menu-item-type-'.$it->type,'menu-item-object-'.$it->object])));
         if(rtrim((string)strtok($it->url,'?'),'/')===$cur&&$it->url!=='#'){ $it->current=true;$it->classes[]='current-menu-item';$it->classes[]='current_page_item'; } }
     foreach($items as $it)if(!empty($it->current)&&$it->menu_item_parent){ foreach($items as $p)if($p->db_id==$it->menu_item_parent){ $p->current_item_parent=true;$p->classes[]='current-menu-parent'; } }

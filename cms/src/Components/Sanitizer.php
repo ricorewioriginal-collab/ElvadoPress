@@ -90,8 +90,8 @@ final class Sanitizer
     public static function html(string $h, int $max, bool $unfiltered): string
     {
         $h = mb_substr($h, 0, $max);
-        if (function_exists('rrw_html_sanitize')) {
-            return rrw_html_sanitize($h, $unfiltered ? true : false);
+        if (function_exists('elvado_html_sanitize')) {
+            return elvado_html_sanitize($h, $unfiltered ? true : false);
         }
         return strip_tags($h, '<p><br><strong><b><em><i><u><ul><ol><li><a><h2><h3><h4><blockquote>');   // ohne die Bibliothek der Verwaltung: nur einfache Tags
     }

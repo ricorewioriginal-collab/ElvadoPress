@@ -1,10 +1,10 @@
 <?php
 // Ergänzende Medien-Funktionen für Bilder in der Verwaltung (wp-admin/includes/image.php): Zuschneiden, Zwischengrößen erzeugen,
 // EXIF/IPTC lesen, Bild laden. Die Bildverarbeitung nutzt GD (ohne GD liefern die Funktionen WP_Error bzw. false).
-// Hilfsfunktionen beginnen mit _rrw_m_.
+// Hilfsfunktionen beginnen mit _elvado_m_.
 
-if(!function_exists('_rrw_m_dims')){ /** Zielmaße und Ausschnitt wie image_resize_dimensions (mit echtem Zuschnitt); false, wenn nichts zu tun ist. */
-function _rrw_m_dims($ow,$oh,$dw,$dh,$crop=false) {
+if(!function_exists('_elvado_m_dims')){ /** Zielmaße und Ausschnitt wie image_resize_dimensions (mit echtem Zuschnitt); false, wenn nichts zu tun ist. */
+function _elvado_m_dims($ow,$oh,$dw,$dh,$crop=false) {
     $ow=(int)$ow;$oh=(int)$oh;$dw=(int)$dw;$dh=(int)$dh;if($ow<=0||$oh<=0||($dw<=0&&$dh<=0))return false;
     if($crop){
         $ar=$ow/$oh;$nw=min($dw?:$ow,$ow);$nh=min($dh?:$oh,$oh);
@@ -16,31 +16,31 @@ function _rrw_m_dims($ow,$oh,$dw,$dh,$crop=false) {
     if($nw>=$ow&&$nh>=$oh&&$dw!==$ow&&$dh!==$oh)return false;   // nur verkleinern
     return [0,0,(int)$sx,(int)$sy,(int)$nw,(int)$nh,(int)$cw,(int)$ch];
 } }
-if(!function_exists('_rrw_m_gd_load')){ function _rrw_m_gd_load($path,$mime=null) {
+if(!function_exists('_elvado_m_gd_load')){ function _elvado_m_gd_load($path,$mime=null) {
     if(!function_exists('imagecreatetruecolor')||!is_file((string)$path))return false;
     $mime=$mime??(wp_getimagesize($path)['mime']??'');$f=['image/jpeg'=>'imagecreatefromjpeg','image/png'=>'imagecreatefrompng','image/gif'=>'imagecreatefromgif','image/webp'=>'imagecreatefromwebp','image/avif'=>'imagecreatefromavif','image/bmp'=>'imagecreatefrombmp'][$mime]??null;
     if(!$f||!function_exists($f))return false;$i=@$f($path);
     if(is_gd_image($i)&&in_array($mime,['image/png','image/webp'],true)){ imagealphablending($i,false);imagesavealpha($i,true); }
     return $i;
 } }
-if(!function_exists('_rrw_m_gd_save')){ function _rrw_m_gd_save($img,$path,$mime) {
+if(!function_exists('_elvado_m_gd_save')){ function _elvado_m_gd_save($img,$path,$mime) {
     return match($mime){ 'image/jpeg'=>@imagejpeg($img,$path,(int)apply_filters('jpeg_quality',82)), 'image/png'=>@imagepng($img,$path), 'image/gif'=>@imagegif($img,$path),
         'image/webp'=>function_exists('imagewebp')&&@imagewebp($img,$path,82), 'image/avif'=>function_exists('imageavif')&&@imageavif($img,$path), default=>false };
 } }
-if(!function_exists('_rrw_m_resize')){ /** Skaliert/schneidet eine Datei nach „Name-BxH.ext“; liefert die Metadaten der Zwischengröße oder WP_Error. */
-function _rrw_m_resize($file,$w,$h,$crop=false,$suffix=null,$dir=null) {
+if(!function_exists('_elvado_m_resize')){ /** Skaliert/schneidet eine Datei nach „Name-BxH.ext“; liefert die Metadaten der Zwischengröße oder WP_Error. */
+function _elvado_m_resize($file,$w,$h,$crop=false,$suffix=null,$dir=null) {
     $info=wp_getimagesize($file);if(!$info)return new WP_Error('invalid_image','Die Datei ist kein Bild.',$file);
-    $d=_rrw_m_dims($info[0],$info[1],$w,$h,$crop);if(!$d)return new WP_Error('error_getting_dimensions','Die Bildmaße konnten nicht berechnet werden.');
-    $src=_rrw_m_gd_load($file,$info['mime']);if(!is_gd_image($src))return new WP_Error('image_no_editor','Die Bildbearbeitung (GD) ist nicht verfügbar.');
+    $d=_elvado_m_dims($info[0],$info[1],$w,$h,$crop);if(!$d)return new WP_Error('error_getting_dimensions','Die Bildmaße konnten nicht berechnet werden.');
+    $src=_elvado_m_gd_load($file,$info['mime']);if(!is_gd_image($src))return new WP_Error('image_no_editor','Die Bildbearbeitung (GD) ist nicht verfügbar.');
     $dst=wp_imagecreatetruecolor($d[4],$d[5]);imagecopyresampled($dst,$src,$d[0],$d[1],$d[2],$d[3],$d[4],$d[5],$d[6],$d[7]);
     $pi=pathinfo($file);$dir=$dir??$pi['dirname'];$suffix=$suffix??$d[4].'x'.$d[5];$name=$pi['filename'].'-'.$suffix.'.'.($pi['extension']??'jpg');$path=rtrim($dir,'/').'/'.$name;
-    if(!_rrw_m_gd_save($dst,$path,$info['mime']))return new WP_Error('image_save_error','Das Bild konnte nicht gespeichert werden.',$path);
+    if(!_elvado_m_gd_save($dst,$path,$info['mime']))return new WP_Error('image_save_error','Das Bild konnte nicht gespeichert werden.',$path);
     return ['path'=>$path,'file'=>$name,'width'=>$d[4],'height'=>$d[5],'mime-type'=>$info['mime'],'filesize'=>(int)@filesize($path)];
 } }
-if(!function_exists('_rrw_m_subsizes')){ function _rrw_m_subsizes() {
+if(!function_exists('_elvado_m_subsizes')){ function _elvado_m_subsizes() {
     $s=wp_get_registered_image_subsizes();foreach(wp_get_additional_image_sizes() as $n=>$a)$s[$n]=['width'=>(int)$a['width'],'height'=>(int)$a['height'],'crop'=>$a['crop']];return $s;
 } }
-if(!function_exists('_rrw_m_upload_rel')){ function _rrw_m_upload_rel($file) {
+if(!function_exists('_elvado_m_upload_rel')){ function _elvado_m_upload_rel($file) {
     if(function_exists('_wp_relative_upload_path'))return _wp_relative_upload_path($file);
     $b=wp_get_upload_dir()['basedir'];$f=wp_normalize_path((string)$file);$b=wp_normalize_path($b);return str_starts_with($f,$b)?ltrim(substr($f,strlen($b)),'/'):$f;
 } }
@@ -94,13 +94,13 @@ if(!function_exists('file_is_displayable_image')){ function file_is_displayable_
 if(!function_exists('_load_image_to_edit_path')){ function _load_image_to_edit_path($attachment_id,$size='full') {
     $p=get_attached_file($attachment_id);
     if($p&&file_exists($p)){
-        if($size!=='full'){ $d=_rrw_m_intermediate($attachment_id,$size);if($d){ $p=apply_filters('load_image_to_edit_filesystempath',path_join(dirname($p),$d['file']),$attachment_id,$size); } }
+        if($size!=='full'){ $d=_elvado_m_intermediate($attachment_id,$size);if($d){ $p=apply_filters('load_image_to_edit_filesystempath',path_join(dirname($p),$d['file']),$attachment_id,$size); } }
     } elseif(function_exists('fopen')&&ini_get('allow_url_fopen'))$p=apply_filters('load_image_to_edit_attachmenturl',wp_get_attachment_url($attachment_id),$attachment_id,$size);
     return apply_filters('load_image_to_edit_path',$p,$attachment_id,$size);
 } }
 if(!function_exists('load_image_to_edit')){ function load_image_to_edit($attachment_id,$mime_type,$size='full') {
     $p=_load_image_to_edit_path($attachment_id,$size);if(empty($p))return false;
-    $i=_rrw_m_gd_load($p,$mime_type);
+    $i=_elvado_m_gd_load($p,$mime_type);
     if(is_gd_image($i)){ $i=apply_filters('load_image_to_edit',$i,$attachment_id,$size);if(function_exists('imagealphablending')&&function_exists('imagesavealpha')){ imagealphablending($i,false);imagesavealpha($i,true); } }
     return $i;
 } }
@@ -118,29 +118,29 @@ if(!function_exists('wp_copy_parent_attachment_properties')){ function wp_copy_p
 if(!function_exists('wp_crop_image')){ function wp_crop_image($src,$src_x,$src_y,$src_w,$src_h,$dst_w,$dst_h,$src_abs=false,$dst_file=false) {
     $file=$src;
     if(is_numeric($src)){ $file=get_attached_file($src);if(!$file||!file_exists($file))$file=_load_image_to_edit_path($src); }
-    $info=$file?wp_getimagesize($file):false;$img=$info?_rrw_m_gd_load($file,$info['mime']):false;
+    $info=$file?wp_getimagesize($file):false;$img=$info?_elvado_m_gd_load($file,$info['mime']):false;
     if(!is_gd_image($img))return new WP_Error('invalid_image','Die Datei ist kein Bild.',$file);
     if($src_abs){ $dst_w=$src_w;$dst_h=$src_h; }
     $dst=wp_imagecreatetruecolor((int)$dst_w,(int)$dst_h);imagecopyresampled($dst,$img,0,0,(int)$src_x,(int)$src_y,(int)$dst_w,(int)$dst_h,(int)$src_w,(int)$src_h);
     if(!$dst_file)$dst_file=dirname($file).'/cropped-'.wp_basename($file);
     wp_mkdir_p(dirname($dst_file));$dst_file=dirname($dst_file).'/'.wp_unique_filename(dirname($dst_file),wp_basename($dst_file));
-    return _rrw_m_gd_save($dst,$dst_file,$info['mime'])?$dst_file:new WP_Error('copy_failed','Das zugeschnittene Bild konnte nicht gespeichert werden.',$dst_file);
+    return _elvado_m_gd_save($dst,$dst_file,$info['mime'])?$dst_file:new WP_Error('copy_failed','Das zugeschnittene Bild konnte nicht gespeichert werden.',$dst_file);
 } }
 
 /* ───────── Zwischengrößen ───────── */
 if(!function_exists('wp_get_missing_image_subsizes')){ function wp_get_missing_image_subsizes($attachment_id) {
     if(!wp_attachment_is_image($attachment_id))return [];
-    $reg=_rrw_m_subsizes();$meta=wp_get_attachment_metadata($attachment_id);
+    $reg=_elvado_m_subsizes();$meta=wp_get_attachment_metadata($attachment_id);
     if(empty($meta)||!is_array($meta))return $reg;
     $missing=[];$fw=(int)($meta['width']??0);$fh=(int)($meta['height']??0);
     foreach($reg as $n=>$d){ if(!empty($meta['sizes'][$n]))continue;
-        if(_rrw_m_dims($fw,$fh,$d['width'],$d['height'],$d['crop']))$missing[$n]=$d; }
+        if(_elvado_m_dims($fw,$fh,$d['width'],$d['height'],$d['crop']))$missing[$n]=$d; }
     return apply_filters('wp_get_missing_image_subsizes',$missing,$meta,$attachment_id);
 } }
 if(!function_exists('_wp_image_meta_replace_original')){ function _wp_image_meta_replace_original($saved,$original_file,$image_meta,$attachment_id) {
     $new=$saved['path'];
-    if(function_exists('update_attached_file'))update_attached_file($attachment_id,$new);else update_post_meta($attachment_id,'_wp_attached_file',_rrw_m_upload_rel($new));
-    $image_meta['width']=$saved['width'];$image_meta['height']=$saved['height'];$image_meta['file']=_rrw_m_upload_rel($new);
+    if(function_exists('update_attached_file'))update_attached_file($attachment_id,$new);else update_post_meta($attachment_id,'_wp_attached_file',_elvado_m_upload_rel($new));
+    $image_meta['width']=$saved['width'];$image_meta['height']=$saved['height'];$image_meta['file']=_elvado_m_upload_rel($new);
     if(!empty($saved['filesize']))$image_meta['filesize']=$saved['filesize'];else unset($image_meta['filesize']);
     $image_meta['original_image']=wp_basename($original_file);return $image_meta;
 } }
@@ -150,7 +150,7 @@ if(!function_exists('_wp_make_subsizes')){ function _wp_make_subsizes($new_sizes
     if(empty($image_meta['sizes']))$image_meta['sizes']=[];
     $new_sizes=apply_filters('intermediate_image_sizes_advanced',$new_sizes,$image_meta,$attachment_id);
     foreach((array)$new_sizes as $name=>$d){
-        $r=_rrw_m_resize($file,(int)($d['width']??0),(int)($d['height']??0),$d['crop']??false);
+        $r=_elvado_m_resize($file,(int)($d['width']??0),(int)($d['height']??0),$d['crop']??false);
         if(is_array($r)){ unset($r['path']);$image_meta['sizes'][$name]=$r; }
     }
     if($attachment_id)wp_update_attachment_metadata($attachment_id,$image_meta);
@@ -158,16 +158,16 @@ if(!function_exists('_wp_make_subsizes')){ function _wp_make_subsizes($new_sizes
 } }
 if(!function_exists('wp_create_image_subsizes')){ function wp_create_image_subsizes($file,$attachment_id) {
     $info=wp_getimagesize($file);if(empty($info))return [];
-    $meta=['width'=>$info[0],'height'=>$info[1],'file'=>_rrw_m_upload_rel($file),'filesize'=>wp_filesize($file),'sizes'=>[]];
+    $meta=['width'=>$info[0],'height'=>$info[1],'file'=>_elvado_m_upload_rel($file),'filesize'=>wp_filesize($file),'sizes'=>[]];
     $exif=wp_read_image_metadata($file);if($exif)$meta['image_meta']=$exif;
     if($info['mime']!=='image/png'){   // große PNGs nicht verkleinern
         $th=(int)apply_filters('big_image_size_threshold',2560,$info,$file,$attachment_id);
         if($th&&($meta['width']>$th||$meta['height']>$th)){
-            $r=_rrw_m_resize($file,$th,$th,false,'scaled');
+            $r=_elvado_m_resize($file,$th,$th,false,'scaled');
             if(is_array($r)){ $meta=_wp_image_meta_replace_original($r,$file,$meta,$attachment_id);$file=$r['path']; }
         }
     }
-    $new=apply_filters('intermediate_image_sizes_advanced',_rrw_m_subsizes(),$meta,$attachment_id);
+    $new=apply_filters('intermediate_image_sizes_advanced',_elvado_m_subsizes(),$meta,$attachment_id);
     return _wp_make_subsizes($new,$file,$meta,$attachment_id);
 } }
 if(!function_exists('wp_update_image_subsizes')){ function wp_update_image_subsizes($attachment_id) {

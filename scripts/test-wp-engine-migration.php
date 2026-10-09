@@ -46,9 +46,9 @@ function mkFixture(string $tmp): void
 // ───────── Kindprozess: echtes WordPress, Trockenlauf gegen die echte Datenbank ─────────
 if (($argv[1] ?? '') === '--child') {
     $tmp = (string)$argv[2];
-    $GLOBALS['rrw_wpe_engine'] = new Engine("$tmp/wp/cms", "$tmp/wp/cms/data");
-    $GLOBALS['rrw_wpe_db'] = new DbConfig($GLOBALS['rrw_wpe_engine']);
-    $GLOBALS['rrw_wpe_opts'] = ['installing' => true];
+    $GLOBALS['elvado_wpe_engine'] = new Engine("$tmp/wp/cms", "$tmp/wp/cms/data");
+    $GLOBALS['elvado_wpe_db'] = new DbConfig($GLOBALS['elvado_wpe_engine']);
+    $GLOBALS['elvado_wpe_opts'] = ['installing' => true];
     $_SERVER['HTTP_HOST'] = 'example.test';
     require __DIR__ . '/../cms/wp-engine-boot.php';
     $r = Bridge::installSchema('Test', 'test@example.invalid');

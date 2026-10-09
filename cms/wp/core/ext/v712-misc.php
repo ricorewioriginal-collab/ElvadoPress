@@ -3,11 +3,11 @@
 // Template-Enhancement (aus), Block-Bindings, Sitemap-Abfrage, Datenbank-Upgrade 7.0. Nur Definitionen beim Laden.
 
 /* ───────── Cache mit Salz (über den vorhandenen Objekt-Cache) ───────── */
-if(!function_exists('_rrw_cache_salt')){ function _rrw_cache_salt($salt) { return is_array($salt)?implode('|',array_map('strval',$salt)):(string)$salt; } }
-if(!function_exists('wp_cache_set_salted')){ function wp_cache_set_salted($key, $data, $group='', $salt='', $expire=0) { return wp_cache_set($key,['data'=>$data,'salt'=>_rrw_cache_salt($salt)],$group,$expire); } }
+if(!function_exists('_elvado_cache_salt')){ function _elvado_cache_salt($salt) { return is_array($salt)?implode('|',array_map('strval',$salt)):(string)$salt; } }
+if(!function_exists('wp_cache_set_salted')){ function wp_cache_set_salted($key, $data, $group='', $salt='', $expire=0) { return wp_cache_set($key,['data'=>$data,'salt'=>_elvado_cache_salt($salt)],$group,$expire); } }
 if(!function_exists('wp_cache_get_salted')){ function wp_cache_get_salted($key, $group='', $salt='', $force=false, &$found=null) {   // anderes Salz -> false (Treffer verworfen)
     $v=wp_cache_get($key,$group,$force,$found);
-    if(!is_array($v)||!array_key_exists('data',$v)||($v['salt']??null)!==_rrw_cache_salt($salt)){ $found=false;return false; }
+    if(!is_array($v)||!array_key_exists('data',$v)||($v['salt']??null)!==_elvado_cache_salt($salt)){ $found=false;return false; }
     return $v['data'];
 } }
 if(!function_exists('wp_cache_set_multiple_salted')){ function wp_cache_set_multiple_salted($data, $group='', $salt='', $expire=0) { $o=[];foreach((array)$data as $k=>$v)$o[$k]=wp_cache_set_salted($k,$v,$group,$salt,$expire);return $o; } }

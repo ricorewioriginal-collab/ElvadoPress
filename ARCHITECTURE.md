@@ -10,7 +10,7 @@ ElvadoPress ist ein serverseitiges PHP-CMS ohne erforderlichen Build-Schritt. Di
 - **Verwaltung:** `cms/index.php` plus Panels aus `cms/views/` und Browserlogik aus `cms/assets/`.
 - **API:** `cms/api.php?action=...` bündelt Verwaltungs- und Datenaktionen.
 - **Fachlogik:** `cms/lib/*.php` für Auth, Datenbank, Inhalte, Branding, Community, Backups, Apps, KI-Assistent, Demo usw.
-- **Native Plugins (Essentials):** `cms/src/Plugin/` (Manager, Manifest, Hooks, Context), Paketbibliothek `cms/official-plugins/` mit prüfsummenbasiertem Katalog, installiert nach `cms/plugins/`, Zustand `cms/data/.plugins/`; Erweiterungspunkte im Core über `cms/lib/nplugins.php` (`rrw_np_do`/`rrw_np_filter`). Server-PHP läuft nur für offizielle, unveränderte Plugins. Core vs. Plugin und Entwicklerdoku: `cms/docs/PLUGIN-ENTWICKLUNG.md`.
+- **Native Plugins (Essentials):** `cms/src/Plugin/` (Manager, Manifest, Hooks, Context), Paketbibliothek `cms/official-plugins/` mit prüfsummenbasiertem Katalog, installiert nach `cms/plugins/`, Zustand `cms/data/.plugins/`; Erweiterungspunkte im Core über `cms/lib/nplugins.php` (`elvado_np_do`/`elvado_np_filter`). Server-PHP läuft nur für offizielle, unveränderte Plugins. Core vs. Plugin und Entwicklerdoku: `cms/docs/PLUGIN-ENTWICKLUNG.md`.
 - **Themes/Plugins/WordPress-Schicht:** Erweiterbarkeit und Kompatibilität; Fachdetails in `cms/docs/THEMES.md`, `PLUGINS.md`, `WORDPRESS.md`.
 - **Tests/Packaging:** `scripts/`, CI und Release-Workflows.
 
@@ -45,7 +45,7 @@ Optionale Integrationen umfassen konfigurierbare KI-Anbieter, App-Build/GitHub-F
 - ElvadoPress ist die Hauptquelle.
 - CI auf Push/PR prüft PHP-Syntax, Smoke-Test und `scripts/test-*.php`.
 - Tag `v<Version>` erzeugt ein Release-ZIP.
-- RicoReWi Radio/Senderwelt sind unabhängig von diesem Repository (kein Sync); Branding-/Produktdateien gehören allein zu ElvadoPress.
+- Kein Sync mit anderen Repositories; Branding-/Produktdateien gehören allein zu ElvadoPress.
 - Die öffentliche Demo wird laut vorhandener Doku über das verbundene Projekt bereitgestellt.
 
 ## Weiterführende Dokumentation

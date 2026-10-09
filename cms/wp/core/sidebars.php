@@ -9,32 +9,32 @@ function register_sidebar($args=[]) {
 }
 function register_sidebars($number=1, $args=[]) { $first=null;for($i=1;$i<=$number;$i++){ $a=$args;if($number>1){ $a['name']=sprintf($args['name']??'Seitenleiste %d',$i);if(isset($args['id']))$a['id']=$args['id'].'-'.$i; } $id=register_sidebar($a);$first=$first??$id; }return $first; }
 function unregister_sidebar($id) { unset($GLOBALS['wp_registered_sidebars'][$id]); }
-function rrw_wp_default_sidebars_widgets(): array { return ['sidebar-1'=>['search-2','recent-posts-2','recent-comments-2','archives-2','categories-2','meta-2']]; }
+function elvado_wp_default_sidebars_widgets(): array { return ['sidebar-1'=>['search-2','recent-posts-2','recent-comments-2','archives-2','categories-2','meta-2']]; }
 function wp_get_sidebars_widgets($deprecated=true) {
     $s=get_option('sidebars_widgets',null);
-    if(!is_array($s)||!$s){ $s=rrw_wp_default_sidebars_widgets(); }
+    if(!is_array($s)||!$s){ $s=elvado_wp_default_sidebars_widgets(); }
     foreach($GLOBALS['wp_registered_sidebars'] as $id=>$_)if(!isset($s[$id]))$s[$id]=[];
     return $s;
 }
 function wp_set_sidebars_widgets($s) { update_option('sidebars_widgets',$s); }
-function rrw_wp_sidebar_index($index) { if(is_int($index))$index="sidebar-$index";else{ $index=sanitize_title($index);foreach($GLOBALS['wp_registered_sidebars'] as $id=>$s)if(sanitize_title($s['name'])===$index){$index=$id;break;} }return $index; }
-function is_active_sidebar($index) { $index=rrw_wp_sidebar_index($index);$s=wp_get_sidebars_widgets();$has=!empty($s[$index])&&isset($GLOBALS['wp_registered_sidebars'][$index]);return (bool)apply_filters('is_active_sidebar',$has,$index); }
-function rrw_wp_widget_instance(string $widget_id) {
+function elvado_wp_sidebar_index($index) { if(is_int($index))$index="sidebar-$index";else{ $index=sanitize_title($index);foreach($GLOBALS['wp_registered_sidebars'] as $id=>$s)if(sanitize_title($s['name'])===$index){$index=$id;break;} }return $index; }
+function is_active_sidebar($index) { $index=elvado_wp_sidebar_index($index);$s=wp_get_sidebars_widgets();$has=!empty($s[$index])&&isset($GLOBALS['wp_registered_sidebars'][$index]);return (bool)apply_filters('is_active_sidebar',$has,$index); }
+function elvado_wp_widget_instance(string $widget_id) {
     if(!preg_match('/^(.+)-(\d+)$/',$widget_id,$m))return null;[$_,$base,$num]=$m;$num=(int)$num;
     foreach($GLOBALS['wp_widget_factory']->widgets as $cls=>$w)if($w->id_base===$base){
-        $opts=get_option('widget_'.$base,null);$inst=is_array($opts)&&isset($opts[$num])?$opts[$num]:(rrw_wp_default_widget_instance($base));
+        $opts=get_option('widget_'.$base,null);$inst=is_array($opts)&&isset($opts[$num])?$opts[$num]:(elvado_wp_default_widget_instance($base));
         $w->_set($num);return [$w,$inst];
     }
     return null;
 }
-function rrw_wp_default_widget_instance(string $base): array { return match($base){'recent-posts'=>['title'=>'Neueste Beiträge','number'=>5],'recent-comments'=>['title'=>'Neueste Kommentare','number'=>5],'archives'=>['title'=>'Archiv'],'categories'=>['title'=>'Kategorien'],'meta'=>['title'=>'Meta'],'search'=>['title'=>''],default=>[]}; }
+function elvado_wp_default_widget_instance(string $base): array { return match($base){'recent-posts'=>['title'=>'Neueste Beiträge','number'=>5],'recent-comments'=>['title'=>'Neueste Kommentare','number'=>5],'archives'=>['title'=>'Archiv'],'categories'=>['title'=>'Kategorien'],'meta'=>['title'=>'Meta'],'search'=>['title'=>''],default=>[]}; }
 function dynamic_sidebar($index=1) {
-    $index=rrw_wp_sidebar_index($index);$sb=$GLOBALS['wp_registered_sidebars'][$index]??null;if(!$sb)return false;
+    $index=elvado_wp_sidebar_index($index);$sb=$GLOBALS['wp_registered_sidebars'][$index]??null;if(!$sb)return false;
     $widgets=wp_get_sidebars_widgets()[$index]??[];if(!$widgets)return false;
     do_action('dynamic_sidebar_before',$index,true);$any=false;
     if($sb['before_sidebar'])echo sprintf($sb['before_sidebar'],'',''); 
     foreach($widgets as $wid){
-        $r=rrw_wp_widget_instance($wid);if(!$r)continue;[$w,$inst]=$r;
+        $r=elvado_wp_widget_instance($wid);if(!$r)continue;[$w,$inst]=$r;
         $cls=$w->widget_options['classname']??$w->id_base;
         $args=array_merge($sb,['widget_id'=>$wid,'widget_name'=>$w->name,'before_widget'=>sprintf($sb['before_widget'],$wid,$cls),'before_title'=>$sb['before_title'],'after_title'=>$sb['after_title']]);
         do_action('dynamic_sidebar',['id'=>$wid,'name'=>$w->name]);
@@ -121,6 +121,6 @@ class WP_Nav_Menu_Widget extends WP_Widget {
     public function widget($args,$i) { $m=$i['nav_menu']??'top';echo $args['before_widget'];$t=apply_filters('widget_title',$i['title']??'',$i,$this->id_base);if($t)echo $args['before_title'].$t.$args['after_title'];wp_nav_menu(['menu'=>$m,'fallback_cb'=>'']);echo $args['after_widget']; }
     public function update($n,$o) { return ['title'=>sanitize_text_field($n['title']??''),'nav_menu'=>in_array($n['nav_menu']??'top',['top','bottom'],true)?$n['nav_menu']:'top']; }
 }
-function rrw_wp_register_core_widgets() {
+function elvado_wp_register_core_widgets() {
     foreach(['WP_Widget_Search','WP_Widget_Recent_Posts','WP_Widget_Recent_Comments','WP_Widget_Archives','WP_Widget_Categories','WP_Widget_Tag_Cloud','WP_Widget_Meta','WP_Widget_Pages','WP_Widget_Text','WP_Widget_Custom_HTML','WP_Nav_Menu_Widget'] as $c)register_widget($c);
 }

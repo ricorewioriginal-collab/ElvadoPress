@@ -48,8 +48,8 @@ $np->api('download_upload', function (array $a) use ($fm): array {
 });
 $np->api('action_test_mail', function () use ($fm, $np): array {
     $to = (string)$np->setting('default_to');
-    if ($to === '' && function_exists('rrw_local_users')) {
-        foreach (rrw_local_users() as $u) {
+    if ($to === '' && function_exists('elvado_local_users')) {
+        foreach (elvado_local_users() as $u) {
             if (!empty($u['email'])) {
                 $to = (string)$u['email'];
                 break;

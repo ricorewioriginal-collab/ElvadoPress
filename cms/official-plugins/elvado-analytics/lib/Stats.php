@@ -9,7 +9,7 @@ use Elvado\Plugin\Context;
 final class Stats
 {
     private const BOT = '/(bot|crawl|spider|slurp|bing|yandex|baidu|duckduck|facebookexternalhit|embedly|preview|monitor|uptime|lighthouse|headless|python-requests|curl|wget|httpclient|java\/|go-http|libwww|scrapy|pingdom|gtmetrix|semrush|ahrefs|mj12|dotbot)/i';
-    private const NOCOUNT_COOKIES = '/^(wordpress_logged_in_|rrw_wp_sess|rrw_sbx|rrw_wp_preview)/';
+    private const NOCOUNT_COOKIES = '/^(wordpress_logged_in_|elvado_wp_sess|elvado_sbx|elvado_wp_preview)/';
     private const MAX_PATHS = 300;
     private const MAX_VISITORS = 30000;
 

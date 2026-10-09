@@ -96,7 +96,7 @@ if(!class_exists('WP_REST_Controller')){
     }
 }
 /** Bedingungen fremder Plugins (WooCommerce, bbPress …): ohne das Plugin immer false. Wird erst beim Laden des Themes aufgerufen – nie vor der Aktivierung eines Plugins, das diese Funktionen selbst definiert. */
-function rrw_wp_define_missing_conditionals(): void {
+function elvado_wp_define_missing_conditionals(): void {
     static $done=false;if($done)return;$done=true;
     foreach(['is_shop','is_product','is_product_taxonomy','is_product_category','is_product_tag','is_cart','is_checkout','is_account_page','is_wc_endpoint_url','is_store_notice_showing','is_lesson','is_courses','is_course','is_course_taxonomy','is_memberships','is_quiz','is_bbpress','is_amp_endpoint','dokan_is_seller_dashboard','dokan_is_store_page','dokan_is_store_listing','dokan_is_account_page','dokan_is_order_page','dokan_is_cart_page','dokan_is_checkout_page','bp_is_directory','bbp_is_topic_tag','bbp_is_topic_tag_edit','bbp_is_single_user','bbp_is_topic_edit','bbp_is_reply_edit','bbp_is_forum_edit','bbp_is_search','bbp_is_forum_archive','is_buddypress','bp_is_user','is_woocommerce'] as $_f)
         if(!function_exists($_f))eval('function '.$_f.'() { return false; }');

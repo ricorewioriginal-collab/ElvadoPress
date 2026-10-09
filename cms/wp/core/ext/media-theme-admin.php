@@ -1,6 +1,6 @@
 <?php
 // Ergänzende Theme-Verwaltung (wp-admin/includes/theme.php), Block-Vorlagen-Hilfen (theme-templates.php) und Theme-Vorschau (theme-previews.php).
-// Pausierte Themes werden in der Option „rrw_paused_themes“ (Slug => Fehler) geführt; es gibt keinen Wiederherstellungsmodus, der sie selbst einträgt.
+// Pausierte Themes werden in der Option „elvado_paused_themes“ (Slug => Fehler) geführt; es gibt keinen Wiederherstellungsmodus, der sie selbst einträgt.
 
 if(!function_exists('delete_theme')){ /** Löscht ein Theme aus wp-content/themes (nicht das aktive/übergeordnete, keine mitgelieferten CMS-Themes). */
 function delete_theme($stylesheet,$redirect='') {
@@ -10,7 +10,7 @@ function delete_theme($stylesheet,$redirect='') {
     $dir=get_theme_root().'/'.$slug;if(!is_dir($dir))return new WP_Error('theme_not_found','Das Theme wurde nicht gefunden.');
     if($slug===get_stylesheet()||$slug===get_template())return new WP_Error('cannot_delete_active_theme','Das aktive Theme kann nicht gelöscht werden.');
     do_action('delete_theme',$slug);
-    rrw_wp_rmdir($dir);$deleted=!is_dir($dir);
+    elvado_wp_rmdir($dir);$deleted=!is_dir($dir);
     do_action('deleted_theme',$slug,$deleted);
     if(!$deleted)return new WP_Error('could_not_remove_theme','Das Theme konnte nicht gelöscht werden.');
     delete_site_transient('update_themes');return true;
@@ -44,16 +44,16 @@ if(!function_exists('wp_prepare_themes_for_js')){ function wp_prepare_themes_for
 } }
 if(!function_exists('customize_themes_print_templates')){ /** No-op: Der Customizer ist vereinfacht und kennt die Theme-Auswahlvorlagen nicht. */
 function customize_themes_print_templates() {} }
-if(!function_exists('is_theme_paused')){ function is_theme_paused($theme) { return array_key_exists((string)$theme,(array)get_option('rrw_paused_themes',[])); } }
-if(!function_exists('wp_get_theme_error')){ function wp_get_theme_error($theme) { $p=(array)get_option('rrw_paused_themes',[]);return $p[(string)$theme]??false; } }
+if(!function_exists('is_theme_paused')){ function is_theme_paused($theme) { return array_key_exists((string)$theme,(array)get_option('elvado_paused_themes',[])); } }
+if(!function_exists('wp_get_theme_error')){ function wp_get_theme_error($theme) { $p=(array)get_option('elvado_paused_themes',[]);return $p[(string)$theme]??false; } }
 if(!function_exists('resume_theme')){ function resume_theme($theme,$redirect='') {
     $r=validate_theme_requirements($theme);if(is_wp_error($r))return $r;
-    $p=(array)get_option('rrw_paused_themes',[]);if(!isset($p[$theme]))return true;
-    unset($p[$theme]);update_option('rrw_paused_themes',$p);return true;
+    $p=(array)get_option('elvado_paused_themes',[]);if(!isset($p[$theme]))return true;
+    unset($p[$theme]);update_option('elvado_paused_themes',$p);return true;
 } }
 if(!function_exists('paused_themes_notice')){ function paused_themes_notice() {
     if(($GLOBALS['pagenow']??'')==='themes.php'||!(current_user_can('resume_themes')||current_user_can('manage_options')))return;
-    if(!(array)get_option('rrw_paused_themes',[]))return;
+    if(!(array)get_option('elvado_paused_themes',[]))return;
     printf('<div class="notice notice-error"><p><strong>%s</strong><br>%s</p><p><a href="%s">%s</a></p></div>','Mindestens ein Theme wurde wegen eines Fehlers pausiert.','Bitte prüfen Sie die Themes und setzen Sie die Ausführung fort, sobald der Fehler behoben ist.',esc_url(admin_url('themes.php')),'Zu den Themes');
 } }
 

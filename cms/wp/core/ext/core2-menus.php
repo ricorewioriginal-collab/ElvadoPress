@@ -24,7 +24,7 @@ if(!function_exists('wp_setup_nav_menu_item')){ function wp_setup_nav_menu_item(
     return apply_filters('wp_setup_nav_menu_item',$menu_item);
 } }
 if(!function_exists('wp_get_associated_nav_menu_items')){ function wp_get_associated_nav_menu_items($object_id=0, $object_type='post_type', $taxonomy='') {
-    $ids=[];foreach(['top','bottom'] as $m)foreach(rrw_wp_cms_menu_items($m) as $it)
+    $ids=[];foreach(['top','bottom'] as $m)foreach(elvado_wp_cms_menu_items($m) as $it)
         if((int)$it->object_id===(int)$object_id&&$it->type===$object_type&&($object_type!=='taxonomy'||$it->object===$taxonomy))$ids[]=(int)$it->db_id;
     return array_values(array_unique($ids));
 } }

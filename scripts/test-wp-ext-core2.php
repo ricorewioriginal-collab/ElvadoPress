@@ -3,16 +3,16 @@
 // Dateisystem/PclZip, Upgrader-Skins, Listen-Tabellen, Site Health, Kernklassen, Sitzungen, Übersetzungsdateien, Blöcke, REST/oEmbed, Widgets, HTTP, XML-RPC, Bild-Editoren.
 // Aufruf: php scripts/test-wp-ext-core2.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/rrw-extcore2-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('RRW_WP_DATA',$tmp.'/cms/.wp');define('RRW_WP_CMS_DATA',$tmp.'/cms');define('RRW_WP_TESTING',true);
-$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['RRW_SITE']=[];
+$tmp=sys_get_temp_dir().'/elvado-extcore2-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/wp-content/languages');mkdir($tmp.'/cms');
+define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');define('ELVADO_WP_TESTING',true);
+$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['ELVADO_SITE']=[];
 require __DIR__.'/_testdb.php';
 require __DIR__.'/../cms/wp/load.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-function as_user(int $id,string $login,string $role): void { $GLOBALS['rrw_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>rrw_wp_caps_for_role($role)]; }
-rrw_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
-$GLOBALS['rrw_wp_die_throws']=true;
+function as_user(int $id,string $login,string $role): void { $GLOBALS['elvado_wp_user']=['id'=>$id,'login'=>$login,'name'=>$login,'email'=>$login.'@example.test','role'=>$role,'caps'=>elvado_wp_caps_for_role($role)]; }
+elvado_wp_boot(['theme'=>false,'user'=>['id'=>1,'login'=>'admin','name'=>'Administration','email'=>'a@example.test','role'=>'administrator']]);
+$GLOBALS['elvado_wp_die_throws']=true;
 function out(callable $f): string { ob_start();try{ $f(); }finally{ $s=ob_get_clean(); }return $s; }
 function rm_rf(string $d): void { if(!is_dir($d))return;foreach(scandir($d) as $x){ if($x==='.'||$x==='..')continue;is_dir("$d/$x")&&!is_link("$d/$x")?rm_rf("$d/$x"):@unlink("$d/$x"); }@rmdir($d); }
 
@@ -178,7 +178,7 @@ $col=wp_register_font_collection('Meine Schriften',['name'=>'M','font_families'=
 t('wp_register_font_collection',$col instanceof WP_Font_Collection&&$col->slug==='meine-schriften'&&$col->get_data()['font_families']===[['x'=>1]]);
 t('Schriftensammlung doppelt/leer',wp_register_font_collection('meine-schriften',[])->get_error_code()==='font_collection_already_registered'&&wp_register_font_collection('',[])->get_error_code()==='font_collection_missing_slug');
 t('wp_unregister_font_collection',wp_unregister_font_collection('meine-schriften')&&!wp_unregister_font_collection('meine-schriften'));
-_wp_register_default_font_collections();t('Standard-Schriftensammlung',isset($GLOBALS['rrw_font_collections']['google-fonts']));
+_wp_register_default_font_collections();t('Standard-Schriftensammlung',isset($GLOBALS['elvado_font_collections']['google-fonts']));
 $fam=wp_insert_post(['post_type'=>'wp_font_family','post_title'=>'Fam','post_status'=>'publish','post_content'=>'{}']);
 $face=wp_insert_post(['post_type'=>'wp_font_face','post_title'=>'Face','post_status'=>'publish','post_parent'=>$fam,'post_content'=>'{}']);
 $ffile=wp_get_font_dir()['path'].'/test-face.woff2';file_put_contents($ffile,'x');add_post_meta($face,'_wp_font_face_file','test-face.woff2');
@@ -241,7 +241,7 @@ t('wp_is_fatal_error_handler_enabled',wp_is_fatal_error_handler_enabled()===true
 add_filter('wp_fatal_error_handler_enabled','__return_false');t('Fehlerbehandlung abschaltbar',!wp_is_fatal_error_handler_enabled());remove_all_filters('wp_fatal_error_handler_enabled');
 $fh=new WP_Fatal_Error_Handler();$rf=new ReflectionMethod($fh,'detect_error');
 t('WP_Fatal_Error_Handler: kein Fehler',$rf->invoke($fh)===null);
-$rt=new ReflectionMethod($fh,'display_default_error_template');$died=false;try{ $rt->invoke($fh,['type'=>E_ERROR,'message'=>'x'],false); }catch(RRW_WP_Die $d){ $died=true; }
+$rt=new ReflectionMethod($fh,'display_default_error_template');$died=false;try{ $rt->invoke($fh,['type'=>E_ERROR,'message'=>'x'],false); }catch(ELVADO_WP_Die $d){ $died=true; }
 t('WP_Fatal_Error_Handler: Fehlerseite per wp_die',$died);
 wp_register_fatal_error_handler();t('wp_register_fatal_error_handler ist wiederholbar',true);
 $ks=new WP_Recovery_Mode_Key_Service();$tok=$ks->generate_recovery_mode_token();$key=$ks->generate_and_store_recovery_mode_key($tok);
@@ -308,7 +308,7 @@ $ts=new Theme_Upgrader_Skin(['theme'=>'tt']);t('Theme_Upgrader_Skin',$ts->theme=
 $bp=new Bulk_Plugin_Upgrader_Skin();$bt=new Bulk_Theme_Upgrader_Skin();$bp->before();$bt->before();
 t('Bulk-Skins',$bp->in_loop&&$bt->in_loop&&($bp->after()||!$bp->in_loop)&&$bp instanceof WP_Upgrader_Skin);
 $lp=new Language_Pack_Upgrader_Skin(['language_update'=>(object)['language'=>'de_DE']]);t('Language_Pack_Upgrader_Skin',$lp->language_update->language==='de_DE'&&$lp->options['title']!=='');
-$_FILES=[];$_GET=[];$thrown=false;try{ new File_Upload_Upgrader('pluginzip','package'); }catch(RRW_WP_Die $d){ $thrown=true; }
+$_FILES=[];$_GET=[];$thrown=false;try{ new File_Upload_Upgrader('pluginzip','package'); }catch(ELVADO_WP_Die $d){ $thrown=true; }
 t('File_Upload_Upgrader ohne Datei: wp_die',$thrown);
 file_put_contents(wp_upload_dir(null,false)['basedir'].'/pak.zip','x');@mkdir(wp_upload_dir(null,false)['basedir'].'/upgrade',0775,true);file_put_contents(wp_upload_dir(null,false)['basedir'].'/upgrade/pak.zip','x');
 $_GET['package']='pak.zip';$fu=new File_Upload_Upgrader('pluginzip','package');$_GET=[];
@@ -498,7 +498,7 @@ file_put_contents($tmp.'/kaputt.mo','nope-nope-nope-nope-nope-nope-nope');t('WP_
 file_put_contents($tmp.'/fr_FR.l10n.php','<?php return '.var_export(['domain'=>'d','plural-forms'=>'nplurals=2; plural=n > 1;','language'=>'fr_FR','messages'=>['Hello'=>'Bonjour',"One\0Many"=>"Un\0Plusieurs"]],true).';');
 $pf=WP_Translation_File::create($tmp.'/fr_FR.l10n.php');
 t('WP_Translation_File_PHP',$pf instanceof WP_Translation_File_PHP&&$pf->translate('Hello')==='Bonjour'&&$pf->get_language()==='fr_FR'&&$pf->translate_plural(['One','Many'],0)==='Un'&&$pf->translate_plural(['One','Many'],2)==='Plusieurs');
-t('Plural-Formeln',RRW_C2_Plural::index('nplurals=1; plural=0;',5)===0&&RRW_C2_Plural::index('nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);',3)===1&&RRW_C2_Plural::index('nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);',7)===2&&RRW_C2_Plural::index('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : 1);',21)===0&&RRW_C2_Plural::index('quatsch',1)===0);
+t('Plural-Formeln',ELVADO_C2_Plural::index('nplurals=1; plural=0;',5)===0&&ELVADO_C2_Plural::index('nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);',3)===1&&ELVADO_C2_Plural::index('nplurals=3; plural=(n==1 ? 0 : n>=2 && n<=4 ? 1 : 2);',7)===2&&ELVADO_C2_Plural::index('nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : 1);',21)===0&&ELVADO_C2_Plural::index('quatsch',1)===0);
 $tr=new WP_Translations($tf,'dom');t('WP_Translations',$tr->translate('Hello')==='Hallo'&&$tr->translate('Fremd')==='Fremd'&&$tr->translate_plural('One','Many',3)==='Viele'&&$tr->translate_plural('A','B',1)==='A');
 $tc=WP_Translation_Controller::get_instance();
 t('WP_Translation_Controller',$tc===WP_Translation_Controller::get_instance()&&$tc->load_file($tmp.'/de_DE.mo','dom','de_DE')&&$tc->is_textdomain_loaded('dom','de_DE')&&$tc->translate('Hello',null,'dom','de_DE')==='Hallo'&&$tc->translate('Hello',null,'andere','de_DE')===false&&$tc->translate_plural(['One','Many'],2,null,'dom','de_DE')==='Viele'&&!$tc->load_file($tmp.'/gibts.mo','dom','de_DE'));
@@ -664,7 +664,7 @@ $wc=new WP_HTTP_IXR_Client('https://xr.example/xmlrpc.php');
 t('WP_HTTP_IXR_Client',$wc->query('m.echo',1)&&$wc->getResponse()==['echo'=>[1]]&&$wc->scheme==='https'&&$last[0]==='https://xr.example:443/xmlrpc.php'&&$last[1]['headers']['Content-Type']==='text/xml');
 $wf=new WP_HTTP_IXR_Client('https://fehler.example/x.php');t('WP_HTTP_IXR_Client: HTTP-Fehler',$wf->query('m.echo')===false&&$wf->getErrorCode()===-32301);
 remove_all_filters('pre_http_request');
-$xu=wp_create_user('xmluser','pw-123456','xml@example.test');$GLOBALS['rrw_wp_user']=null;
+$xu=wp_create_user('xmluser','pw-123456','xml@example.test');$GLOBALS['elvado_wp_user']=null;
 $xs=new wp_xmlrpc_server();$xs->callbacks=$xs->methods;$xs->setCallbacks();
 t('wp_xmlrpc_server: Methoden',isset($xs->methods['wp.getPost'],$xs->methods['demo.sayHello'])&&$xs instanceof IXR_Server&&isset($xs->blog_options['blog_title']));
 t('wp_xmlrpc_server: demo.*',str_contains(out(fn()=>$xs->serve($call('demo.sayHello',[]))),'<string>Hallo!</string>')&&str_contains(out(fn()=>$xs->serve($call('demo.addTwoNumbers',[[4,5]]))),'<int>9</int>'));
@@ -685,8 +685,8 @@ $esc=['x'=>"a'b",'y'=>['z'=>'c"d']];(new wp_xmlrpc_server())->escape($esc);t('wp
 /* ───────── Bild-Editoren ───────── */
 $img=imagecreatetruecolor(100,60);imagefill($img,0,0,imagecolorallocate($img,200,30,30));imagepng($img,$tmp.'/b.png');imagedestroy($img);
 $ed=WP_Image_Editor::get_instance($tmp.'/b.png');
-t('WP_Image_Editor::get_instance (GD)',$ed instanceof WP_Image_Editor_GD&&$ed->get_size()==['width'=>100,'height'=>60]&&WP_Image_Editor_GD::test(['rrw_direct'=>true])&&!WP_Image_Editor_GD::test()&&WP_Image_Editor_GD::supports_mime_type('image/png')&&!WP_Image_Editor_GD::supports_mime_type('image/xyz')&&$ed->get_suffix()==='100x60');
-add_filter('rrw_wp_image_editor_enabled','__return_true');t('Bild-Editor: Aktivierung per Filter',WP_Image_Editor_GD::test()&&_wp_image_editor_choose()==='WP_Image_Editor_GD');remove_all_filters('rrw_wp_image_editor_enabled');t('Bild-Editor: Standard ist aus',_wp_image_editor_choose()===false);
+t('WP_Image_Editor::get_instance (GD)',$ed instanceof WP_Image_Editor_GD&&$ed->get_size()==['width'=>100,'height'=>60]&&WP_Image_Editor_GD::test(['elvado_direct'=>true])&&!WP_Image_Editor_GD::test()&&WP_Image_Editor_GD::supports_mime_type('image/png')&&!WP_Image_Editor_GD::supports_mime_type('image/xyz')&&$ed->get_suffix()==='100x60');
+add_filter('elvado_wp_image_editor_enabled','__return_true');t('Bild-Editor: Aktivierung per Filter',WP_Image_Editor_GD::test()&&_wp_image_editor_choose()==='WP_Image_Editor_GD');remove_all_filters('elvado_wp_image_editor_enabled');t('Bild-Editor: Standard ist aus',_wp_image_editor_choose()===false);
 t('WP_Image_Editor: Fehlerfälle',WP_Image_Editor::get_instance($tmp.'/gibts.png') instanceof WP_Error&&!WP_Image_Editor_Imagick::test()&&WP_Image_Editor_Imagick::supports_mime_type('image/png')===false&&is_wp_error($ed->set_quality(0))&&$ed->set_quality(70)===true&&$ed->get_quality()===70);
 t('WP_Image_Editor_GD::resize',$ed->resize(50,30)===true&&$ed->get_size()==['width'=>50,'height'=>30]&&$ed->resize(50,30)===true);
 $sv=$ed->save($tmp.'/b-klein.png');

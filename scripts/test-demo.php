@@ -6,7 +6,7 @@ $root=dirname(__DIR__);
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
 function rmrf(string $d): void { if(!is_dir($d))return; foreach(scandir($d) as $f){if($f==='.'||$f==='..')continue;$p=$d.'/'.$f;is_dir($p)&&!is_link($p)?rmrf($p):@unlink($p);} @rmdir($d); }
-$tmp=sys_get_temp_dir().'/rrw-demo-'.bin2hex(random_bytes(4));mkdir($tmp);$pkg=$tmp.'/pkg';$proc=null;
+$tmp=sys_get_temp_dir().'/elvado-demo-'.bin2hex(random_bytes(4));mkdir($tmp);$pkg=$tmp.'/pkg';$proc=null;
 register_shutdown_function(function() use($tmp,&$proc){ if(is_resource($proc))proc_terminate($proc);rmrf($tmp); });
 // Entwicklungsprojekt: Paket bauen (--demo). ElvadoPress selbst: Kopie des Repositories + scripts/make-demo.php.
 if(is_file($root.'/scripts/build-standalone.php')){
@@ -38,7 +38,7 @@ $B="http://127.0.0.1:$port";
 /* Erste Anfrage richtet die Demo selbst ein */
 $r=http('GET',"$B/");
 t('Startseite sofort eingerichtet (kein Assistent)',$r['code']===200&&str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'Live-Demo'),'HTTP '.$r['code'].' '.substr(strip_tags($r['body']),0,120));
-t('Demo-Leiste im HTML der Website',str_contains($r['body'],'window.RRW_DEMO')&&str_contains($r['body'],'/cms/assets/demo.js'));
+t('Demo-Leiste im HTML der Website',str_contains($r['body'],'window.ELVADO_DEMO')&&str_contains($r['body'],'/cms/assets/demo.js'));
 t('Sperrdatei und Zustand vorhanden',is_file("$pkg/cms/data/install.lock")&&is_file("$pkg/cms/demo-state/state.json"));
 $st=json_decode((string)file_get_contents("$pkg/cms/demo-state/state.json"),true)?:[];
 t('Zeitfenster läuft (≈10 Minuten)',abs(((int)($st['started']??0)+600)-(time()+600))<30&&($st['resets']??0)===1,json_encode($st));
@@ -61,7 +61,7 @@ t('Keine RicoReWi-Inhalte auf der Demo-Homepage',!stripos(str_replace('github.co
 $r=http('GET',"$B/demo/");
 t('Info-Seite erreichbar',$r['code']===200&&str_contains($r['body'],'Live-Demo'));
 $r=http('GET',"$B/cms/index.php");
-t('Verwaltung mit Demo-Skript',$r['code']===200&&str_contains($r['body'],'window.RRW_DEMO')&&str_contains($r['body'],'assets/demo.js'),'HTTP '.$r['code'].' '.substr($r['body'],0,200));
+t('Verwaltung mit Demo-Skript',$r['code']===200&&str_contains($r['body'],'window.ELVADO_DEMO')&&str_contains($r['body'],'assets/demo.js'),'HTTP '.$r['code'].' '.substr($r['body'],0,200));
 $r=http('GET',"$B/cms/api.php?action=demo_status");
 t('demo_status öffentlich mit Zugang und Rücksetzzeit',($r['json']['status']??'')==='ok'&&($r['json']['user']??'')==='demo'&&($r['json']['reset_at']??0)>time()&&($r['json']['minutes']??0)===10,$r['body']);
 $r=http('GET',"$B/cms/lib/demo.json");
@@ -106,7 +106,7 @@ $nl=http('GET',"$B/cms/api.php?action=news_list",null,$H);$saved=null;foreach(($
 t('Veröffentlichungszeit wird als "Y-m-d H:i:s" gespeichert',is_array($saved)&&preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',(string)($saved['published_at']??'')),json_encode($saved['published_at']??null));
 $pub=http('GET',"$B/zeitformat-test/");
 t('Beitrag mit Editor-Zeitformat ist öffentlich sichtbar',$pub['code']===200,'HTTP '.$pub['code']);
-t('Mailversand ist in der Demo aus',(function() use($pkg){ $c='<?php define("RRW_DEMO",true);require "'.$pkg.'/cms/lib/mail.php";var_dump(rrw_send_mail("a@example.test","s","b","x@example.test"));'; exec('php -r '.escapeshellarg(substr($c,6)).' 2>&1',$o);return trim(implode('',$o))==='bool(false)'; })());
+t('Mailversand ist in der Demo aus',(function() use($pkg){ $c='<?php define("ELVADO_DEMO",true);require "'.$pkg.'/cms/lib/mail.php";var_dump(elvado_send_mail("a@example.test","s","b","x@example.test"));'; exec('php -r '.escapeshellarg(substr($c,6)).' 2>&1',$o);return trim(implode('',$o))==='bool(false)'; })());
 
 /* Rücksetzen nach Ablauf */
 $sf="$pkg/cms/demo-state/state.json";

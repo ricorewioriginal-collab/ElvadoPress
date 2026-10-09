@@ -6,14 +6,14 @@ if(!defined('ABSPATH'))exit;
 /** Komponenten-Registry von ElvadoPress (Kern + aktive Erweiterungen). Das Schema der Abschnitte kommt von dort (eine Quelle für Theme und Verwaltung). */
 function elvado_bk_registry(): \Elvado\Components\Registry {
     require_once dirname(__DIR__,3).'/lib/components.php';
-    return rrw_components();
+    return elvado_components();
 }
 const ELVADO_BK_TYPES=['hero','text','features','image_text','posts','cta','html','spacer'];
 /** WordPress-Komponenten, die dieses Theme selbst ausgibt (Shortcode, Block, Widget-Bereich, Plugin-Widget). */
 const ELVADO_BK_WP_TYPES=['widget_area','wp_shortcode','wp_block','plugin_widget'];
 /** Alle Komponenten, die das Theme ausgeben kann: die acht eigenen, alle nativen (ohne festen Platz wie Header/Footer) und die WordPress-Komponenten. @return list<string> */
 function elvado_bk_supported(): array {
-    $r=elvado_bk_registry();$feat=function_exists('rrw_components_features')?rrw_components_features(function_exists('rrw_wp_cms_dir')?rrw_wp_cms_dir():null):[];
+    $r=elvado_bk_registry();$feat=function_exists('elvado_components_features')?elvado_components_features(function_exists('elvado_wp_cms_dir')?elvado_wp_cms_dir():null):[];
     $ids=[];foreach(ELVADO_BK_TYPES as $t)if($r->has($t))$ids[]=$t;
     foreach($r->all() as $c){ if(in_array($c->id,$ids,true))continue;
         if($c->feature!==''&&!in_array($c->feature,$feat,true))continue;
@@ -24,7 +24,7 @@ function elvado_bk_schema(): array { return elvado_bk_registry()->legacySchema(e
 /** Layout-Speicher (Entwurf, Veröffentlichen, Revisionen, Termin): Dateien unter cms/data/layouts, Bereich „home“. */
 function elvado_bk_store(): \Elvado\Components\LayoutStore {
     require_once dirname(__DIR__,3).'/lib/components.php';
-    return rrw_components_store(function_exists('rrw_wp_cms_dir')?rrw_wp_cms_dir():null);
+    return elvado_components_store(function_exists('elvado_wp_cms_dir')?elvado_wp_cms_dir():null);
 }
 function elvado_bk_actor(): \Elvado\Wp\Actor { return $GLOBALS['elvado_bk_actor']??new \Elvado\Wp\Actor('system','admin'); }
 function elvado_bk_default_props(string $type): array {
@@ -101,6 +101,6 @@ function elvado_bk_draft_layout(): ?array { $d=elvado_bk_store()->get('home')['d
 function elvado_bk_save_draft($raw,string $publishAt=''): array { $l=elvado_bk_clean_layout($raw);elvado_bk_store()->saveDraft('home',$l,elvado_bk_actor(),$publishAt,true);return $l; }
 function elvado_bk_discard_draft(): void { elvado_bk_store()->discard('home',elvado_bk_actor()); }
 function elvado_bk_active_layout(): array {
-    if((string)($GLOBALS['rrw_wp_preview_theme']??'')==='elvado-baukasten'&&($d=elvado_bk_draft_layout())!==null)return $d;
+    if((string)($GLOBALS['elvado_wp_preview_theme']??'')==='elvado-baukasten'&&($d=elvado_bk_draft_layout())!==null)return $d;
     $l=elvado_bk_saved_layout();return $l!==null?$l:elvado_bk_layout_from_mods();
 }

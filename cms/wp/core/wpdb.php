@@ -1,6 +1,6 @@
 <?php
 // WordPress-kompatibles $wpdb. Datenbank: MySQL (wenn im CMS unter „Datenbank“ konfiguriert) oder SQLite (cms/data/.wp/wp.sqlite).
-// Plugins schreiben MySQL-SQL; für SQLite übersetzt RRW_SQL_Translator die gängigen MySQL-Besonderheiten.
+// Plugins schreiben MySQL-SQL; für SQLite übersetzt ELVADO_SQL_Translator die gängigen MySQL-Besonderheiten.
 
 if(!class_exists('wpdb')){
 class wpdb {
@@ -21,7 +21,7 @@ class wpdb {
     }
     private function attach($pdo): void {
         $this->connected=true;$this->pdo=$pdo;$this->ready=(bool)$pdo;
-        if($pdo){ $this->driver=$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);$this->is_mysql=$this->driver==='mysql'; if($this->driver==='sqlite')$this->tr=new RRW_SQL_Translator($pdo); }
+        if($pdo){ $this->driver=$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);$this->is_mysql=$this->driver==='mysql'; if($this->driver==='sqlite')$this->tr=new ELVADO_SQL_Translator($pdo); }
     }
     private function conn() {
         if(!$this->connected){ $c=$this->connector;$this->attach($c?$c():null); }
@@ -41,7 +41,7 @@ class wpdb {
     public function hide_errors() { $o=$this->show_errors;$this->show_errors=false;return $o; }
     public function suppress_errors($suppress=true) { $o=$this->suppress_errors;$this->suppress_errors=(bool)$suppress;return $o; }
     public function flush() { $this->last_result=[];$this->last_error='';$this->rows_affected=0;$this->num_rows=0; }
-    public function print_error($str='') { rrw_wp_log('SQL-Fehler: '.($str?:$this->last_error).' – '.mb_substr($this->last_query,0,300)); if($this->show_errors)echo '<div class="wpdb-error">'.esc_html($str?:$this->last_error).'</div>'; return false; }
+    public function print_error($str='') { elvado_wp_log('SQL-Fehler: '.($str?:$this->last_error).' – '.mb_substr($this->last_query,0,300)); if($this->show_errors)echo '<div class="wpdb-error">'.esc_html($str?:$this->last_error).'</div>'; return false; }
     public function get_col_info($info_type='name', $col_offset=-1) { return []; }
     public function check_connection($allow_bail=true) { return $this->ready; }
     public function esc_like($text) { return addcslashes((string)$text,'_%\\'); }
@@ -146,9 +146,9 @@ class wpdb {
             return $n;
         }catch(Throwable $e){
             // Kern-Tabellen fehlen noch (Plugin greift direkt auf wp_options o. Ä. zu): Schema einmal anlegen und die Abfrage wiederholen
-            if(!$this->schema_tried&&preg_match('/no such table|doesn\'t exist|does not exist|Base table or view not found/i',$e->getMessage())&&preg_match('/\b'.preg_quote($this->prefix,'/').'(options|posts|postmeta|users|usermeta|terms|term_taxonomy|term_relationships|termmeta|comments|commentmeta|links)\b/',$query)&&function_exists('rrw_wp_install_schema')){
+            if(!$this->schema_tried&&preg_match('/no such table|doesn\'t exist|does not exist|Base table or view not found/i',$e->getMessage())&&preg_match('/\b'.preg_quote($this->prefix,'/').'(options|posts|postmeta|users|usermeta|terms|term_taxonomy|term_relationships|termmeta|comments|commentmeta|links)\b/',$query)&&function_exists('elvado_wp_install_schema')){
                 $this->schema_tried=true;$this->ready=true;
-                try{ rrw_wp_install_schema(); }catch(Throwable $e2){}
+                try{ elvado_wp_install_schema(); }catch(Throwable $e2){}
                 return $this->query($query);
             }
             $this->last_error=$e->getMessage();$this->print_error();return false;
@@ -192,7 +192,7 @@ class wpdb {
 }
 
 /** Übersetzt gängiges MySQL-SQL nach SQLite. Funktionen (CONCAT, NOW, …) werden als SQLite-Funktionen bereitgestellt. */
-class RRW_SQL_Translator {
+class ELVADO_SQL_Translator {
     private $pdo;
     public function __construct(PDO $pdo) {
         $this->pdo=$pdo;
@@ -204,7 +204,7 @@ class RRW_SQL_Translator {
         $f('UNIX_TIMESTAMP',fn($d=null)=>$d===null?time():(int)strtotime((string)$d.' UTC'));
         $f('FROM_UNIXTIME',fn($t,$fmt=null)=>$fmt?gmdate(str_replace(['%Y','%m','%d','%H','%i','%s'],['Y','m','d','H','i','s'],(string)$fmt),(int)$t):gmdate('Y-m-d H:i:s',(int)$t));
         $f('DATE_FORMAT',function($d,$fmt){ $ts=strtotime((string)$d.' UTC');if($ts===false)return null;return gmdate(strtr((string)$fmt,['%Y'=>'Y','%y'=>'y','%m'=>'m','%c'=>'n','%d'=>'d','%e'=>'j','%H'=>'H','%k'=>'G','%i'=>'i','%s'=>'s','%S'=>'s','%M'=>'F','%b'=>'M','%W'=>'l','%a'=>'D','%j'=>'z','%%'=>'%']),$ts); },2);
-        $f('rrw_date_add',function($d,$n,$unit){ $u=['SECOND'=>'seconds','MINUTE'=>'minutes','HOUR'=>'hours','DAY'=>'days','WEEK'=>'weeks','MONTH'=>'months','YEAR'=>'years'][strtoupper((string)$unit)]??'days';$ts=strtotime((string)$d.' UTC '.((int)$n>=0?'+':'').(int)$n.' '.$u);return $ts===false?null:gmdate('Y-m-d H:i:s',$ts); },3);
+        $f('elvado_date_add',function($d,$n,$unit){ $u=['SECOND'=>'seconds','MINUTE'=>'minutes','HOUR'=>'hours','DAY'=>'days','WEEK'=>'weeks','MONTH'=>'months','YEAR'=>'years'][strtoupper((string)$unit)]??'days';$ts=strtotime((string)$d.' UTC '.((int)$n>=0?'+':'').(int)$n.' '.$u);return $ts===false?null:gmdate('Y-m-d H:i:s',$ts); },3);
         $f('FIND_IN_SET',function($n,$list){ $i=array_search((string)$n,explode(',',(string)$list),true);return $i===false?0:$i+1; },2);
         $f('FIELD',function($v,...$list){ $i=array_search((string)$v,array_map('strval',$list),true);return $i===false?0:$i+1; });
         $f('RAND',fn()=>mt_rand()/mt_getrandmax(),-1);$f('LEFT',fn($s,$n)=>mb_substr((string)$s,0,(int)$n),2);$f('RIGHT',fn($s,$n)=>mb_substr((string)$s,-(int)$n),2);
@@ -255,7 +255,7 @@ class RRW_SQL_Translator {
         $q=preg_replace('/\bCAST\s*\((.+?)\s+AS\s+(?:DECIMAL\s*\([^)]*\)|DOUBLE|FLOAT)\)/i','CAST($1 AS REAL)',$q);
         $q=preg_replace('/\bCAST\s*\((.+?)\s+AS\s+(?:CHAR|BINARY|DATETIME|DATE)(?:\s*\(\d+\))?\)/i','CAST($1 AS TEXT)',$q);
         $q=preg_replace('/\bCOLLATE\s+\w+/i','',$q);$q=preg_replace('/\bBINARY\s+(?=[\'`\w(])/i','',$q);
-        $q=preg_replace_callback('/\bDATE_(ADD|SUB)\s*\(\s*(.+?)\s*,\s*INTERVAL\s+(-?\d+|\'-?\d+\')\s+(\w+)\s*\)/i',fn($m)=>'rrw_date_add('.$m[2].', '.(strtoupper($m[1])==='SUB'?'-':'').'('.trim($m[3],"'").'), \''.$m[4].'\')',$q);
+        $q=preg_replace_callback('/\bDATE_(ADD|SUB)\s*\(\s*(.+?)\s*,\s*INTERVAL\s+(-?\d+|\'-?\d+\')\s+(\w+)\s*\)/i',fn($m)=>'elvado_date_add('.$m[2].', '.(strtoupper($m[1])==='SUB'?'-':'').'('.trim($m[3],"'").'), \''.$m[4].'\')',$q);
         $q=preg_replace('/\bIF\s*\(/i','iif(',$q);
         // ON DUPLICATE KEY UPDATE → ON CONFLICT(…) DO UPDATE
         if(preg_match('/^\s*INSERT\s+INTO\s+`?(\w+)`?.*\bON\s+DUPLICATE\s+KEY\s+UPDATE\b(.*)$/is',$q,$m)){
@@ -326,37 +326,37 @@ class RRW_SQL_Translator {
     }
 }
 
-/** Gespeicherte Datenbank-Konfiguration des CMS (cms/data/database.local.php bzw. RRW_DB_CONFIG_FILE) oder null. */
-function rrw_wp_db_config(): ?array {
+/** Gespeicherte Datenbank-Konfiguration des CMS (cms/data/database.local.php bzw. ELVADO_DB_CONFIG_FILE) oder null. */
+function elvado_wp_db_config(): ?array {
     static $c=false;if($c!==false)return $c;$c=null;
-    if(function_exists('rrw_site_current')&&rrw_site_current()!=='')return $c;   // weitere Website: eigene SQLite-Ablage (RRW_WP_DATA) – keine gemeinsamen Tabellen mit der Hauptwebsite
-    $f=defined('RRW_DB_CONFIG_FILE')?(string)RRW_DB_CONFIG_FILE:dirname(__DIR__,2).'/data/database.local.php';
+    if(function_exists('elvado_site_current')&&elvado_site_current()!=='')return $c;   // weitere Website: eigene SQLite-Ablage (ELVADO_WP_DATA) – keine gemeinsamen Tabellen mit der Hauptwebsite
+    $f=defined('ELVADO_DB_CONFIG_FILE')?(string)ELVADO_DB_CONFIG_FILE:dirname(__DIR__,2).'/data/database.local.php';
     if(is_file($f)){ $x=@include $f;if(is_array($x)&&in_array($x['driver']??'',['mysql','mariadb'],true))$c=$x; }
     return $c;
 }
 /** Datenbankverbindung für $wpdb: MySQL/MariaDB aus der CMS-Konfiguration, sonst SQLite-Datei (SQLite wird über den SQL-Übersetzer bedient; PostgreSQL gilt nur für den CMS-Spiegel). */
-function rrw_wp_db_connect(): ?PDO {
+function elvado_wp_db_connect(): ?PDO {
     static $pdo=false;if($pdo!==false)return $pdo;
     $pdo=null;
     try{
-        $cfg=rrw_wp_db_config();
+        $cfg=elvado_wp_db_config();
         if($cfg&&extension_loaded('pdo_mysql')){
             $dsn='mysql:'.(($cfg['socket']??'')!==''?'unix_socket='.$cfg['socket']:'host='.($cfg['host']??'127.0.0.1').';port='.(int)($cfg['port']??3306)).';dbname='.($cfg['database']??'').';charset='.($cfg['charset']??'utf8mb4');
             $pdo=new PDO($dsn,(string)($cfg['user']??''),(string)($cfg['password']??''),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>true,PDO::ATTR_TIMEOUT=>6]);
             return $pdo;
         }
         if(extension_loaded('pdo_sqlite')){
-            if(!is_dir(RRW_WP_DATA)){@mkdir(RRW_WP_DATA,0775,true);rrw_wp_protect_dir(RRW_WP_DATA);}
-            $path=defined('RRW_WP_SQLITE')?RRW_WP_SQLITE:RRW_WP_DATA.'/wp.sqlite';
+            if(!is_dir(ELVADO_WP_DATA)){@mkdir(ELVADO_WP_DATA,0775,true);elvado_wp_protect_dir(ELVADO_WP_DATA);}
+            $path=defined('ELVADO_WP_SQLITE')?ELVADO_WP_SQLITE:ELVADO_WP_DATA.'/wp.sqlite';
             $pdo=new PDO('sqlite:'.$path,null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
             return $pdo;
         }
-    }catch(Throwable $e){ rrw_wp_log('Datenbankverbindung: '.preg_replace('/password=\S+/i','password=***',$e->getMessage()));$pdo=null; }
+    }catch(Throwable $e){ elvado_wp_log('Datenbankverbindung: '.preg_replace('/password=\S+/i','password=***',$e->getMessage()));$pdo=null; }
     return $pdo;
 }
-function rrw_wp_init_db(): wpdb {
+function elvado_wp_init_db(): wpdb {
     if(!isset($GLOBALS['wpdb'])||!($GLOBALS['wpdb'] instanceof wpdb)){
-        $GLOBALS['wpdb']=new wpdb('rrw_wp_db_connect',(string)(defined('RRW_WP_TABLE_PREFIX')?RRW_WP_TABLE_PREFIX:((rrw_wp_db_config()['prefix']??'')?:'wp_')));
+        $GLOBALS['wpdb']=new wpdb('elvado_wp_db_connect',(string)(defined('ELVADO_WP_TABLE_PREFIX')?ELVADO_WP_TABLE_PREFIX:((elvado_wp_db_config()['prefix']??'')?:'wp_')));
     }
     return $GLOBALS['wpdb'];
 }

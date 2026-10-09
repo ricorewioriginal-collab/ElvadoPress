@@ -3,7 +3,7 @@
   'use strict';
   function init(){
     var tabs=document.querySelector('.tabs');if(!tabs||tabs.querySelector('.cms-brand'))return;
-    var p=window.RRW_PRODUCT||{},name=String(p.name||p.title||'ElvadoPress').replace(/\s*(Verwaltung|CMS)$/i,'')||'ElvadoPress';
+    var p=window.ELVADO_PRODUCT||{},name=String(p.name||p.title||'ElvadoPress').replace(/\s*(Verwaltung|CMS)$/i,'')||'ElvadoPress';
     var box=document.createElement('div');box.className='cms-brand';
     var mark=p.logo?'<img src="'+String(p.logo).replace(/"/g,'&quot;')+'" alt="">':'<span class="cms-brand-mark" aria-hidden="true">'+name.charAt(0).toUpperCase()+'</span>';
     var b=document.createElement('b');b.textContent=name;var s=document.createElement('small');s.textContent='CMS · DESIGN · APPS · AI';

@@ -14,14 +14,14 @@ if(!function_exists('_wp_privacy_completed_request')){ function _wp_privacy_comp
     $id=absint($request_id);$r=wp_get_user_request($id);
     if(!$r)return new WP_Error('privacy_request_error','Ungültige Anfrage.');
     update_post_meta($id,'_wp_user_request_completed_timestamp',time());
-    rrw_wpx_request_status($id,'request-completed');
+    elvado_wpx_request_status($id,'request-completed');
     return $id;
 } }
 if(!function_exists('_wp_personal_data_handle_actions')){ function _wp_personal_data_handle_actions() {   // Formular-Aktionen der Seiten „Daten exportieren/löschen“
     if(!isset($_POST['action']))return;
     $a=sanitize_key(wp_unslash($_POST['action']));
     if(in_array($a,['add_export_personal_data_request','add_remove_personal_data_request'],true)){
-        check_admin_referer('personal-data-request');if(!rrw_adm_can('export_others_personal_data'))wp_die('Du darfst keine Datenschutzanfragen anlegen.');
+        check_admin_referer('personal-data-request');if(!elvado_adm_can('export_others_personal_data'))wp_die('Du darfst keine Datenschutzanfragen anlegen.');
         $type=$a==='add_export_personal_data_request'?'export_personal_data':'remove_personal_data';
         $in=isset($_POST['username_or_email_for_privacy_request'])?trim(wp_unslash((string)$_POST['username_or_email_for_privacy_request'])):'';
         $email=is_email($in)?$in:'';if($email===''&&$in!==''){ $u=get_user_by('login',$in);if($u)$email=$u->user_email; }
@@ -34,7 +34,7 @@ if(!function_exists('_wp_personal_data_handle_actions')){ function _wp_personal_
     $ids=array_map('absint',(array)($_REQUEST['request_id']??[]));
     foreach($ids as $id){
         if($a==='resend'||$a==='complete'||$a==='delete')check_admin_referer('bulk-privacy_requests');
-        if(!rrw_adm_can('export_others_personal_data'))continue;
+        if(!elvado_adm_can('export_others_personal_data'))continue;
         if($a==='resend')_wp_privacy_resend_request($id);elseif($a==='complete')_wp_privacy_completed_request($id);elseif($a==='delete')wp_delete_post($id,true);
     }
 } }
@@ -61,7 +61,7 @@ if(!function_exists('wp_privacy_generate_personal_data_export_group_html')){ fun
     if($groups_count>1)$h.='<div class="return-to-top"><a href="#top"><span aria-hidden="true">&uarr; </span> Nach oben</a></div>';
     return $h;
 } }
-if(!function_exists('rrw_adm_export_groups')){ function rrw_adm_export_groups(array $raw) {   // Rohdaten der Exporter nach group_id zusammenfassen
+if(!function_exists('elvado_adm_export_groups')){ function elvado_adm_export_groups(array $raw) {   // Rohdaten der Exporter nach group_id zusammenfassen
     $g=[];
     foreach($raw as $items)foreach((array)$items as $it){
         $id=(string)($it['group_id']??'');if($id==='')continue;
@@ -74,7 +74,7 @@ if(!function_exists('wp_privacy_generate_personal_data_export_file')){ function 
     $r=wp_get_user_request($request_id);if(!$r||'export_personal_data'!==$r->action_name)return new WP_Error('invalid_request','Ungültige Anfrage.');
     $dir=wp_privacy_exports_dir();if(!wp_mkdir_p($dir))return new WP_Error('export_dir','Der Export-Ordner konnte nicht angelegt werden.');
     if(!is_file($dir.'index.php'))@file_put_contents($dir.'index.php',"<?php\n// Platzhalter\n");
-    $groups=rrw_adm_export_groups((array)get_post_meta($request_id,'_export_data_raw',true));update_post_meta($request_id,'_export_data_grouped',$groups);
+    $groups=elvado_adm_export_groups((array)get_post_meta($request_id,'_export_data_raw',true));update_post_meta($request_id,'_export_data_grouped',$groups);
     $html='<!doctype html><html><head><meta charset="utf-8"><title>Export personenbezogener Daten</title></head><body><h1 id="top">Export für '.esc_html($r->email).'</h1>';
     foreach($groups as $id=>$g)$html.=wp_privacy_generate_personal_data_export_group_html($g,$id,count($groups));
     $html.='</body></html>';
@@ -190,7 +190,7 @@ if(!function_exists('wp_get_plugin_action_button')){ function wp_get_plugin_acti
             :sprintf('<button type="button" class="button button-disabled" disabled="disabled">Nicht kompatibel</button>');
     }
     if(is_plugin_active($file))return '<button type="button" class="button button-disabled" disabled="disabled">Aktiv</button>';
-    if(rrw_adm_can('activate_plugins',''))return $ok?sprintf('<a href="%s" class="button activate-now" aria-label="%s">Aktivieren</a>',esc_url(wp_nonce_url(self_admin_url('plugins.php?action=activate&plugin='.rawurlencode($file)),'activate-plugin_'.$file)),esc_attr(sprintf('%s aktivieren',$name))):'<button type="button" class="button button-disabled" disabled="disabled">Nicht kompatibel</button>';
+    if(elvado_adm_can('activate_plugins',''))return $ok?sprintf('<a href="%s" class="button activate-now" aria-label="%s">Aktivieren</a>',esc_url(wp_nonce_url(self_admin_url('plugins.php?action=activate&plugin='.rawurlencode($file)),'activate-plugin_'.$file)),esc_attr(sprintf('%s aktivieren',$name))):'<button type="button" class="button button-disabled" disabled="disabled">Nicht kompatibel</button>';
     return '<button type="button" class="button button-disabled" disabled="disabled">Installiert</button>';
 } }
 

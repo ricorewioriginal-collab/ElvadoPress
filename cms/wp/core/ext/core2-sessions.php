@@ -139,7 +139,7 @@ class PasswordHash {
         return $o;
     }
     public function gensalt_private($input) { return '$P$'.$this->itoa64[min($this->iteration_count_log2+5,30)].$this->encode64($input,6); }
-    public function crypt_private($password, $setting) { return rrw_wpx_phpass((string)$password,(string)$setting); }
+    public function crypt_private($password, $setting) { return elvado_wpx_phpass((string)$password,(string)$setting); }
     public function gensalt_blowfish($input) {
         $it='./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         $o='$2a$'.chr(ord('0')+intdiv($this->iteration_count_log2,10)).chr(ord('0')+$this->iteration_count_log2%10).'$';$i=0;
@@ -168,9 +168,9 @@ class PasswordHash {
 }
 
 /* ───────── Übersetzungsdateien (MO und PHP) ───────── */
-if(!class_exists('RRW_C2_Plural')){
+if(!class_exists('ELVADO_C2_Plural')){
 /** Kleiner Auswerter für „plural=…“-Ausdrücke aus Sprachdatei-Köpfen (n, Zahlen, % == != < > <= >= && || ! ?: und Klammern). */
-final class RRW_C2_Plural {
+final class ELVADO_C2_Plural {
     private $t=[];private $i=0;private $n=0;
     public static function index($forms, $n) {
         if(!preg_match('/plural\s*=\s*([^;]+)/',(string)$forms,$m))return (int)$n===1?0:1;
@@ -225,7 +225,7 @@ abstract class WP_Translation_File {
     public function translate_plural($plurals, $number, $context=null) {
         $e=$this->entries();$k=($context!==null&&$context!==''?$context."\x04":'').implode("\0",array_slice((array)$plurals,0,2));
         if(!isset($e[$k]))return false;
-        $forms=explode("\0",$e[$k]);$i=RRW_C2_Plural::index($this->headers()['plural-forms']??'nplurals=2; plural=(n != 1);',(int)$number);
+        $forms=explode("\0",$e[$k]);$i=ELVADO_C2_Plural::index($this->headers()['plural-forms']??'nplurals=2; plural=(n != 1);',(int)$number);
         return $forms[$i]??$forms[0];
     }
 }
@@ -345,7 +345,7 @@ class WP_Locale_Switcher {
     public function get_switched_user_id() { $l=end($this->locales);return $l?$l['user_id']:false; }
     public function filter_locale($locale) { $l=end($this->locales);return $l?$l['locale']:$locale; }
     private function reload($locale) {
-        $GLOBALS['rrw_wp_mo']=[];$GLOBALS['rrw_wp_mo_tried']=[];
+        $GLOBALS['elvado_wp_mo']=[];$GLOBALS['elvado_wp_mo_tried']=[];
         if(isset($GLOBALS['wp_locale'])&&method_exists($GLOBALS['wp_locale'],'init'))$GLOBALS['wp_locale']->init(true);
     }
 }

@@ -50,8 +50,8 @@ final class DatabaseConnection
     {
         $dataDir ??= dirname(__DIR__, 2) . '/data';
         $cfg = [];
-        if (function_exists('rrw_db_config')) {
-            $c = rrw_db_config();
+        if (function_exists('elvado_db_config')) {
+            $c = elvado_db_config();
             if (in_array((string)$c['driver'], ['mysql', 'mariadb', 'sqlite'], true) && $c['driver'] !== 'sqlite') {
                 $cfg = $c;
             }

@@ -19,8 +19,8 @@ Zugangsdaten werden serverseitig in:
 gespeichert. Diese Datei ist in `.gitignore` ausgeschlossen.
 
 Tabellen:
-- `rrw_cms_state`
-- `rrw_cms_news`
+- `elvado_cms_state`
+- `elvado_cms_news`
 
 ## Backups
 

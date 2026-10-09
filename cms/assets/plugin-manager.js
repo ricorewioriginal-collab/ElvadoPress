@@ -1,15 +1,15 @@
 'use strict';
-window.RRWCmsPluginAPI=window.RRWCmsPluginAPI||(()=>{
+window.ELVADOCmsPluginAPI=window.ELVADOCmsPluginAPI||(()=>{
  const listeners=new Map();
  const on=(name,fn)=>{if(typeof fn!=='function')return()=>{};const a=listeners.get(name)||[];a.push(fn);listeners.set(name,a);return()=>listeners.set(name,(listeners.get(name)||[]).filter(x=>x!==fn));};
- const emit=(name,payload)=>{(listeners.get(name)||[]).slice().forEach(fn=>{try{fn(payload);}catch(e){console.warn('RRW CMS plugin hook',name,e);}});};
+ const emit=(name,payload)=>{(listeners.get(name)||[]).slice().forEach(fn=>{try{fn(payload);}catch(e){console.warn('ELVADO CMS plugin hook',name,e);}});};
  return {version:'1.0',on,emit,getConfig:()=>window.CMS||null,refresh:()=>window.cmsReload?.()};
 })();
 const __loadedAdminPlugins=new Set();
 function loadAdminPluginScripts(plugins){
  (plugins||[]).filter(p=>p.active&&p.admin_js).forEach(p=>{
   if(__loadedAdminPlugins.has(p.id))return;__loadedAdminPlugins.add(p.id);
-  const s=document.createElement('script');s.src=p.admin_js+'?v='+Date.now();s.defer=true;s.onload=()=>RRWCmsPluginAPI.emit('plugin:admin-loaded',{id:p.id});s.onerror=()=>s.remove();document.body.appendChild(s);
+  const s=document.createElement('script');s.src=p.admin_js+'?v='+Date.now();s.defer=true;s.onload=()=>ELVADOCmsPluginAPI.emit('plugin:admin-loaded',{id:p.id});s.onerror=()=>s.remove();document.body.appendChild(s);
  });
 }
 window.PluginManager=(()=>{
@@ -36,7 +36,7 @@ window.PluginManager=(()=>{
   document.querySelectorAll('[data-plugin-delete]').forEach(b=>b.addEventListener('click',()=>remove(b.dataset.pluginDelete)));
  }
  function render(){const host=document.getElementById('pluginGrid');if(!host)return;host.innerHTML=plugins.length?plugins.map(card).join(''):'<div class="empty" style="grid-column:1/-1"><i class="fas fa-plug"></i>Noch keine Plugins installiert.</div>';bindCards();}
- async function load(){try{const d=await api('plugins_list');plugins=d.plugins||[];render();loadAdminPluginScripts(plugins);RRWCmsPluginAPI.emit('plugins:loaded',{plugins});}catch(e){const h=document.getElementById('pluginGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1;color:var(--bad)">'+esc(e.message)+'</div>';}}
+ async function load(){try{const d=await api('plugins_list');plugins=d.plugins||[];render();loadAdminPluginScripts(plugins);ELVADOCmsPluginAPI.emit('plugins:loaded',{plugins});}catch(e){const h=document.getElementById('pluginGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1;color:var(--bad)">'+esc(e.message)+'</div>';}}
  async function upload(file){if(!file)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch('api.php?action=plugin_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd});const d=await r.json();if(!r.ok||d.status!=='ok')throw new Error(d.message||'Upload fehlgeschlagen');window.cmsToast?.('Plugin installiert ✓');await load();}catch(e){window.cmsToast?.(e.message,true)}}
  async function toggle(id,enabled){try{await api('plugin_toggle',{id,enabled});window.cmsToast?.(enabled?'Plugin aktiviert ✓':'Plugin deaktiviert');await load();}catch(e){window.cmsToast?.(e.message,true)}}
  async function remove(id){if(!confirm('Plugin wirklich löschen?'))return;try{await api('plugin_delete',{id});window.cmsToast?.('Plugin gelöscht');await load();}catch(e){window.cmsToast?.(e.message,true)}}

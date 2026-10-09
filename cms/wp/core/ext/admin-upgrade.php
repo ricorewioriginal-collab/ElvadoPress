@@ -6,14 +6,14 @@
 
 /* ───────── Optionen und Hilfen ───────── */
 if(!function_exists('__get_option')){ function __get_option($setting) {   // Option direkt aus der Datenbank (ohne Cache)
-    rrw_wp_opts_load(true);[$ok,$v]=rrw_wp_opts_get_raw((string)$setting);   // Optionen liegen in options.json, nicht in der Datenbank
-    if('home'===$setting&&(!$ok||$v==='')){ [$ok,$v]=rrw_wp_opts_get_raw('siteurl'); }
+    elvado_wp_opts_load(true);[$ok,$v]=elvado_wp_opts_get_raw((string)$setting);   // Optionen liegen in options.json, nicht in der Datenbank
+    if('home'===$setting&&(!$ok||$v==='')){ [$ok,$v]=elvado_wp_opts_get_raw('siteurl'); }
     if(!$ok)return false;
     return in_array($setting,['home','siteurl'],true)?untrailingslashit((string)$v):$v;
 } }
 if(!function_exists('get_alloptions_110')){ function get_alloptions_110() {   // alle Optionen als name=>Wert (ohne Entserialisierung)
     $o=[];
-    foreach(array_keys(rrw_wp_opts_load(true)) as $k){ [$ok,$v]=rrw_wp_opts_get_raw($k);if($ok)$o[$k]=is_scalar($v)?(string)$v:serialize($v); }
+    foreach(array_keys(elvado_wp_opts_load(true)) as $k){ [$ok,$v]=elvado_wp_opts_get_raw($k);if($ok)$o[$k]=is_scalar($v)?(string)$v:serialize($v); }
     return $o;
 } }
 if(!function_exists('deslash')){ function deslash($content) { return stripslashes((string)$content); } }

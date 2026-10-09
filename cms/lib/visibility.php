@@ -8,7 +8,7 @@ declare(strict_types=1);
  * @param list<array<string,mixed>> $news  news.json
  * @return array{summary:array<string,int>,items:list<array{kind:string,id:string,title:string,level:string,problem:string,hint:string}>}
  */
-function rrw_visibility_report(array $site, array $news, ?int $now = null): array
+function elvado_visibility_report(array $site, array $news, ?int $now = null): array
 {
     $now ??= time();
     $items = [];

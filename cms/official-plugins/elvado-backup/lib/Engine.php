@@ -27,7 +27,7 @@ final class Engine
             @mkdir($d, 0755, true);
         }
         require_once $this->cms() . '/lib/tools.php';
-        rrw_protect_dir($d);
+        elvado_protect_dir($d);
         return realpath($d) ?: $d;
     }
 
@@ -97,7 +97,7 @@ final class Engine
             $addDir($cms . '/media', 'cms/media', fn($rel) => false);
         }
         foreach (glob($this->root() . '/*.html') ?: [] as $p) {
-            if (str_contains((string)@file_get_contents($p, false, null, 0, 128), 'RRW-CMS-GENERATED')) {
+            if (str_contains((string)@file_get_contents($p, false, null, 0, 128), 'ELVADO-CMS-GENERATED')) {
                 $out[] = [basename($p), $p];
             }
         }
@@ -259,7 +259,7 @@ final class Engine
                         $data = json_encode(self::mergeSecrets($new, $live), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
                     }
                 }
-                rrw_write_atomic($dest, $data);
+                elvado_write_atomic($dest, $data);
                 $written++;
             }
         } catch (\Throwable $e) {
@@ -291,7 +291,7 @@ final class Engine
                 if (!is_dir(dirname($dest))) {
                     @mkdir(dirname($dest), 0755, true);
                 }
-                rrw_write_atomic($dest, $data);
+                elvado_write_atomic($dest, $data);
             }
         }
         $zip->close();
@@ -383,8 +383,8 @@ final class Engine
             Fs::writeJson($this->stateFile(), ['last_ok_ts' => (int)($prev['last_ok_ts'] ?? 0), 'last_ok' => (string)($prev['last_ok'] ?? ''), 'last_error' => mb_substr($e->getMessage(), 0, 300), 'last_error_at' => date(DATE_ATOM, $now), 'retry_after' => $now + 3600]);
             $this->np->log('automatisches Backup fehlgeschlagen: ' . $e->getMessage());
             $to = (string)$this->np->setting('notify_email');
-            if ($to !== '' && function_exists('rrw_send_mail')) {
-                @rrw_send_mail($to, 'Automatisches Backup fehlgeschlagen', "Das automatische Backup konnte nicht erstellt werden:\n\n" . $e->getMessage() . "\n", 'noreply@' . preg_replace('/^www\./', '', (string)($_SERVER['HTTP_HOST'] ?? 'localhost')));
+            if ($to !== '' && function_exists('elvado_send_mail')) {
+                @elvado_send_mail($to, 'Automatisches Backup fehlgeschlagen', "Das automatische Backup konnte nicht erstellt werden:\n\n" . $e->getMessage() . "\n", 'noreply@' . preg_replace('/^www\./', '', (string)($_SERVER['HTTP_HOST'] ?? 'localhost')));
             }
         } finally {
             flock($lock, LOCK_UN);

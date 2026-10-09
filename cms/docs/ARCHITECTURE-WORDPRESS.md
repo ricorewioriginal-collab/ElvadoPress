@@ -30,7 +30,7 @@ Core wird bei der Installation von wordpress.org geladen: Version von uns gebild
 Zuerst MySQL/MariaDB (SQLite später). Bestehende WordPress-Tabellen mit gleichem Präfix werden erkannt und nicht überschrieben (Meldung „leere Datenbank nötig“).
 
 ## Phasen
-1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt)** · **6 Komponenten-Register** · **7 Live-Customizer/Preview Bridge** · **8 Navigation/Widgets/Blöcke (dieser Stand)** · 9 Migration · 10 RicoReWi-Paket · 11 Tests/Sicherheit/Doku.
+1 Analyse · 2 Engine-Fundament · **3 Seiten/Beiträge/Taxonomien über Adapter** · **4 Medien, Benutzer, Rechte** · **5 Plugins/Themes (echt)** · **6 Komponenten-Register** · **7 Live-Customizer/Preview Bridge** · **8 Navigation/Widgets/Blöcke (dieser Stand)** · 9 Migration · 10 Themenpakete · 11 Tests/Sicherheit/Doku.
 Nicht „fertig“ nennen, solange zentrale Pfade Platzhalter sind. Tests: `scripts/test-wp-engine.php`.
 
 ## Phase 3: Inhalte über Dienst und Adapter
@@ -74,7 +74,7 @@ Tests: `scripts/test-wp-engine-nav-widgets-blocks.php` (43 Prüfungen ohne Netz,
 `cms/src/Wp/Migration/` (`Planner`, `ReportStore`, `TargetProbe` mit `NullProbe`/`WordPressProbe`), API `migration_plan|migration_report`, Karte im Engine-Panel. Der Trockenlauf liest nur und schreibt allein den Bericht; die echte Migration folgt erst nach ausdrücklicher Freigabe. Details: [MIGRATION.md](MIGRATION.md).
 
 ## Phase 10: Pakete / Projekt-Kompatibilität
-Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMPONENTS.md)), Paket-Lader `cms/packs/<paket>/components.php`, Bearbeitungsziele im Live Builder, Vorschau-Schlüssel und `rrw_components_inject()`. Projektspezifische Komponenten liegen ausschließlich im jeweiligen Projekt-Repository; der Kern enthält keine Projektinhalte.
+Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMPONENTS.md)), Paket-Lader `cms/packs/<paket>/components.php`, Bearbeitungsziele im Live Builder, Vorschau-Schlüssel und `elvado_components_inject()`. Projektspezifische Komponenten liegen ausschließlich im jeweiligen Projekt-Repository; der Kern enthält keine Projektinhalte.
 
 ## Phase 11: Wer ist wofür zuständig, wer führt die Daten?
 | Bereich | ElvadoPress | WordPress (Engine aktiv) |

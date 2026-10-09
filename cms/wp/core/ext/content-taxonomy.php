@@ -3,7 +3,7 @@
 // Geteilte Begriffe (shared terms) kennt diese Schicht nicht: Jede Taxonomie hat eigene term_id, die „split“-Funktionen sind deshalb schlank.
 
 /* ───────── Taxonomien: Grundlagen ───────── */
-if(!function_exists('create_initial_taxonomies')){ function create_initial_taxonomies() { if(!taxonomy_exists('category'))rrw_wp_register_default_types(); } }
+if(!function_exists('create_initial_taxonomies')){ function create_initial_taxonomies() { if(!taxonomy_exists('category'))elvado_wp_register_default_types(); } }
 if(!function_exists('get_tax_sql')){
     function get_tax_sql($tax_query, $primary_table, $primary_id_column) { $q=new WP_Tax_Query($tax_query);return $q->get_sql($primary_table,$primary_id_column); }
 }
@@ -11,7 +11,7 @@ if(!function_exists('wp_check_term_meta_support_prefilter')){ function wp_check_
 if(!function_exists('has_term_meta')){
     function has_term_meta($term_id) {
         global $wpdb;$c=wp_check_term_meta_support_prefilter(null);if(null!==$c)return $c;
-        if(!$wpdb||!rrw_wp_db_ready())return [];
+        if(!$wpdb||!elvado_wp_db_ready())return [];
         return $wpdb->get_results($wpdb->prepare("SELECT meta_key, meta_value, meta_id, term_id FROM {$wpdb->termmeta} WHERE term_id = %d ORDER BY meta_key, meta_id",$term_id),ARRAY_A);
     }
 }
@@ -135,7 +135,7 @@ if(!function_exists('wp_unique_term_slug')){
 if(!function_exists('wp_add_object_terms')){ function wp_add_object_terms($object_id, $terms, $taxonomy) { return wp_set_object_terms($object_id,$terms,$taxonomy,true); } }
 if(!function_exists('wp_delete_object_term_relationships')){
     function wp_delete_object_term_relationships($object_id, $taxonomies) {
-        global $wpdb;$oid=(int)$object_id;if(!$wpdb||!rrw_wp_db_ready())return;
+        global $wpdb;$oid=(int)$object_id;if(!$wpdb||!elvado_wp_db_ready())return;
         foreach((array)$taxonomies as $tax){
             $tt=array_map('intval',(array)wp_get_object_terms($oid,$tax,['fields'=>'tt_ids']));if(!$tt)continue;
             do_action('delete_term_relationships',$oid,$tt,$tax);
@@ -176,7 +176,7 @@ if(!function_exists('wp_delete_category')){
         if($cat_ID===$default)return 0;
         $t=get_term($cat_ID,'category');if(!$t||is_wp_error($t))return false;
         $objs=[];
-        if($wpdb&&rrw_wp_db_ready()){
+        if($wpdb&&elvado_wp_db_ready()){
             $objs=array_map('intval',(array)$wpdb->get_col($wpdb->prepare("SELECT object_id FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",(int)$t->term_taxonomy_id)));
             $wpdb->update($wpdb->term_taxonomy,['parent'=>(int)$t->parent],['parent'=>$cat_ID,'taxonomy'=>'category']);   // Unterkategorien rücken nach oben
         }
@@ -207,7 +207,7 @@ if(!function_exists('_prime_term_caches')){ function _prime_term_caches($term_id
 if(!function_exists('_update_post_term_count')){
     /** Zähler = veröffentlichte Beiträge (Anhänge: „inherit“ mit veröffentlichtem Elternbeitrag) der Typen der Taxonomie. */
     function _update_post_term_count($terms, $taxonomy) {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return;
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return;
         $types=array_values(array_filter((array)$taxonomy->object_type,'post_type_exists'));if(!$types)return;
         $in=implode(',',array_map(fn($t)=>"'".esc_sql($t)."'",array_diff($types,['attachment'])));
         foreach((array)$terms as $tt){
@@ -220,7 +220,7 @@ if(!function_exists('_update_post_term_count')){
 }
 if(!function_exists('_update_generic_term_count')){
     function _update_generic_term_count($terms, $taxonomy) {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return;
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return;
         foreach((array)$terms as $tt){ $tt=(int)$tt;$n=(int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->term_relationships} WHERE term_taxonomy_id = %d",$tt));
             do_action('edit_term_taxonomy',$tt,$taxonomy->name);$wpdb->update($wpdb->term_taxonomy,['count'=>$n],['term_taxonomy_id'=>$tt]);do_action('edited_term_taxonomy',$tt,$taxonomy->name); }
     }
@@ -233,7 +233,7 @@ if(!function_exists('_wp_check_for_scheduled_split_terms')){ function _wp_check_
 if(!function_exists('wp_get_split_terms')){ function wp_get_split_terms($old_term_id) { $s=get_option('_split_terms',[]);return is_array($s)&&isset($s[$old_term_id])?$s[$old_term_id]:[]; } }
 if(!function_exists('wp_term_is_shared')){
     function wp_term_is_shared($term_id) {
-        global $wpdb;if(get_option('finished_splitting_shared_terms')||!$wpdb||!rrw_wp_db_ready())return false;
+        global $wpdb;if(get_option('finished_splitting_shared_terms')||!$wpdb||!elvado_wp_db_ready())return false;
         return (int)$wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_id = %d",$term_id))>1;
     }
 }
@@ -245,7 +245,7 @@ if(!function_exists('_wp_check_split_default_terms')){
 }
 if(!function_exists('_wp_check_split_terms_in_menus')){
     function _wp_check_split_terms_in_menus($term_id, $new_term_id, $term_taxonomy_id, $taxonomy) {
-        global $wpdb;if(!$wpdb||!rrw_wp_db_ready())return;
+        global $wpdb;if(!$wpdb||!elvado_wp_db_ready())return;
         $ids=$wpdb->get_col($wpdb->prepare("SELECT m1.post_id FROM {$wpdb->postmeta} m1 INNER JOIN {$wpdb->postmeta} m2 ON m2.post_id = m1.post_id INNER JOIN {$wpdb->postmeta} m3 ON m3.post_id = m1.post_id WHERE m1.meta_key = '_menu_item_type' AND m1.meta_value = 'taxonomy' AND m2.meta_key = '_menu_item_object' AND m2.meta_value = %s AND m3.meta_key = '_menu_item_object_id' AND m3.meta_value = %d",$taxonomy,$term_id));
         foreach((array)$ids as $id)update_post_meta((int)$id,'_menu_item_object_id',$new_term_id,$term_id);
     }
@@ -340,9 +340,9 @@ if(!function_exists('wp_generate_tag_cloud')){
         return $args['filter']?apply_filters('wp_generate_tag_cloud',$ret,$tags,$args):$ret;
     }
 }
-if(!function_exists('rrw_wp_x_term_tree')){
+if(!function_exists('elvado_wp_x_term_tree')){
     /** [Eltern-ID => [Begriffe]] aus einer Liste; Begriffe ohne Eltern in der Liste gelten als oberste Ebene (Schlüssel 0). */
-    function rrw_wp_x_term_tree(array $terms, string $parent='parent', string $id='term_id'): array {
+    function elvado_wp_x_term_tree(array $terms, string $parent='parent', string $id='term_id'): array {
         $ids=[];foreach($terms as $t)$ids[(int)$t->$id]=1;$m=[];
         foreach($terms as $t){ $p=(int)$t->$parent;$m[($p&&isset($ids[$p])&&$p!==(int)$t->$id)?$p:0][]=$t; }
         return $m;
@@ -352,7 +352,7 @@ if(!function_exists('walk_category_tree')){
     function walk_category_tree(...$args) {
         $r=(array)($args[2]??[]);$w=$r['walker']??null;
         if($w instanceof Walker&&get_class($w)!=='Walker_Category')return $w->walk(...$args);
-        $depth=(int)($args[1]??0);$map=rrw_wp_x_term_tree((array)($args[0]??[]));$list=($r['style']??'list')==='list';$cur=(int)($r['current_category']??0);
+        $depth=(int)($args[1]??0);$map=elvado_wp_x_term_tree((array)($args[0]??[]));$list=($r['style']??'list')==='list';$cur=(int)($r['current_category']??0);
         $render=function($pid,$lvl) use(&$render,$map,$depth,$r,$list,$cur){
             $o='';
             foreach($map[$pid]??[] as $t){
@@ -372,7 +372,7 @@ if(!function_exists('walk_category_dropdown_tree')){
     function walk_category_dropdown_tree(...$args) {
         $r=(array)($args[2]??[]);$w=$r['walker']??null;
         if($w instanceof Walker&&get_class($w)!=='Walker_Category')return $w->walk(...$args);
-        $depth=(int)($args[1]??0);$map=rrw_wp_x_term_tree((array)($args[0]??[]));$vf=$r['value_field']??'term_id';$sel=$r['selected']??0;
+        $depth=(int)($args[1]??0);$map=elvado_wp_x_term_tree((array)($args[0]??[]));$vf=$r['value_field']??'term_id';$sel=$r['selected']??0;
         $render=function($pid,$lvl) use(&$render,$map,$depth,$r,$vf,$sel){
             $o='';
             foreach($map[$pid]??[] as $t){

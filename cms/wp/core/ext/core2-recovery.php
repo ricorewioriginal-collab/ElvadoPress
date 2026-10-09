@@ -61,7 +61,7 @@ class WP_Fatal_Error_Handler {
             $handled=false;
             if(function_exists('wp_recovery_mode')&&wp_recovery_mode()->is_initialized())$handled=wp_recovery_mode()->handle_error($error);
             $this->display_default_error_template($error,$handled);
-        }catch(RRW_WP_Die $d){ throw $d; }
+        }catch(ELVADO_WP_Die $d){ throw $d; }
         catch(Exception $e){ /* Fehlerbehandlung darf selbst nie fatal enden */ }
     }
     protected function detect_error() {
@@ -165,7 +165,7 @@ class WP_Recovery_Mode_Link_Service {
         $this->cookie_service->set_cookie();
         $url=add_query_arg('action',self::LOGIN_ACTION_ENTERED,wp_login_url());
         wp_redirect($url);
-        if(!defined('RRW_WP_TESTING'))exit;
+        if(!defined('ELVADO_WP_TESTING'))exit;
     }
     private function get_recovery_mode_begin_url($token, $key) {
         $url=add_query_arg(['action'=>self::LOGIN_ACTION_ENTER,'rm_token'=>$token,'rm_key'=>$key],wp_login_url());
@@ -237,7 +237,7 @@ class WP_Recovery_Mode {
         $redirect=wp_get_referer()?:home_url('/');
         if(!$this->is_active())wp_safe_redirect($redirect);
         else{ if(!empty($_GET['action'])&&self::EXIT_ACTION===$_GET['action']&&wp_verify_nonce($_GET['_wpnonce']??'',self::EXIT_ACTION))$this->exit_recovery_mode();wp_safe_redirect($redirect); }
-        if(!defined('RRW_WP_TESTING'))exit;
+        if(!defined('ELVADO_WP_TESTING'))exit;
     }
     public function clean_expired_keys() { $this->key_service->clean_expired_keys((int)apply_filters('recovery_mode_key_ttl',DAY_IN_SECONDS)); }
     protected function is_network_plugin($extension) {

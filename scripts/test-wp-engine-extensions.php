@@ -26,8 +26,8 @@ function theme(string $name, bool $bomb = false): array {   // $bomb: stürzt be
 if (($argv[1] ?? '') === '--child') {
     $tmp = (string)$argv[2]; $stage = (string)$argv[3];
     $eng = new Engine("$tmp/cms", "$tmp/cms/data");
-    $GLOBALS['rrw_wpe_engine'] = $eng; $GLOBALS['rrw_wpe_db'] = new DbConfig($eng);
-    $GLOBALS['rrw_wpe_opts'] = $stage === 'setup' ? ['installing' => true] : [];
+    $GLOBALS['elvado_wpe_engine'] = $eng; $GLOBALS['elvado_wpe_db'] = new DbConfig($eng);
+    $GLOBALS['elvado_wpe_opts'] = $stage === 'setup' ? ['installing' => true] : [];
     $_SERVER['HTTP_HOST'] = 'example.test';
     if (in_array($stage, ['safe-on', 'safe-off'], true)) { $eng->setSafe($stage === 'safe-on'); echo "ok\n"; exit(0); }
     require __DIR__ . '/../cms/wp-engine-boot.php';

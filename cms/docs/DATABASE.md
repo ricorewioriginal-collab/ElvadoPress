@@ -13,7 +13,7 @@ Das CMS arbeitet standardmäßig mit Dateien (`cms/data/*.json`). Eine Datenbank
 | MariaDB | ja | ja (nativ) | getestet mit MariaDB 10.11 |
 | PostgreSQL | ja | nein | die WordPress-Schicht bleibt dann bei SQLite |
 
-Weitere Datenbanken lassen sich über `rrw_db_drivers()` in `cms/lib/database.php` ergänzen.
+Weitere Datenbanken lassen sich über `elvado_db_drivers()` in `cms/lib/database.php` ergänzen.
 
 ## Einstellungen
 Host/Port oder **Socket**, Datenbankname, Benutzer, Passwort, **Tabellen-Präfix** (WordPress-Schicht, Standard `wp_`), Zeichensatz. „Datenbank anlegen, falls sie fehlt“ legt die Datenbank beim Testen an (Benutzer braucht das Recht dazu). Das Passwort liegt nur in `cms/data/database.local.php` (Rechte 0600, vom Webserver gesperrt) und wird nie an den Browser gesendet; leer lassen behält das bisherige.
@@ -22,13 +22,13 @@ Host/Port oder **Socket**, Datenbankname, Benutzer, Passwort, **Tabellen-Präfix
 
 ## Für den geplanten Installer
 Der Installer bei einer frischen Installation nutzt dieselben Funktionen aus `cms/lib/database.php`:
-- `rrw_db_clean_input($eingaben)` – prüft/bereinigt die Eingaben
-- `rrw_db_test($konfiguration, $anlegen)` – Verbindungstest, legt optional die Datenbank an
-- `rrw_db_write_config($eingaben)` – speichert `cms/data/database.local.php`
-- `rrw_db_connect()` / `rrw_db_pdo($konfiguration)` – Verbindung
+- `elvado_db_clean_input($eingaben)` – prüft/bereinigt die Eingaben
+- `elvado_db_test($konfiguration, $anlegen)` – Verbindungstest, legt optional die Datenbank an
+- `elvado_db_write_config($eingaben)` – speichert `cms/data/database.local.php`
+- `elvado_db_connect()` / `elvado_db_pdo($konfiguration)` – Verbindung
 
 ## Tests
-`php scripts/test-db-config.php` (SQLite immer; Server über `RRW_TEST_MYSQL="host|port|user|passwort"` und `RRW_TEST_PGSQL=…`). Die WordPress-Tests laufen mit `RRW_TEST_MYSQL=…` gegen einen echten MySQL-/MariaDB-Server.
+`php scripts/test-db-config.php` (SQLite immer; Server über `ELVADO_TEST_MYSQL="host|port|user|passwort"` und `ELVADO_TEST_PGSQL=…`). Die WordPress-Tests laufen mit `ELVADO_TEST_MYSQL=…` gegen einen echten MySQL-/MariaDB-Server.
 
 ## Eine Datenbank für CMS und WordPress-Kern
 Es gibt **eine** Datenbank-Verbindung: die Einstellungen unter *System → Datenbank* (`cms/data/database.local.php`, Treiber MySQL/MariaDB). Sie nutzen gemeinsam

@@ -2,9 +2,9 @@
 // Ergänzende Link-Funktionen (Bereich Ausgabe): Feed-Adressen, Bearbeiten-Links für Begriffe/Links, Nachbarbeiträge (rel), Kommentar-Navigation,
 // Kurzlinks, Avatare und interne Hosts. Das CMS kennt nur einen Feed (rss.xml); Archiv-Feeds folgen dem WordPress-Muster „…/feed/“.
 
-if(!function_exists('rrw_ext_feed_suffix')){
+if(!function_exists('elvado_ext_feed_suffix')){
     /** Pfadende „feed/“ bzw. „feed/atom/“ für ein Archiv. */
-    function rrw_ext_feed_suffix($feed) { $feed=(string)$feed;return ($feed===''||$feed===get_default_feed())?'feed/':'feed/'.$feed.'/'; }
+    function elvado_ext_feed_suffix($feed) { $feed=(string)$feed;return ($feed===''||$feed===get_default_feed())?'feed/':'feed/'.$feed.'/'; }
 }
 if(!function_exists('permalink_anchor')){
     function permalink_anchor($mode='id') {
@@ -41,14 +41,14 @@ if(!function_exists('post_comments_feed_link')){
 if(!function_exists('get_author_feed_link')){
     function get_author_feed_link($author_id, $feed='') {
         $author_id=(int)$author_id;if(!get_userdata($author_id))return '';
-        return apply_filters('author_feed_link',trailingslashit(get_author_posts_url($author_id)).rrw_ext_feed_suffix($feed),$feed);
+        return apply_filters('author_feed_link',trailingslashit(get_author_posts_url($author_id)).elvado_ext_feed_suffix($feed),$feed);
     }
 }
 if(!function_exists('get_term_feed_link')){
     function get_term_feed_link($term_id, $taxonomy='category', $feed='') {
         $term=get_term((int)$term_id,$taxonomy);if(empty($term)||is_wp_error($term))return false;
         $link=get_term_link($term);if(is_wp_error($link)||!$link)return false;
-        $link=trailingslashit($link).rrw_ext_feed_suffix($feed);
+        $link=trailingslashit($link).elvado_ext_feed_suffix($feed);
         $f=$term->taxonomy==='category'?'category_feed_link':($term->taxonomy==='post_tag'?'tag_feed_link':'taxonomy_feed_link');
         return apply_filters('term_feed_link',apply_filters($f,$link,$feed),$feed,$term->taxonomy);
     }
@@ -71,19 +71,19 @@ if(!function_exists('get_post_type_archive_feed_link')){
     function get_post_type_archive_feed_link($post_type, $feed='') {
         if($post_type==='post')return get_feed_link($feed);
         $link=get_post_type_archive_link($post_type);if(!$link)return false;
-        return apply_filters('post_type_archive_feed_link',trailingslashit($link).rrw_ext_feed_suffix($feed),$feed);
+        return apply_filters('post_type_archive_feed_link',trailingslashit($link).elvado_ext_feed_suffix($feed),$feed);
     }
 }
 
 /* ───────── Bearbeiten-Links ───────── */
-if(!function_exists('rrw_ext_can_edit_term')){
+if(!function_exists('elvado_ext_can_edit_term')){
     /** Darf der aktuelle Benutzer den Begriff bearbeiten? (Meta-Recht „edit_term“ oder Recht der Taxonomie) */
-    function rrw_ext_can_edit_term($term) { $tx=get_taxonomy($term->taxonomy);return current_user_can('edit_term',$term->term_id)||($tx&&current_user_can($tx->cap->edit_terms??'manage_categories')); }
+    function elvado_ext_can_edit_term($term) { $tx=get_taxonomy($term->taxonomy);return current_user_can('edit_term',$term->term_id)||($tx&&current_user_can($tx->cap->edit_terms??'manage_categories')); }
 }
 if(!function_exists('get_edit_term_link')){
     function get_edit_term_link($term, $taxonomy='', $object_type='') {
         $term=get_term($term,$taxonomy);if(!$term||is_wp_error($term))return null;
-        if(!get_taxonomy($term->taxonomy)||!rrw_ext_can_edit_term($term))return null;
+        if(!get_taxonomy($term->taxonomy)||!elvado_ext_can_edit_term($term))return null;
         $args=['taxonomy'=>$term->taxonomy,'tag_ID'=>$term->term_id];if($object_type)$args['post_type']=$object_type;
         return apply_filters('get_edit_term_link',add_query_arg($args,admin_url('term.php')),$term->term_id,$term->taxonomy,$object_type);
     }
@@ -91,7 +91,7 @@ if(!function_exists('get_edit_term_link')){
 if(!function_exists('edit_term_link')){
     function edit_term_link($link='', $before='', $after='', $term=null, $display=true) {
         if($term===null)$term=get_queried_object();
-        if(!$term||empty($term->taxonomy)||!rrw_ext_can_edit_term($term))return;
+        if(!$term||empty($term->taxonomy)||!elvado_ext_can_edit_term($term))return;
         if(empty($link))$link='Bearbeiten';
         $out=$before.apply_filters('edit_term_link','<a href="'.esc_url((string)get_edit_term_link($term->term_id,$term->taxonomy)).'">'.$link.'</a>',$term->term_id).$after;
         if($display)echo $out;else return $out;
@@ -168,7 +168,7 @@ if(!function_exists('_navigation_markup')){
 }
 
 /* ───────── Kommentar-Navigation ───────── */
-if(!function_exists('rrw_ext_comments_page_link')){ function rrw_ext_comments_page_link($n) { $u=get_permalink();if($n>1)$u=trailingslashit($u).'comment-page-'.(int)$n.'/';return $u.'#comments'; } }
+if(!function_exists('elvado_ext_comments_page_link')){ function elvado_ext_comments_page_link($n) { $u=get_permalink();if($n>1)$u=trailingslashit($u).'comment-page-'.(int)$n.'/';return $u.'#comments'; } }
 if(!function_exists('get_next_comments_link')){
     function get_next_comments_link($label='', $max_page=0) {
         global $wp_query;if(!is_singular())return;
@@ -177,7 +177,7 @@ if(!function_exists('get_next_comments_link')){
         if(empty($max_page))$max_page=get_comment_pages_count();
         if($next>$max_page)return;
         if(empty($label))$label='Neuere Kommentare &raquo;';
-        return sprintf('<a href="%1$s" %2$s>%3$s</a>',esc_url(rrw_ext_comments_page_link($next)),apply_filters('next_comments_link_attributes',''),preg_replace('/&([^#])(?![a-z]{1,8};)/i','&#038;$1',$label));
+        return sprintf('<a href="%1$s" %2$s>%3$s</a>',esc_url(elvado_ext_comments_page_link($next)),apply_filters('next_comments_link_attributes',''),preg_replace('/&([^#])(?![a-z]{1,8};)/i','&#038;$1',$label));
     }
 }
 if(!function_exists('get_previous_comments_link')){
@@ -185,7 +185,7 @@ if(!function_exists('get_previous_comments_link')){
         if(!is_singular())return;
         $page=(int)get_query_var('cpage');if($page<=1)return;
         if(empty($label))$label='&laquo; Ältere Kommentare';
-        return sprintf('<a href="%1$s" %2$s>%3$s</a>',esc_url(rrw_ext_comments_page_link($page-1)),apply_filters('previous_comments_link_attributes',''),preg_replace('/&([^#])(?![a-z]{1,8};)/i','&#038;$1',$label));
+        return sprintf('<a href="%1$s" %2$s>%3$s</a>',esc_url(elvado_ext_comments_page_link($page-1)),apply_filters('previous_comments_link_attributes',''),preg_replace('/&([^#])(?![a-z]{1,8};)/i','&#038;$1',$label));
     }
 }
 if(!function_exists('get_the_comments_navigation')){
@@ -224,7 +224,7 @@ if(!function_exists('wp_get_canonical_url')){
         $url=get_permalink($post);
         if(get_queried_object_id()===(int)$post->ID){
             $page=(int)get_query_var('page',0);if($page>=2)$url=trailingslashit($url).$page.'/';
-            $cpage=(int)get_query_var('cpage',0);if($cpage)$url=rrw_ext_comments_page_link($cpage);
+            $cpage=(int)get_query_var('cpage',0);if($cpage)$url=elvado_ext_comments_page_link($cpage);
         }
         return apply_filters('get_canonical_url',$url,$post);
     }

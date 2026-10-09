@@ -180,7 +180,7 @@ function dbDelta($queries='', $execute=true) {
                     $line=trim($line);
                     if($line===''||preg_match('/^(PRIMARY|UNIQUE|KEY|INDEX|FULLTEXT|CONSTRAINT)\b/i',$line))continue;
                     if(preg_match('/^`?(\w+)`?\s+(.*)$/s',$line,$cm)&&!isset($existing[strtolower($cm[1])])){
-                        $def=$wpdb->is_mysql()?$cm[2]:(new RRW_SQL_Translator($wpdb->pdo()))->convert_column($cm[1],$cm[2])[0];
+                        $def=$wpdb->is_mysql()?$cm[2]:(new ELVADO_SQL_Translator($wpdb->pdo()))->convert_column($cm[1],$cm[2])[0];
                         $sql=$wpdb->is_mysql()?"ALTER TABLE `$table` ADD COLUMN `{$cm[1]}` $def":"ALTER TABLE `$table` ADD COLUMN $def";
                         if($execute)$wpdb->query($sql);$out[$table.'.'.$cm[1]]="Added column $table.{$cm[1]}";
                     }
@@ -200,16 +200,16 @@ function maybe_add_column($table_name, $column_name, $create_ddl) {
 function maybe_convert_table_to_utf8mb4($t) { return true; }
 
 /** Kern-Tabellen beim ersten Zugriff anlegen (nur wenn eine Datenbank vorhanden ist). */
-function rrw_wp_install_schema(): bool {
+function elvado_wp_install_schema(): bool {
     global $wpdb;if(!$wpdb||!$wpdb->ready)return false;
-    $ver=(string)get_option('rrw_wp_db_version','');
+    $ver=(string)get_option('elvado_wp_db_version','');
     if($ver==='1'&&$wpdb->table_exists($wpdb->posts))return true;
     dbDelta(wp_get_db_schema());
     // IDs der Datenbank-Inhalte beginnen bei 100 000 000, damit sie nie mit den IDs der CMS-Inhalte kollidieren
     foreach([$wpdb->posts,$wpdb->users] as $tb){
-        if($wpdb->is_mysql())$wpdb->query("ALTER TABLE `$tb` AUTO_INCREMENT = ".RRW_WP_ID_DB_MIN);
-        elseif(!$wpdb->get_var($wpdb->prepare("SELECT seq FROM sqlite_sequence WHERE name = %s",$tb)))$wpdb->query($wpdb->prepare("INSERT INTO sqlite_sequence (name, seq) VALUES (%s, %d)",$tb,RRW_WP_ID_DB_MIN-1));
+        if($wpdb->is_mysql())$wpdb->query("ALTER TABLE `$tb` AUTO_INCREMENT = ".ELVADO_WP_ID_DB_MIN);
+        elseif(!$wpdb->get_var($wpdb->prepare("SELECT seq FROM sqlite_sequence WHERE name = %s",$tb)))$wpdb->query($wpdb->prepare("INSERT INTO sqlite_sequence (name, seq) VALUES (%s, %d)",$tb,ELVADO_WP_ID_DB_MIN-1));
     }
-    update_option('rrw_wp_db_version','1');
+    update_option('elvado_wp_db_version','1');
     return $wpdb->table_exists($wpdb->posts);
 }

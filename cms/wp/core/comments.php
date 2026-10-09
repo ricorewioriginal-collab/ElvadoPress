@@ -11,8 +11,8 @@ final class WP_Comment {
     public function get_children($args=[]) { return []; }
 }
 }
-function rrw_wp_cms_comments(): array {
-    $d=rrw_wp_cms_dir();$all=rrw_wp_read_json($d.'/comments.json',[]);$out=[];
+function elvado_wp_cms_comments(): array {
+    $d=elvado_wp_cms_dir();$all=elvado_wp_read_json($d.'/comments.json',[]);$out=[];
     foreach($all as $c){ if(!is_array($c)||($c['status']??'')!=='approved')continue;
         $dt=(string)($c['created_at']??date('Y-m-d H:i:s'));
         $out[]=new WP_Comment((object)['comment_ID'=>(int)$c['id'],'comment_post_ID'=>(int)$c['article_id'],'comment_author'=>(string)($c['name']??''),'comment_date'=>$dt,'comment_date_gmt'=>get_gmt_from_date($dt)?:$dt,'comment_content'=>(string)($c['text']??''),'comment_approved'=>'1','comment_parent'=>(int)($c['parent_id']??0),'comment_type'=>'comment','user_id'=>0]); }
@@ -20,8 +20,8 @@ function rrw_wp_cms_comments(): array {
 }
 function get_comments($args='') {
     $a=wp_parse_args($args,['post_id'=>0,'status'=>'all','number'=>'','offset'=>0,'order'=>'DESC','orderby'=>'comment_date_gmt','parent'=>'','count'=>false,'type'=>'','fields'=>'','post__in'=>[],'author_email'=>'','user_id'=>'']);
-    $list=rrw_wp_cms_comments();
-    global $wpdb;if($wpdb&&$wpdb->ready&&rrw_wp_db_ready()){ foreach((array)$wpdb->get_results("SELECT * FROM {$wpdb->comments} WHERE comment_approved = '1'") as $r)$list[]=new WP_Comment($r); }
+    $list=elvado_wp_cms_comments();
+    global $wpdb;if($wpdb&&$wpdb->ready&&elvado_wp_db_ready()){ foreach((array)$wpdb->get_results("SELECT * FROM {$wpdb->comments} WHERE comment_approved = '1'") as $r)$list[]=new WP_Comment($r); }
     $list=array_values(array_filter($list,function($c) use($a){ if($a['post_id']&&(int)$c->comment_post_ID!==(int)$a['post_id'])return false; if($a['post__in']&&!in_array((int)$c->comment_post_ID,array_map('intval',(array)$a['post__in']),true))return false; if($a['parent']!==''&&(int)$c->comment_parent!==(int)$a['parent'])return false; if($a['type']!==''&&$c->comment_type!==$a['type'])return false; return true; }));
     usort($list,fn($x,$y)=>strtoupper((string)$a['order'])==='ASC'?strcmp($x->comment_date_gmt,$y->comment_date_gmt):strcmp($y->comment_date_gmt,$x->comment_date_gmt));
     if($a['count'])return count($list);
@@ -32,8 +32,8 @@ function get_comments($args='') {
 function get_comment($comment=null, $output=OBJECT) { if(is_object($comment))return $comment instanceof WP_Comment?$comment:new WP_Comment($comment);$id=(int)($comment??($GLOBALS['comment']->comment_ID??0));foreach(get_comments() as $c)if((int)$c->comment_ID===$id)return $c;return null; }
 function comments_open($post=null) {
     $p=get_post($post);if(!$p)return false;
-    if($p->rrw_source==='news'){ $o=!empty(rrw_wp_cms_data()['site']['comments']['enabled']); }
-    elseif($p->rrw_source==='page')$o=false;
+    if($p->elvado_source==='news'){ $o=!empty(elvado_wp_cms_data()['site']['comments']['enabled']); }
+    elseif($p->elvado_source==='page')$o=false;
     else $o=$p->comment_status==='open';
     return (bool)apply_filters('comments_open',$o,$p->ID);
 }
@@ -49,7 +49,7 @@ function comments_template($file='/comments.php', $separate_comments=false) {
     $comments=get_comments(['post_id'=>$p->ID,'order'=>'ASC']);$wp_query->comments=$comments;$wp_query->comment_count=count($comments);$GLOBALS['comments']=$comments;
     $tpl=locate_template([ltrim($file,'/')]);
     if($tpl==='')$tpl=ABSPATH.'core/default-comments.php';
-    $GLOBALS['rrw_wp_comment_post']=$p;load_template($tpl,false);
+    $GLOBALS['elvado_wp_comment_post']=$p;load_template($tpl,false);
 }
 function comment_id_fields($post=null) { $p=get_post($post);echo '<input type="hidden" name="comment_post_ID" value="'.(int)($p->ID??0).'" id="comment_post_ID" /><input type="hidden" name="comment_parent" id="comment_parent" value="0" />'."\n"; }
 function cancel_comment_reply_link($text='') { return '<a rel="nofollow" id="cancel-comment-reply-link" href="#respond" style="display:none;">'.esc_html($text?:'Antwort abbrechen').'</a>'; }
@@ -80,7 +80,7 @@ function wp_list_comments($args=[], $comments=null) {
     $out=$walker->walk($list,(int)($a['max_depth']?:get_option('thread_comments_depth',5)),$a);$out=apply_filters('wp_list_comments',$out,$a);
     if($a['echo'])echo $out;else return $out;
 }
-function rrw_wp_default_comment($c, $args, $depth) {
+function elvado_wp_default_comment($c, $args, $depth) {
     $tag=($args['style']??'ul')==='div'?'div':'li';
     echo '<'.$tag.' id="comment-'.(int)$c->comment_ID.'" class="comment depth-'.(int)$depth.'"><article class="comment-body"><footer class="comment-meta"><div class="comment-author vcard">'.(($args['avatar_size']??32)?get_avatar($c,(int)$args['avatar_size']):'').'<b class="fn">'.esc_html($c->comment_author).'</b></div><div class="comment-metadata"><a href="'.esc_url(get_comment_link($c)).'"><time datetime="'.esc_attr(mysql2date('c',$c->comment_date_gmt)).'">'.esc_html(get_comment_date('',$c).' '.get_comment_time('',false,false,$c)).'</time></a></div></footer><div class="comment-content">'.wpautop(esc_html($c->comment_content)).'</div></article>';
 }
@@ -107,31 +107,31 @@ function get_comment_type($c=0) { return 'comment'; }
 function comment_type() { echo 'Kommentar'; }
 function wp_count_comments($post_id=0) { $n=get_comments(['post_id'=>$post_id,'count'=>true]);return (object)['approved'=>$n,'moderated'=>0,'spam'=>0,'trash'=>0,'total_comments'=>$n,'all'=>$n,'post-trashed'=>0]; }
 function get_option_comment_dummy() {}
-function wp_new_comment($commentdata, $wp_error=false) { return rrw_wp_submit_comment($commentdata); }
+function wp_new_comment($commentdata, $wp_error=false) { return elvado_wp_submit_comment($commentdata); }
 /** Kommentar in den CMS-Speicher schreiben (gleiche Regeln wie die CMS-Schnittstelle). @return array|WP_Error */
-function rrw_wp_submit_comment(array $in) {
-    $dir=rrw_wp_cms_dir();$site=rrw_wp_read_json($dir.'/site.json',[]);$cfg=(array)($site['comments']??[]);
+function elvado_wp_submit_comment(array $in) {
+    $dir=elvado_wp_cms_dir();$site=elvado_wp_read_json($dir.'/site.json',[]);$cfg=(array)($site['comments']??[]);
     if(empty($cfg['enabled']))return new WP_Error('comments_closed','Kommentare sind derzeit deaktiviert.');
     if(trim((string)($in['hp']??''))!=='')return ['ok'=>true,'pending'=>false];
-    $pid=(int)($in['comment_post_ID']??0);$p=rrw_wp_cms_find_post($pid);if(!$p||$p->rrw_source!=='news'||$p->post_status!=='publish')return new WP_Error('no_post','Beitrag nicht gefunden.');
+    $pid=(int)($in['comment_post_ID']??0);$p=elvado_wp_cms_find_post($pid);if(!$p||$p->elvado_source!=='news'||$p->post_status!=='publish')return new WP_Error('no_post','Beitrag nicht gefunden.');
     $name=mb_substr(trim((string)($in['author']??'')),0,80);$text=mb_substr(trim(strip_tags((string)($in['comment']??''))),0,2000);
     if($name===''||$text==='')return new WP_Error('missing','Bitte Name und Kommentar ausfüllen.');
-    if(!rrw_wp_rate_ok('comment|'.($_SERVER['REMOTE_ADDR']??''),5,300))return new WP_Error('rate','Bitte warte einen Moment, bevor du erneut kommentierst.');
+    if(!elvado_wp_rate_ok('comment|'.($_SERVER['REMOTE_ADDR']??''),5,300))return new WP_Error('rate','Bitte warte einen Moment, bevor du erneut kommentierst.');
     $file=$dir.'/comments.json';$h=@fopen($dir.'/.wp-comments.lock','c');if($h)@flock($h,LOCK_EX);
     try{
-        $all=rrw_wp_read_json($file,[]);$id=1;foreach($all as $c)$id=max($id,(int)($c['id']??0)+1);
+        $all=elvado_wp_read_json($file,[]);$id=1;foreach($all as $c)$id=max($id,(int)($c['id']??0)+1);
         $parent=(int)($in['comment_parent']??0);$byId=[];foreach($all as $c)$byId[(int)$c['id']]=$c;
         while($parent&&isset($byId[$parent])&&!empty($byId[$parent]['parent_id']))$parent=(int)$byId[$parent]['parent_id'];
         if($parent&&(!isset($byId[$parent])||(int)$byId[$parent]['article_id']!==$pid))$parent=0;
         $pending=!array_key_exists('require_approval',$cfg)||!empty($cfg['require_approval']);
         $all[]=['id'=>$id,'article_id'=>$pid,'parent_id'=>$parent,'name'=>$name,'text'=>$text,'is_staff'=>false,'status'=>$pending?'pending':'approved','created_at'=>date('Y-m-d H:i:s')];
-        $tmp=$file.'.'.bin2hex(random_bytes(3)).'.tmp';file_put_contents($tmp,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");rename($tmp,$file);rrw_wp_cms_reset();
+        $tmp=$file.'.'.bin2hex(random_bytes(3)).'.tmp';file_put_contents($tmp,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");rename($tmp,$file);elvado_wp_cms_reset();
     } finally { if($h){@flock($h,LOCK_UN);@fclose($h);} }
     return ['ok'=>true,'pending'=>$pending,'id'=>$id];
 }
-function rrw_wp_rate_ok(string $key, int $max, int $window): bool {
-    $f=rtrim(RRW_WP_DATA,'/').'/ratelimit.json';$now=time();$d=is_file($f)?json_decode((string)file_get_contents($f),true):[];$d=is_array($d)?$d:[];$k=hash('sha256',$key);
+function elvado_wp_rate_ok(string $key, int $max, int $window): bool {
+    $f=rtrim(ELVADO_WP_DATA,'/').'/ratelimit.json';$now=time();$d=is_file($f)?json_decode((string)file_get_contents($f),true):[];$d=is_array($d)?$d:[];$k=hash('sha256',$key);
     $mine=array_values(array_filter((array)($d[$k]??[]),fn($t)=>$t>$now-$window));if(count($mine)>=$max)return false;$mine[]=$now;$d[$k]=$mine;
     foreach($d as $kk=>$ts){ $d[$kk]=array_values(array_filter((array)$ts,fn($t)=>$t>$now-86400));if(!$d[$kk])unset($d[$kk]); }
-    if(!is_dir(RRW_WP_DATA)){@mkdir(RRW_WP_DATA,0775,true);rrw_wp_protect_dir(RRW_WP_DATA);}@file_put_contents($f,json_encode($d),LOCK_EX);return true;
+    if(!is_dir(ELVADO_WP_DATA)){@mkdir(ELVADO_WP_DATA,0775,true);elvado_wp_protect_dir(ELVADO_WP_DATA);}@file_put_contents($f,json_encode($d),LOCK_EX);return true;
 }
