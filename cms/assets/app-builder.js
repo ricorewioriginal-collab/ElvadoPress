@@ -7,8 +7,7 @@ window.AppBuilder=(()=>{
  const TILES={favorites:'Favoriten',schedule:'Sendeplan',podcast:'Podcast',community:'Mitmachen',news:'News & Magazin',assistant:'KI-Assistent',directory:'Radioverzeichnis',shops:'Shops',help:'Hilfe',link:'Eigener Link'};
  const MENU_BASE={podcast:'Podcast',news:'News & Magazin',help:'Hilfe & Bedienung',shops:'Shops',assistant:'KI-Assistent'};
  // Einträge der Hersteller-Apps (RicoReWi-Paket); im eigenständigen CMS nicht angeboten
- const MENU_PACK={anmacha:'anmacha.de',portal:'Radioportal'};
- function menu(){return window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']===false?MENU_BASE:Object.assign({},MENU_BASE,MENU_PACK);}
+ function menu(){return MENU_BASE;}
  const DEF={accent:'#b57cff',from:'#120d3f',to:'#5b1c84'};
  const root=()=>{try{return (typeof CMS!=='undefined'&&CMS)?CMS:(window.CMS||{});}catch(e){return window.CMS||{};}};
  const cfg=k=>{const c=window.AppsManager.get(k);if(!c)return null;const b=c.builder=c.builder||{};b.theme=b.theme||{};b.home=b.home||[];b.stations=b.stations||{order:[],hidden:[]};b.stations.order=b.stations.order||[];b.stations.hidden=b.stations.hidden||[];b.more_menu=b.more_menu||{hide:[],custom:[]};b.more_menu.hide=b.more_menu.hide||[];b.more_menu.custom=b.more_menu.custom||[];return b;};

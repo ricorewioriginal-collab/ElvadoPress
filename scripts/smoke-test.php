@@ -82,7 +82,7 @@ t('Anmeldung',$tok!=='',$r['body']);
 $H=['X-AnMaCha-Token: '.$tok];
 $g=json_decode(http('GET',"$B/cms/api.php?action=get",[],$H)['body'],true)?:[];
 $cfg=$g['config']??[];
-t('Paket ist nicht aktiv',($g['packs']['ricorewi-radio']??null)===false,json_encode($g['packs']??null));
+t('Keine Paket-Schalter in der Konfiguration',!array_key_exists('packs',$g),json_encode($g['packs']??null));
 $ids=array_column($cfg['widgets']??[],'id');
 t('Nur das Beitrags-Widget vorhanden (keine Radio-Widgets)',$ids===['w-news'],json_encode($ids));
 $menus=json_encode($cfg['menus']??[]);
@@ -99,7 +99,7 @@ t('Verwaltung lädt',$r['code']===200&&str_contains($r['body'],'panel-settings')
 $hl=json_decode(http('GET',"$B/cms/api.php?action=health",[],$H)['body'],true)?:[];
 t('Dateisystem-Prüfung meldet keine Portal-Dateien (Startseite/Feed)',($hl['healthy']??false)===true&&!isset($hl['checks']['index_file'])&&!isset($hl['checks']['rss_file']),json_encode($hl));
 $pv=$r['body'];
-t('Verwaltung: Paket als nicht vorhanden gemeldet',str_contains($pv,'window.CMS_PACKS_AVAILABLE={"ricorewi-radio":false}'));
+t('Verwaltung: keine Paket-Schalter',!str_contains($pv,'CMS_PACKS_AVAILABLE')&&!str_contains($pv,'data-pack="ricorewi-radio"'));
 t('Verwaltung: Soziale Profile neutral beschriftet',!str_contains($pv,'AnMaCha · TikTok')&&!str_contains($pv,'RicoReWi · TikTok'));
 foreach(['news-editor.js','alexa-manager.js','apps-manager.js','theme-manager.js'] as $jsf){ $js=(string)@file_get_contents($pkg.'/cms/assets/'.$jsf);
     t("$jsf: RicoReWi-/AnMaCha-Texte nur hinter der Portal-Prüfung",$js!==''&&preg_match_all('/(?:RicoReWi|AnMaCha)[^\n]{0,60}/',$js,$mm)>=0&&!preg_match('/>AnMaCha Redaktion<|\bname\s*=\s*[\'"]RicoReWi Radio[\'"]/',$js)); }
@@ -135,12 +135,12 @@ $sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>
 $sm=http('POST',"$B/cms/api.php?action=assistant_send",['__json'=>json_encode(['name'=>'x','message'=>'Hallo Studio'])],['Content-Type: application/json']);
 t('Assistent: Studiomail des Herstellers nicht verfügbar',in_array($sm['code'],[403,503],true),(string)$sm['code']);
 
-/* Radioverzeichnis gehört zum RicoReWi-Paket und fehlt im eigenständigen CMS */
+/* Radioverzeichnis ist nicht Teil von ElvadoPress */
 foreach(['directory_admin_get'=>true,'directory_search'=>false,'directory_random'=>false] as $act=>$auth){
     $dr=http('GET',"$B/cms/api.php?action=$act",[],$auth?$H:[]);
     t("Radioverzeichnis: Aktion $act ist nicht verfügbar",$dr['code']===404&&(json_decode($dr['body'],true)['status']??'')==='error','HTTP '.$dr['code']);
 }
-t('Radioverzeichnis: Reiter nur mit Paket sichtbar',str_contains($pv,'data-pack="ricorewi-radio" data-tab="directory"')&&!str_contains($pv,'data-pack-app="ricorewi-radio" data-tab="directory"'));
+t('Radioverzeichnis: kein Reiter in der Verwaltung',!str_contains($pv,'data-tab="directory"')&&!str_contains($pv,'data-tab="network"')&&!str_contains($pv,'data-tab="portal"'));
 t('Radioverzeichnis: keine Marke hat es aktiviert',(function() use($cfg){ foreach((array)($cfg['brands']['items']??[]) as $b)if(!empty($b['directory']))return false;return true; })());
 
 /* Verbundene Dienste: eigene Dienste statt der festen Liste des Herstellers */

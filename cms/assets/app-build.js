@@ -35,7 +35,6 @@
       +'<label>Paketname<input class="fc" id="abfPkg" placeholder="de.meinefirma.app" value="'+esc(b.applicationId||'')+'"></label>'
       +'<label>Website<input class="fc" id="abfSite" placeholder="https://www.beispiel.de" value="'+esc(b.site||location.origin)+'"></label>'
       +'<label>Dateiname-Anfang<input class="fc" id="abfPrefix" maxlength="30" placeholder="MeineApp" value="'+esc(b.filePrefix||'')+'"></label>'
-      +'<label class="ab-chk" id="abfDirRow" data-pack="ricorewi-radio"><input type="checkbox" id="abfDir"'+(b.directory?' checked':'')+'> Radioverzeichnis in der App</label>'
       +'<label id="abfColorRow">Farbe (Statusleiste/Fenster)<input type="color" id="abfColor" value="'+esc(b.themeColor||'#070a1c')+'" data-touched="'+(b.themeColor?1:'')+'" style="width:60px;height:36px;padding:2px" oninput="this.dataset.touched=1"></label>'
       +'<label>Icon-Hintergrund <span class="hint">(optional: Farbe hinter einem transparenten Icon)</span><input type="color" id="abfIconBg" value="'+esc(b.iconBg||'#ffffff')+'" data-set="'+(b.iconBg?1:'')+'" style="width:60px;height:36px;padding:2px" oninput="this.dataset.set=1"></label>'
       +'<div style="grid-column:1/-1"><div class="news-lbl">App-Icon (PNG/JPG/WebP, mindestens 96 px, besser 512 px)</div><div class="ab-icon"><div id="abfPrev">'+(b.icon?'<img src="'+esc(b.icon)+'" alt="">':'<span class="hint">kein Icon</span>')+'</div><button type="button" class="btn-g" onclick="AppBuild.pickIcon()"><i class="fas fa-images"></i> Aus Mediathek wählen</button><button type="button" class="btn-g" onclick="AppBuild.setIcon(\'\')">Entfernen</button></div><input type="hidden" id="abfIcon" value="'+esc(b.icon||'')+'"></div>'
@@ -86,7 +85,7 @@
   }
   async function saveBrand(){
     var pl=[];if($('abfAnd').checked)pl.push('android');if($('abfWin').checked)pl.push('windows');
-    var ty=$('abfType').value,body={id:$('abfId').value.trim(),appName:$('abfName').value.trim(),applicationId:$('abfPkg').value.trim(),site:$('abfSite').value.trim(),filePrefix:$('abfPrefix').value.trim(),directory:ty==='radio'&&$('abfDir').checked,icon:$('abfIcon').value,type:ty,platforms:pl,themeColor:(ty!=='radio'||$('abfColor').dataset.touched)?$('abfColor').value:'',
+    var ty=$('abfType').value,body={id:$('abfId').value.trim(),appName:$('abfName').value.trim(),applicationId:$('abfPkg').value.trim(),site:$('abfSite').value.trim(),filePrefix:$('abfPrefix').value.trim(),directory:false,icon:$('abfIcon').value,type:ty,platforms:pl,themeColor:(ty!=='radio'||$('abfColor').dataset.touched)?$('abfColor').value:'',
       splash:$('abfSplash').value,headerLogo:$('abfLogo').value,iconBg:$('abfIconBg').dataset.set?$('abfIconBg').value:'',screenshots:shots.slice(),shortDescription:$('abfShort').value.trim(),fullDescription:$('abfFull').value.trim()};
     try{st=await call('app_build_brand_save',body);edit=null;draw();toast('App gespeichert ✓')}catch(e){toast(e.message,true)}
   }
@@ -114,6 +113,6 @@
   }
   document.addEventListener('input',function(e){if(e.target&&(e.target.id==='abfId'||e.target.id==='abfPrefix'))e.target.dataset.touched='1'});
   window.AppBuild={load:load,saveConn:saveConn,clearToken:clearToken,check:check,saveBrand:saveBrand,start:start,remove:remove,autoFill:autoFill,setIcon:setIcon,pickIcon:function(){return pickImage('icon')},setSplash:setSplash,setLogo:setLogo,pickImage:pickImage,choose:choose,delShot:function(i){shots.splice(i,1);drawShots()},
-    typeChange:function(){var web=$('abfType').value!=='radio';$('abfDirRow').hidden=web},
+    typeChange:function(){},
     edit:function(id){edit=id;var cur=(st.brands||[]).filter(function(x){return x.id===id})[0];shots=((cur&&cur.screenshots)||[]).slice();draw();if($('abfType')){AppBuild.typeChange();drawShots()}},cancel:function(){edit=null;draw()}};
 })();

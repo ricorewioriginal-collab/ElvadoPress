@@ -17,7 +17,6 @@
             <a href="#" onclick="cmsGoto('legal');return false"><i class="fas fa-scale-balanced"></i> Rechtstexte prüfen</a></div>
         </div>
       </div>
-      <span id="coreCountOverview" hidden></span>
       <div class="card"><div class="th"><div class="tt"><i class="fas fa-chart-simple"></i>Auf einen Blick</div><button class="btn-g" onclick="loadDashboardStats()"><i class="fas fa-rotate"></i></button></div><div id="dashboardStats" class="grid"><div class="stat"><div class="l">Lädt…</div><div class="v">–</div></div></div></div>
       <div class="card"><div class="tt"><i class="fas fa-fire"></i>Meistgelesen</div><div id="dashboardTopViewed" style="margin-top:10px"><div class="hint">Lädt…</div></div></div>
       <div id="dashboardCommentsCard" class="card">
@@ -40,8 +39,4 @@
       <div class="card"><div class="th"><div><div class="tt"><i class="fas fa-hard-drive"></i>Speicherort &amp; Veröffentlichung</div><div class="hint">Prüft, ob Änderungen gespeichert und veröffentlicht werden können.</div></div><button class="btn-g" onclick="checkCmsFilesystem()"><i class="fas fa-rotate"></i> Prüfen</button></div><div id="cmsHealthDetails" class="grid"></div></div>
       <div class="card"><div class="th"><div><div class="tt"><i class="fas fa-heart-pulse"></i>Website-Zustand</div><div class="hint">Selbstdiagnose von Server, Anmeldung, Daten und Dateisystem – wie „Website-Zustand“ in WordPress.</div></div><div style="display:flex;align-items:center;gap:8px"><span id="siteHealthBadge" class="publish-state"><i class="fas fa-spinner fa-spin"></i> Prüfung läuft</span><button class="btn-g" onclick="loadSiteHealth(true)"><i class="fas fa-rotate"></i> Prüfen</button></div></div><div id="siteHealthList"><div class="hint">Lädt…</div></div></div>
       </details>
-      <div id="legacyImportCard" data-pack="ricorewi-radio" class="card" style="display:none">
-        <div class="th"><div><div class="tt"><i class="fas fa-box-archive"></i>Einmalige Altdaten-Migration</div><div class="hint">Vorhandene News und frühere CMS-Einstellungen aus dem alten Control-Center-Speicher nach <code>/cms/</code> übernehmen.</div></div><button class="btn-g" onclick="importLegacyCms()"><i class="fas fa-file-import"></i> Altdaten übernehmen</button></div>
-        <div class="danger-note"><i class="fas fa-triangle-exclamation"></i> Nur verwenden, wenn du die bisherigen Inhalte übernehmen möchtest. Dabei werden entsprechende CMS-Bereiche durch den alten Stand ersetzt.</div>
-      </div>
     </section>

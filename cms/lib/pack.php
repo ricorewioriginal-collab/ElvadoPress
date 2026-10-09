@@ -3,10 +3,8 @@ declare(strict_types=1);
 // ---------------------------------------------------------------------------------------------
 // Design-Pakete: Ein Theme kann ein Paket mitbringen ("pack" in theme.json); Pakete können Komponenten (cms/packs/<paket>/components.php)
 // und Verwaltungs-Skripte (cms/packs/<paket>/admin.js) beisteuern. ElvadoPress liefert selbst kein Paket aus – ohne Paket-Theme ist
-// rrw_pack_available() immer false. RRW_PACK_RADIO bleibt nur für die Verwaltungsoberfläche (window.CMS_PACKS_AVAILABLE) erhalten.
+// rrw_pack_available() immer false.
 // ---------------------------------------------------------------------------------------------
-const RRW_PACK_RADIO='ricorewi-radio';
-
 /** Paket, das ein Theme mitbringt ('' = keines). Liest cms/themes/<id>/theme.json. */
 function rrw_pack_of_theme(string $themeId, ?string $themesDir=null): string {
     $themesDir=$themesDir??dirname(__DIR__).'/themes';
@@ -17,7 +15,7 @@ function rrw_pack_of_theme(string $themeId, ?string $themesDir=null): string {
     return preg_match('/^[a-z0-9-]{1,40}$/',$p)?$p:'';
 }
 /** Gibt es das Paket in dieser Installation (ein Theme bringt es mit)? Im eigenständigen CMS ohne die RicoReWi-Themes: nein. */
-function rrw_pack_available(string $pack=RRW_PACK_RADIO, ?string $themesDir=null): bool {
+function rrw_pack_available(string $pack, ?string $themesDir=null): bool {
     static $cache=[];
     $dir=$themesDir??dirname(__DIR__).'/themes';$key=$pack.'|'.$dir;
     if(!array_key_exists($key,$cache)){

@@ -7,7 +7,6 @@ require_once $real.'/lib/nplugins.php';
 use Elvado\Plugin\{Fs,PluginManager};
 $n=0;$fail=0;
 function t(string $name,bool $ok,string $info=''): void { global $n,$fail;$n++;if(!$ok){$fail++;echo "FAIL  $name".($info!==''?": $info":'')."\n";}else echo "  ok  $name\n"; }
-if(function_exists('rrw_pack_available')&&rrw_pack_available()){ echo "übersprungen: Mit dem RicoReWi-Paket gibt es die Essentials nicht\n";exit(0); }
 $ver=trim((string)file_get_contents($real.'/VERSION'));
 $tmp=sys_get_temp_dir().'/rrw-aic-'.bin2hex(random_bytes(4));$cms=$tmp.'/cms';
 foreach(['data','plugins','backups','media','themes','content'] as $d)mkdir($cms.'/'.$d,0755,true);

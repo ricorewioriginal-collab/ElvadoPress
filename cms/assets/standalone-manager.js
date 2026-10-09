@@ -11,11 +11,10 @@ window.StandaloneManager=(()=>{
   if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d;
  }
  const toast=(m,bad=false)=>window.cmsToast?.(m,bad);
- const F={name:'prodName',slug:'prodSlug',logo:'prodLogo',control_center:'prodCc',title:'prodTitle',heading:'prodHeading',access_name:'prodAccess',generator:'prodGen'};
+ const F={name:'prodName',slug:'prodSlug',logo:'prodLogo',title:'prodTitle',heading:'prodHeading',access_name:'prodAccess',generator:'prodGen'};
  function fill(d){
   const o=d.product_overrides||{};
   Object.entries(F).forEach(([k,id])=>{const el=$(id);if(el){el.value=o[k]||'';el.placeholder=(d.product_defaults||{})[k]||el.placeholder||'';}});
-  if($('sysControlCenter'))$('sysControlCenter').checked=!d.standalone;
   if($('sysLanguage'))$('sysLanguage').value=d.system?.language||'';
   if($('sysTimezone'))$('sysTimezone').value=d.system?.timezone||'';
   if($('sysInfo'))$('sysInfo').innerHTML='Produkt: <b>'+esc(d.product?.name)+'</b> · Lokale Administratoren: <b>'+esc(d.local_admins)+'</b>';
@@ -23,9 +22,7 @@ window.StandaloneManager=(()=>{
  }
  async function load(){try{fill(await api('system_get'));}catch(e){if($('sysInfo'))$('sysInfo').textContent=e.message;}}
  async function saveMode(){
-  const want=$('sysControlCenter').checked;
-  if(!want&&!confirm('Eigenständigen Betrieb aktivieren? Anmeldungen über das Control Center funktionieren danach nicht mehr, nur noch lokale Konten.'))return;
-  try{const d=await api('system_save',{control_center:want,language:$('sysLanguage').value,timezone:$('sysTimezone').value.trim()});toast('Gespeichert');await load();if(d.standalone!==!!window.RRW_PRODUCT?.standalone)toast('Seite neu laden, damit alle Texte passen');}
+  try{const d=await api('system_save',{language:$('sysLanguage').value,timezone:$('sysTimezone').value.trim()});toast('Gespeichert');await load();}
   catch(e){toast(e.message,true);}
  }
  async function saveProduct(){

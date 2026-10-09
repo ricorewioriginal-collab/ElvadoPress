@@ -4,7 +4,7 @@
 
 ## Aufbau
 - **Hauptquelle des CMS ist ElvadoPress** (Repository `ricorewioriginal-collab/ElvadoPress`). `ricorewi-radio` (RicoReWi-Portal) und Senderwelt werden seit Oktober 2026 unabhängig entwickelt; es gibt keinen Sync mehr. Regeln: `CLAUDE.md`, Ablauf: `cms/docs/ELVADOPRESS.md`.
-- **Pack-Konzept** (`cms/lib/pack.php`): RicoReWi-Inhalte hängen an `rrw_pack_available()` / `rrw_pack_active()`; in der Oberfläche `data-pack` bzw. `data-pack-app`, in JavaScript `window.CMS_PACKS['ricorewi-radio']`.
+- **Pack-Konzept** (`cms/lib/pack.php`): nur noch ein generischer Mechanismus für Theme-Pakete (`rrw_pack_available($pack)`: Komponenten, `admin.js`). ElvadoPress liefert kein Paket aus; RicoReWi-spezifische Schalter in Oberfläche und JavaScript sind entfernt.
 - **Tests:** `scripts/test-*.php` und `scripts/smoke-test.php` (ElvadoPress-CI führt alle aus).
 
 ## Was läuft

@@ -217,7 +217,7 @@ window.AppsManager=(()=>{
  async function clear(what){if(!confirm(what==='errors'?'Alle gesammelten Fehlerberichte löschen?':'Alle gesammelten Nutzungszahlen löschen?'))return;try{await api('apps_stats_clear',{what});toast('Gelöscht');await render();}catch(e){toast(e.message||'Fehler',true);}}
  async function render(){await load();draw();}
  async function refresh(){await render();toast('Aktualisiert');}
- function collect(){return {android_enabled:!!document.getElementById('cmsAndroid')?.checked,windows_enabled:!!document.getElementById('cmsWindows')?.checked,telemetry:S.tel,managed:S.managed};}
+ function collect(){return {android_enabled:CMS.apps?.android_enabled!==false,windows_enabled:CMS.apps?.windows_enabled!==false,telemetry:S.tel,managed:S.managed};}
  function copy(t){try{navigator.clipboard.writeText(t);toast('Prüfsumme kopiert');}catch(e){toast('Kopieren nicht möglich',true);}}
  return {ready:()=>!!S.ov,render,refresh,set,setList,aiTabs,aiNotice,aiStore,tabSet,tabPick,pvGo,pvReload,tabAdd,tabDel,tabMove,tabPreset,pinCert,collect,copy,tel,clear,geoUpdate,get:k=>S.managed[k]};
 })();

@@ -8,7 +8,7 @@ window.ServicesManager=(()=>{
  // Vorlagen: allgemeine Dienstarten mit Namensvorschlag (keine Adressen, die trägt man selbst ein)
  const TEMPLATES=[['Website','website'],['Cloud-Speicher','media'],['Podcast','podcast'],['Livestream / Video','video'],['Webmail','mail'],['Statistik','analytics'],['Shop','shop'],['Wiki / Hilfe','docs'],['Schnittstelle (API)','api'],['Eigener Dienst','other']];
  const S={items:[],status:{},loaded:false,dirty:false};
- const active=()=>!(window.CMS_PACKS_AVAILABLE&&window.CMS_PACKS_AVAILABLE['ricorewi-radio']!==false);
+ const active=()=>true;
  const toast=(m,bad)=>{try{window.cmsToast(m,!!bad)}catch(e){}};
  const host=()=>document.getElementById('servicesEditor');
  const origin=()=>location.origin;
