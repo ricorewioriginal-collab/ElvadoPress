@@ -42,7 +42,7 @@ t('Empfohlene Installation: externes Tracking ist aus, KI ohne Schlüssel nicht 
 [$st,,$login]=[0,0,api($base,'login',['username'=>'admin1','password'=>'Sehr-gutes-Passwort-42'])];$tok=(string)($login['token']??'');
 t('Empfohlene Installation: Anmeldung funktioniert mit aktiven Plugins',$tok!=='');
 $l=api($base,'np_list',[],$tok);
-t('Empfohlene Installation: Plugin-Verwaltung liefert acht aktive offizielle Plugins und die geplanten als „nicht verfügbar“',count(array_filter($l['plugins']??[],fn($p)=>$p['status']==='active'&&$p['official']))===8&&count(array_filter($l['plugins']??[],fn($p)=>$p['status']==='planned'))===9&&($l['mode']??'')==='recommended');
+t('Empfohlene Installation: Plugin-Verwaltung liefert acht aktive offizielle Plugins und die geplanten als „nicht verfügbar“',count(array_filter($l['plugins']??[],fn($p)=>$p['status']==='active'&&$p['official']))===8&&count(array_filter($l['plugins']??[],fn($p)=>$p['status']==='planned'))===8&&($l['mode']??'')==='recommended');
 [$st,,$home]=http('GET',$base.'/');
 t('Empfohlene Installation: Website wird mit aktiven Plugins ausgeliefert',$st===200&&str_contains($home,'<html'));
 [$st2,$ck2,$sm]=http('GET',$base.'/sitemap.xml');

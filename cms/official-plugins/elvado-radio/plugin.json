@@ -1,0 +1,22 @@
+{
+  "id": "elvado-radio",
+  "name": "Elvado Radio / Audio",
+  "description": "Stellt Webradio- und Audio-Streams als Player auf Seiten, in Beiträgen und Widgets bereit – per Shortcode [elvado_radio]. Die Sender trägst du selbst ein. Es wird kein Skript von Dritten geladen und der Stream erst nach dem Klick auf „Abspielen“ abgerufen.",
+  "version": "1.0.0",
+  "author": "ElvadoPress",
+  "homepage": "https://github.com/ricorewioriginal-collab/ElvadoPress",
+  "license": "MIT",
+  "official": true,
+  "recommended": false,
+  "category": "Medien",
+  "icon": "fa-radio",
+  "requires": { "elvadopress": ">=1.1.0", "php": ">=8.1" },
+  "tested_up_to": "1.x",
+  "capabilities": [],
+  "update": { "source": "bundled" },
+  "entry": "plugin.php",
+  "settings": [
+    { "key": "stations", "type": "textarea", "default": "", "label": "Sender", "help": "Eine Zeile pro Sender: kennung | Name | https://stream-adresse | https://logo-adresse (Logo optional). Beispiel: mein-radio | Mein Radio | https://stream.example.org/live.mp3" },
+    { "key": "show_title", "type": "toggle", "default": true, "label": "Sendernamen über dem Player anzeigen" }
+  ]
+}
