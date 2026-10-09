@@ -39,6 +39,5 @@
 ## Mehrere eigenständige Websites (Multisite)
 - Grundlage steht (`cms/lib/sites.php`, `scripts/test-sites.php`, `cms/docs/MULTISITE.md`), ist aber noch **nicht eingebunden**: Auslieferung, Verwaltung (Website-Umschalter, Bereich „Websites“), WordPress-Emulation und -Engine je Website folgen in Stufen (siehe Dokument). Bis dahin ändert sich am Betrieb nichts.
 
-## Demo-Bereitstellung nach Trennung von ricorewi-radio
-- **Problem:** Die Demo (`elvadopress.ricorewi-radio.de`) wurde über den Workflow „Deploy ElvadoPress Demo“ in ricorewi-radio bereitgestellt. Seit der unabhängigen Entwicklung von RicoReWi Radio/Senderwelt ist offen, wie sie künftig aktualisiert wird.
-- **Status:** offen; Entscheidung des Betreibers nötig.
+## Demo-Bereitstellung
+- **Stand:** Die Demo (`elvadopress.ricorewi-radio.de`) wird serverseitig über AnMaCha Universal Deploy (Projekt `elvadopress`, bei Änderung in `main`) bereitgestellt; es laufen keine GitHub-Actions-Deploys. Ob die Domain/Subdomain künftig wechselt, entscheidet der Betreiber.

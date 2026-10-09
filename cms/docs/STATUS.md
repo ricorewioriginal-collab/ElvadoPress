@@ -3,7 +3,7 @@
 Übergabe zum späteren Weiterarbeiten.
 
 ## Aufbau
-- **Hauptquelle des CMS ist ElvadoPress** (Repository `ricorewioriginal-collab/ElvadoPress`). Das Projekt `ricorewi-radio` (RicoReWi-Portal, Produktion von ricorewi-radio.de) übernimmt `cms/` per Sync-Workflow und enthält nur die RicoReWi-spezifischen Teile. Regeln: `CLAUDE.md` in beiden Repositories, Ablauf: `cms/docs/ELVADOPRESS.md`.
+- **Hauptquelle des CMS ist ElvadoPress** (Repository `ricorewioriginal-collab/ElvadoPress`). `ricorewi-radio` (RicoReWi-Portal) und Senderwelt werden seit Oktober 2026 unabhängig entwickelt; es gibt keinen Sync mehr. Regeln: `CLAUDE.md`, Ablauf: `cms/docs/ELVADOPRESS.md`.
 - **Pack-Konzept** (`cms/lib/pack.php`): RicoReWi-Inhalte hängen an `rrw_pack_available()` / `rrw_pack_active()`; in der Oberfläche `data-pack` bzw. `data-pack-app`, in JavaScript `window.CMS_PACKS['ricorewi-radio']`.
 - **Tests:** `scripts/test-*.php` und `scripts/smoke-test.php` (ElvadoPress-CI führt alle aus).
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | Live-Seite RicoReWi | ricorewi-radio.de | serverseitiges AnMaCha Universal Deploy im Projekt `ricorewi-radio` |
 | Öffentliche Demo | https://elvadopress.ricorewi-radio.de (Info `/demo/`, Verwaltung `/cms/?demo=1`) | serverseitiges AnMaCha Universal Deploy (`elvadopress`) |
-| CMS-Stand in ricorewi-radio | `cms/` | Workflow „Sync ElvadoPress“ (Pull Request `sync/elvadopress`) |
+| CMS-Stand in ricorewi-radio | – | Sync eingestellt (seit Oktober 2026 unabhängig) |
 
 Die Demo nutzt Benutzer `demo`, setzt alle 10 Minuten zurück und sperrt riskante Aktionen (`RRW_DEMO_BLOCKED` in `cms/lib/demo.php`). Sie liegt bewusst auf einer eigenen Subdomain (Wurzelpfade des CMS, Anmeldedaten pro Domain).
 
