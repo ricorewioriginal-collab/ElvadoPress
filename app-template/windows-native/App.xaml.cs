@@ -32,11 +32,11 @@ public partial class App : System.Windows.Application
         };
     }
 
-    // App-Typ je Marke: Radio-App (Standard) oder Website-App (WebView2-Vollbildfenster)
+    // Website- bzw. Baukasten-App (WebView2-Vollbildfenster)
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        Window w = Brand.IsWeb ? new WebShellWindow() : new ElvadoPress.App.Windows.MainWindow();
+        Window w = new WebShellWindow();
         MainWindow = w;
         w.Show();
     }

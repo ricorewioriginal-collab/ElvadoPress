@@ -41,20 +41,6 @@ public static class ErrorReporter
         using var res = await http.PostAsync(Brand.SiteBase + "/cms/api.php?action=app_error", content);
     }
 
-    public static bool ListenEnabled { get; set; }
-
-    /// <summary>Hörsitzung (nur Sender + Sekunden) an das CMS, wenn die Hörstatistik dort eingeschaltet ist.</summary>
-    public static async Task ListenAsync(HttpClient http, string did, string station, int seconds)
-    {
-        try
-        {
-            var json = JsonSerializer.Serialize(new Dictionary<string, object> { ["platform"] = "windows", ["brand"] = Brand.Id, ["did"] = did, ["station"] = station, ["seconds"] = seconds, ["version"] = Version });
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-            using var res = await http.PostAsync(Brand.SiteBase + "/cms/api.php?action=app_listen", content);
-        }
-        catch { }
-    }
-
     /// <summary>Absturz vom letzten Lauf senden (wenn erlaubt) und in jedem Fall löschen.</summary>
     public static async Task FlushPendingAsync(HttpClient http)
     {

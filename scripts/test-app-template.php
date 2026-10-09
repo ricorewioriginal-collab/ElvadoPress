@@ -13,7 +13,7 @@ function files(string $dir): array { $o=[];$it=new RecursiveIteratorIterator(new
 $all=files($T);$rel=fn(string $p)=>substr($p,strlen($T)+1);
 $text=array_values(array_filter($all,fn($p)=>!preg_match('/\.(png|jpg|jpeg|webp|ico)$/i',$p)));
 
-t('Vorlage vorhanden und nicht übermäßig groß (ohne Build-Ausgaben)',count($all)>80&&array_sum(array_map('filesize',$all))<3_000_000,count($all).' Dateien');
+t('Vorlage vorhanden und nicht übermäßig groß (ohne Build-Ausgaben)',count($all)>30&&array_sum(array_map('filesize',$all))<3_000_000,count($all).' Dateien');
 // Neutralität
 $bad=[];foreach($text as $p){ $c=(string)file_get_contents($p);if(preg_match('/ricorewi|senderwelt|anmacha/i',$c))$bad[]=$rel($p); }
 t('Keine Hersteller-Inhalte (RicoReWi, SenderWelt, AnMaCha) in der Vorlage',$bad===[],implode(', ',array_slice($bad,0,5)));
@@ -21,7 +21,7 @@ t('Keine Schlüssel, Build-Ausgaben oder lokalen Dateien',array_filter($all,fn($
 t('Marken-Liste ist leer (die Apps trägt das CMS ein)',json_decode((string)file_get_contents($T.'/android/brands.json'),true)===[]);
 // Vollständigkeit
 foreach(['README.md','ANLEITUNG.md','.gitignore','icon-512.png','android/build.gradle','android/settings.gradle','android/app/build.gradle','android/app/src/main/AndroidManifest.xml',
-         'android-app/assets/config/app-config.json','android-app/assets/config/app_icon.png','android-app/assets/config/logo-lockup.png','android-app/assets/config/startscreen.png',
+         'android-app/assets/config/app_icon.png','android-app/assets/config/logo-lockup.png','android-app/assets/config/startscreen.png',
          'windows-native/ElvadoPress.App.Windows.csproj','windows-native/installer.iss','windows-native/WebRuntime.cs','windows-native/WebShellWindow.cs',
          'scripts/create-developer-keystore.sh','scripts/create-developer-keystore.ps1','brands/.gitkeep'] as $f)
     t("Datei vorhanden: $f",is_file($T.'/'.$f));
@@ -39,14 +39,13 @@ foreach(['icon-512.png','android-app/assets/config/app_icon.png','android-app/as
 $gr=(string)file_get_contents($T.'/android/app/build.gradle');preg_match_all('/\bb\.(\w+)/',$gr,$m1);preg_match_all('/\$b\.(\w+)/',$ww,$m2);$known=array_unique(array_merge($m1[1],$m2[1]));
 $cmsKeys=['id','applicationId','appName','launchUrl','site','filePrefix','type','themeColor'];
 t('Der Build wertet alle Felder aus, die das CMS schreibt',array_diff($cmsKeys,$known)===[],implode(',',array_diff($cmsKeys,$known)));
-t('Zusatzangaben der Radio-App ("radio") werden von Android und Windows gelesen',in_array('radio',$m1[1],true)&&str_contains($ww,'$bb.radio'));
 // Quelltext-Struktur Android
 $ns='app.elvadopress.client';$jdir=$T.'/android/app/src/main/java/app/elvadopress/client';$java=glob($jdir.'/*.java')?:[];
-t('Android: Namensraum in build.gradle und alle Quelldateien stimmen überein',str_contains($gr,"namespace '$ns'")&&count($java)>20&&array_filter($java,fn($f)=>!str_contains((string)file_get_contents($f),"package $ns;"))===[]);
+t('Android: Namensraum in build.gradle und alle Quelldateien stimmen überein',str_contains($gr,"namespace '$ns'")&&count($java)>=3&&array_filter($java,fn($f)=>!str_contains((string)file_get_contents($f),"package $ns;"))===[]);
 $man=(string)file_get_contents($T.'/android/app/src/main/AndroidManifest.xml');preg_match_all('/android:(?:name|value)="(?:app\.elvadopress\.client)?\.?([A-Z]\w+)"/',$man,$mm);
 $missing=array_filter(array_unique($mm[1]),fn($c)=>!is_file($jdir.'/'.$c.'.java')&&!in_array($c,['Material','Theme'],true));
 t('Android: Klassen im Manifest existieren',$missing===[],implode(',',$missing));
-t('Android: Tests der Website-App sind enthalten',is_file($T.'/android/app/src/test/java/app/elvadopress/client/WebRuntimeTest.java')&&is_file($T.'/android/app/src/test/java/app/elvadopress/client/RadioConfigTest.java'));
+t('Android: Tests der Website-App sind enthalten',is_file($T.'/android/app/src/test/java/app/elvadopress/client/WebRuntimeTest.java'));
 // Windows
 $cs=(string)file_get_contents($T.'/windows-native/ElvadoPress.App.Windows.csproj');
 t('Windows: Namensraum in allen Quelldateien einheitlich',str_contains($cs,'<RootNamespace>ElvadoPress.App.Windows</RootNamespace>')&&array_filter(glob($T.'/windows-native/*.cs')?:[],fn($f)=>!str_contains((string)file_get_contents($f),'namespace ElvadoPress.App.Windows;'))===[]);

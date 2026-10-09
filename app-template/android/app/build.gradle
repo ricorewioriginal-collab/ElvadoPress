@@ -20,8 +20,6 @@ def ciVersionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1") as Integer
 // Product Flavor mit eigener Paket-ID, eigenem App-Namen, eigener Start-URL und eigenen
 // Branding-Dateien (android/app/src/<id>/res bzw. assets). Das CMS (Apps → Eigene App bauen) trägt die Marken ein.
 def brandList = new groovy.json.JsonSlurper().parse(file("../brands.json"))
-// Java-String-Literal aus beliebigem Text (für buildConfigField)
-def javaString = { String t -> '"' + t.replace('\\', '\\\\').replace('"', '\\"') + '"' }
 
 android {
     namespace 'app.elvadopress.client'
@@ -45,7 +43,6 @@ android {
         targetSdk 36
         versionCode ciVersionCode
         versionName '3.0.0'
-        manifestPlaceholders = [appAuthRedirectScheme: 'app.elvadopress.client.dev']
     }
 
     flavorDimensions = ['brand']
@@ -58,10 +55,7 @@ android {
                 resValue 'string', 'launch_url', b.launchUrl
                 resValue 'string', 'site_base', b.site
                 resValue 'string', 'theme_color', (b.themeColor ?: '#070A1C')   // Statusleiste/Hintergrund (App-Typ web)
-                // Optionale Funktionen der Radio-App je Marke ("radio" im Eintrag von android/brands.json): podcast, communityBase, shops – siehe ANLEITUNG.md
-                buildConfigField 'String', 'RADIO_CONFIG', javaString(groovy.json.JsonOutput.toJson(b.radio ?: [:]))
-                buildConfigField 'String', 'APP_TYPE', '"' + (b.type in ['web', 'content'] ? b.type : 'radio') + '"'   // radio = Radio-App (Standard), web = Website als App, content = Baukasten-App (Tab-Leiste mit eigenen Inhalten)
-                resValue 'bool', 'has_directory', (b.directory ? 'true' : 'false')  // Radioverzeichnis-Funktionen (Marken mit Verzeichnis)
+                buildConfigField 'String', 'APP_TYPE', '"' + (b.type == 'content' ? 'content' : 'web') + '"'   // web = Website als App (Standard), content = Baukasten-App (Tab-Leiste mit eigenen Inhalten)
                 resValue 'string', 'asset_statements', '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"web","site":"' + b.site + '"}}]'
             }
         }
@@ -88,7 +82,6 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField 'boolean', 'SELF_UPDATE', 'true'
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
         }
@@ -101,8 +94,6 @@ android {
             matchingFallbacks = ['debug']
         }
         release {
-            // Store-Pakete aktualisiert der Store; kein Selbst-Update per APK (Play-Richtlinie), Berechtigung fehlt im Manifest
-            buildConfigField 'boolean', 'SELF_UPDATE', 'false'
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -121,9 +112,4 @@ android {
 dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
-    implementation 'androidx.media3:media3-exoplayer:1.8.0'
-    implementation 'androidx.media3:media3-session:1.8.0'
-    implementation 'androidx.media3:media3-cast:1.8.0'
-    implementation 'androidx.mediarouter:mediarouter:1.7.0'
-    implementation 'net.openid:appauth:0.11.1'
 }

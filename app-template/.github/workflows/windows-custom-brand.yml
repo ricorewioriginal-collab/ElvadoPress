@@ -1,7 +1,7 @@
 name: Windows custom brand
 
 # Baut die Windows-App einer einzelnen Marke aus android/brands.json (gestartet vom Build-Assistenten im CMS: Apps → Eigene App bauen).
-# Radio-, Website- (type "web") und Baukasten-Apps (type "content") nutzen dieselbe Code-Basis; das Ergebnis liegt als Pre-Release „app-<marke>-win-<nr>“ im Repository
+# Website- (type "web") und Baukasten-Apps (type "content") nutzen dieselbe Code-Basis; das Ergebnis liegt als Pre-Release „app-<marke>-win-<nr>“ im Repository
 # (Installer und portable EXE). Das CMS listet und liefert die Dateien aus.
 run-name: Windows ${{ inputs.brand }}
 
@@ -46,14 +46,13 @@ jobs:
           if ($b.appName -notmatch '^[\p{L}\p{N} ._-]{1,30}$') { throw "Ungültiger App-Name" }
           if ($b.filePrefix -notmatch '^[A-Za-z0-9-]{2,30}$') { throw "Ungültiger Dateiname-Anfang" }
           if ($b.site -notmatch '^https://[A-Za-z0-9.:-]+$') { throw "Ungültige Website" }
-          $type = if ($b.type -in @('web','content')) { $b.type } else { 'radio' }
+          $type = if ($b.type -in @('web','content')) { $b.type } else { 'web' }
           $theme = if ($b.themeColor -match '^#[0-9a-fA-F]{6}$') { $b.themeColor } else { '#070A1C' }
           "APP_NAME=$($b.appName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "APP_PREFIX=$($b.filePrefix)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "APP_SITE=$($b.site)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "APP_TYPE=$type" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           "APP_THEME=$theme" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "APP_DIR=$([bool]$b.directory)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Bilder und Marken-Konfiguration bereitstellen
         shell: pwsh
@@ -67,14 +66,6 @@ jobs:
           } else { Write-Host "Eigenes Icon: nein (Standard-Icon)" }
           foreach ($f in 'logo-lockup','startscreen') { if (Test-Path "brands/$env:BRAND/$f.png") { Copy-Item "brands/$env:BRAND/$f.png" "windows-native/assets/config/$f.png" -Force } }
           $cfg = [ordered]@{ id = $env:BRAND; name = $env:APP_NAME; website = "$env:APP_SITE/"; type = $env:APP_TYPE; themeColor = $env:APP_THEME }
-          if ($env:APP_DIR -eq 'True') { $cfg.directory = $true }
-          # Optionale Funktionen der Radio-App ("radio" im Eintrag von android/brands.json): podcast, communityBase, shops
-          $bb = (Get-Content android/brands.json -Raw | ConvertFrom-Json) | Where-Object { $_.id -eq $env:BRAND } | Select-Object -First 1
-          if ($bb.radio) {
-            if ($bb.radio.podcast -eq $true) { $cfg.podcast = $true }
-            if ($bb.radio.communityBase -match '^https://') { $cfg.communityBase = $bb.radio.communityBase }
-            if ($bb.radio.shops) { $cfg.shops = @($bb.radio.shops) }
-          }
           $cfg | ConvertTo-Json -Compress | Set-Content windows-native/assets/config/brand.json -Encoding utf8
 
       - name: Bauen
