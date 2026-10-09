@@ -140,7 +140,7 @@ window.AppsManager=(()=>{
   const B=root().branding||{},items=(root().brands&&root().brands.items)||[];
   const img=(u,l)=>`<figure class="ap-img">${u?`<img src="${esc(u)}" alt="">`:'<div class="ap-none">–</div>'}<figcaption>${esc(l)}</figcaption></figure>`;
   const main=items[0]||{};
-  let h=`<div class="dm-row"><div class="dm-head"><b>${esc(main.name||((window.CMS_PACKS&&window.CMS_PACKS['ricorewi-radio'])?'RicoReWi Radio':'Mein Radio'))}</b><span class="dm-pill grey">Hauptmarke</span></div><div class="ap-imgs">${img(B.android_app_icon,'App-Icon')}${img(B.android_startscreen,'Startbild')}${img(B.windows_logo||B.android_inapp_logo,'Logo (Windows/In-App)')}</div><div class="dm-actions"><button class="btn-g" onclick="cmsTab('branding')"><i class="fas fa-pen"></i> Im Branding ändern</button></div></div>`;
+  let h=`<div class="dm-row"><div class="dm-head"><b>${esc(main.name||'Mein Radio')}</b><span class="dm-pill grey">Hauptmarke</span></div><div class="ap-imgs">${img(B.android_app_icon,'App-Icon')}${img(B.android_startscreen,'Startbild')}${img(B.windows_logo||B.android_inapp_logo,'Logo (Windows/In-App)')}</div><div class="dm-actions"><button class="btn-g" onclick="cmsTab('branding')"><i class="fas fa-pen"></i> Im Branding ändern</button></div></div>`;
   items.slice(1).forEach(b=>{h+=`<div class="dm-row"><div class="dm-head"><b>${esc(b.name||b.id)}</b></div><div class="ap-imgs">${img(b.touch_icon||b.favicon,'App-Icon')}${img(b.social_image||b.og_image,'Startbild / Social')}${img(b.logo,'Logo')}</div><div class="dm-actions"><button class="btn-g" onclick="cmsTab('brands')"><i class="fas fa-pen"></i> Unter Domains &amp; Branding ändern</button></div></div>`;});
   return h;
  }
