@@ -13,10 +13,19 @@ function elvado_wp_cms_dir(): string { return defined('ELVADO_WP_CMS_DATA')?(str
 function elvado_wp_cms_reset(): void { $GLOBALS['elvado_wp_cms_cache']=null; }
 function elvado_wp_hash_id(string $s, int $base): int { return $base+(crc32($s)%900000); }
 function elvado_wp_read_json(string $f, $fallback) { $r=is_file($f)?json_decode((string)@file_get_contents($f),true):null;return is_array($r)?$r:$fallback; }
+/** Jetzt als "Y-m-d H:i:s" in der Zeitzone der Einrichtung. CMS-Zeitangaben (Veröffentlichung) werden in dieser Zeitzone gespeichert; Die PHP-Standardzeitzone wird bewusst nicht verändert, damit GMT-Werte der WordPress-Schicht unverändert gelesen werden. */
+function elvado_wp_cms_now(): string {
+    static $tz=null;
+    if($tz===null){
+        $tz=new DateTimeZone('UTC');
+        try{ require_once dirname(__DIR__,2).'/lib/system.php';$z=(string)elvado_system_config()['timezone'];if($z!=='')$tz=new DateTimeZone($z); }catch(Throwable $e){}
+    }
+    return (new DateTimeImmutable('now',$tz))->format('Y-m-d H:i:s');
+}
 function elvado_wp_cms_data(): array {
     if(isset($GLOBALS['elvado_wp_cms_cache']))return $GLOBALS['elvado_wp_cms_cache'];
     $dir=elvado_wp_cms_dir();$news=elvado_wp_read_json($dir.'/news.json',[]);$site=elvado_wp_read_json($dir.'/site.json',[]);
-    $now=date('Y-m-d H:i:s');$live=[];
+    $now=elvado_wp_cms_now();$live=[];
     foreach($news as $a){ if(!is_array($a)||($a['status']??'draft')!=='published'||!empty($a['deleted_at']))continue; $pa=trim((string)($a['published_at']??''));if($pa!==''&&$pa>$now)continue; $live[]=$a; }
     return $GLOBALS['elvado_wp_cms_cache']=['news'=>$live,'site'=>$site,'news_all'=>$news];
 }
@@ -26,7 +35,7 @@ function elvado_wp_cms_term_slug(string $s): string { return sanitize_title($s);
 function elvado_wp_cms_news_status(array $a, string $date): string {
     if(!empty($a['deleted_at']))return 'trash';
     if(($a['status']??'draft')!=='published'){ $w=(string)($a['wp_status']??'');return in_array($w,['pending','private'],true)?$w:'draft'; }
-    return $date>date('Y-m-d H:i:s')?'future':'publish';
+    return $date>elvado_wp_cms_now()?'future':'publish';
 }
 function elvado_wp_cms_news_post(array $a): WP_Post {
     $date=trim((string)($a['published_at']??$a['created_at']??date('Y-m-d H:i:s')));if(strlen($date)<19)$date=date('Y-m-d H:i:s',strtotime($date)?:time());

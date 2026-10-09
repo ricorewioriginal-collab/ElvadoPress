@@ -170,8 +170,10 @@ window.MediaHub=(()=>{
  }
  function cancelBrandingPick(){brandingPick=null;if(selected)select(items.indexOf(selected));}
  async function load(force=false){bind();try{const d=await api('media_library_list');items=d.items||[];render();renderAltBar()}catch(e){const h=document.getElementById('mediaHubGrid');if(h)h.innerHTML='<div class="empty" style="grid-column:1/-1">'+esc(e.message)+'</div>'}}
- /** Bild aus der Mediathek wählen (z. B. für Widget-Felder): cb(url) wird mit der Adresse des gewählten Bildes aufgerufen. */
- async function pick(cb){
+ /** Datei aus der Mediathek wählen (z. B. für Widget-Felder): cb(url) bekommt die Adresse. kind: 'image' (Standard) oder 'audio'; erkannt am MIME-Typ oder, wo dieser fehlt, an der Dateiendung. */
+ async function pick(cb,kind){
+  const isAudio=kind==='audio',extRe=isAudio?/\.(mp3|ogg|oga|wav|m4a|aac|flac|opus)(\?|$)/i:/\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i;
+  const wanted=x=>String(x.mime||'').startsWith(isAudio?'audio/':'image/')||extRe.test(String(x.url||x.name||''));
   let modal=document.getElementById('mediaHubPick');
   if(modal)modal.remove();
   modal=document.createElement('div');modal.id='mediaHubPick';
@@ -184,14 +186,15 @@ window.MediaHub=(()=>{
   const grid=modal.querySelector('#mediaHubPickGrid');
   try{
    const d=await api('media_library_list');
-   const list=(d.items||[]).filter(x=>String(x.mime||'').startsWith('image/'));
-   grid.innerHTML=list.length?'':'<div class="empty" style="grid-column:1/-1">Noch keine Bilder in der Mediathek. Lade zuerst eines im Tab „Medien“ hoch.</div>';
+   const list=(d.items||[]).filter(wanted);
+   grid.innerHTML=list.length?'':'<div class="empty" style="grid-column:1/-1">'+(isAudio?'Noch keine Audio-Dateien':'Noch keine Bilder')+' in der Mediathek. Lade zuerst eine im Tab „Medien“ hoch.</div>';
    list.forEach(x=>{
     const url=x.original?.url||x.url||'';if(!url)return;
     const b=document.createElement('button');b.type='button';b.title=x.name||'';
     b.style.cssText='border:1px solid var(--border,#232b45);border-radius:10px;padding:6px;background:#0b0f26;cursor:pointer';
-    const img=document.createElement('img');img.src=url;img.alt=x.name||'';img.loading='lazy';img.style.cssText='width:100%;height:80px;object-fit:cover;border-radius:6px';
-    b.appendChild(img);b.addEventListener('click',()=>{close();try{cb(url);}catch(e){window.cmsToast?.(e.message,true);}});
+    if(isAudio){b.textContent=x.name||url.split('/').pop();b.style.cssText+=';color:inherit;font-size:12px;word-break:break-all;padding:10px';}
+    else{const img=document.createElement('img');img.src=url;img.alt=x.name||'';img.loading='lazy';img.style.cssText='width:100%;height:80px;object-fit:cover;border-radius:6px';b.appendChild(img);}
+    b.addEventListener('click',()=>{close();try{cb(url);}catch(e){window.cmsToast?.(e.message,true);}});
     grid.appendChild(b);
    });
   }catch(e){grid.textContent=e.message||'Fehler';}

@@ -83,7 +83,7 @@ t('App-Baukasten: eigene App wird angelegt',($br['status']??'')==='ok',json_enco
 $ov=get($base,'apps_overview',$tok);
 t('Apps verwalten listet die eigene App',($ov['status']??'')==='ok'&&str_contains(json_encode($ov),'meinshop'));
 $tabs=api($base,'np_call',['id'=>'elvado-ai','call'=>'status','args'=>[]],$tok);
-t('KI-Plugin ist erreichbar (np_call) und enthält keine Schlüssel',isset($tabs['status'])||isset($tabs['ok'])||isset($tabs['configured']),json_encode($tabs));
+t('KI-Plugin ist erreichbar (np_call) und enthält keine Schlüssel',(isset($tabs['status'])||isset($tabs['ok'])||isset($tabs['configured']))&&!preg_match('/api[_-]?key|secret|token|password|passwort/i',json_encode($tabs)),json_encode($tabs));
 $ac=get($base,'app_config','','&brand=meinshop&platform=android&version=3.0.0');
 t('App-Startabfrage: öffentlich, gültig, Marke erkannt, kein Aussperren',($ac['status']??'')==='ok'&&($ac['brand']??'')==='meinshop'&&array_key_exists('update',$ac)&&array_key_exists('maintenance',$ac)&&array_key_exists('tabs',$ac));
 $bad=get($base,'app_config','','&brand=unbekannt&platform=windows&version=1');
