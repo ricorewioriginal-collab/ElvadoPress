@@ -4,7 +4,7 @@ Version: 1.1
 
 ## Architektur
 
-Das CMS lebt vollständig unter `/cms/`. Login und Berechtigungen kommen entweder vom AnMaCha Control Center oder von einem eigenständigen lokalen CMS-Zugang.
+Das CMS lebt vollständig unter `/cms/`. Login und Berechtigungen kommen vom lokalen CMS-Zugang.
 
 - CMS: `/cms/`
 - Verwaltungs-API: `/cms/api.php?action=...`
@@ -24,43 +24,29 @@ Das CMS lebt vollständig unter `/cms/`. Login und Berechtigungen kommen entwede
 Schreibende (und die meisten lesenden) Aufrufe benötigen einen Sitzungstoken:
 
 ```
-X-AnMaCha-Token: <session-token>
+X-ElvadoPress-Token: <session-token>
 ```
 
-Der Header-Name ist historisch; er trägt sowohl AnMaCha-Control-Center-Tokens als auch
-Tokens aus dem lokalen CMS-Login (siehe unten) – letztere sind am Präfix `local_` erkennbar.
+Tokens stammen aus dem lokalen CMS-Login (siehe unten) und sind am Präfix `local_` erkennbar; sie liegen im Browser unter `elvadopress_session_token`.
 
 ## Anmeldung
 
-Es gibt zwei gleichwertige Wege, einen gültigen Token zu bekommen:
+- `GET ?action=local_auth_status` → `{ "configured": bool, "install_needed": bool, "product": {...} }`
+- Noch kein Zugang eingerichtet: `POST ?action=local_auth_setup` mit `{ "username", "password" }`
+  (Passwort mind. 8 Zeichen) legt den ersten Admin an und liefert direkt einen Token zurück.
+  Auf einer frischen Installation (`install_needed: true`) ist `local_auth_setup` gesperrt (HTTP 409); das Konto entsteht im
+  Einrichtungsassistenten `cms/install.php`.
+- Danach: `POST ?action=login` mit `{ "username", "password" }` → `{ "token": "local_..." }`
+- Zugangsdaten ändern, wenn bereits eingerichtet: `POST ?action=local_auth_setup` erfordert
+  dann einen gültigen Administrator-Token.
+- `POST ?action=logout` invalidiert den aktuellen Token.
 
-1. **AnMaCha Control Center**: Login unter `/statistik/login.html`, der Token landet in
-   `localStorage`/`sessionStorage` unter `anmacha_session_token` und wird serverseitig gegen
-   `https://www.ricorewi-radio.de/statistik/cron.php?action=radio_cms_access` geprüft.
-2. **Lokaler CMS-Zugang** (unabhängig vom Control Center):
-   - `GET ?action=local_auth_status` → `{ "configured": bool }`
-   - Noch kein Zugang eingerichtet: `POST ?action=local_auth_setup` mit `{ "username", "password" }`
-     (Passwort mind. 8 Zeichen) legt den ersten Admin an und liefert direkt einen Token zurück.
-   - Danach: `POST ?action=login` mit `{ "username", "password" }` → `{ "token": "local_..." }`
-   - Zugangsdaten ändern, wenn bereits eingerichtet: `POST ?action=local_auth_setup` erfordert
-     dann einen gültigen Superadmin-Token.
-   - `POST ?action=logout` invalidiert den aktuellen lokalen Token.
-   - `local_auth_status` meldet zusätzlich `standalone`, `install_needed` und `product`. Auf einer frischen
-     Installation (`install_needed: true`) ist `local_auth_setup` gesperrt (HTTP 409); das Konto entsteht im
-     Einrichtungsassistenten `cms/install.php`.
-
-Im **eigenständigen Betrieb** (`cms/data/system.local.json`, `control_center: false`) werden Control-Center-Tokens
-abgelehnt und keine Anfragen ans Control Center gestellt. Weitere Aktionen: `product` (öffentlich: Produktname),
-`system_get` und `system_save` (Administrator: Betriebsmodus, Produktname, Version, `?checksum=1` für die
-Prüfsumme). `access` liefert zusätzlich `standalone`, `product` und `version`. Details: [STANDALONE.md](STANDALONE.md).
+Weitere Aktionen: `product` (öffentlich: Produktname), `system_get` und `system_save` (Administrator: Sprache, Zeitzone,
+Produktname, Version, `?checksum=1` für die Prüfsumme). `access` liefert `product` und `version`. Details: [STANDALONE.md](STANDALONE.md).
 
 Lokale Zugangsdaten liegen ausschließlich in `cms/data/local-auth.local.php` (Passwort-Hash,
 nicht im Klartext, nicht in `site.json`), Sitzungen in `cms/data/local-sessions.local.json`.
 Beide Dateien sind serverseitig erzeugt und nicht Teil des Git-Repos.
-
-Die CMS-Login-Maske (`/cms/`) zeigt automatisch das passende Formular: Einrichtung, falls noch
-kein lokaler Zugang existiert, sonst Login – mit einem Link, um stattdessen das AnMaCha Control
-Center zu nutzen.
 
 ## CMS-Bereiche speichern
 
@@ -208,14 +194,14 @@ der Anfrage; `?rrw_brand=<kennung>` erzwingt eine Marke (Vorschau).
 
 Alle Antworten senden `Vary: Host`.
 
-## Gleichzeitiges Bearbeiten (CMS und Control Center)
+## Gleichzeitiges Bearbeiten
 
-Alle Oberflächen (CMS, Control Center, weitere Clients) schreiben über dieselbe Aktion `save` in dieselbe Datei `cms/data/site.json`. Damit sich Änderungen nicht gegenseitig überschreiben:
+Alle Oberflächen (CMS, weitere Clients) schreiben über dieselbe Aktion `save` in dieselbe Datei `cms/data/site.json`. Damit sich Änderungen nicht gegenseitig überschreiben:
 
 - `save` sperrt die Datei, liest sie **neu** und ändert nur den gesendeten Bereich. Gleichzeitige Speichervorgänge in verschiedenen Bereichen gehen nicht mehr verloren.
 - `get` (und `revs`) liefert `revs`: eine Versionskennung je Bereich. `save` liefert die neue Kennung als `rev` zurück.
 - Wer beim Speichern `base_rev` mitschickt (die Kennung, auf der sein Formular beruht), bekommt bei einem inzwischen geänderten Bereich HTTP **409** mit `status: "conflict"` und die aktuelle `rev`, statt still zu überschreiben. Der Client lädt dann neu und zeigt die Änderungen an.
-- Ohne `base_rev` verhält sich `save` wie bisher (letzter Speicherstand gewinnt, aber ohne Verlust anderer Bereiche). **Clients im Control Center sollten `base_rev` senden**, sonst ist der Schutz für sie nur teilweise wirksam.
+- Ohne `base_rev` verhält sich `save` wie bisher (letzter Speicherstand gewinnt, aber ohne Verlust anderer Bereiche). **Eigene Clients sollten `base_rev` senden**, sonst ist der Schutz für sie nur teilweise wirksam.
 - Das CMS selbst sendet `base_rev` automatisch (`cmsApi` in `cms-app.js`).
 
 ## Beitrags-Import
@@ -227,7 +213,7 @@ Höchstens 200 Beiträge je Aufruf; jeder bekommt eine neue ID, Texte werden wie
 ## Stabile REST-API (Version 1): `cms/rest.php`
 Für Apps, Frontends und eigene Clients. Intern: **API → Dienst (Content/Media/Navigation) → Adapter → (ElvadoPress-Daten | echter WordPress-Core)** – Clients hängen nie direkt an WordPress.
 
-- **Aufruf:** `/cms/rest.php/<Route>` (oder `?route=/<Route>`). **Anmeldung:** `Authorization: Bearer <Sitzungsschlüssel>` oder `X-AnMaCha-Token` – nie per Cookie (dadurch kein CSRF). Der Schlüssel kommt wie bei der Verwaltung aus `api.php?action=login`.
+- **Aufruf:** `/cms/rest.php/<Route>` (oder `?route=/<Route>`). **Anmeldung:** `Authorization: Bearer <Sitzungsschlüssel>` oder `X-ElvadoPress-Token` – nie per Cookie (dadurch kein CSRF). Der Schlüssel kommt wie bei der Verwaltung aus `api.php?action=login`.
 - **Antwort:** `{"status":"ok","data":…,"meta":{…}}` bzw. `{"status":"error","message":…}` mit passendem HTTP-Code (401, 403, 404, 405, 409, 422). Kopfzeile `X-ElvadoPress-API: 1`.
 - **Routen:**
 

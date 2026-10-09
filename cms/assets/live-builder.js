@@ -17,8 +17,8 @@
   function grp(type,k){var f=fdef(type,k);return f?f.group:'content'}
   function rules(type){return (cat[type]||{}).rules||{}}
   async function loadCatalog(){
-    try{var tk=sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
-      var r=await fetch('/cms/components-api.php?action=components_catalog',{headers:{'X-AnMaCha-Token':tk}}),d=await r.json();
+    try{var tk=sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
+      var r=await fetch('/cms/components-api.php?action=components_catalog',{headers:{'X-ElvadoPress-Token':tk}}),d=await r.json();
       if(d.status==='ok'){cat={};(d.components||[]).forEach(function(c){cat[c.id]=c});catCats=d.categories||{};targets=d.targets||[];
         /* Wird die Website von einem Paket ausgeliefert (z. B. ein eigenes Portal), ist dessen Bereich das Standardziel – nicht die Startseite eines WordPress-Themes. */
         if(!target&&!pendingBrand){var pk=targets.filter(function(t){return t.brand});if(pk.length)target=pk.filter(function(t){return t.brand===window.CMS_BRAND})[0]||pk[0]}

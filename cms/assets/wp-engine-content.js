@@ -3,10 +3,10 @@
 window.WpEC=(()=>{
  const S={tab:'nav',busy:'',msg:null,inactive:false,menus:[],locs:[],menu:'',tree:[],dirty:false,pick:{pages:[],posts:[],cats:[]},ov:null,blocks:null,bq:'',bm:'',bres:null,drag:null};
  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const tok=()=>{try{return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';}catch(e){return '';}};
+ const tok=()=>{try{return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';}catch(e){return '';}};
  const root=()=>document.getElementById('wpecRoot');
  async function api(action,body,query){
-  const r=await fetch('/cms/engine-api.php?action='+action+(query||''),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:body===undefined?undefined:JSON.stringify(body)});
+  const r=await fetch('/cms/engine-api.php?action='+action+(query||''),{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':tok()},body:body===undefined?undefined:JSON.stringify(body)});
   let d;try{d=await r.json();}catch(e){throw new Error('Unerwartete Antwort des Servers');}
   return d;
  }

@@ -48,7 +48,7 @@
   function siteInit(){
     if($('epSite')||!document.querySelector('.ep-top'))return;
     var tok='';try{tok=(window.cmsToken&&cmsToken())||''}catch(e){}if(!tok||tok===siteTok)return;siteTok=tok;   /* je Anmeldung einmal fragen */
-    fetch('api.php?action=sites_list',{headers:{'X-AnMaCha-Token':tok},cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    fetch('api.php?action=sites_list',{headers:{'X-ElvadoPress-Token':tok},cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){
       if(!d||d.status!=='ok'||!(d.sites||[]).length)return;siteState.list=d.sites;siteState.main=(d.main&&d.main.name)||'Hauptwebsite';siteBuild();
     }).catch(function(){});
   }

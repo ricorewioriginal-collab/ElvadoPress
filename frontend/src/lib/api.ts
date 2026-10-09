@@ -18,7 +18,7 @@ export class ApiError extends Error {
 
 function token(): string {
   try {
-    return sessionStorage.getItem('anmacha_session_token') || localStorage.getItem('anmacha_session_token') || '';
+    return sessionStorage.getItem('elvadopress_session_token') || localStorage.getItem('elvadopress_session_token') || '';
   } catch {
     return '';
   }
@@ -35,7 +35,7 @@ export async function cmsApi<T = Record<string, unknown>>(action: string, body?:
   }
   const res = await fetch(`/cms/api.php?action=${encodeURIComponent(action)}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'X-AnMaCha-Token': token(), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { 'X-ElvadoPress-Token': token(), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: 'same-origin',
   });

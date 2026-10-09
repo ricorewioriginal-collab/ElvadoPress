@@ -11,8 +11,8 @@ let commentSettings={enabled:false,require_approval:true}, commentsAdmin=[];
 let categories=['News','Radio','Podcast','Shows','Musik','Community','Partner','Intern'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const CMS_API='api.php';
-const cmsNewsToken=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
-const cmsNewsHeaders=(json=true)=>{const h={};const t=cmsNewsToken();if(t)h['X-AnMaCha-Token']=t;if(json)h['Content-Type']='application/json';return h};
+const cmsNewsToken=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
+const cmsNewsHeaders=(json=true)=>{const h={};const t=cmsNewsToken();if(t)h['X-ElvadoPress-Token']=t;if(json)h['Content-Type']='application/json';return h};
 const fmt=d=>{if(!d)return'–';try{return new Date(String(d).replace(' ','T')).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'});}catch(e){return d;}};
 
 function api(action, body){

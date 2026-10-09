@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Lokaler CMS-Login (im eigenständigen Betrieb der einzige Weg, sonst Alternative zum AnMaCha Control Center).
+// Lokaler CMS-Login.
 // Sessions leben lokal in local-sessions.local.json; Tokens erkennbar am Präfix "local_".
 // Mehrere Redakteure mit Rollen: local-auth.local.php speichert eine Liste von Benutzern
 // (['users'=>[['username','password_hash','role','display_name','created_at'],...]]).

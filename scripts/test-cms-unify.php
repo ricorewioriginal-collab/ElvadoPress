@@ -159,9 +159,9 @@ t('mehrteilige Seite: Text- und HTML-Block (direkt)',(function(){  $pg=['intro'=
 /* ───── Zeitzone und Sprache ↔ system.local.json ───── */
 t('Zeitzone/Sprache ohne Eintrag: Standardwerte wie bisher',get_option('timezone_string')==='Europe/Berlin'&&get_option('WPLANG')==='de_DE'&&!is_file($tmp.'/cms/system.local.json'));
 t('Zeitzone ungültig wird abgelehnt',update_option('timezone_string','Mars/Olympus')===false&&!is_file($tmp.'/cms/system.local.json'));
-t('Zeitzone schreiben → system.local.json, andere Felder bleiben',(function() use($tmp){ file_put_contents($tmp.'/cms/system.local.json',json_encode(['control_center'=>false,'installed_at'=>'2026-01-01','x_extra'=>'bleibt']));$GLOBALS['rrw_wp_opts_cache']=null;
+t('Zeitzone schreiben → system.local.json, andere Felder bleiben',(function() use($tmp){ file_put_contents($tmp.'/cms/system.local.json',json_encode(['language'=>'de','installed_at'=>'2026-01-01','x_extra'=>'bleibt']));$GLOBALS['rrw_wp_opts_cache']=null;
     $r=update_option('timezone_string','Europe/Vienna');$j=json_decode((string)file_get_contents($tmp.'/cms/system.local.json'),true);
-    return $r&&$j['timezone']==='Europe/Vienna'&&$j['control_center']===false&&$j['installed_at']==='2026-01-01'&&$j['x_extra']==='bleibt'&&get_option('timezone_string')==='Europe/Vienna'; })());
+    return $r&&$j['timezone']==='Europe/Vienna'&&$j['language']==='de'&&$j['installed_at']==='2026-01-01'&&$j['x_extra']==='bleibt'&&get_option('timezone_string')==='Europe/Vienna'; })());
 t('Sprache schreiben und lesen',update_option('WPLANG','en_US')&&get_option('WPLANG')==='en_US'&&json_decode((string)file_get_contents($tmp.'/cms/system.local.json'),true)['language']==='en_US'&&update_option('WPLANG','Deutsch')===false);
 /* ───── Kommentare, Feed-Länge, Suchmaschinen-Sichtbarkeit ───── */
 t('Kommentare: lesen aus site.json und schreiben (Rest der Abschnitte bleibt)',(function() use($siteNow){ $b=$siteNow();

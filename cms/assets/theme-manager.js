@@ -2,9 +2,9 @@
 window.ThemeManager=(()=>{
  let hiddenThemes=[], themes=[], themeState={active:'',variant:'default',settings:{}}, editing=null, draft=null;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const token=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const token=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  async function api(action,body){
-  const opt=body===undefined?{headers:{'X-AnMaCha-Token':token()}}:{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':token()},body:JSON.stringify(body)};
+  const opt=body===undefined?{headers:{'X-ElvadoPress-Token':token()}}:{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':token()},body:JSON.stringify(body)};
   const r=await fetch('api.php?action='+encodeURIComponent(action)+'&_='+Date.now(),opt),d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));
   if(r.status===401)window.cmsSessionExpired?.();
   if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d;
@@ -18,7 +18,7 @@ window.ThemeManager=(()=>{
   st('Lade „'+file.name+'“ hoch …','busy');
   try{
    const fd=new FormData();fd.append('file',file);
-   const r=await fetch('api.php?action=theme_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd});
+   const r=await fetch('api.php?action=theme_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd});
    const d=await r.json().catch(()=>null);
    if(r.status===401)window.cmsSessionExpired?.();
    if(!d)throw new Error('Upload fehlgeschlagen (Serverantwort '+r.status+'). Möglicherweise ist die Datei größer als das Upload-Limit des Servers.');
@@ -37,7 +37,7 @@ window.ThemeManager=(()=>{
   const g=document.getElementById('tdGrid');if(!g)return;dirPage=page;
   const src=document.getElementById('tdSource').value,q=document.getElementById('tdQuery').value.trim();
   g.innerHTML='<div class="empty">Suche läuft …</div>';
-  try{const r=await fetch('api.php?action=theme_directory&source='+encodeURIComponent(src)+'&q='+encodeURIComponent(q)+'&page='+page,{headers:{'X-AnMaCha-Token':token()}}),d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));if(r.status===401)window.cmsSessionExpired?.();if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');dirItems=d.items||[];dirPages=d.pages||1;renderDir()}
+  try{const r=await fetch('api.php?action=theme_directory&source='+encodeURIComponent(src)+'&q='+encodeURIComponent(q)+'&page='+page,{headers:{'X-ElvadoPress-Token':token()}}),d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));if(r.status===401)window.cmsSessionExpired?.();if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');dirItems=d.items||[];dirPages=d.pages||1;renderDir()}
   catch(e){g.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
  function renderDir(){
@@ -234,7 +234,7 @@ window.ThemeManager=(()=>{
  async function unhide(id){try{await api('theme_unhide',{id});window.cmsToast?.('Theme wieder eingeblendet');await load(true)}catch(e){window.cmsToast?.(e.message,true)}}
  async function load(force=false){
   bind();
-  try{const d=await api('themes_list');themes=d.themes||[];hiddenThemes=d.hidden_themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'ricorewi-neon',variant:'default',settings:{}};render()}
+  try{const d=await api('themes_list');themes=d.themes||[];hiddenThemes=d.hidden_themes||[];modsSaved=Array.isArray(d.mods_saved)?d.mods_saved:[];themeState=d.theme_state||{active:d.active||'rrw-classic',variant:'default',settings:{}};render()}
   catch(e){const h=document.getElementById('themeGrid');if(h)h.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
  }
  return {hl:czHl,pick:czPick,openMatch,openSection,togglePanel,dirSearch,dirInstall,load,preview,customize,activate,remove,unhide,change,variant,resetCustomizer,closeCustomizer,publishCustomizer,device,activeName,brand,refreshBrandSelect:previewBrandSelect};

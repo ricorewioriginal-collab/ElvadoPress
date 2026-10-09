@@ -32,7 +32,7 @@ register_shutdown_function(function () use ($proc, $tmp) { if (is_resource($proc
 for ($i = 0; $i < 50; $i++) { if (@fsockopen('127.0.0.1', $port)) break; usleep(100000); }
 function http(string $method, string $path, ?string $tok = null, ?array $body = null): array {
     global $port;
-    $h = ['Content-Type: application/json']; if ($tok !== null) { $h[] = 'X-AnMaCha-Token: ' . $tok; }
+    $h = ['Content-Type: application/json']; if ($tok !== null) { $h[] = 'X-ElvadoPress-Token: ' . $tok; }
     $ctx = stream_context_create(['http' => ['method' => $method, 'header' => implode("\r\n", $h), 'content' => $body === null ? '' : json_encode($body), 'ignore_errors' => true, 'timeout' => 180]]);
     $b = (string)@file_get_contents("http://127.0.0.1:$port$path", false, $ctx); $code = 0;
     foreach ($http_response_header ?? [] as $l) { if (preg_match('#^HTTP/\S+ (\d+)#', $l, $m)) { $code = (int)$m[1]; } }

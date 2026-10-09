@@ -6,7 +6,7 @@ window.AlexaManager=(()=>{
  const S={d:null,cfg:null,err:''};
  const api=(a,b)=>window.cmsApi(a,b);
  const toast=(m,bad)=>{try{window.cmsToast(m,!!bad);}catch(e){}};
- const tok=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const tok=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  const when=ts=>{try{return new Date(ts*1000).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '–';}};
  const ago=ts=>{const m=Math.round((Date.now()/1000-ts)/60);return m<1?'gerade eben':m<60?`vor ${m} Min.`:m<1440?`vor ${Math.round(m/60)} Std.`:`vor ${Math.round(m/1440)} Tagen`;};
  const hms=s=>{s=Math.round(+s||0);return s;};

@@ -1,11 +1,11 @@
 'use strict';
 // Verwaltung von Betriebsmodus, Produktname und Version (Tab "Betrieb & Produkt", nur Administratoren).
 window.StandaloneManager=(()=>{
- const tok=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const tok=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const $=id=>document.getElementById(id);
  async function api(action,body,query=''){
-  const opt=body===undefined?{headers:{'X-AnMaCha-Token':tok()}}:{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':tok()},body:JSON.stringify(body)};
+  const opt=body===undefined?{headers:{'X-ElvadoPress-Token':tok()}}:{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':tok()},body:JSON.stringify(body)};
   const r=await fetch('api.php?action='+encodeURIComponent(action)+query+'&_='+Date.now(),opt),d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));
   if(r.status===401)window.cmsSessionExpired?.();
   if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d;

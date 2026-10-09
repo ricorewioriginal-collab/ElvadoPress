@@ -4,7 +4,7 @@
 |---|---|---|---|
 | **ElvadoPress-Themes** | Mitgelieferte Themes, z. B. „ElvadoPress Baukasten“ (Abschnitte als Komponenten), Radio, Band, Creator | ElvadoPress / WordPress-Laufzeit | Baukasten: Layout aus der Komponenten-Registry (Entwurf, Veröffentlichen, Verlauf, Planung) |
 | **WordPress-Themes (echt)** | Themes aus dem WordPress-Verzeichnis oder als ZIP | **Echter WordPress-Core** (Engine aktiv) | Customizer des Themes; Header/Footer/Navigation über Regionen der Vorschau |
-| **Portal-Themes eines Projekts** | Eigene Website eines Projekts (z. B. RicoReWi-Portal), `"pack"` in `theme.json` | Das Projekt selbst (eigenes HTML/CSS/JS bleibt unverändert) | **Gebundene Bereiche** (Paket-Komponenten): nur Gestaltung und Sichtbarkeit per CSS |
+| **Portal-Themes eines Projekts** | Eigene Website eines Projekts (z. B. ein eigenes Portal), `"pack"` in `theme.json` | Das Projekt selbst (eigenes HTML/CSS/JS bleibt unverändert) | **Gebundene Bereiche** (Paket-Komponenten): nur Gestaltung und Sichtbarkeit per CSS |
 
 ## Wie Themes und Live Builder zusammenspielen
 - **Komponenten-Registry** (`cms/src/Components/`) beschreibt Bereiche (Schema, Regeln, Rendering). Das Baukasten-Theme rendert daraus; gebundene Bereiche (`bind`) rendert die Website selbst.

@@ -1,6 +1,6 @@
 # Community (Mitglieder)
 
-Optionales Modul, **standardmäßig aus**. Solange es ausgeschaltet ist, liefern alle `member_*`-Aktionen 404 und auf der Website erscheint nichts davon. Für RicoReWi Radio bleibt es aus; gedacht für das später eigenständig veröffentlichte CMS.
+Optionales Modul, **standardmäßig aus**. Solange es ausgeschaltet ist, liefern alle `member_*`-Aktionen 404 und auf der Website erscheint nichts davon.
 
 ## Einschalten
 CMS → Benutzer → **Community**: aktivieren, Registrierung wählen (offen / nach Freigabe / geschlossen), Mindest-Passwortlänge, Regeln (werden bei der Registrierung angezeigt). Danach unter Design → Widgets das Widget **Mitgliederbereich** platzieren (Anmelden, Registrieren, Passwort vergessen, Profil bearbeiten, Konto löschen).

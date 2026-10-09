@@ -2,7 +2,7 @@
 // Build-Assistent für eigene Android-Apps (CMS → Apps → „Eigene App bauen“).
 // Gradle/Android-SDK laufen nicht auf normalem Webhosting. Der Assistent legt deshalb die Marken-Konfiguration (android/brands.json, Icon) in einem
 // GitHub-Repository mit den App-Quellen ab, startet den Workflow „android-custom-brand.yml“ und zeigt Stand und Downloads (GitHub-Releases) im CMS.
-// Die Apps selbst brauchen danach nur die Website (app_config) – kein Control Center, keine zentrale Infrastruktur.
+// Die Apps selbst brauchen danach nur die Website (app_config) – keine zentrale Infrastruktur.
 // Das GitHub-Token liegt ausschließlich serverseitig (cms/data/.apps/build.json) und wird nie an den Browser geliefert.
 
 const RRW_AB_WORKFLOW='android-custom-brand.yml';   // Android (Standard-Plattform)

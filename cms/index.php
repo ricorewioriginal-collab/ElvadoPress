@@ -7,7 +7,6 @@ require_once __DIR__.'/lib/pack.php';
 require_once __DIR__.'/lib/product.php';
 // Frische Installation: zuerst den Einrichtungsassistenten durchlaufen (bestehende Installationen sind nie betroffen).
 if(rrw_install_needed()){header('Location: install.php',true,302);exit;}
-$sa=rrw_standalone();
 $pr=rrw_product();
 $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 ?>
@@ -19,13 +18,12 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <meta name="robots" content="noindex,nofollow">
 <title><?=$ph('title')?></title>
 <?php if($pr['logo']!==''): ?><link rel="icon" href="<?=$ph('logo')?>"><?php endif; ?>
-<script>window.RRW_PRODUCT=<?=json_encode(rrw_product_public()+['standalone'=>$sa],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script>
+<script>window.RRW_PRODUCT=<?=json_encode(rrw_product_public(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script>
 <?php if(defined('RRW_DEMO')): ?><script>window.RRW_DEMO=<?=json_encode(rrw_demo_public(),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?>;</script><script src="assets/demo.js?v=1" defer></script><?php endif; ?>
 <script src="assets/auth-guard.js?v=5"></script>
 <script src="assets/cms-toast.js?v=2"></script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<?php if(!$sa): ?><link rel="stylesheet" href="/control/shared.css"><?php endif; ?>
 <link rel="stylesheet" href="assets/cms.css?v=45">
 <link rel="stylesheet" href="assets/cms-broadcast.css?v=12">
 <link rel="stylesheet" href="assets/baukasten.css?v=1">
@@ -40,7 +38,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   <div id="cmsDenied" class="card access-denied" style="display:none">
     <i class="fas fa-lock"></i><h2>Kein Zugriff</h2>
     <p>Du hast keine Berechtigung für diese Verwaltung. Melde dich mit einem berechtigten ElvadoPress-Benutzerkonto an.</p>
-    <?php if($sa): ?><a class="btn-g" href="/"><i class="fas fa-arrow-left"></i> Zur Website</a><?php else: ?><a class="btn-g" href="/control/"><i class="fas fa-arrow-left"></i> Zurück zum Dashboard</a><?php endif; ?>
+    <a class="btn-g" href="/"><i class="fas fa-arrow-left"></i> Zur Website</a>
   </div>
   <div id="cmsLogin" class="card access-denied" style="display:none">
     <i class="fas fa-right-to-bracket"></i>
@@ -56,7 +54,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
   </div>
   <div id="cmsApp" style="display:none">
     <section class="hero">
-      <div><div class="k"><i class="fas fa-shield-halved"></i> Verwaltung</div><h1><?=$ph('heading')?></h1><p>Hier verwaltest du Inhalte, Design, Plugins, Apps und Einstellungen deiner Website.<?=$sa?'':' Das '.$ph('control_center').' liefert nur Login und Berechtigungen.'?></p><div id="cmsVerBadge" class="hint" style="margin-top:4px"></div></div>
+      <div><div class="k"><i class="fas fa-shield-halved"></i> Verwaltung</div><h1><?=$ph('heading')?></h1><p>Hier verwaltest du Inhalte, Design, Plugins, Apps und Einstellungen deiner Website.</p><div id="cmsVerBadge" class="hint" style="margin-top:4px"></div></div>
       <div class="hero-actions"><span id="cmsFsState" class="publish-state bad" hidden></span><span id="cmsPublishState" class="publish-state"><i class="fas fa-circle-check"></i> Alles gespeichert</span><a class="btn-g" href="/" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i> Website ansehen</a><button class="btn-a" onclick="cmsReload()"><i class="fas fa-rotate"></i> Aktualisieren</button></div>
     </section>
     <?php require __DIR__.'/views/sidebar.php'; ?>

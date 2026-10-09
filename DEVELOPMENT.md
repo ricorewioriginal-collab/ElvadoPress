@@ -59,12 +59,10 @@ php scripts/test-demo.php
 
 Details stehen in `cms/docs/ELVADOPRESS.md`.
 
-## Standalone-Paket
-```sh
-php scripts/build-standalone.php <Zielordner> [--zip=<Datei.zip>]
-```
+## Installations-Paket
+Ein Tag `v<Version>` löst den Workflow *Release* aus (ZIP per `git archive`, siehe `.github/workflows/release.yml`).
 
-Die Standalone-Logik besitzt eigene Tests unter `scripts/`; Details stehen in [INSTALL.md](INSTALL.md).
+Details stehen in [INSTALL.md](INSTALL.md).
 
 ## Build und Release
 Für die normale Entwicklung gibt es keinen Build-Schritt. Ein Git-Tag `v<Version>` startet `.github/workflows/release.yml` und erzeugt per `git archive` ein Installations-ZIP.

@@ -1,11 +1,11 @@
 // Produktbezeichnungen kommen aus cms/lib/product.php (index.php setzt window.RRW_PRODUCT); Rückfall = bisherige Anzeige.
-const RRW_P=Object.assign({name:'ElvadoPress',title:'ElvadoPress',access_name:'ElvadoPress',control_center:'ElvadoPress',standalone:false},window.RRW_PRODUCT||{});
+const RRW_P=Object.assign({name:'ElvadoPress',title:'ElvadoPress',access_name:'ElvadoPress'},window.RRW_PRODUCT||{});
 function cmsEsc(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 'use strict';
 const CRON='api.php'; let CMS=null, newsMounted=false, CMS_IS_SA=false, CMS_USER='', CMS_ROLE='admin', SERVICE_STATUS=[], CURRENT_PAGE_ID=null, DRAG_BLOCK=null, DRAG_MENU=null, MENU_EDITING='top';
-document.getElementById('navbarContainer').innerHTML='<nav class="navbar navbar-custom fixed-top ep-top"><div class="container-fluid"><button type="button" class="cms-nav-toggle" aria-label="Menü" onclick="cmsToggleNav()"><i class="fas fa-bars"></i></button><a class="navbar-brand ep-top-home" href="'+(RRW_P.standalone?'/':'/control/')+'"><i class="fas fa-arrow-left me-2"></i>'+(RRW_P.standalone?'Zur Website':cmsEsc(RRW_P.control_center))+'</a><button type="button" class="ep-search" id="epTopSearch" aria-label="Suchen (Strg+K)"><i class="fas fa-magnifying-glass"></i><span>Suchen in '+cmsEsc(RRW_P.name||'ElvadoPress')+' …</span><kbd>Strg + K</kbd></button><div class="d-flex align-items-center gap-2 cms-navbar-actions"><a class="ep-site" id="epSiteChip" href="/" target="_blank" rel="noopener" title="Website öffnen"><i class="fas fa-globe"></i><b>'+cmsEsc(RRW_P.title||'Website')+'</b><span class="ep-live"><i></i>Live</span></a><a class="btn btn-sm btn-outline-light cms-navbar-website ep-open" href="/" target="_blank" rel="noopener"><span class="cms-navbar-website-label">Website öffnen</span></a><div class="ep-devs" id="epDevs" role="group" aria-label="Vorschau-Gerät"><button type="button" data-epdev="desktop" class="on" aria-label="Desktop" title="Desktop"><i class="fas fa-desktop"></i></button><button type="button" data-epdev="tablet" aria-label="Tablet" title="Tablet"><i class="fas fa-tablet-screen-button"></i></button><button type="button" data-epdev="mobile" aria-label="Mobil" title="Mobil"><i class="fas fa-mobile-screen"></i></button></div><div class="ep-bellwrap" style="position:relative"><button class="btn btn-sm btn-outline-light ep-bell" style="position:relative" aria-label="Benachrichtigungen" onclick="toggleNotifications()"><i class="fas fa-bell"></i><span id="cmsNotifBadge" style="display:none">0</span></button><div id="cmsNotifPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:420px;overflow-y:auto;background:#0f1538;border:1px solid #2b3370;border-radius:12px;box-shadow:0 20px 55px rgba(0,0,0,.4);z-index:2000;"></div></div><div class="ep-user" id="epUser"><button type="button" class="ep-user-btn" id="epUserBtn" aria-haspopup="true" aria-expanded="false"><span class="ep-avatar" id="epAvatar">?</span><span class="ep-user-txt"><b id="epUserName"></b><small id="epUserRole"></small></span><i class="fas fa-chevron-down"></i></button><div class="ep-user-pop" id="epUserPop" hidden><button type="button" data-epgo="profile"><i class="fas fa-user-gear"></i>Profil</button><button type="button" onclick="cmsLogout()"><i class="fas fa-right-from-bracket"></i>Abmelden</button></div></div><span id="cmsUserIdentity" class="cms-navbar-identity" hidden></span></div></div></nav>';
+document.getElementById('navbarContainer').innerHTML='<nav class="navbar navbar-custom fixed-top ep-top"><div class="container-fluid"><button type="button" class="cms-nav-toggle" aria-label="Menü" onclick="cmsToggleNav()"><i class="fas fa-bars"></i></button><a class="navbar-brand ep-top-home" href="'+'/'+'"><i class="fas fa-arrow-left me-2"></i>'+'Zur Website'+'</a><button type="button" class="ep-search" id="epTopSearch" aria-label="Suchen (Strg+K)"><i class="fas fa-magnifying-glass"></i><span>Suchen in '+cmsEsc(RRW_P.name||'ElvadoPress')+' …</span><kbd>Strg + K</kbd></button><div class="d-flex align-items-center gap-2 cms-navbar-actions"><a class="ep-site" id="epSiteChip" href="/" target="_blank" rel="noopener" title="Website öffnen"><i class="fas fa-globe"></i><b>'+cmsEsc(RRW_P.title||'Website')+'</b><span class="ep-live"><i></i>Live</span></a><a class="btn btn-sm btn-outline-light cms-navbar-website ep-open" href="/" target="_blank" rel="noopener"><span class="cms-navbar-website-label">Website öffnen</span></a><div class="ep-devs" id="epDevs" role="group" aria-label="Vorschau-Gerät"><button type="button" data-epdev="desktop" class="on" aria-label="Desktop" title="Desktop"><i class="fas fa-desktop"></i></button><button type="button" data-epdev="tablet" aria-label="Tablet" title="Tablet"><i class="fas fa-tablet-screen-button"></i></button><button type="button" data-epdev="mobile" aria-label="Mobil" title="Mobil"><i class="fas fa-mobile-screen"></i></button></div><div class="ep-bellwrap" style="position:relative"><button class="btn btn-sm btn-outline-light ep-bell" style="position:relative" aria-label="Benachrichtigungen" onclick="toggleNotifications()"><i class="fas fa-bell"></i><span id="cmsNotifBadge" style="display:none">0</span></button><div id="cmsNotifPanel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-height:420px;overflow-y:auto;background:#0f1538;border:1px solid #2b3370;border-radius:12px;box-shadow:0 20px 55px rgba(0,0,0,.4);z-index:2000;"></div></div><div class="ep-user" id="epUser"><button type="button" class="ep-user-btn" id="epUserBtn" aria-haspopup="true" aria-expanded="false"><span class="ep-avatar" id="epAvatar">?</span><span class="ep-user-txt"><b id="epUserName"></b><small id="epUserRole"></small></span><i class="fas fa-chevron-down"></i></button><div class="ep-user-pop" id="epUserPop" hidden><button type="button" data-epgo="profile"><i class="fas fa-user-gear"></i>Profil</button><button type="button" onclick="cmsLogout()"><i class="fas fa-right-from-bracket"></i>Abmelden</button></div></div><span id="cmsUserIdentity" class="cms-navbar-identity" hidden></span></div></div></nav>';
 const escCms=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function cmsToken(){return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||''}
+function cmsToken(){return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}
 /* Mehrere Websites: die in der Verwaltung gewählte Website (localStorage „ep.site“) wird allen Anfragen an die CMS-Schnittstellen als Kopf „X-EP-Site“ mitgegeben;
    der Server beachtet ihn nur zusammen mit einer gültigen Administrator-Sitzung. Ohne Auswahl (Hauptwebsite) ändert sich nichts. */
 (function(){try{var of=window.fetch;if(!of||of.__epSite)return;var re=/(^|\/)(api|components-api|engine-api|rest)\.php(\?|$)/;
@@ -13,7 +13,7 @@ function cmsToken(){return sessionStorage.getItem('anmacha_session_token')||loca
   var same=u.charAt(0)==='/'&&u.charAt(1)!=='/'||u.indexOf(location.origin)===0||!/^[a-z][a-z0-9+.-]*:|^\/\//i.test(u);
   if(same&&re.test(u.split('#')[0])){init=Object.assign({},init||{});var h=new Headers(init.headers||(typeof input!=='string'&&input&&input.headers)||{});h.set('X-EP-Site',sid);init.headers=h}}}catch(e){}return of.call(this,input,init)};
  nf.__epSite=1;window.fetch=nf}catch(e){}})();
-function cmsHeaders(json=true){const h={};const t=cmsToken();if(t)h['X-AnMaCha-Token']=t;if(json)h['Content-Type']='application/json';return h}
+function cmsHeaders(json=true){const h={};const t=cmsToken();if(t)h['X-ElvadoPress-Token']=t;if(json)h['Content-Type']='application/json';return h}
 // Versionskennungen der Bereiche (vom Server): verhindern, dass ein veralteter Stand einen neueren überschreibt
 let CMS_REVS={};
 async function cmsApi(action,body){
@@ -34,13 +34,12 @@ async function cmsApi(action,body){
 }
 // Zentrale Behandlung einer abgelaufenen Sitzung: Jede Modul-API meldet einen 401 hierher, damit
 // statt vieler einzelner Widget-Fehler ("Statistik nicht verfügbar", "Dateisystem-Prüfung
-// fehlgeschlagen", ...) genau einmal das Login-Formular erscheint. Der localStorage-Token gehört
-// dem Control Center und wird bewusst nicht angefasst - nur die Sitzungskopie wird verworfen.
+// fehlgeschlagen", ...) genau einmal das Login-Formular erscheint. Die Sitzungskopie wird verworfen.
 let CMS_SESSION_EXPIRED=false;
 function cmsSessionExpired(){
  if(CMS_SESSION_EXPIRED||!cmsToken())return;
  CMS_SESSION_EXPIRED=true;
- try{sessionStorage.removeItem('anmacha_session_token');}catch(e){}
+ try{sessionStorage.removeItem('elvadopress_session_token');}catch(e){}
  cmsToast('Sitzung abgelaufen – bitte erneut anmelden',true);
  cmsShowLogin();
 }
@@ -249,7 +248,7 @@ async function cmsHandleLogin(ev){
  try{
    const d=await cmsApi(mode==='setup'?'local_auth_setup':'login',{username:user,password:pass});
    if(!d.token)throw new Error('Zugang eingerichtet, bitte anmelden');
-   sessionStorage.setItem('anmacha_session_token',d.token);
+   sessionStorage.setItem('elvadopress_session_token',d.token);
    document.getElementById('cmsLogin').style.display='none';
    await initCms();
    window.WpNotices&&WpNotices.refresh();   // Meldungen der WordPress-Plugins nach der Anmeldung laden
@@ -262,7 +261,7 @@ function cmsBarMark(on){
 }
 function cmsLogout(){
  cmsBarMark(false);
- try{sessionStorage.removeItem('anmacha_session_token');localStorage.removeItem('anmacha_session_token');}catch(e){}
+ try{sessionStorage.removeItem('elvadopress_session_token');localStorage.removeItem('elvadopress_session_token');}catch(e){}
  location.reload();
 }
 async function initCms(){
@@ -289,7 +288,7 @@ async function initCms(){
    cmsBarMark(false);
    document.getElementById('cmsApp').style.display='none';
    if(!cmsToken()||e?.httpStatus===401||/Nicht eingeloggt|Sitzung abgelaufen|Berechtigungsprüfung nicht erreichbar/i.test(e?.message||'')){
-     try{sessionStorage.removeItem('anmacha_session_token');}catch(_e){}
+     try{sessionStorage.removeItem('elvadopress_session_token');}catch(_e){}
      await cmsShowLogin();
      return;
    }
@@ -311,16 +310,6 @@ async function verifyPublicSection(section,expected){
    setPublishState(ok,ok?'Live veröffentlicht':'Gespeichert, aber öffentlich noch abweichend');
    return ok;
  }catch(e){setPublishState(false,'Live-Prüfung fehlgeschlagen');return false}
-}
-async function importLegacyCms(){
- if(!CMS_IS_SA)return cmsToast('Nur Superadmins dürfen Altdaten importieren',true);
- if(!confirm('Vorhandene CMS-Bereiche und News wirklich einmalig aus dem alten Control-Center-Speicher nach /cms/ übernehmen?'))return;
- try{
-   setPublishState(true,'Importiere…');
-   const d=await cmsApi('import_legacy',{});
-   CMS=d.config||CMS;renderCms();setPublishState(true,'Altdaten übernommen');
-   cmsToast('Altdaten übernommen: '+(d.news_count||0)+' News-Beiträge ✓');
- }catch(e){setPublishState(false,'Import fehlgeschlagen');cmsToast(e.message,true)}
 }
 async function cmsReload(){try{const d=await cmsApi('get');CMS=d.config||{};window.WidgetsManager?.sync();renderCms();checkCmsFilesystem();loadDashboardStats();loadDashboardActivity();loadDashboardComments();loadSiteHealth();loadNotifications();window.NewsMagazine?.setCategories?.(CMS.news_categories||[]);if(newsMounted&&window.NewsMagazine)NewsMagazine.reload();}catch(e){cmsToast(e.message,true)}}
 function renderCms(){
@@ -673,7 +662,7 @@ async function uploadBranding(kind){
 
 
 const SERVICE_FIELDS=[
- ['radio_portal','Radioportal'],['control_center','Control Center'],['public_api','Public API'],['news_api','News API'],['tracker','Tracker'],
+ ['public_api','Public API'],['news_api','News API'],['tracker','Tracker'],
  ['apps_page','App-Seite'],['nextcloud','Nextcloud / Medien-Cloud'],['owncast','Owncast / Video'],['castopod','Castopod / Podcast'],['airdeck','AirDeck']
 ];
 function renderServices(){

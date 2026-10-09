@@ -74,7 +74,7 @@ Tests: `scripts/test-wp-engine-nav-widgets-blocks.php` (43 Prüfungen ohne Netz,
 `cms/src/Wp/Migration/` (`Planner`, `ReportStore`, `TargetProbe` mit `NullProbe`/`WordPressProbe`), API `migration_plan|migration_report`, Karte im Engine-Panel. Der Trockenlauf liest nur und schreibt allein den Bericht; die echte Migration folgt erst nach ausdrücklicher Freigabe. Details: [MIGRATION.md](MIGRATION.md).
 
 ## Phase 10: Pakete / Projekt-Kompatibilität
-Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMPONENTS.md)), Paket-Lader `cms/packs/<paket>/components.php`, Bearbeitungsziele im Live Builder, Vorschau-Schlüssel und `rrw_components_inject()`. Projektspezifische Komponenten (z. B. RicoReWi) liegen ausschließlich im jeweiligen Projekt-Repository; der Kern enthält keine Projektinhalte.
+Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMPONENTS.md)), Paket-Lader `cms/packs/<paket>/components.php`, Bearbeitungsziele im Live Builder, Vorschau-Schlüssel und `rrw_components_inject()`. Projektspezifische Komponenten liegen ausschließlich im jeweiligen Projekt-Repository; der Kern enthält keine Projektinhalte.
 
 ## Phase 11: Wer ist wofür zuständig, wer führt die Daten?
 | Bereich | ElvadoPress | WordPress (Engine aktiv) |
@@ -82,12 +82,12 @@ Neutral im Kern: Komponenten mit `bind` („bound“, siehe [COMPONENTS.md](COMP
 | Oberfläche, Anmeldung, Rollen (Administrator/Autor), API, Live Builder, Komponenten, Layouts, Migration, Updates, KI, Apps | **ja** | – |
 | Beiträge, Seiten, Kategorien/Schlagwörter, Medien, Menüs, Widgets, Blöcke | Adapter/Dienste, Rechteprüfung | **Datenquelle** (über `WordPressAdapter` und Co.) |
 | WordPress-Plugins/-Themes | Verwaltung, Absturzschutz | **führt sie aus** |
-| Native Plugins, JS-Plugins, Pakete (RicoReWi) | **ja** | – |
+| Native Plugins, JS-Plugins, Pakete | **ja** | – |
 
 **Führende Datenquelle:** solange die Engine nicht aktiv ist oder nicht migriert wurde, führen die bisherigen ElvadoPress-Daten (`cms/data`, `cms/media`). Die Migration kopiert nur (Bestand bleibt unverändert) und schaltet **nicht** um; das Umschalten der bisherigen Verwaltungs-Panels auf die Engine ist ein eigener, noch ausstehender Schritt (siehe `KNOWN_ISSUES.md`). Bestehende Websites ohne Aktivierung bleiben unverändert.
 
 ## Sicherheit der API (geprüft durch `scripts/test-wp-engine-api.php`)
-- **Anmeldung:** Sitzungsschlüssel nur im Header `X-AnMaCha-Token` (oder `_tok` im Body/Query) – **nie per Cookie**. Damit gibt es keinen Cookie-Login und somit kein CSRF; fremde Seiten können keine Aktionen mit der Sitzung der Person auslösen.
+- **Anmeldung:** Sitzungsschlüssel nur im Header `X-ElvadoPress-Token` (oder `_tok` im Body/Query) – **nie per Cookie**. Damit gibt es keinen Cookie-Login und somit kein CSRF; fremde Seiten können keine Aktionen mit der Sitzung der Person auslösen.
 - **Rechte:** Administratoren alles; Autoren nur Inhalte/Medien nach Besitz und Lesen von Menüs/Blöcken; alle Engine-, Plugin-, Theme-, Benutzer-, Migrations- und Layout-Aktionen für Websites/Bereiche nur Administratoren (403). Die Dienste prüfen zusätzlich selbst (`Actor::can`, `PermissionException`).
 - **Methoden:** schreibende Aktionen nur per POST (405 sonst); Migration nur mit Bestätigung `MIGRIEREN`, Rückbau mit Bestätigung; Demo-Betrieb sperrt alles außer dem Status.
 - **Eingaben:** Typen/Kennungen/Bereiche werden serverseitig geprüft (4xx mit Meldung, keine Pfade oder Stack-Traces nach außen); Layout-Bereiche nur `home|site:*|page:*|post:*`; Berichts- und Lauf-Kennungen nur im festen Format.

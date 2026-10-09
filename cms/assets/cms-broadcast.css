@@ -1,4 +1,4 @@
-/* CMS-Erscheinungsbild „Broadcast“ – angelehnt an das AnMaCha Control Center (anmacha-ui.css).
+/* CMS-Erscheinungsbild „Broadcast“.
    Reine Optik: ändert nur Farben, Rundungen, Schatten und Schrift; keine Struktur, keine ID, keine Funktion.
    Wird nach cms.css geladen. Zum Zurücksetzen genügt es, den <link> auf diese Datei in index.php zu entfernen. */
 :root{

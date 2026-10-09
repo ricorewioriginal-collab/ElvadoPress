@@ -9,10 +9,10 @@
   }
   function $(id){return document.getElementById(id)}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function token(){return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||''}
+  function token(){return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}
   function toast(m,bad){if(window.cmsToast)window.cmsToast(m,bad);else alert(m)}
   async function call(action,body,q){
-    var o={headers:{'X-AnMaCha-Token':token()}};if(body!==undefined){o.method='POST';o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}
+    var o={headers:{'X-ElvadoPress-Token':token()}};if(body!==undefined){o.method='POST';o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}
     var r=await fetch('api.php?action='+action+(q||'')+'&_='+Date.now(),o),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
     if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d;
   }

@@ -4,9 +4,9 @@
   var plugins=[],items=[],page=1,pages=1,pmap={},pmapOk=false;
   function $(id){return document.getElementById(id)}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-  function token(){return sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||''}
+  function token(){return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}
   function toast(m,bad){if(window.cmsToast)window.cmsToast(m,bad);else alert(m)}
-  async function get(action,q){var r=await fetch('api.php?action='+action+(q||'')+'&_='+Date.now(),{headers:{'X-AnMaCha-Token':token()}}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d}
+  async function get(action,q){var r=await fetch('api.php?action='+action+(q||'')+'&_='+Date.now(),{headers:{'X-ElvadoPress-Token':token()}}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d}
   async function load(){
     bind();autoLoad();
     try{var d=await get('wp_plugins');plugins=d.plugins||[];drawInst();loadMenu()}catch(e){$('wpInst').innerHTML='<div class="hint">'+esc(e.message)+'</div>'}
@@ -50,7 +50,7 @@
     try{var r=await post('wp_plugin_'+what,{file:p.file});plugins=r.plugins||plugins;pmapOk=false;drawInst();window.WpNotices&&WpNotices.refresh();if(items.length)drawResults();if(what==='activate')toast('Aktiviert – die Einstellungen des Plugins erscheinen gleich an seiner Karte.');loadMenu()}catch(e){toast(e.message,true);load()}
   }
   async function post(action,body){
-    var r=await fetch('api.php?action='+action+'&_='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':token()},body:JSON.stringify(body||{})}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
+    var r=await fetch('api.php?action='+action+'&_='+Date.now(),{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':token()},body:JSON.stringify(body||{})}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
     if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');return d;
   }
   async function search(p){
@@ -84,7 +84,7 @@
   }
   async function upload(file){
     if(!file)return;var fd=new FormData();fd.append('file',file);
-    try{var r=await fetch('api.php?action=wp_plugin_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
+    try{var r=await fetch('api.php?action=wp_plugin_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd}),d=await r.json().catch(function(){return {status:'error',message:'Ungültige Serverantwort'}});
       if(!r.ok||d.status==='error')throw new Error(d.message||'Fehler');plugins=d.plugins||plugins;drawInst();tab('inst');toast('Plugin installiert.')}
     catch(e){toast(e.message,true)}
     $('wpUpload').value='';

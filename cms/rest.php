@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 // Stabile ElvadoPress-REST-API (Version 1) für Apps, Frontends und eigene Clients. Intern: API → Dienst (Content/Media/Navigation) → Adapter → (ElvadoPress-Daten | echter WordPress-Core).
-// Clients hängen nie direkt an WordPress. Aufruf: /cms/rest.php/<Route> (oder ?route=/<Route>); Anmeldung: Header „Authorization: Bearer <Sitzungsschlüssel>“ oder „X-AnMaCha-Token“ – nie per Cookie (kein CSRF).
+// Clients hängen nie direkt an WordPress. Aufruf: /cms/rest.php/<Route> (oder ?route=/<Route>); Anmeldung: Header „Authorization: Bearer <Sitzungsschlüssel>“ oder „X-ElvadoPress-Token“ – nie per Cookie (kein CSRF).
 // Routen: GET /  ·  GET|POST /pages, /posts  ·  GET|PUT|PATCH|DELETE /pages/{id}, /posts/{id}  ·  GET /categories, /tags  ·  GET /media, /media/{id}  ·  GET /navigation, /navigation/{id}  ·  GET /components  ·  GET /layouts/{bereich}  ·  GET /status
 // Antwort: {"status":"ok","data":…,"meta":{…}} bzw. {"status":"error","message":…}. Quelle: aktive Engine → WordPress, sonst ElvadoPress-Daten (nur lesend); ?source=native erzwingt die ElvadoPress-Daten (nur lesend).
 // Rechte: wie in der Verwaltung (Administratoren alles; Autoren Inhalte/Medien nach Besitz). In der Demo ohne Engine nur lesend.
 define('RRW_API_LIB_ONLY', true);
-if (empty($_SERVER['HTTP_X_ANMACHA_TOKEN']) && preg_match('/^Bearer\s+(\S+)$/i', (string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''), $m)) {
-    $_SERVER['HTTP_X_ANMACHA_TOKEN'] = $m[1];
+if (empty($_SERVER['HTTP_X_ELVADOPRESS_TOKEN']) && preg_match('/^Bearer\s+(\S+)$/i', (string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''), $m)) {
+    $_SERVER['HTTP_X_ELVADOPRESS_TOKEN'] = $m[1];
 }
 require __DIR__ . '/api.php';
 require_once __DIR__ . '/src/autoload.php';

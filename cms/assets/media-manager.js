@@ -2,7 +2,7 @@
 window.MediaHub=(()=>{
  let items=[],selected=null,brandingPick=null;
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
- const token=()=>sessionStorage.getItem('anmacha_session_token')||localStorage.getItem('anmacha_session_token')||'';
+ const token=()=>sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';
  const BRAND_LABELS={
   portal_logo:'Portal-Logo',portal_icon:'Portal-Icon',favicon:'Favicon',
   android_inapp_logo:'Android In-App-Logo',android_startscreen:'Android Startscreen',
@@ -11,7 +11,7 @@ window.MediaHub=(()=>{
  function usageText(item){const use=Array.isArray(item?.used_as)?item.used_as:[];return use.map(x=>BRAND_LABELS[x]||x).join(', ')}
 
  async function api(action,body){
-  const opt=body===undefined?{headers:{'X-AnMaCha-Token':token()}}:{method:'POST',headers:{'Content-Type':'application/json','X-AnMaCha-Token':token()},body:JSON.stringify(body)};
+  const opt=body===undefined?{headers:{'X-ElvadoPress-Token':token()}}:{method:'POST',headers:{'Content-Type':'application/json','X-ElvadoPress-Token':token()},body:JSON.stringify(body)};
   const r=await fetch('api.php?action='+encodeURIComponent(action)+'&_='+Date.now(),opt);
   const d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));
   if(r.status===401)window.cmsSessionExpired?.();
@@ -36,7 +36,7 @@ window.MediaHub=(()=>{
  }
  async function uploadOne(file){
   const cfg=uploadConfig(),fd=new FormData();fd.append('file',file);fd.append('sizes',cfg.sizes);fd.append('quality',String(cfg.quality));
-  const r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-AnMaCha-Token':token()},body:fd});
+  const r=await fetch('api.php?action=media_library_upload&_='+Date.now(),{method:'POST',headers:{'X-ElvadoPress-Token':token()},body:fd});
   const d=await r.json().catch(()=>({status:'error'}));
   if(!r.ok||d.status!=='ok')throw new Error(d.message||('Upload fehlgeschlagen: '+file.name));
   return d;

@@ -280,7 +280,7 @@ function rrw_sites_request_context(): void
     }
     $hdr = (string)($_SERVER['HTTP_X_EP_SITE'] ?? '');
     if ($hdr !== '' && PHP_SAPI !== 'cli') {
-        $tok = trim((string)($_SERVER['HTTP_X_ANMACHA_TOKEN'] ?? ''));
+        $tok = trim((string)($_SERVER['HTTP_X_ELVADOPRESS_TOKEN'] ?? ''));
         if (str_starts_with($tok, 'local_') && is_file(__DIR__ . '/auth.php')) {
             require_once __DIR__ . '/auth.php';
             $u = function_exists('rrw_local_session_validate') ? rrw_local_session_validate($tok) : null;
