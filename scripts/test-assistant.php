@@ -96,7 +96,7 @@ t('Aktive Alexa-Themen dienen dem Assistenten als Wissen; ausgeschaltete nicht',
     eq(elvado_assistant_knowledge($cfg,['alexa'=>['enabled'=>false,'topics'=>['a1'=>['title'=>'X','text'=>'Y']]]]),'','Alexa aus → kein Wissen');
 });
 t('Chat (ohne Anbieter): Antwort aus den Beiträgen, keine Radio-Inhalte',function() use($tmp){
-    $site=['assistant'=>['providers'=>array_map(fn($p)=>['id'=>$p['id'],'enabled'=>false],elvado_assistant_provider_presets()),'features'=>['research'=>false]],'portal'=>['site_name'=>'Rad & Tat'],'seo'=>['canonical_base'=>'https://rad.example.org']];
+    $site=['assistant'=>['enabled'=>true,'providers'=>array_map(fn($p)=>['id'=>$p['id'],'enabled'=>false],elvado_assistant_provider_presets()),'features'=>['research'=>false]],'portal'=>['site_name'=>'Rad & Tat'],'seo'=>['canonical_base'=>'https://rad.example.org']];
     $r=elvado_assistant_chat($site,[],['messages'=>[['role'=>'user','content'=>'Wann habt ihr geöffnet?']]],$tmp,$tmp.'/news.json');
     eq($r['status'],'ok');eq($r['provider'],'offline');eq(str_contains($r['reply'],'Neue Öffnungszeiten'),true,$r['reply']);eq($r['cards'][0]['type']??'','pages');
     if(preg_match('/sender|sendeplan|radio/i',$r['reply']))throw new RuntimeException('Radio-Bezug: '.$r['reply']);

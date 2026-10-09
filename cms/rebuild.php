@@ -7,6 +7,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only\n"); }
 // Snapshot, eigene Seiten, Markdown-Spiegel, SEO/Sitemap, RSS). Nutzt
 // dieselbe elvado_publish()-Logik wie api.php, damit hier nichts abweicht.
 
+require_once __DIR__.'/lib/system.php';elvado_system_apply_timezone();   // gleiche Zeitzone wie die Verwaltung
 require_once __DIR__.'/lib/publish.php';
 require_once __DIR__.'/lib/feeds.php';
 require_once __DIR__.'/lib/seo.php';

@@ -19,7 +19,7 @@ function elvado_assistant_provider_presets(): array {
 }
 function elvado_assistant_defaults(): array {
     return [
-        'enabled'=>true,
+        'enabled'=>false,   // aus, bis der Betreiber ihn einschaltet: Fragen gehen sonst ohne dessen Zutun an einen externen KI-Dienst
         'name'=>'Assistent',
         'order_mode'=>'manual',    // manual: genau die eingestellte Reihenfolge der Anbieter und Modelle; auto: kostenlose zuerst, schnelle Modelle vorn
         'temperature'=>0.2,
@@ -41,7 +41,7 @@ function elvado_assistant_base_url_ok(string $u): bool {
 function elvado_assistant_clean($value): array {
     $d=elvado_assistant_defaults();$v=is_array($value)?$value:[];
     $out=[
-        'enabled'=>!array_key_exists('enabled',$v)||!empty($v['enabled']),
+        'enabled'=>!empty($v['enabled']),
         'name'=>mb_substr(trim((string)($v['name']??'')),0,60)?:$d['name'],
         'order_mode'=>in_array(($v['order_mode']??''),['auto','manual'],true)?(string)$v['order_mode']:$d['order_mode'],
         'temperature'=>round(max(0.0,min(1.5,array_key_exists('temperature',$v)&&is_numeric($v['temperature'])?(float)$v['temperature']:(float)$d['temperature'])),2),
