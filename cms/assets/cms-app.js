@@ -283,6 +283,7 @@ async function initCms(){
    document.getElementById('cmsDenied').style.display='none';
    document.getElementById('cmsApp').style.display='';
    cmsBarMark(true);
+   if(window.AdminLinks)AdminLinks.load();
    await cmsReload();
  }catch(e){
    cmsBarMark(false);

@@ -109,6 +109,14 @@ $bk=api($base,'np_call',['id'=>'elvado-backup','call'=>'overview','args'=>[]],$t
 t('Backup-Plugin liefert Übersicht',isset($bk['blocks']),json_encode($bk));
 
 // ---------- Konsistenz der Navigation
+[$stNo]=http('GET',$base.'/cms/api.php?action=admin_links_get');
+t('Eigene Menülinks: ohne Anmeldung nicht lesbar',$stNo===401,"HTTP $stNo");
+$lk=api($base,'admin_links_save',['links'=>[['label'=>'Statistik','url'=>'https://stats.example.org/','icon'=>'chart-line','mode'=>'frame'],['label'=>'Hilfe','url'=>'/hilfe/','mode'=>'new']]],$tok);
+t('Eigene Menülinks: Administrator speichert zwei Links',($lk['status']??'')==='ok'&&count($lk['links']??[])===2,json_encode($lk));
+[$stBad,,$bBad]=http('POST',$base.'/cms/api.php?action=admin_links_save',['Content-Type: application/json','X-ElvadoPress-Token: '.$tok],json_encode(['links'=>[['label'=>'X','url'=>'javascript:alert(1)']]]));
+t('Eigene Menülinks: unsichere Adresse wird mit 400 abgelehnt',$stBad===400&&str_contains($bBad,'Adresse'),"HTTP $stBad");
+$lg=get($base,'admin_links_get',$tok);
+t('Eigene Menülinks: gespeicherte Links kommen zurück, die abgelehnte Eingabe hat nichts überschrieben',($lg['status']??'')==='ok'&&array_column((array)($lg['links']??[]),'label')===['Statistik','Hilfe']&&($lg['links'][0]['mode']??'')==='frame');
 [,,$adm]=http('GET',$base.'/cms/');
 t('Verwaltung wird ausgeliefert ohne Platzhalter/Fehlermeldungen',str_contains($adm,'cmsApp')&&!str_contains($adm,'Fatal error')&&!str_contains($adm,'Warning:')&&!str_contains($adm,'Notice:'));
 preg_match_all('~<script src="(assets/[^"?]+)~',$adm,$sc);$bad=[];foreach(array_unique($sc[1]) as $s)if(!is_file($tmp.'/cms/'.$s))$bad[]=$s;

@@ -106,6 +106,7 @@
           <button class="tab" data-tab="legal" onclick="cmsTab('legal',this)"><i class="fas fa-scale-balanced"></i>Rechtliches</button>
           <button class="tab" data-tab="brands" onclick="cmsTab('brands',this);window.BrandsManager?.render()"><i class="fas fa-globe"></i>Domains &amp; Branding</button>
           <button class="tab" data-tab="sites" onclick="cmsTab('sites',this);window.SitesManager?.load()"><i class="fas fa-layer-group"></i>Websites</button>
+          <button class="tab sa-only" data-tab="adminlinks" hidden onclick="cmsTab('adminlinks',this);window.AdminLinks?.edit()"><i class="fas fa-link"></i>Eigene Links</button>
         </div>
       </div>
       <div class="tab-group single sys-single"><div class="tab-group-title" role="button" tabindex="0"><i class="fas fa-rotate"></i><span>Updates</span></div><div class="tab-group-body">
@@ -124,6 +125,8 @@
           <button class="tab" data-tab="system" hidden onclick="cmsTab('system',this);window.StandaloneManager?.load();window.UpdateManager?.load()"><i class="fas fa-sliders"></i>Betriebsart &amp; Produktname</button>
         </div>
       </div>
+
+      <div id="cmsCustomLinks" class="cms-custom-links" hidden aria-label="Eigene Links"></div>
 
           <button type="button" id="cmsFoldBtn" class="cms-fold-btn" title="Menü einklappen"><i class="fas fa-circle-chevron-left"></i><span>Menü einklappen</span></button>
     </div>

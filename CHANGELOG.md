@@ -4,6 +4,9 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 
 ## Nicht veröffentlicht (nach 1.2.0)
 
+### Eigene Links im Verwaltungsmenü
+- Neu: Einstellungen → **Eigene Links** (nur Administratoren). Bis zu 20 Einträge mit Name, Adresse, Symbol und Öffnungsart erscheinen unten im Menü der Verwaltung für alle Benutzer: **im Rahmen der Verwaltung** (iframe, Seite des eigenen Servers ohne Zugriff auf die Sitzung) oder **in neuem Tab**. Erlaubt sind `https://`, `http://` und Pfade wie `/statistik/`; `javascript:`-/`data:`-Adressen werden serverseitig abgelehnt. Speicherung in `data/admin-links.json`, API `admin_links_get`/`admin_links_save`, Test `scripts/test-adminlinks.php`.
+
 ### Mobile Verwaltung
 - Kopfzeile passt in jede Handybreite ab 320 px: Glocke, Design-Schalter und Benutzermenü waren vorher abgeschnitten und nicht erreichbar; „Zur Website“ ist auf dem Handy ein Symbol.
 - Kein doppelter Leerraum mehr über dem Inhalt, Statusleiste nur noch bei Meldungen (wie am Desktop), Abstände für Notch und Gestenleiste (`viewport-fit=cover`).

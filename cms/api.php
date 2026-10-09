@@ -688,6 +688,13 @@ if($action==='branding_assign'){
     $size=$b['size']??'auto';$url=elvado_media_pick_variant($item,$size,$kind);$sync=elvado_sync_branding_asset($kind,$url,$root);$site['branding'][$kind]=$sync['url'];$site['branding_media'][$kind]=['path'=>(string)($b['path']??''),'size'=>$size,'source_url'=>$url,'assigned_at'=>date(DATE_ATOM)];elvado_publish($site,$siteFile,$genDir,$root);
     elvado_json(['status'=>'ok','url'=>$sync['url'],'source_url'=>$url,'branding'=>$site['branding'],'branding_media'=>$site['branding_media'],'updated_files'=>$sync['files'],'warnings'=>$sync['warnings']]);
 }
+if($action==='admin_links_get'||$action==='admin_links_save'){   // eigene Links im Verwaltungsmenü: alle sehen sie, nur Administratoren ändern sie
+    require_once __DIR__.'/lib/admin-links.php';
+    if($action==='admin_links_get'){elvado_auth(false);elvado_json(['status'=>'ok','links'=>elvado_admin_links_get($dataDir)]);}
+    elvado_auth(true);$b=elvado_body();
+    try{elvado_json(['status'=>'ok','links'=>elvado_admin_links_save($dataDir,$b['links']??null)]);}
+    catch(InvalidArgumentException $e){elvado_json(['status'=>'error','message'=>$e->getMessage()],400);}
+}
 if($action==='admin_prefs_get'||$action==='admin_prefs_save'){   // persönliche Einstellungen der Verwaltung (Design), pro Benutzer, nicht pro Browser
     $u=elvado_auth(false);$pf=$dataDir.'/.prefs/admin.json';$all=is_file($pf)?json_decode((string)@file_get_contents($pf),true):[];$all=is_array($all)?$all:[];$name=(string)($u['user']??'');
     if($name==='')elvado_json(['status'=>'error','message'=>'Kein Benutzer'],400);
