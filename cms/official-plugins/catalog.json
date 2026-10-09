@@ -58,6 +58,17 @@
             "hash": "aaaa4577786b4162255a51193a445ba7327231f3b23e058735956ceca896ad06"
         },
         {
+            "id": "elvado-radio",
+            "name": "Elvado Radio / Audio",
+            "description": "Stellt Webradio- und Audio-Streams als Player auf Seiten, in Beiträgen und Widgets bereit – per Shortcode [elvado_radio]. Die Sender trägst du selbst ein. Es wird kein Skript von Dritten geladen und der Stream erst nach dem Klick auf „Abspielen“ abgerufen.",
+            "category": "Medien",
+            "icon": "fa-radio",
+            "status": "available",
+            "recommended": false,
+            "version": "1.0.0",
+            "hash": "1007514765b1ff94d40da91e6d6042343731a6e0b78e735c5586707ed67126f4"
+        },
+        {
             "id": "elvado-redirects",
             "name": "Elvado Redirects",
             "description": "Legt bei geänderter Beitrags-Adresse automatisch eine Weiterleitung an, erkennt Weiterleitungs-Schleifen und -Ketten und macht aus dem 404-Monitor mit einem Klick eine Weiterleitung. Nutzt die vorhandene Weiterleitungs-Verwaltung unter Werkzeuge (301/302/307/410).",
@@ -140,17 +151,6 @@
             "description": "Podcast-Feeds und Player für eigene Folgen.",
             "category": "Medien",
             "icon": "fa-podcast",
-            "status": "planned",
-            "recommended": false,
-            "version": "",
-            "hash": ""
-        },
-        {
-            "id": "elvado-radio",
-            "name": "Elvado Radio / Audio",
-            "description": "Radio- und Audio-Funktionen (Sender, Player, Sendeplan, Widgets) als optionales Plugin.",
-            "category": "Medien",
-            "icon": "fa-radio",
             "status": "planned",
             "recommended": false,
             "version": "",

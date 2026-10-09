@@ -421,5 +421,25 @@ t('AI: Plugin enthält keinen API-Schlüssel und keine eigene Anbieter-Anbindung
 Http::useTransport(null);
 }
 
+// ---------- Elvado Radio / Audio (optional, nicht empfohlen)
+t('Radio: im Katalog verfügbar, aber nicht empfohlen (kein Standard)',($cat['elvado-radio']['status']??'')==='available'&&empty($cat['elvado-radio']['recommended'])&&!in_array('elvado-radio',$mgr->state()['active'],true));
+t('Radio: Installation und Übersicht ohne Fehler',(function() use($mgr,$cms){
+    $r=$mgr->installSelection(['elvado-radio'],true);if($r['failed'])return false;
+    $mgr->saveSettings('elvado-radio',['stations'=>"abc | Test | https://s.example/live\nkaputt"]);reboot($cms);
+    $o=$mgr->callApi('elvado-radio','overview',[],'admin');
+    return !empty($o['blocks'])&&$o['blocks'][0]['items'][0]['value']===1&&$o['blocks'][0]['items'][1]['value']===1;
+})());
+
+t('Radio: Senderliste wird geprüft (nur https, Kennung, Duplikate)',(function(){
+    [$st,$notes]=\ElvadoPlugin\Radio\Radio::parse("mein-radio | Mein Radio | https://stream.example.org/live.mp3 | https://example.org/logo.png\n# Kommentar\nx | Kurz | https://a.example\nhttp-sender | Alt | http://a.example/s\nmein-radio | Doppelt | https://b.example/s\nohne-name | | https://c.example/s\nuser | U | https://u:p@d.example/s");
+    return array_keys($st)===['mein-radio']&&$st['mein-radio']['logo']==='https://example.org/logo.png'&&count($notes)===5;
+})());
+t('Radio: Player maskiert Ausgaben und ignoriert unsichere Adressen',(function(){
+    $R='\\ElvadoPlugin\\Radio\\Radio';[$st]=$R::parse('abc | Test <b>"x" | https://s.example/live');
+    $h=$R::render($st,['station'=>'abc'],true);
+    return str_contains($h,'<audio controls preload="none" src="https://s.example/live"')&&!str_contains($h,'<b>')
+        &&$R::render($st,['url'=>'javascript:alert(1)'],true)===''&&$R::render($st,['url'=>'http://s.example/x'],true)===''&&$R::render([],['station'=>'nope'],true)===''
+        &&str_contains($R::render([],['url'=>'https://s.example/a.mp3','title'=>'<i>Hallo</i>'],false),'aria-label="iHallo/i"')&&!str_contains($R::render([],['url'=>'https://s.example/a.mp3'],false),'elvado-radio-title');
+})());
 Fs::rmTree($tmp);
 echo $fail?"$fail von $n Prüfungen fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);
