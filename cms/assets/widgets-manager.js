@@ -12,20 +12,6 @@ window.WidgetsManager=(()=>{
   {id:'calendar',name:'Kalender',icon:'fa-calendar-days',cat:'Inhalte',desc:'Monatskalender, Tage mit Beiträgen sind verlinkt.',fields:[]},
   {id:'search',name:'Suche',icon:'fa-magnifying-glass',cat:'Inhalte',desc:'Suchfeld mit Live-Treffern aus den News.',fields:[{k:'placeholder',l:'Platzhalter',t:'text'}]},
   {id:'recent-comments',name:'Letzte Kommentare',icon:'fa-comments',cat:'Inhalte',desc:'Die neuesten freigegebenen Kommentare.',fields:[{k:'count',l:'Anzahl',t:'int',min:1,max:10}]},
-  {id:'podcast',name:'Podcast',icon:'fa-podcast',cat:'Inhalte',desc:'Neueste Podcast-Folgen, direkt abspielbar.',fields:[{k:'count',l:'Anzahl Folgen',t:'int',min:1,max:10},{k:'show_images',l:'Cover anzeigen',t:'bool'}]},
-  {id:'stations',name:'Senderliste',icon:'fa-tower-broadcast',cat:'Radio',desc:'Sender mit Play-Button.',fields:[{k:'count',l:'Anzahl Sender',t:'int',min:1,max:20},{k:'layout',l:'Darstellung',t:'select',o:[['list','Liste'],['grid','Raster']]},{k:'show_genres',l:'Genres anzeigen',t:'bool'}]},
-  {id:'now-playing',name:'Jetzt läuft',icon:'fa-compact-disc',cat:'Radio',desc:'Aktueller Sender und Titel des Players.',fields:[{k:'show_cover',l:'Cover anzeigen',t:'bool'}]},
-  {id:'schedule',name:'Sendeplan',icon:'fa-calendar-check',cat:'Radio',desc:'Nächste Sendungen von heute.',fields:[{k:'count',l:'Anzahl Sendungen',t:'int',min:1,max:10},{k:'station',l:'Nur Sender (ID, leer = alle)',t:'station'}]},
-  {id:'random-station',name:'Überrasch mich',icon:'fa-shuffle',cat:'Radio',desc:'Spielt einen zufälligen Sender.',fields:[{k:'label',l:'Beschriftung',t:'text'}]},
-  {id:'favorites',name:'Meine Favoriten',icon:'fa-star',cat:'Radio',desc:'Öffnet die Favoriten des Hörers.',fields:[]},
-  {id:'voting',name:'Netzwerk-Voting',icon:'fa-ranking-star',cat:'Interaktion',desc:'Link zum Sender-Voting des Netzwerks.',fields:[]},
-  {id:'song-voting',name:'Song-Voting',icon:'fa-chart-simple',cat:'Interaktion',desc:'Song-Voting eines Senders.',fields:[{k:'label',l:'Beschriftung',t:'text'},{k:'station',l:'Sender (leer = Auswahl)',t:'station'}]},
-  {id:'studiomail',name:'Studiomail',icon:'fa-envelope-open-text',cat:'Interaktion',desc:'Nachricht ans Studio.',fields:[{k:'label',l:'Beschriftung',t:'text'}]},
-  {id:'voicemail',name:'Voicemail',icon:'fa-microphone-lines',cat:'Interaktion',desc:'Sprachnachricht aufnehmen.',fields:[{k:'label',l:'Beschriftung',t:'text'},{k:'station',l:'Sender (leer = Auswahl)',t:'station'}]},
-  {id:'wunsch',name:'Musikwunsch',icon:'fa-music',cat:'Interaktion',desc:'Musikwunsch an einen Sender.',fields:[{k:'label',l:'Beschriftung',t:'text'},{k:'station',l:'Sender (leer = Auswahl)',t:'station'}]},
-  {id:'poll',name:'Umfrage',icon:'fa-square-poll-vertical',cat:'Interaktion',desc:'Umfrage eines Senders.',fields:[{k:'label',l:'Beschriftung',t:'text'},{k:'station',l:'Sender (leer = Auswahl)',t:'station'}]},
-  {id:'social-wall',name:'Social Wall',icon:'fa-hashtag',cat:'Social',desc:'TikTok und Instagram von RicoReWi und AnMaCha.',fields:[]},
-  {id:'social-single',name:'Social-Profil',icon:'fa-at',cat:'Social',desc:'Ein einzelnes TikTok- oder Instagram-Profil.',fields:[{k:'platform',l:'Plattform',t:'select',o:[['tiktok','TikTok'],['instagram','Instagram']]},{k:'creator',l:'Profil',t:'select',o:[['ricorewi','RicoReWi'],['anmacha','AnMaCha']]}]},
   {id:'text',name:'Text',icon:'fa-align-left',cat:'Eigene',desc:'Einfacher Text, Absätze durch Leerzeile.',fields:[{k:'text',l:'Text',t:'textarea'}]},
   {id:'html',name:'Eigenes HTML',icon:'fa-code',cat:'Eigene',desc:'Beliebiger HTML-Code.',fields:[{k:'html',l:'HTML',t:'html'}]},
   {id:'button',name:'Button',icon:'fa-hand-pointer',cat:'Eigene',desc:'Ein Link als Button.',fields:[{k:'label',l:'Beschriftung',t:'text'},{k:'url',l:'Link (URL oder #seite)',t:'text'},{k:'style',l:'Stil',t:'select',o:[['primary','Akzent'],['ghost','Umrandet']]},{k:'icon',l:'Icon (z.B. fa-arrow-right)',t:'text'}]},
@@ -46,12 +32,9 @@ window.WidgetsManager=(()=>{
   {id:'contact-form',name:'Kontaktformular',icon:'fa-envelope',cat:'Interaktion',desc:'Nachrichten landen unter Inhalte → Einsendungen, optional zusätzlich per E-Mail.',fields:[{k:'intro',l:'Einleitung',t:'textarea'},{k:'notify',l:'Zusätzlich per E-Mail an (optional)',t:'text'},{k:'button',l:'Beschriftung des Buttons',t:'text'},{k:'success',l:'Text nach dem Senden',t:'text'},{k:'consent',l:'Einwilligungstext',t:'text'},{k:'subject',l:'Feld „Betreff“ anzeigen',t:'bool'}]},
   {id:'newsletter',name:'Newsletter-Anmeldung',icon:'fa-paper-plane',cat:'Interaktion',desc:'Sammelt E-Mail-Adressen (Export als CSV unter Inhalte → Einsendungen).',fields:[{k:'intro',l:'Einleitung',t:'textarea'},{k:'notify',l:'Zusätzlich per E-Mail an (optional)',t:'text'},{k:'button',l:'Beschriftung des Buttons',t:'text'},{k:'success',l:'Text nach dem Anmelden',t:'text'},{k:'consent',l:'Einwilligungstext',t:'text'}]},
  ];
- const STATIONS=['ricorewi','yourtime-fm','rapradio24','schlagerpop24','chartradio24','clubradio24','anmacha24','radiofloh','rockradio24','christmasradio24','kultradio24','zockerfm','special-radio'];
  const KIND_LABEL={sidebar:'Sidebar',footer:'Footer',content:'Inhalt'};
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- /* Radio-Paket (RicoReWi-Design): ohne das Paket nicht in der Bibliothek; vorhandene Widgets bleiben erhalten */
- const PACK_RADIO=new Set(['stations','now-playing','schedule','random-station','favorites','podcast','voting','song-voting','studiomail','voicemail','wunsch','poll','social-wall','social-single']);
- const avail=()=>T.filter(t=>!PACK_RADIO.has(t.id));
+ const avail=()=>T;
  const typeOf=id=>T.find(t=>t.id===id)||{id,name:id,icon:'fa-puzzle-piece',cat:'Eigene',desc:'',fields:[]};
  const S={open:new Set(),openInst:new Set(),search:'',history:[],future:[],baseline:'',picker:null,target:'',drag:null,inited:false};
  const areas=()=>(CMS.widget_areas=CMS.widget_areas||[]);
@@ -120,7 +103,6 @@ window.WidgetsManager=(()=>{
   if(f.t==='select')return `<label class="news-lbl">${esc(f.l)}</label><select class="fc w-100" onchange="WidgetsManager.upd('${esc(w.id)}','${f.k}',this.value)">${f.o.map(([val,lab])=>'<option value="'+esc(val)+'" '+(val===v?'selected':'')+'>'+esc(lab)+'</option>').join('')}</select>`;
   if(f.t==='textarea'||f.t==='html')return `<label class="news-lbl">${esc(f.l)}</label><textarea class="fc w-100" rows="${f.t==='html'?6:4}" ${f.t==='html'?'style="font-family:monospace;font-size:.78rem"':''} ${on}>${esc(v||'')}</textarea>`;
   if(f.t==='poll'){const list=window.__cmsPolls||[];const opts=[['','Neueste offene Umfrage'],...list.map(p=>[p.id,p.question]),...(v&&!list.some(p=>p.id===v)?[[v,'(Umfrage '+v+')']]:[])];return `<label class="news-lbl">${esc(f.l)}</label><select class="fc w-100" onchange="WidgetsManager.upd('${esc(w.id)}','${f.k}',this.value)">${opts.map(([val,lab])=>'<option value="'+esc(val)+'" '+(val===(v||'')?'selected':'')+'>'+esc(lab)+'</option>').join('')}</select>`}
-  if(f.t==='station')return `<label class="news-lbl">${esc(f.l)}</label><input class="fc w-100" list="wmStations" value="${esc(v||'')}" ${on}>`;
   if(f.t==='media')return `<label class="news-lbl">${esc(f.l)}</label><div style="display:flex;gap:6px"><input class="fc w-100" value="${esc(v||'')}" placeholder="https://… oder /cms/media/…" ${on}>${window.MediaManager?.pick?'<button class="btn-g" type="button" onclick="MediaManager.pick(u=>{WidgetsManager.upd(\''+esc(w.id)+'\',\''+f.k+'\',u);WidgetsManager.render()})"><i class="fas fa-photo-film"></i></button>':''}</div>`;
   return `<label class="news-lbl">${esc(f.l)}</label><input class="fc w-100" value="${esc(v||'')}" ${on}>`;
  }
@@ -194,7 +176,6 @@ window.WidgetsManager=(()=>{
       <select class="fc w-100" style="margin-top:6px" onchange="WidgetsManager.setTarget(this.value)">${areas().map(a=>'<option value="'+esc(a.id)+'" '+(a.id===S.target?'selected':'')+'>Ziel: '+esc(a.name)+'</option>').join('')}<option value="__inactive" ${S.target==='__inactive'?'selected':''}>Ziel: Inaktive Widgets</option></select>
      </div>
      <div id="wmLibrary"></div>
-     <datalist id="wmStations">${STATIONS.map(s=>'<option value="'+s+'">').join('')}</datalist>
     </aside>
     <div class="wm-main">
      ${groups.map(([kind,title])=>{const list=areas().filter(a=>a.kind===kind);return list.length?'<div class="widget-category-title">'+title+'</div>'+list.map(areaHtml).join(''):'';}).join('')}

@@ -632,9 +632,7 @@ if($action==='alexa_get'){
     $defs=rrw_alexa_station_defs($site);$st=[];
     foreach($defs as $id=>$s){$v=rrw_alexa_station_value($s,rrw_alexa_catalog()['suffixes']);$st[]=['id'=>$id,'title'=>$s['title'],'enabled'=>$s['enabled'],'extra'=>$s['extra'],'speakable'=>array_merge([$v['name']['value']],array_slice($v['name']['synonyms'],0,6)),'custom_title'=>(string)(((array)(($site['alexa']['stations']??[])))[$id]['title']??''),'stream'=>(string)($s['stream']??''),'from_radio'=>!empty($s['from_radio'])];}
     rrw_alexa_model($site,$warn);
-    $rdSkipped=[];rrw_alexa_radio_defs($site,$rdSkipped);
-    $rdHas=rrw_alexa_neutral()&&(bool)rrw_alexa_radio_load()['stations'];
-    rrw_json(['radio'=>['available'=>$rdHas,'sync'=>rrw_alexa_radio_sync($site),'skipped'=>$rdSkipped,'https'=>str_starts_with($origin,'https://')],'status'=>'ok','config'=>rrw_alexa_clean($site['alexa']??[]),'stations'=>$st,'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>rrw_alexa_catalog()['brand']['invocationName'],'neutral'=>rrw_alexa_neutral(),'app_name'=>rrw_alexa_catalog()['brand']['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
+    rrw_json(['status'=>'ok','config'=>rrw_alexa_clean($site['alexa']??[]),'stations'=>$st,'stats'=>rrw_alexa_stats($dataDir),'last_fetch'=>rrw_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>rrw_alexa_catalog()['brand']['invocationName'],'neutral'=>rrw_alexa_neutral(),'app_name'=>rrw_alexa_catalog()['brand']['name'],'token_set'=>strlen(rrw_alexa_token($dataDir))>=32,'model_rev'=>rrw_alexa_model_rev($site),'exported_rev'=>rrw_alexa_exported_rev($dataDir)]);
 }
 if($action==='alexa_icon_upload'){
     rrw_auth(true);
@@ -728,15 +726,6 @@ if($action==='assistant_status'){ rrw_auth(false);rrw_json(['status'=>'ok']+rrw_
 if($action==='assistant_test'){ rrw_auth(false);$b=rrw_body();rrw_json(['status'=>'ok']+rrw_assistant_test($site,(string)($b['provider']??''),$dataDir,(string)($b['model']??''))); }
 if($action==='assistant_models'){ rrw_auth(true);rrw_json(['status'=>'ok']+rrw_assistant_models_list($site,rrw_body(),$dataDir)); }
 if($action==='brands_public'){$reg=rrw_brands_registry($site);rrw_json(['status'=>'ok','default'=>$reg['default'],'brands'=>array_map(fn($b)=>['id'=>$b['id'],'name'=>$b['name'],'short_name'=>$b['short_name'],'primary_domain'=>$b['primary_domain'],'domains'=>$b['domains'],'enabled'=>!empty($b['enabled'])],$reg['items'])]);}
-if($action==='schedule'){
-    // Öffentlich, nur lesend: Sendeplan der Kernsender (aufgeräumt, zwischengespeichert, "jetzt/als Nächstes" in Sender-Zeitzone)
-    require_once __DIR__.'/lib/schedule.php';
-    $core=rrw_assistant_stations($site);
-    $want=strtolower(trim((string)($_GET['station']??'')));
-    if($want!==''&&!in_array($want,$core,true))rrw_json(['status'=>'error','message'=>'Unbekannter Sender.'],404);
-    header('Cache-Control: public, max-age=60');
-    rrw_json(rrw_schedule_payload($want!==''?[$want]:$core,$dataDir));
-}
 if($action==='public')rrw_json(['status'=>'ok','config'=>rrw_site_public($site),'brand'=>rrw_brand_public_payload($rrwBrand),'storage'=>'/cms/data/site.json']);
 if($action==='import_legacy'){
     rrw_auth(true);$tok=rrw_token();
@@ -1296,24 +1285,6 @@ if(str_starts_with($action,'themeconf_')){
         try{ $c=rrw_tc_save($dataDir,$tcId,$tcB['config']); }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],500); }
         rrw_log_activity($activityLogFile,$tcUser,'themeconf_save','Theme-Einstellungen „'.$tcId.'“ gespeichert');
         rrw_json(['status'=>'ok','config'=>$c]);
-    }
-    rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
-}
-// Radio-Erweiterung (Menü „Radio“, erscheint bei aktivem Radio-Theme): Sender, Datenquelle, Sendeplan. Konfiguration in cms/data/.tools/radio.json
-if(str_starts_with($action,'radio_')){
-    require_once __DIR__.'/lib/radio.php';
-    if($action==='radio_state'){ rrw_auth(false);rrw_json(['status'=>'ok','active'=>rrw_radio_theme_active($dataDir),'theme'=>RRW_RADIO_THEME]); }
-    $rdUser=rrw_auth(true);
-    if($action==='radio_get')rrw_json(['status'=>'ok','config'=>rrw_radio_load($dataDir),'sources'=>RRW_RADIO_SOURCES,'active'=>rrw_radio_theme_active($dataDir)]);
-    if($action==='radio_save'){
-        $rb=rrw_body();if(!is_array($rb['config']??null))rrw_json(['status'=>'error','message'=>'Konfiguration fehlt'],400);
-        try{ $c=rrw_radio_save($dataDir,$rb['config']); }catch(Throwable $e){ rrw_json(['status'=>'error','message'=>$e->getMessage()],500); }
-        rrw_log_activity($activityLogFile,$rdUser,'radio_save','Radio-Einstellungen gespeichert ('.count($c['stations']).' Sender)');
-        rrw_json(['status'=>'ok','config'=>$c]);
-    }
-    if($action==='radio_test'){
-        $rb=rrw_body();$c=rrw_radio_clean(['stations'=>[is_array($rb['station']??null)?$rb['station']:[]]]);if(!$c['stations'])rrw_json(['status'=>'error','message'=>'Kein Sender angegeben'],400);
-        rrw_json(['status'=>'ok']+rrw_radio_test($c['stations'][0]));
     }
     rrw_json(['status'=>'error','message'=>'Unbekannte Aktion'],400);
 }

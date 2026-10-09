@@ -50,20 +50,6 @@ const byId = (cfg, id) => cfg.stations.find((s) => s.id === id) || null;
 const streamUrl = (cfg, id) => { const st = byId(cfg, id); return (st && st.stream) || cfg.stream_url.split('{id}').join(id); };
 // Eigene Stream-Adressen haben keine laut.fm-Schnittstelle (Titel, Sendeplan)
 const isCustom = (cfg, id) => { const st = byId(cfg, id); return !!(st && st.stream); };
-// Radio-Erweiterung des CMS: Eigene Sender, die dort eingerichtet sind (st.radio), liefern Titel und Sendeplan über cfg.radio_api (cms/radio.php)
-const radioOf = (cfg, id) => { const st = byId(cfg, id); return st && st.radio && cfg.radio_api ? String(st.radio) : ''; };
-/** Sendeplan des CMS-Endpunkts ({day 1–7, from/to "HH:MM", title}) → Form der laut.fm-Playlists (volle Stunden). */
-function radioToRaw(d) {
-  const out = [];
-  for (const e of ((d && d.schedule) || [])) {
-    const day = DAYS[Number(e.day) - 1];
-    const f = /^(\d{1,2}):(\d{2})$/.exec(String(e.from)), t = /^(\d{1,2}):(\d{2})$/.exec(String(e.to));
-    if (!day || !f || !t || !e.title) continue;
-    out.push({ name: e.title, day, hour: Number(f[1]), end_time: Math.min(24, Number(t[1]) + (Number(t[2]) > 0 ? 1 : 0)) });
-  }
-  return out;
-}
-
 // Dynamische Texte gehören in SSML: Sonderzeichen entschärfen, Zahlen im Sendernamen ausschreiben
 const tidy = (s) => s.replace(/\s+/g, ' ').trim();
 const esc = (s) => tidy(String(s == null ? '' : s).replace(/\s*&\s*/g, ' und ').replace(/[<>]/g, ' ').replace(/["']/g, ''));
@@ -144,21 +130,10 @@ function berlinNow(date) {
 
 let scheduleCache = new Map();
 async function loadSchedule(cfg, id) {
-  const rid = radioOf(cfg, id);
-  if (isCustom(cfg, id) && !rid) throw new Error('eigener Stream');
+  if (isCustom(cfg, id)) throw new Error('eigener Stream');
   const hit = scheduleCache.get(id);
   if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.list;
-  // Zuerst der Sendeplan-Dienst des Portals (gemeinsamer Zwischenspeicher, nur eigene Sender); sonst direkt laut.fm
   let raw = null;
-  if (rid) raw = radioToRaw(await fetchJson(`${cfg.radio_api}?a=schedule&station=${encodeURIComponent(rid)}`));
-  else try {
-    const own = await fetchJson(`${CMS.base}/cms/api.php?action=schedule&station=${encodeURIComponent(id)}`);
-    const st = own && own.status === 'ok' && own.stations && own.stations[id];
-    if (st && Array.isArray(st.playlists)) {
-      raw = [];
-      for (const p of st.playlists) for (const a of (p.airtimes || [])) raw.push({ name: p.name, day: a.day, hour: a.hour, end_time: a.end_time });
-    }
-  } catch (e) { /* kein eigener Sender oder Dienst nicht erreichbar: weiter mit laut.fm */ }
   if (raw === null) raw = await fetchJson(`${cfg.api_base}${id}/schedule`);
   const list = (Array.isArray(raw) ? raw : []).map((e) => {
     const d = DAYS.indexOf(e.day);
@@ -267,9 +242,8 @@ const NowPlayingHandler = {
     const id = pickStation(h);
     if (!id) return h.responseBuilder.speak(`Gerade läuft nichts. Sag zum Beispiel: Spiele ${examples(cfg)}.`).getResponse();
     try {
-      const rid = radioOf(cfg, id);
-      if (isCustom(cfg, id) && !rid) throw new Error('eigener Stream');
-      const d = rid ? await fetchJson(`${cfg.radio_api}?a=now&station=${encodeURIComponent(rid)}`) : await fetchJson(`${cfg.api_base}${id}/current_song`);
+      if (isCustom(cfg, id)) throw new Error('eigener Stream');
+      const d = await fetchJson(`${cfg.api_base}${id}/current_song`);
       const title = (d && d.title) || '';
       const artist = (d && d.artist && (typeof d.artist === 'string' ? d.artist : d.artist.name)) || '';
       if (title) return h.responseBuilder.speak(`Auf ${spoken(byId(cfg, id).title)} läuft gerade ${esc(title)}${artist ? ' von ' + esc(artist) : ''}.`).getResponse();
@@ -468,4 +442,4 @@ exports.__setFetch = (fn) => { fetchJson = fn; };
 exports.__setPost = (fn) => { postJson = fn; };
 exports.__setNow = (fn) => { nowFn = fn; };
 exports.__reset = () => { cfgCache = { at: 0, value: null }; scheduleCache = new Map(); };
-exports.__internals = { berlinNow, showsAt, dayShows, radioToRaw };
+exports.__internals = { berlinNow, showsAt, dayShows };

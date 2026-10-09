@@ -62,7 +62,7 @@ t('Speichern/Laden',rrw_tc_load($data,'band')==$c&&is_file($data.'/.tools/.htacc
 try{ rrw_tc_save($data,'gibtsnicht',[]);$e=false; }catch(Throwable $x){ $e=true; }t('Unbekannte Konfiguration abgelehnt',$e&&rrw_tc_entry('gibtsnicht')===null&&rrw_tc_load($data,'../x')===[]);
 t('Menü inaktiv ohne aktives Theme',rrw_tc_state($data)['band']['active']===false);
 @mkdir(RRW_WP_DATA,0775,true);touch(RRW_WP_DATA.'/front-on');update_option('stylesheet','elvado-band');update_option('template','elvado-band');
-t('Menü aktiv bei aktivem Theme (Flag + Option)',rrw_tc_state($data)['band']['active']===true&&rrw_tc_theme_active($data,'elvado-band')&&!rrw_tc_theme_active($data,'elvado-radio'));
+t('Menü aktiv bei aktivem Theme (Flag + Option)',rrw_tc_state($data)['band']['active']===true&&rrw_tc_theme_active($data,'elvado-band')&&!rrw_tc_theme_active($data,'elvado-baukasten'));
 // ── Theme
 rrw_wp_boot(['theme'=>true]);
 t('Theme geladen',get_stylesheet()==='elvado-band');

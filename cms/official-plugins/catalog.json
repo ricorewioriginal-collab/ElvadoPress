@@ -148,7 +148,7 @@
         {
             "id": "elvado-radio",
             "name": "Elvado Radio / Audio",
-            "description": "Radio- und Audio-Funktionen als Plugin (heute Teil des Radio-Themes).",
+            "description": "Radio- und Audio-Funktionen (Sender, Player, Sendeplan, Widgets) als optionales Plugin.",
             "category": "Medien",
             "icon": "fa-radio",
             "status": "planned",

@@ -73,7 +73,6 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 
     <?php require __DIR__.'/views/panel-livebuilder.php'; ?>
 
-    <?php require __DIR__.'/views/panel-radio.php'; ?>
 
     <?php require __DIR__.'/views/panel-themeconf.php'; ?>
 
@@ -176,7 +175,7 @@ $ph=fn(string $k)=>rrw_product_h($pr[$k]);
 <script src="assets/tools-manager.js?v=3"></script>
 <script src="assets/tags-manager.js?v=1"></script>
 <script src="assets/home-builder.js?v=4"></script><script src="assets/live-builder.js?v=6"></script>
-<script src="assets/radio-manager.js?v=1"></script>
+
 <script src="assets/theme-config.js?v=1"></script>
 <script src="assets/ai-lovable-admin.js?v=1"></script>
 <script src="assets/contents-manager.js?v=1"></script>
