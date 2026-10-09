@@ -21,7 +21,7 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/assets/blocks/`, `cms/assets/block-editor.css`, `cms/lib/htmlsafe.php` | Block-Editor (Beiträge, HTML-Blöcke von Seiten) und HTML-Bereinigung; siehe HANDOVER.md. |
 | `cms/assets/admin-themes.css`, `cms/assets/admin-theme.js` | Admin-Designs Neon/Hell/Dunkel/System. |
 | `cms/assets/ai-center.js`, `cms/views/panel-aicenter.php`, `cms/lib/ai-providers.json`, `cms/wp/core/ext/ai-central.php` | KI-Zentrale (zentrale KI-Konfiguration). |
-| `cms/src/Plugin/`, `cms/lib/nplugins.php`, `cms/official-plugins/`, `cms/assets/elvado-plugins.js`, `cms/views/panel-eplugins.php` | Natives Plugin-System und offizielle Essentials (SEO, Security, Backup, Performance, Forms, Analytics, Redirects, AI); Doku `cms/docs/PLUGIN-ENTWICKLUNG.md`. |
+| `cms/src/Plugin/`, `cms/lib/nplugins.php`, `cms/official-plugins/`, `cms/assets/elvado-plugins.js`, `cms/views/panel-eplugins.php` | Natives Plugin-System und offizielle Essentials (SEO, Security, Backup, Performance, Forms, Analytics, Redirects, AI) sowie das optionale Plugin Radio / Audio; Doku `cms/docs/PLUGIN-ENTWICKLUNG.md`. |
 | `app-template/` (+ `scripts/export-app-template.sh`, `verify-app-template.sh`) | App-Vorlage für den Build-Assistenten (Android/Windows, Website-App und Baukasten-App), Anleitung `app-template/ANLEITUNG.md`. |
 | `cms/lib/appbuild.php`, `cms/lib/apps.php`, `cms/assets/app-build.js`, `cms/assets/apps-manager.js` | Build-Assistent und Verwaltung der Apps im Betrieb. |
 | `cms/assets/ai-builder.js`, `cms/src/Ai/SiteBuilder.php`, `cms/views/panel-aibuilder.php` | KI-Website-Generator. |
