@@ -4,6 +4,7 @@
 // Aufruf: php scripts/test-wp-engine-extensions.php
 declare(strict_types=1);
 require __DIR__ . '/../cms/src/autoload.php';
+require_once __DIR__ . '/wpe-test-db.php';
 use Elvado\Support\{Http, HttpResponse};
 use Elvado\Wp\{Actor, Engine, ExtensionSource, ExtensionInstaller, ExtensionService, CoreInstaller, DbConfig, Bridge, PermissionException};
 use Elvado\Wp\Adapter\{ExtensionAdapter, WordPressExtensionAdapter};
@@ -227,7 +228,7 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
     $wp = "$tmp/wp"; @mkdir("$wp/cms/data", 0755, true); @mkdir("$wp/cms/wp-content", 0755, true);
     $we = new Engine("$wp/cms", "$wp/cms/data");
     $r = (new CoreInstaller($we))->install($zip, $m[1], sha1_file($zip));
-    $db = new DbConfig($we); $cfg = ['host' => $h, 'name' => $name, 'user' => $u, 'pass' => $pw, 'prefix' => 'wptest_'];
+    $db = new DbConfig($we); $cfg = wpe_test_cfg($we, $dbs, 'wptest_');
     $tr = $db->test($cfg);
     t('Echter Core und leere Datenbank', $r['ok'] && $tr['ok'] && !$tr['needs_empty'], $r['message'] . ' ' . $tr['message']);
     if ($r['ok'] && $tr['ok']) {
@@ -281,8 +282,8 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
         $a = $run('delete');
         t('Löschen: Plugin und inaktives Theme weg, aktives Theme geschützt', $a['rc'] === 0 && $a['d']['plugins'] === 0 && $a['d']['themes'] === ['etest-a'] && $a['d']['active_theme_delete_refused'] === true, json_encode($a));
         [$host, $port] = array_pad(explode(':', $h), 2, '3306');
-        $my = @new mysqli($host === 'localhost' ? '127.0.0.1' : $host, $u, $pw, $name, (int)$port);
-        if (!$my->connect_errno) { $res = $my->query("SHOW TABLES LIKE 'wptest\\_%'"); while ($res && ($row = $res->fetch_row())) { $my->query('DROP TABLE `' . $my->real_escape_string($row[0]) . '`'); } }
+        $my = wpe_test_is_sqlite($dbs) ? null : @new mysqli($host === 'localhost' ? '127.0.0.1' : $host, $u, $pw, $name, (int)$port);
+        if ($my && !$my->connect_errno) { $res = $my->query("SHOW TABLES LIKE 'wptest\\_%'"); while ($res && ($row = $res->fetch_row())) { $my->query('DROP TABLE `' . $my->real_escape_string($row[0]) . '`'); } }
     }
 }
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";

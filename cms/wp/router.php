@@ -155,7 +155,20 @@ function elvado_wp_dispatch(string $uri, string $method='GET', array $query=[], 
         $p=elvado_wp_cms_find_post((int)($post['comment_post_ID']??0));$back=$p?get_permalink($p):home_url('/');
         return ['status'=>303,'headers'=>['Location'=>$back.(!empty($r['pending'])?'?comment=pending':'').'#comments'],'body'=>''];
     }
-    if(preg_match('#^/(feed|rss)(/|\.xml)?$#',$path)||$path==='/rss.xml')return ['status'=>302,'headers'=>['Location'=>home_url('/rss.xml')],'body'=>''];
+    // Feed: /rss.xml liegt nach dem ersten Veröffentlichen als Datei vor; fehlt sie (frische Installation), wird er hier erzeugt – vorher leitete /rss.xml auf sich selbst weiter (Endlosschleife)
+    if($path==='/rss.xml'){
+        try{ require_once dirname(__DIR__).'/lib/publish.php';require_once dirname(__DIR__).'/lib/feeds.php';$site=elvado_read_json(dirname(__DIR__).'/data/site.json',[]);
+            if(isset($site['rss']['enabled'])&&empty($site['rss']['enabled']))return ['status'=>404,'headers'=>['Content-Type'=>'text/plain; charset=utf-8'],'body'=>'Der RSS-Feed ist ausgeschaltet.'];
+            return ['status'=>200,'headers'=>['Content-Type'=>'application/rss+xml; charset=utf-8'],'body'=>elvado_rss_xml($site)];
+        }catch(Throwable $e){ return ['status'=>503,'headers'=>['Content-Type'=>'text/plain; charset=utf-8'],'body'=>'Der Feed ist gerade nicht verfügbar.']; }
+    }
+    if(preg_match('#^/(feed|rss)(/|\.xml|\.php)?$#',$path))return ['status'=>302,'headers'=>['Location'=>home_url('/rss.xml')],'body'=>''];
+    // robots.txt (fehlt die Datei, liefert die Website eine passende aus – wie WordPress)
+    if($path==='/robots.txt'){
+        $pub=(string)get_option('blog_public','1')!=='0';
+        $body="User-agent: *\n".($pub?"Disallow: /cms/data/\nDisallow: /cms/backups/\nDisallow: /cms/plugins/\nAllow: /\n\nSitemap: ".home_url('/sitemap.xml')."\n":"Disallow: /\n");
+        return ['status'=>200,'headers'=>['Content-Type'=>'text/plain; charset=utf-8'],'body'=>(string)apply_filters('robots_txt',$body,$pub)];
+    }
     // REST-API (/wp-json/… oder ?rest_route=/…)
     if(preg_match('#^/wp-json(/.*)?$#',$path,$rm)||(isset($query['rest_route'])&&is_string($query['rest_route']))){
         require_once __DIR__.'/rest.php';

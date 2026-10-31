@@ -3,6 +3,7 @@
 // echte WordPress-Menüs, -Widgets und -Blöcke. Aufruf: php scripts/test-wp-engine-nav-widgets-blocks.php
 declare(strict_types=1);
 require __DIR__ . '/../cms/src/autoload.php';
+require_once __DIR__ . '/wpe-test-db.php';
 require __DIR__ . '/../cms/lib/htmlsafe.php';
 use Elvado\Blocks\Converter;
 use Elvado\Wp\{Actor, Engine, NavigationService, WidgetService, WidgetSchemas, BlockService, CoreInstaller, DbConfig, Bridge, PermissionException};
@@ -40,7 +41,7 @@ if (($argv[1] ?? '') === '--child') {
     $saved = $nv->save($m['id'], $items);
     t('Baum gespeichert, Reihenfolge und Untermenü', count($saved) === 4 && $saved[0]['label'] === 'Über uns' && $saved[0]['type'] === 'page' && count($saved[0]['children']) === 1 && $saved[0]['children'][0]['label'] === 'Impressum' && $saved[1]['type'] === 'category' && $saved[1]['label'] === 'Radio-News' && $saved[3]['url'] === 'https://example.org/x', json_encode($saved));
     t('Einstellungen des Eintrags (Ziel, rel, Klassen bereinigt)', $saved[0]['children'][0]['target'] === '_blank' && $saved[0]['children'][0]['rel'] === 'noopener nofollow' && $saved[0]['children'][0]['classes'] === 'a b' && $saved[0]['children'][0]['url'] === '/impressum', json_encode($saved[0]['children'][0]));
-    t('Verlinkte Seite: Adresse liefert WordPress', str_contains($saved[0]['url'], 'page_id=' . $pg) && str_contains($saved[2]['url'], 'p=' . $po) && $saved[2]['object_id'] === (string)$po, $saved[0]['url'] . ' | ' . $saved[2]['url']);
+    t('Verlinkte Seite: Adresse liefert WordPress', $saved[0]['url'] === get_permalink((int)$pg) && $saved[2]['url'] === get_permalink((int)$po) && $saved[2]['object_id'] === (string)$po, $saved[0]['url'] . ' | ' . $saved[2]['url']);
     // Umbauen: verschieben, neu, entfernen
     $reorder = [$saved[3], ['id' => $saved[0]['id'], 'type' => 'page', 'object_id' => (string)$pg, 'label' => 'Wir', 'children' => [['id' => $saved[2]['id'], 'type' => 'post', 'object_id' => (string)$po, 'label' => 'Lesen']]]];
     $s2 = $nv->save($m['id'], $reorder);
@@ -233,7 +234,7 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
     @mkdir("$tmp/wp/cms/data", 0755, true); @mkdir("$tmp/wp/cms/wp-content", 0755, true);
     $eng = new Engine("$tmp/wp/cms", "$tmp/wp/cms/data");
     $r = (new CoreInstaller($eng))->install($zip, $m[1], sha1_file($zip));
-    $db = new DbConfig($eng); $cfg = ['host' => $h, 'name' => $name, 'user' => $u, 'pass' => $pw, 'prefix' => 'wptest_'];
+    $db = new DbConfig($eng); $cfg = wpe_test_cfg($eng, $dbs, 'wptest_');
     $tr = $db->test($cfg);
     t('Echter Core und leere Datenbank', $r['ok'] && $tr['ok'] && !$tr['needs_empty'], $r['message'] . ' ' . $tr['message']);
     if ($r['ok'] && $tr['ok']) {
@@ -242,8 +243,8 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
         foreach ($out as $l) { echo $l . "\n"; }
         t('Kindprozess (echtes WordPress) erfolgreich', $rc === 0);
         [$host, $port] = array_pad(explode(':', $h), 2, '3306');
-        $my = @new mysqli($host === 'localhost' ? '127.0.0.1' : $host, $u, $pw, $name, (int)$port);
-        if (!$my->connect_errno) { $res = $my->query("SHOW TABLES LIKE 'wptest\\_%'"); while ($res && ($row = $res->fetch_row())) { $my->query('DROP TABLE `' . $my->real_escape_string($row[0]) . '`'); } }
+        $my = wpe_test_is_sqlite($dbs) ? null : @new mysqli($host === 'localhost' ? '127.0.0.1' : $host, $u, $pw, $name, (int)$port);
+        if ($my && !$my->connect_errno) { $res = $my->query("SHOW TABLES LIKE 'wptest\\_%'"); while ($res && ($row = $res->fetch_row())) { $my->query('DROP TABLE `' . $my->real_escape_string($row[0]) . '`'); } }
     }
 }
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";

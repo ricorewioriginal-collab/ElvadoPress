@@ -44,6 +44,7 @@
   /* Forum: Kategorien und Meldungen */
   async function loadForum(){
     var c=$('foCats');if(!c)return;
+    if(!cfg||!cfg.enabled||!cfg.forum){cats=[];c.innerHTML='<div class="hint">Das Forum ist ausgeschaltet oder die Community inaktiv – zuerst oben aktivieren und speichern.</div>';var fr=$('foReports');if(fr)fr.innerHTML='';return}   /* keine Anfrage, die nur mit 404 enden kann */
     try{var o=await cmsApi('forum_overview');cats=(o.categories||[]).map(function(x){return {id:x.id,name:x.name,desc:x.desc||'',topics:x.topics}});drawCats()}
     catch(e){cats=[];c.innerHTML='<div class="hint">Das Forum ist ausgeschaltet oder die Community inaktiv – zuerst oben aktivieren und speichern.</div>';$('foReports').innerHTML='';return}
     try{var r=await cmsApi('forum_reports');drawReports(r.reports||[])}catch(e){}

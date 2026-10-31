@@ -19,7 +19,7 @@ final class Requirements
         $needPhp = (string)($wp['php'] ?? '7.4');
         $add('php', version_compare(PHP_VERSION, $needPhp, '>=') ? 'ok' : 'fail', 'PHP-Version', 'Installiert: ' . PHP_VERSION . ' · WordPress verlangt mindestens ' . $needPhp . (version_compare(PHP_VERSION, $needPhp, '>=') ? '.' : ' – bitte beim Hoster eine neuere PHP-Version einstellen.'));
         foreach ([
-            'mysqli' => ['fail', 'Datenbank-Erweiterung (mysqli)', 'Ohne diese Erweiterung kann WordPress keine MySQL-/MariaDB-Datenbank nutzen.'],
+            'mysqli' => ['fail', 'Datenbank-Erweiterung (mysqli oder pdo_sqlite)', 'Ohne diese Erweiterung kann WordPress keine MySQL-/MariaDB-Datenbank nutzen.'],
             'json' => ['fail', 'JSON', 'Wird von WordPress und ElvadoPress benötigt.'],
             'mbstring' => ['fail', 'Zeichensätze (mbstring)', 'Wird für Umlaute und Sonderzeichen benötigt.'],
             'xml' => ['fail', 'XML', 'Wird für Feeds, Importe und Plugins benötigt.'],
@@ -30,6 +30,10 @@ final class Requirements
             'intl' => ['warn', 'Internationalisierung (intl)', 'Empfohlen für Sprachen und Zeitformate.'],
         ] as $ext => [$sev, $label, $why]) {
             $have = extension_loaded($ext) || ($ext === 'xml' && extension_loaded('dom'));
+            if ($ext === 'mysqli' && !$have && extension_loaded('pdo_sqlite')) {   // ohne MySQL läuft WordPress mit SQLite (kein Datenbankserver nötig)
+                $add('ext_mysqli', 'warn', $label, 'Fehlt – WordPress nutzt dann SQLite (pdo_sqlite ist vorhanden). Für MySQL/MariaDB wird mysqli benötigt.');
+                continue;
+            }
             $add('ext_' . $ext, $have ? 'ok' : $sev, $label, $have ? 'Vorhanden.' : $why);
         }
         $mem = self::bytes((string)ini_get('memory_limit'));

@@ -48,6 +48,7 @@ final class Engine
             'db' => is_array($raw['db'] ?? null) ? $raw['db'] : [],
             'safe' => !empty($raw['safe']),
             'incident' => is_array($raw['incident'] ?? null) ? $raw['incident'] : null,
+            'front' => !empty($raw['front']),
         ];
     }
 
@@ -65,6 +66,20 @@ final class Engine
     }
 
     public function mode(): string { return $this->state()['mode']; }
+
+    /** Liefert echtes WordPress (mit seinem aktiven Theme und seinen Plugins) die öffentliche Website aus? Nur bei aktiver Engine. */
+    public function front(): bool { $s = $this->state(); return $s['mode'] === 'active' && $s['front']; }
+
+    /** @return array{ok:bool,message:string} */
+    public function setFront(bool $on): array
+    {
+        if ($on && !$this->isActive()) {
+            return ['ok' => false, 'message' => 'Zuerst die WordPress-Engine aktivieren.'];
+        }
+        $this->save(['front' => $on]);
+        $this->log('Website-Auslieferung durch WordPress: ' . ($on ? 'an' : 'aus'));
+        return ['ok' => true, 'message' => ''];
+    }
     public function isInstalled(): bool { return $this->mode() !== 'off'; }
     public function isActive(): bool { return $this->mode() === 'active'; }
 
@@ -88,7 +103,7 @@ final class Engine
         if ($mode === 'active' && empty($s['db']['ready'])) {
             return ['ok' => false, 'message' => 'Die Datenbank der WordPress-Engine ist noch nicht eingerichtet.'];
         }
-        $this->save(['mode' => $mode]);
+        $this->save($mode === 'active' ? ['mode' => $mode] : ['mode' => $mode, 'front' => false]);   // ohne aktive Engine liefert wieder ElvadoPress die Website aus
         $this->log('Betriebsart: ' . $mode);
         return ['ok' => true, 'message' => ''];
     }

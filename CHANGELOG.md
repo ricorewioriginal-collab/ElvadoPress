@@ -4,6 +4,22 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 
 ## Nicht veröffentlicht (nach 1.2.0)
 
+### Echtes WordPress – auch ohne Datenbankserver
+- **SQLite für die WordPress-Engine:** Neben MySQL/MariaDB läuft echtes WordPress jetzt mit der offiziellen Erweiterung „SQLite Database Integration“ (wordpress.org) – kein Datenbankserver nötig. Die Datenbank ist eine Datei im gesperrten Ordner `cms/data/.wp-engine/sqlite/`; die Integration liegt außerhalb von `wp-content/plugins` (`cms/wp-engine/`) und wird wie Plugins geprüft. Alle Engine-Tests laufen auch mit `WPE_TEST_DB=sqlite`.
+- **Schnellstart:** System → WordPress-Engine → „WordPress mit einem Klick einrichten“ (Core laden und prüfen, Datenbank, Start).
+- **Website mit WordPress ausliefern:** Schalter in der Engine. Dann liefert echtes WordPress die Website mit seinem aktiven Theme und seinen Plugins aus (fehlt ein Theme, wird das Standard-Theme von wordpress.org eingespielt; Sprachpaket und Zeitzone werden von ElvadoPress übernommen). Beiträge und Seiten bearbeitest du weiter in ElvadoPress; jede Änderung wird beim nächsten Seitenaufruf automatisch nach WordPress übernommen (`LiveSync`). Geplante Beiträge, Beitragsbilder, `/wp-json`, `/feed/`, `wp-sitemap.xml` funktionieren; `wp-admin`/`wp-login.php` führen zur ElvadoPress-Verwaltung. Zurückschalten jederzeit.
+
+### Mehrsprachigkeit
+- **Verwaltung auf Deutsch oder Englisch:** Umschalter „DE/EN“ in der Kopfleiste und im Profil (pro Benutzer). Englisch übersetzt die Oberfläche über das Wörterbuch `cms/assets/i18n/en.json` (wird nur bei Englisch geladen). Standard ist die Sprache aus der Einrichtung.
+- **Mehrsprachige Website:** Einstellungen → Mehrsprachige Website. Beiträge haben eine Sprache und verknüpfte Übersetzungen („Übersetzung anlegen“ im Editor); weitere Sprachen liegen unter `/en/`, `/fr/` …, mit hreflang-Verweisen und Sprachumschalter (auch `[elvado_languages]`).
+
+### Fehler behoben
+- RSS: Auf einer frischen Installation leitete `/rss.xml` auf sich selbst weiter (Endlosschleife), `robots.txt` fehlte, der Knopf „RSS“ zeigte auf `/rss.php` (404). Ursache für den Feed war zusätzlich eine doppelte Funktion in `lib/publish.php`.
+- Block-Editor: Nach Enter ging das erste getippte Zeichen verloren bzw. „/“ öffnete die globale Suche statt des Block-Menüs (Fokus wurde erst verzögert gesetzt).
+- Beitragsliste: „Ansehen“ und die Adresse zeigten auf `/#news/…` statt auf die echte Beitragsadresse.
+- Vor der Anmeldung schickte die KI-Oberfläche bei jeder DOM-Änderung eine Anfrage (viele 401-Fehler); Community fragte das ausgeschaltete Forum ab (404); Alexa lud nicht vorhandene Icons (404).
+- Schlagwörter aus dem Editor (JSON-Liste) wurden bei der Übernahme nach WordPress als „[“ gelesen.
+
 ### Live Builder und Customizer zuverlässiger
 - **Fehler behoben:** Ein nur zum Bearbeiten geöffnetes Theme galt im Customizer und im Live Builder fälschlich als „aktiv“. Folge: „Veröffentlicht ✓“, obwohl die Website ein anderes Theme auslieferte, und kein Hinweis „Theme aktivieren“. Jetzt wird das echte aktive Theme geprüft; der Customizer fragt vor „Aktivieren & Veröffentlichen“ nach.
 - **Fehler behoben:** Die Reiter „Vorschau“ und „Einstellungen“ des Live Builders blieben am großen Bildschirm leer.

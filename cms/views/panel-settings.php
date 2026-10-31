@@ -11,4 +11,8 @@
         </div>
         <div id="wpsBody" class="wps-body"><div class="hint">Lädt …</div></div>
       </div>
+      <div class="card" id="mlCard" style="margin-top:14px">
+        <div class="th"><div><div class="tt"><i class="fas fa-language"></i> Mehrsprachige Website</div><div class="hint">Beiträge in mehreren Sprachen: Die Standardsprache bleibt unter <code>/</code>, weitere Sprachen liegen unter <code>/en/</code>, <code>/fr/</code> … Jeder Beitrag hat eine Sprache; im Beitrags-Editor legst du verknüpfte Übersetzungen an. Die Website zeigt je Sprache nur passende Beiträge, setzt hreflang-Verweise und bietet einen Sprachumschalter (auch als Shortcode <code>[elvado_languages]</code>).</div></div></div>
+        <div id="mlBody"><div class="hint">Lädt …</div></div>
+      </div>
     </section>

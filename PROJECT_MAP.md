@@ -28,6 +28,9 @@ Nur die wichtigsten Suchorte. Nicht als vollständige Dateiliste gedacht.
 | `cms/assets/ai-dev.js`, `cms/src/Ai/CodeBuilder.php`, `cms/views/panel-aidev.php` | KI-Entwickler (Plugins/Widgets/Themes). |
 | `cms/src/Ai/MediaGenerator.php`, `cms/assets/ai-media.js`, `cms/assets/ai-nav.js` | KI-Bilder/-Videos (EvoLink, fal.ai, OpenAI) und die gemeinsame KI-Navigation. |
 | `cms/src/Ai/AltTexter.php`, `cms/assets/media-manager.js` (Alt-Texte) | KI-Alt-Texte und Mediathek-Oberfläche. |
+| `cms/src/Wp/SqliteIntegration.php`, `cms/wp-engine-front.php`, `cms/src/Wp/Migration/LiveSync.php` | WordPress-Engine mit SQLite, Website-Auslieferung durch echtes WordPress, laufender Abgleich der Inhalte. |
+| `cms/assets/i18n.js`, `cms/assets/i18n/en.json` | Sprache der Verwaltung (Deutsch/Englisch, Wörterbuch). |
+| `cms/lib/multilang.php`, `cms/assets/ml-settings.js` | Mehrsprachige Website (Sprachen, `/en/…`, Übersetzungen, hreflang, Sprachumschalter). |
 | `cms/assets/cms-app.js` | Zentrale Browserlogik der CMS-Verwaltung. |
 | `cms/data/` | Laufzeitdaten einer Installation; überwiegend nicht versioniert. |
 | `cms/docs/` | bestehende Fach- und Funktionsdokumentation; vor neuer Doku zuerst hier suchen. |

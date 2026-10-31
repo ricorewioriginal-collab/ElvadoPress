@@ -22,9 +22,11 @@ function elvado_ensure_dirs(): void {
     elvado_protect_dir(dirname(__DIR__).'/data');elvado_protect_dir(dirname(__DIR__).'/backups');
 }
 require_once __DIR__.'/tools.php';
+if(!function_exists('elvado_read_json')){   // auch in brand.php (je nach Ladereihenfolge)
 function elvado_read_json(string $file, array $fallback=[]): array {
     if(!is_file($file))return $fallback;
-    $j=json_decode((string)file_get_contents($file),true); return is_array($j)?$j:$fallback;
+    $j=json_decode((string)@file_get_contents($file),true); return is_array($j)?$j:$fallback;
+}
 }
 function elvado_write_atomic(string $file, string $content): void {
     $dir=dirname($file); if(!is_dir($dir)&&!@mkdir($dir,0755,true))throw new RuntimeException('Ordner nicht beschreibbar: '.$dir);
@@ -48,6 +50,13 @@ function elvado_news_date($v,string $fallback=''): string { $t=elvado_news_ts($v
 function elvado_news_sort_ts(array $a): int { return elvado_news_ts($a['published_at']??'')??elvado_news_ts($a['created_at']??'')??0; }
 /** Vergleich "neueste zuerst" für usort. */
 function elvado_news_cmp_desc(array $a,array $b): int { return elvado_news_sort_ts($b)<=>elvado_news_sort_ts($a); }
+/** Sprache und Übersetzungsgruppe eines Beitrags (mehrsprachige Website); fehlen die Angaben, bleiben die bisherigen erhalten. */
+function elvado_news_ml_fields(array $b, ?array $existing): array {
+    $lang=array_key_exists('lang',$b)?strtolower(substr((string)$b['lang'],0,2)):(string)($existing['lang']??'');
+    if($lang!==''&&!preg_match('/^[a-z]{2}$/',$lang))$lang='';
+    $group=(string)($existing['translation_group']??'');
+    return ($lang!==''?['lang'=>$lang]:[])+($group!==''?['translation_group'=>$group]:[]);
+}
 function elvado_news_is_live(array $a): bool {
     if (($a['status']??'draft')!=='published' || !empty($a['deleted_at'])) return false;
     $publishedAt=trim((string)($a['published_at']??''));

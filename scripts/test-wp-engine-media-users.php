@@ -3,6 +3,7 @@
 // Mit WPE_TEST_ZIP=<wordpress-X.Y.Z.zip> und WPE_TEST_DB="host|name|benutzer|passwort" läuft zusätzlich ein Teil gegen echtes WordPress. Aufruf: php scripts/test-wp-engine-media-users.php
 declare(strict_types=1);
 require __DIR__ . '/../cms/src/autoload.php';
+require_once __DIR__ . '/wpe-test-db.php';
 use Elvado\Wp\{Actor, Roles, Engine, ContentService, MediaService, UserService, CoreInstaller, DbConfig, Bridge, PermissionException};
 use Elvado\Wp\Adapter\{ContentAdapter, MediaAdapter, UserAdapter, NativeAdapter, NativeMediaAdapter, NativeUserAdapter, WordPressAdapter, WordPressMediaAdapter, WordPressUserAdapter};
 
@@ -219,7 +220,7 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
     @mkdir("$tmp/wp/cms/data", 0755, true); @mkdir("$tmp/wp/cms/wp-content", 0755, true);
     $eng = new Engine("$tmp/wp/cms", "$tmp/wp/cms/data");
     $r = (new CoreInstaller($eng))->install($zip, $m[1], sha1_file($zip));
-    $db = new DbConfig($eng); $cfg = ['host' => $h, 'name' => $name, 'user' => $u, 'pass' => $pw, 'prefix' => 'wptest_'];
+    $db = new DbConfig($eng); $cfg = wpe_test_cfg($eng, $dbs, 'wptest_');
     $tr = $db->test($cfg);
     t('Echter Core und leere Datenbank', $r['ok'] && $tr['ok'] && !$tr['needs_empty'], $r['message'] . ' ' . $tr['message']);
     if ($r['ok'] && $tr['ok']) {
@@ -228,8 +229,8 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
         foreach ($out as $l) { echo $l . "\n"; }
         t('Kindprozess (echtes WordPress) erfolgreich', $rc === 0);
         [$host, $port] = array_pad(explode(':', $h), 2, '3306');
-        $my = @new mysqli($host === 'localhost' ? '127.0.0.1' : $host, $u, $pw, $name, (int)$port);
-        if (!$my->connect_errno) {
+        $my = wpe_test_is_sqlite($dbs) ? null : @new mysqli($host === 'localhost' ? '127.0.0.1' : $host, $u, $pw, $name, (int)$port);
+        if ($my && !$my->connect_errno) {
             $res = $my->query("SHOW TABLES LIKE 'wptest\\_%'");
             while ($res && ($row = $res->fetch_row())) { $my->query('DROP TABLE `' . $my->real_escape_string($row[0]) . '`'); }
         }

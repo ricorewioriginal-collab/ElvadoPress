@@ -11,3 +11,6 @@
 /cms/backups/
 /cms/plugins/
 /cms/wp-engine/
+# Laufzeitdateien der WordPress-Engine in wp-content (SQLite-Drop-in, Sprachpakete)
+/cms/wp-content/db.php
+/cms/wp-content/languages/

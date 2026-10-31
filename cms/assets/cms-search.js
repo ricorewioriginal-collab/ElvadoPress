@@ -80,11 +80,13 @@
     b.addEventListener('click',show);
     var nm=document.getElementById('cmsNewMenu');bar.insertBefore(b,nm?nm.nextSibling:bar.firstChild);
   }
+  /* Eingabe erkennen, bevor andere Skripte (z. B. der Block-Editor) das Element ersetzen: Erfassungsphase + aktives Element */
+  function isTyping(el){if(!el||!el.tagName)return false;var tag=el.tagName.toLowerCase();return tag==='input'||tag==='textarea'||tag==='select'||el.isContentEditable||!!(el.closest&&el.closest('[contenteditable=""],[contenteditable="true"]'))}
   document.addEventListener('keydown',function(e){
-    var tag=(e.target&&e.target.tagName||'').toLowerCase(),typing=tag==='input'||tag==='textarea'||tag==='select'||(e.target&&e.target.isContentEditable);
-    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();show();return}
+    var typing=isTyping(e.target)||isTyping(document.activeElement);
+    if((e.ctrlKey||e.metaKey)&&e.key&&e.key.toLowerCase()==='k'){e.preventDefault();show();return}
     if(e.key==='/'&&!typing&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();show()}
-  });
+  },true);
   function boot(){mountButton();setTimeout(mountButton,600)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   window.CmsSearch={open:show,close:close};
