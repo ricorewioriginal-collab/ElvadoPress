@@ -4,6 +4,10 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 
 ## Unveröffentlicht
 
+## 1.4.0 (31.10.2026)
+
+ElvadoPress arbeitet ausschließlich mit echtem WordPress (Stufen E2–E7); bestehende Installationen werden automatisch umgestellt.
+
 ### Nur noch echtes WordPress – Nachbildung entfernt (Stufe E7d)
 - **Die eigene WordPress-Nachbildung ist entfernt** (`cms/wp/core`, `wp-admin`, `wp-includes`, Router, REST, Sandbox der Nachbildung). ElvadoPress arbeitet ausschließlich mit echtem WordPress; bestehende Installationen werden bei der ersten Anmeldung eines Superadmins automatisch umgestellt (Inhalte, Theme, Einstellungen, Plugins).
 - **Vor der Einrichtung** zeigt die Website „Die Website wird gerade eingerichtet“ (RSS-Feed, robots.txt und 404-Seiten laufen weiter); die WordPress-Bereiche der Verwaltung weisen auf die Einrichtung hin.
