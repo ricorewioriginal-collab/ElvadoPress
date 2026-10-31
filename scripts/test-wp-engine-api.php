@@ -169,13 +169,14 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
     echo "Hinweis: Teil mit echtem WordPress übersprungen (WPE_TEST_ZIP/WPE_TEST_DB nicht gesetzt).\n";
 } else {
     require_once __DIR__ . '/../cms/src/autoload.php';
+    require_once __DIR__ . '/wpe-test-db.php';
     [$h, $name, $u, $pw] = array_pad(explode('|', $dbs), 4, '');
     $z = new ZipArchive(); $z->open($zip);
     preg_match('/\$wp_version\s*=\s*\'([^\']+)\'/', (string)$z->getFromName('wordpress/wp-includes/version.php'), $m); $z->close();
     @mkdir("$cms/data", 0755, true); @mkdir("$cms/wp-content", 0755, true);
     $eng = new Elvado\Wp\Engine($cms, "$cms/data");
     $inst = (new Elvado\Wp\CoreInstaller($eng))->install($zip, $m[1], sha1_file($zip));
-    $dbc = new Elvado\Wp\DbConfig($eng); $cfg = ['host' => $h, 'name' => $name, 'user' => $u, 'pass' => $pw, 'prefix' => 'wptest_'];
+    $dbc = new Elvado\Wp\DbConfig($eng); $cfg = wpe_test_cfg($eng, $dbs, 'wptest_');
     $tr = $dbc->test($cfg);
     t('Echter Core eingespielt, Datenbank leer und erreichbar', $inst['ok'] && $tr['ok'], ($inst['message'] ?? '') . ($tr['message'] ?? ''));
     if ($inst['ok'] && $tr['ok']) {
@@ -210,8 +211,8 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
         t('Update-Suche mit aktiver Engine: Antwort mit allen Arten (Netz kann fehlen, dann Hinweis statt Fehler)', ($su['json']['status'] ?? '') === 'ok' && count($su['json']['updates'] ?? []) === 6, $su['body']);
         $pl = http('POST', $ENG . 'migration_plan', $admin, []);
         t('Trockenlauf mit aktiver Engine prüft das Ziel und verändert WordPress nicht', ($pl['json']['report']['engine']['target_checked'] ?? false) === true, $pl['body']);
-        $mysqli = @new mysqli($h === 'localhost' ? '127.0.0.1' : explode(':', $h)[0], $u, $pw, $name, (int)(explode(':', $h)[1] ?? 3306));
-        if (!$mysqli->connect_errno) { $res = $mysqli->query("SHOW TABLES LIKE 'wptest\\_%'"); while ($res && ($row = $res->fetch_row())) { $mysqli->query('DROP TABLE `' . $mysqli->real_escape_string($row[0]) . '`'); } }
+        $mysqli = wpe_test_is_sqlite($dbs) ? null : @new mysqli($h === 'localhost' ? '127.0.0.1' : explode(':', $h)[0], $u, $pw, $name, (int)(explode(':', $h)[1] ?? 3306));
+        if ($mysqli && !$mysqli->connect_errno) { $res = $mysqli->query("SHOW TABLES LIKE 'wptest\\_%'"); while ($res && ($row = $res->fetch_row())) { $mysqli->query('DROP TABLE `' . $mysqli->real_escape_string($row[0]) . '`'); } }
     }
 }
 

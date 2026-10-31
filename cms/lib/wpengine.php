@@ -3,7 +3,7 @@ declare(strict_types=1);
 // Klebstoff zwischen API/Oberfläche und der WordPress-Engine (cms/src/Wp/): gemeinsame Engine, Status, Vorbereitung, Core-Installation, Entfernen.
 // Doku: cms/docs/ARCHITECTURE-WORDPRESS.md, cms/docs/WORDPRESS-BRIDGE.md
 
-use Elvado\Wp\{Engine, DbConfig, CoreSource, CoreInstaller, Requirements};
+use Elvado\Wp\{Engine, DbConfig, CoreSource, CoreInstaller, Requirements, SqliteIntegration};
 use Elvado\Wp\Adapter\NativeAdapter;
 
 require_once __DIR__ . '/../src/autoload.php';
@@ -30,7 +30,7 @@ function elvado_wpe_status(Engine $e, DbConfig $db): array
     $req = Requirements::check($e);
     $native = new NativeAdapter($e->cmsDir(), dirname($e->stateDir()));
     return [
-        'engine' => ['mode' => $s['mode'], 'version' => $s['version'], 'installed_at' => $s['installed_at'], 'previous' => $s['previous'], 'core_present' => $e->corePath() !== null, 'safe' => $e->safe(), 'incident' => $e->incident(), 'guard' => ($g = $e->guard()) ? ['kind' => $g['kind'], 'id' => $g['id']] : null],
+        'engine' => ['front' => $e->front(), 'mode' => $s['mode'], 'version' => $s['version'], 'installed_at' => $s['installed_at'], 'previous' => $s['previous'], 'core_present' => $e->corePath() !== null, 'safe' => $e->safe(), 'incident' => $e->incident(), 'guard' => ($g = $e->guard()) ? ['kind' => $g['kind'], 'id' => $g['id']] : null],
         'db' => ['configured' => $db->redacted(), 'overview' => $db->overview(), 'ready' => !empty($s['db']['ready']), 'server' => (string)($s['db']['server'] ?? ''), 'checked_at' => (string)($s['db']['checked_at'] ?? '')],
         'requirements' => $req,
         'native' => ['name' => $native->name(), 'counts' => $native->counts()],
@@ -102,11 +102,21 @@ function elvado_wpe_pre_install(Engine $e, DbConfig $db, array $cfg): array
     if ($e->corePath() === null) {
         return ['ok' => false, 'message' => 'WordPress ist noch nicht eingespielt.', 'prefix' => '', 'server' => ''];
     }
+    $sqlite = (string)($cfg['driver'] ?? '') === 'sqlite';
+    if ($sqlite) {   // SQLite: zuerst die offizielle Integration einspielen (einmalig, danach nur noch der Drop-in)
+        $si = new SqliteIntegration($e);
+        if (!$si->present()) {
+            $r = $si->install();
+            if (!$r['ok']) {
+                return ['ok' => false, 'message' => $r['message'], 'prefix' => '', 'server' => ''];
+            }
+        }
+    }
     $t = $db->test($cfg);
     if (!$t['ok']) {
         return ['ok' => false, 'message' => $t['message'], 'prefix' => '', 'server' => ''];
     }
-    if ($c = $db->prefixConflict((string)($cfg['prefix'] ?? ''))) {
+    if (!$sqlite && ($c = $db->prefixConflict((string)($cfg['prefix'] ?? '')))) {
         return ['ok' => false, 'message' => $c, 'prefix' => '', 'server' => ''];
     }
     if ($t['needs_empty']) {
@@ -126,6 +136,13 @@ function elvado_wpe_remove(Engine $e): array
     }
     foreach (['db.json', 'keys.json'] as $f) {
         @unlink($e->stateDir() . '/' . $f);
+    }
+    $si = new SqliteIntegration($e);   // SQLite-Integration und eigener Drop-in gehen mit; die Datenbankdatei bleibt (wie Tabellen bei MySQL)
+    if (is_dir($si->dir())) {
+        $i->rmTree($si->dir());
+    }
+    if (is_file($si->dropinFile()) && !$si->foreignDropin()) {
+        @unlink($si->dropinFile());
     }
     $e->save(['mode' => 'off', 'core' => '', 'version' => '', 'previous' => [], 'db' => []]);
     $e->log('Engine entfernt');
@@ -230,4 +247,35 @@ function elvado_wpe_facts(Engine $e, DbConfig $db, string $dataDir, string $cmsD
     }
     $f['jobs'] = $jobs;
     return $f;
+}
+
+/**
+ * Sprache des echten WordPress an ElvadoPress angleichen (nur bei gestartetem WordPress): offizielles Sprachpaket von wordpress.org laden und WPLANG setzen.
+ * „de“ → de_DE, „en“ → Englisch (ohne Paket). Fehlt das Netz, bleibt WordPress englisch; die Website funktioniert trotzdem.
+ * @return array{ok:bool,locale:string,message:string}
+ */
+function elvado_wpe_language(string $lang): array
+{
+    $map = ['de' => 'de_DE', 'en' => '', 'fr' => 'fr_FR', 'es' => 'es_ES', 'it' => 'it_IT', 'nl' => 'nl_NL', 'pl' => 'pl_PL', 'tr' => 'tr_TR'];
+    $locale = $map[strtolower(substr($lang, 0, 2))] ?? '';
+    if (!function_exists('update_option')) {
+        return ['ok' => false, 'locale' => $locale, 'message' => 'WordPress läuft nicht.'];
+    }
+    if ($locale === '') {
+        update_option('WPLANG', '');
+        return ['ok' => true, 'locale' => 'en_US', 'message' => ''];
+    }
+    require_once ABSPATH . 'wp-admin/includes/translation-install.php';
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    if (!in_array($locale, get_available_languages(), true)) {
+        if (!defined('FS_METHOD')) {
+            define('FS_METHOD', 'direct');   // Dateien schreibt der Webserver selbst (wp-content/languages)
+        }
+        $r = wp_download_language_pack($locale);
+        if ($r === false) {
+            return ['ok' => false, 'locale' => $locale, 'message' => 'Das Sprachpaket ' . $locale . ' ließ sich nicht laden (wordpress.org nicht erreichbar?). WordPress bleibt vorerst englisch.'];
+        }
+    }
+    update_option('WPLANG', $locale);
+    return ['ok' => true, 'locale' => $locale, 'message' => ''];
 }

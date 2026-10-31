@@ -327,7 +327,7 @@ if($action==='alexa_get'){
     elvado_auth(true);$origin=elvado_site_origin($site);$cfg=elvado_alexa_clean($site['alexa']??[]);$over=(array)$cfg['topics'];$tp=[];
     foreach(elvado_alexa_topic_defs($site) as $id=>$s){$v=elvado_alexa_topic_value($s);$tp[]=['id'=>$id,'title'=>$s['title'],'text'=>(string)($over[$id]['text']??''),'enabled'=>(bool)($over[$id]['enabled']??true),'extra'=>$s['extra'],'custom_title'=>(string)($over[$id]['title']??''),'speakable'=>array_merge([$v['name']['value']],array_slice($v['name']['synonyms'],0,6))];}
     elvado_alexa_model($site,$warn);$brand=elvado_alexa_brand($site);
-    elvado_json(['status'=>'ok','config'=>$cfg,'topics'=>$tp,'news'=>elvado_alexa_news($dataDir,$cfg['news']['count']),'stats'=>elvado_alexa_stats($dataDir),'last_fetch'=>elvado_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>$brand['invocationName'],'app_name'=>$brand['name'],'token_set'=>strlen(elvado_alexa_token($dataDir))>=32,'model_rev'=>elvado_alexa_model_rev($site),'exported_rev'=>elvado_alexa_exported_rev($dataDir)]);
+    elvado_json(['status'=>'ok','config'=>$cfg,'topics'=>$tp,'news'=>elvado_alexa_news($dataDir,$cfg['news']['count']),'stats'=>elvado_alexa_stats($dataDir),'last_fetch'=>elvado_alexa_last_fetch($dataDir),'warnings'=>$warn,'origin'=>$origin,'invocation'=>$brand['invocationName'],'app_name'=>$brand['name'],'token_set'=>strlen(elvado_alexa_token($dataDir))>=32,'has_icon'=>is_file($root.'/assets/img/alexa/icon-108.png'),'model_rev'=>elvado_alexa_model_rev($site),'exported_rev'=>elvado_alexa_exported_rev($dataDir)]);
 }
 if($action==='alexa_icon_upload'){
     elvado_auth(true);
@@ -1157,6 +1157,10 @@ if(str_starts_with($action,'wp_')){
         $r=elvado_wps_save($grp,(array)($b['values']??[]));if(!$r['ok'])elvado_json(['status'=>'error','message'=>$r['message']],422);
         elvado_log_activity($activityLogFile,$wpUser,'wp_settings','Einstellungen „'.$r['title'].'“ gespeichert');
         unset($r['ok']);elvado_json(['status'=>'ok']+$r);
+    }
+    if($action==='wp_news_links'){   // echte Website-Adressen der CMS-Beiträge (gemäß Link-Struktur) für „Ansehen“ in der Beitragsliste
+        $links=[];if(function_exists('elvado_wp_cms_posts'))foreach(elvado_wp_cms_posts() as $p)$links[(string)$p->ID]=(string)get_permalink($p);
+        elvado_json(['status'=>'ok','links'=>$links]);
     }
     if($action==='wp_permalinks'||$action==='wp_permalinks_save'){
         require_once __DIR__.'/wp/links-api.php';

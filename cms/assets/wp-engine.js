@@ -1,7 +1,7 @@
 'use strict';
 // Verwaltung der WordPress-Engine (Systemprüfung, Core einspielen, Datenbank, Betriebsart, Systemanalyse). Spricht cms/engine-api.php an.
 window.WpEngine=(()=>{
- const S={st:null,prep:null,ana:null,mig:null,run:null,busy:'',msg:null,form:null};
+ const S={st:null,prep:null,ana:null,mig:null,run:null,busy:'',msg:null,form:null,drv:''};
  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const tok=()=>{try{return sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||'';}catch(e){return '';}};
  const root=()=>document.getElementById('wpeRoot');
@@ -80,6 +80,11 @@ window.WpEngine=(()=>{
    if(busy)h+='<p class="hint" style="margin-top:10px"><i class="fas fa-spinner fa-spin"></i> '+esc(busy)+' …</p>';
    r.innerHTML=h;return;
   }
+  if(e.mode!=='active'){const ov0=s.db.overview||{};const canQuick=s.steps.requirements&&(ov0.sqlite_available!==false||ov0.shared);
+   h+='<div class="card" style="margin:12px 0;border-left:4px solid var(--accent)"><div style="font-weight:700;margin-bottom:6px"><i class="fab fa-wordpress"></i> Schnellstart: echtes WordPress einrichten</div>'
+    +'<p class="hint">Lädt den offiziellen WordPress-Core von wordpress.org, prüft ihn, legt die Datenbank an ('+(curDrv()==='sqlite'?'<b>SQLite</b> – kein Datenbankserver nötig':'<b>MySQL/MariaDB</b> aus System → Datenbank')+') und startet WordPress. Deine Website bleibt dabei unverändert.</p>'
+    +'<div class="ap-add"><button class="btn-a" type="button" onclick="WpEngine.quick()"'+(busy||!canQuick?' disabled':'')+'><i class="fas fa-bolt"></i> WordPress mit einem Klick einrichten</button></div>'
+    +(canQuick?'':'<p class="hint" style="margin-top:6px">Nicht möglich: Systemprüfung nicht bestanden oder weder SQLite noch eine Datenbank vorhanden – siehe Schritte unten.</p>')+'</div>';}
   h+=step(1,'Systemprüfung',s.steps.requirements,reqList(s.requirements));
   const core=e.core_present
    ?'<p>WordPress <b>'+esc(e.version)+'</b> ist eingespielt'+(e.installed_at?' ('+esc(e.installed_at.slice(0,10))+')':'')+'.'+(S.prep&&S.prep.update_available?' Neu verfügbar: <b>'+esc(S.prep.latest.version)+'</b>.':'')+'</p>'
@@ -93,20 +98,31 @@ window.WpEngine=(()=>{
   const btns='<div class="ap-add" style="margin-top:8px"><button class="btn-g" type="button" onclick="WpEngine.dbTest()"'+dis+'><i class="fas fa-plug"></i> Verbindung testen</button><button class="btn-a" type="button" onclick="WpEngine.dbInstall()"'+(busy||!e.core_present?' disabled':'')+'><i class="fas fa-database"></i> WordPress einrichten</button></div>';
   const goDb='<a href="#" onclick="cmsTab(\'database\',document.querySelector(\'.tab[data-tab=database]\'));window.SystemManager&&SystemManager.loadDatabase&&SystemManager.loadDatabase();return false">System → Datenbank</a>';
   let dbForm;
-  if(s.db.ready){
+  const conf=s.db.configured||{};
+  const drv=S.drv||(conf.driver==='sqlite'?'sqlite':(ov.shared||ov.legacy||conf.driver==='mysql'?'mysql':(ov.sqlite_available!==false?'sqlite':'mysql')));
+  const pick=s.db.ready?'':'<div class="seg" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px">'
+    +'<button type="button" class="'+(drv==='sqlite'?'btn-a':'btn-g')+'" onclick="WpEngine.driver(\'sqlite\')"'+(ov.sqlite_available===false?' disabled title="pdo_sqlite fehlt auf diesem Server"':'')+'><i class="fas fa-file"></i> SQLite – ohne Datenbankserver (empfohlen)</button>'
+    +'<button type="button" class="'+(drv==='mysql'?'btn-a':'btn-g')+'" onclick="WpEngine.driver(\'mysql\')"'+(ov.mysql_available===false?' disabled title="mysqli fehlt auf diesem Server"':'')+'><i class="fas fa-database"></i> MySQL / MariaDB</button></div>';
+  if(s.db.ready&&conf.driver==='sqlite'){
+    dbForm='<p><b>SQLite</b> · Präfix <code>'+esc(conf.prefix)+'</code>'+(s.db.server?' · '+esc(s.db.server):'')+'. Die Datenbank ist eine Datei im geschützten Datenordner (<code>cms/data/.wp-engine/sqlite/</code>) – kein Datenbankserver nötig. Vollständige Backups (Plugin Elvado Backup) enthalten sie.</p>';
+  }else if(!s.db.ready&&drv==='sqlite'){
+    dbForm=pick+'<p class="hint">WordPress speichert alles in einer <b>SQLite-Datei</b> im geschützten Datenordner. Dafür wird die offizielle Erweiterung „SQLite Database Integration“ von wordpress.org geladen und geprüft. Ideal für Webspace ohne MySQL – wechseln lässt sich später per Migration.</p>'
+      +'<div style="display:grid;gap:6px;max-width:420px">'+f('Prefix','Tabellenpräfix für WordPress',db.prefix)+'</div>'
+      +'<div class="ap-add" style="margin-top:8px"><button class="btn-a" type="button" onclick="WpEngine.dbInstall()"'+(busy||!e.core_present?' disabled':'')+'><i class="fas fa-database"></i> WordPress mit SQLite einrichten</button></div>';
+  }else if(s.db.ready){
     dbForm='<p>Datenbank <b>'+esc(db.name)+'</b> auf '+esc(db.host)+' · Präfix <code>'+esc(db.prefix)+'</code> · '+esc(s.db.server)+'.</p>'
       +(ov.shared?'<p class="hint">Gemeinsame Datenbank: CMS und WordPress-Kern nutzen dieselbe Verbindung ('+goDb+'); WordPress hat eigene Tabellen mit dem Präfix <code>'+esc(db.prefix)+'</code>.</p>'
       :'<p class="hint">Diese Verbindung wird noch getrennt von den Datenbank-Einstellungen des CMS gespeichert. <button class="btn-g" type="button" onclick="WpEngine.dbUnify()"'+dis+'><i class="fas fa-link"></i> Gemeinsame Datenbank verwenden</button></p>');
   }else if(ov.shared){
-    dbForm='<p><b>Gemeinsame Datenbank</b> <code>'+esc(db.name)+'</code> auf '+esc(db.host)+' – dieselbe Verbindung wie das CMS ('+goDb+'). Es wird nichts überschrieben: WordPress legt eigene Tabellen mit eigenem Präfix an.'+(ov.site?' Diese Website (<code>'+esc(ov.site)+'</code>) hat ihre eigene WordPress-Engine mit eigenen Tabellen.':'')+'</p>'
+    dbForm=pick+'<p><b>Gemeinsame Datenbank</b> <code>'+esc(db.name)+'</code> auf '+esc(db.host)+' – dieselbe Verbindung wie das CMS ('+goDb+'). Es wird nichts überschrieben: WordPress legt eigene Tabellen mit eigenem Präfix an.'+(ov.site?' Diese Website (<code>'+esc(ov.site)+'</code>) hat ihre eigene WordPress-Engine mit eigenen Tabellen.':'')+'</p>'
       +'<div style="display:grid;gap:6px;max-width:420px">'+f('Prefix','Tabellenpräfix für WordPress',db.prefix)+'</div>'
       +'<p class="hint" style="margin-top:4px">Das Präfix <code>'+esc(ov.cms_prefix||'wp_')+'</code> nutzt die WordPress-Schicht des CMS – wähle ein anderes (Vorschlag: <code>'+esc(ov.default_prefix||'wpk_')+'</code>).</p>'+btns;
   }else if(ov.legacy){
-    dbForm='<p>Datenbank <b>'+esc(db.name)+'</b> auf '+esc(db.host)+' · Präfix <code>'+esc(db.prefix)+'</code> (eigene Verbindung der Engine).</p>'
+    dbForm=pick+'<p>Datenbank <b>'+esc(db.name)+'</b> auf '+esc(db.host)+' · Präfix <code>'+esc(db.prefix)+'</code> (eigene Verbindung der Engine).</p>'
       +'<p class="hint">Es gibt nur <b>eine</b> Datenbank für CMS und WordPress. Diese Verbindung wird dazu in die Datenbank-Einstellungen des CMS übernommen ('+goDb+'); die Tabellen und das Präfix bleiben unverändert.</p>'
       +'<div class="ap-add" style="margin-top:8px"><button class="btn-a" type="button" onclick="WpEngine.dbUnify()"'+dis+'><i class="fas fa-link"></i> Gemeinsame Datenbank verwenden</button></div>'+btns;
   }else{
-    dbForm='<p class="hint">Eine <b>leere</b> MySQL-/MariaDB-Datenbank (beim Hoster anlegen). Vorhandene Daten werden nie überschrieben. Die Verbindung gilt für das ganze CMS und lässt sich später unter '+goDb+' ändern; das Passwort wird nur geschützt auf dem Server gespeichert.</p><div style="display:grid;gap:6px;max-width:420px">'
+    dbForm=pick+'<p class="hint">Eine <b>leere</b> MySQL-/MariaDB-Datenbank (beim Hoster anlegen). Vorhandene Daten werden nie überschrieben. Die Verbindung gilt für das ganze CMS und lässt sich später unter '+goDb+' ändern; das Passwort wird nur geschützt auf dem Server gespeichert.</p><div style="display:grid;gap:6px;max-width:420px">'
      +f('Host','Datenbank-Server',db.host)+f('Name','Datenbankname',db.name)+f('User','Benutzer',db.user)+f('Pass','Passwort',db.pass||'','password')+f('Prefix','Tabellenpräfix für WordPress',db.prefix)+'</div>'+btns;
   }
   h+=step(3,'Datenbank',s.steps.database,dbForm);
@@ -115,6 +131,10 @@ window.WpEngine=(()=>{
    :'<button class="btn-a" type="button" onclick="WpEngine.mode(\'active\')"'+(busy||e.mode==='off'||!s.db.ready?' disabled':'')+'><i class="fas fa-power-off"></i> Aktivieren</button>';
   h+=step(4,'Betrieb und Systemanalyse',s.steps.active,'<p class="hint">Aktivieren startet WordPress einmal zur Prüfung und merkt sich die Betriebsart. Dieser Schritt verändert die Website nicht; Inhalte und Funktionen werden in späteren Schritten schrittweise übernommen.</p>'
    +'<div class="ap-add">'+act+'<button class="btn-g" type="button" onclick="WpEngine.analyze()"'+(busy||e.mode==='off'||!s.db.ready?' disabled':'')+'><i class="fas fa-scale-balanced"></i> Systemanalyse (ElvadoPress ↔ WordPress)</button></div>'+analysis());
+  if(e.mode==='active'){
+   h+=step('★','Website mit WordPress ausliefern',!!e.front,'<p class="hint">'+(e.front?'<b>An:</b> Besucher sehen die Website so, wie WordPress sie mit seinem <b>aktiven Theme und seinen Plugins</b> darstellt – mit den Inhalten aus der WordPress-Datenbank (Website → Alle Inhalte, oder per Migration übernommen).':'<b>Aus:</b> ElvadoPress liefert die Website aus (Themes und Plugins der ElvadoPress-Schicht). Eingeschaltet übernimmt echtes WordPress mit seinem aktiven Theme und seinen Plugins – inklusive Theme- und Plugin-Funktionen, die die Nachbildung nicht kennt. Inhalte kommen dann aus der WordPress-Datenbank (vorher migrieren).')+' Die ElvadoPress-Verwaltung bleibt in beiden Fällen dieselbe; zurückschalten geht jederzeit.</p>'
+    +'<div class="ap-add"><button class="'+(e.front?'btn-g':'btn-a')+'" type="button" onclick="WpEngine.front('+(e.front?'false':'true')+')"'+dis+'><i class="fas fa-'+(e.front?'rotate-left':'globe')+'"></i> '+(e.front?'Wieder mit ElvadoPress ausliefern':'Website mit WordPress ausliefern')+'</button><a class="btn-g" href="/" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-arrow-up-right-from-square"></i> Website ansehen</a></div>');
+  }
   h+=step(5,'Migration (Trockenlauf)',!!S.mig&&S.mig.verdict!=='blocked',migration());
   if(e.core_present)h+='<details style="margin-top:12px"><summary>Engine entfernen</summary><p class="hint">Entfernt WordPress-Dateien, Zugangsdaten und Zustand. Die Datenbank-Tabellen und deine Website bleiben unverändert.</p><button class="btn-g" type="button" onclick="WpEngine.remove()"'+dis+'><i class="fas fa-trash"></i> WordPress-Engine entfernen</button></details>';
   if(busy)h+='<p class="hint" style="margin-top:10px"><i class="fas fa-spinner fa-spin"></i> '+esc(busy)+' …</p>';
@@ -127,7 +147,8 @@ window.WpEngine=(()=>{
   S.busy='';draw();
  }
  const val=id=>{const e=document.getElementById('wpe'+id);return e?e.value.trim():'';};
- const dbCfg=()=>document.getElementById('wpeHost')?{host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')}:{prefix:val('Prefix')};   // mit gemeinsamer Datenbank zählt nur das Präfix
+ const dbCfg=()=>curDrv()==='sqlite'?{driver:'sqlite',prefix:val('Prefix')||'wpk_'}:document.getElementById('wpeHost')?{host:val('Host'),name:val('Name'),user:val('User'),pass:(document.getElementById('wpePass')||{}).value||'',prefix:val('Prefix')}:{prefix:val('Prefix')};   // mit gemeinsamer Datenbank zählt nur das Präfix
+ function curDrv(){const s=S.st;if(!s)return 'mysql';const c=s.db.configured||{},ov=s.db.overview||{};return S.drv||(c.driver==='sqlite'?'sqlite':(ov.shared||ov.legacy||c.driver==='mysql'?'mysql':(ov.sqlite_available!==false?'sqlite':'mysql')));}
  function apply(d){if(d.engine){S.st=d;}}
  async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;const q=await api('migration_runs');if(q.status==='ok')S.run=q.run;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
  async function demoBoot(){
@@ -147,6 +168,15 @@ window.WpEngine=(()=>{
     el.innerHTML='<i class="fas fa-circle-info"></i> WordPress-Kern: '+(d.db.ready?'nutzt diese Datenbank':(ov.shared?'bereit, nutzt diese Datenbank':'noch nicht eingerichtet'))+(c?' · Tabellenpräfix <code>'+esc(c.prefix)+'</code>':'')+(ov.legacy?' · <b>eigene, getrennte Verbindung</b> (in Website → WordPress-Engine zusammenführen)':'')+(ov.cms_prefix?' · WordPress-Schicht des CMS: <code>'+esc(ov.cms_prefix)+'</code>':'')+'. Die beiden Präfixe müssen verschieden sein.';
    }catch(e){el.textContent=''}},
   dbUnify:()=>{if(!confirm('Die Verbindung der WordPress-Engine wird zur gemeinsamen Datenbank des CMS (System → Datenbank). Die WordPress-Schicht des CMS nutzt diese Datenbank dann ebenfalls, mit eigenem Tabellenpräfix. Fortfahren?'))return;run('Führe die Datenbank zusammen',async()=>{const d=await api('engine_db_unify',{});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};})},
+  driver:d=>{if(document.getElementById('wpeHost'))S.form=dbCfg();S.drv=d==='sqlite'?'sqlite':'mysql';draw();},
+  quick:()=>run('Richte WordPress ein (laden, prüfen, Datenbank, starten) – das dauert einen Moment',async()=>{
+   let d;const st=S.st;
+   if(!st.engine.core_present){d=await api('engine_core',{version:''});if(d.status!=='ok')throw new Error(d.message||'WordPress konnte nicht eingespielt werden.');apply(d);}
+   if(!S.st.db.ready){d=await api('engine_db_install',{db:curDrv()==='sqlite'?{driver:'sqlite',prefix:(S.st.db.overview||{}).suggest_prefix||'wpk_'}:{prefix:(S.st.db.overview||{}).suggest_prefix||'wpk_'}});if(d.status!=='ok')throw new Error(d.message||'Die Datenbank konnte nicht eingerichtet werden.');apply(d);}
+   if(S.st.engine.mode!=='active'){d=await api('engine_mode',{mode:'active'});if(d.status!=='ok')throw new Error(d.message||'WordPress ließ sich nicht starten.');apply(d);}
+   S.msg={text:'Echtes WordPress '+(S.st.engine.version||'')+' läuft jetzt im Hintergrund'+(curDrv()==='sqlite'?' (SQLite)':'')+'. Plugins und Themes aus wordpress.org findest du unter Plugins → WordPress-Plugins.'};
+  }),
+  front:on=>{if(on&&!confirm('Die öffentliche Website wird ab sofort von WordPress ausgeliefert (aktives WordPress-Theme, Plugins, Inhalte aus der WordPress-Datenbank). Zurückschalten geht jederzeit. Fortfahren?'))return;run(on?'Schalte die Website auf WordPress um':'Schalte zurück',async()=>{const d=await api('engine_front',{on:!!on});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};});},
   dbTest:()=>run('Teste die Verbindung',async()=>{const d=await api('engine_db_test',{db:dbCfg()});S.msg={err:d.status!=='ok',text:d.message||''};}),
   dbInstall:()=>run('Richte WordPress ein (Tabellen anlegen)',async()=>{const d=await api('engine_db_install',{db:dbCfg()});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   mode:m=>run(m==='active'?'Starte WordPress zur Prüfung':'Schalte um',async()=>{const d=await api('engine_mode',{mode:m});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),

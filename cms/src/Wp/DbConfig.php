@@ -5,6 +5,8 @@ declare(strict_types=1);
 // die Engine speichert nur ihr eigenes Tabellenpräfix (db.json, nur für den Webserver lesbar; nie im Repository). Ältere Installationen mit vollständiger db.json laufen weiter,
 // bis sie zusammengeführt werden (unify). Das Tabellenpräfix der Engine muss sich vom Präfix der WordPress-Schicht des CMS unterscheiden.
 // Das Passwort verlässt den Server nie (nicht in API-Antworten, nicht im Log).
+// Ohne Datenbankserver: SQLite (offizielle Integration „SQLite Database Integration“ von wordpress.org, siehe SqliteIntegration). Die Datenbankdatei liegt im gesperrten
+// Zustandsordner (.wp-engine/sqlite/), db.json enthält dann nur {"driver":"sqlite","prefix":…}.
 
 namespace Elvado\Wp;
 
@@ -17,6 +19,11 @@ final class DbConfig
     /** Eingaben bereinigen. @return array{ok:bool,message:string,cfg:array{host:string,name:string,user:string,pass:string,prefix:string}} */
     public function validate(array $in): array
     {
+        if ((string)($in['driver'] ?? '') === 'sqlite') {
+            $prefix = trim((string)($in['prefix'] ?? self::DEFAULT_PREFIX));
+            $err = preg_match('/^[a-z][a-z0-9]{0,18}_$/', $prefix) === 1 ? '' : 'Das Tabellenpräfix ist ungültig (Kleinbuchstaben und Ziffern, endet mit „_“, z. B. wp_).';
+            return ['ok' => $err === '', 'message' => $err, 'cfg' => ['driver' => 'sqlite', 'host' => '', 'name' => 'wordpress', 'user' => '', 'pass' => '', 'prefix' => $prefix, 'path' => $this->sqlitePath()]];
+        }
         $host = trim((string)($in['host'] ?? 'localhost'));
         $name = trim((string)($in['name'] ?? ''));
         $user = trim((string)($in['user'] ?? ''));
@@ -47,6 +54,9 @@ final class DbConfig
         $res = fn(bool $ok, string $m, string $server = '', int $t = 0): array => ['ok' => $ok, 'message' => $m, 'server' => $server, 'wp_tables' => $t, 'needs_empty' => false];
         if (!$v['ok']) {
             return $res(false, $v['message']);
+        }
+        if (($v['cfg']['driver'] ?? '') === 'sqlite') {
+            return $this->testSqlite($v['cfg']);
         }
         if (!class_exists(\mysqli::class)) {
             return $res(false, 'Die PHP-Erweiterung mysqli fehlt auf diesem Server.');
@@ -100,6 +110,59 @@ final class DbConfig
         }
         $p = explode(':', $host, 2);
         return [$p[0], isset($p[1]) ? (int)$p[1] : 3306, null];
+    }
+
+    /** Datei der SQLite-Datenbank (im gesperrten Zustandsordner, nie im Web erreichbar). */
+    public function sqlitePath(): string
+    {
+        return $this->engine->stateDir() . '/sqlite/wordpress.sqlite';
+    }
+
+    /** Nutzt die Engine SQLite (statt MySQL/MariaDB)? */
+    public function isSqlite(): bool
+    {
+        $f = $this->engine->stateDir() . '/db.json';
+        $d = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+        return is_array($d) && ($d['driver'] ?? '') === 'sqlite';
+    }
+
+    /** SQLite prüfen: Treiber, beschreibbarer Ordner, vorhandene WordPress-Tabellen mit diesem Präfix. @param array<string,string> $c */
+    private function testSqlite(array $c): array
+    {
+        $out = ['ok' => false, 'message' => '', 'server' => '', 'wp_tables' => 0, 'needs_empty' => false];
+        if (!extension_loaded('pdo_sqlite')) {
+            return ['message' => 'Die PHP-Erweiterung pdo_sqlite fehlt auf diesem Server – bitte MySQL/MariaDB verwenden.'] + $out;
+        }
+        $dir = dirname($c['path']);
+        try {
+            $this->engine->protect();
+        } catch (\Throwable $e) {
+            return ['message' => $e->getMessage()] + $out;
+        }
+        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
+            return ['message' => 'Der Ordner für die SQLite-Datenbank lässt sich nicht anlegen (Schreibrechte für cms/data prüfen).'] + $out;
+        }
+        if (!is_writable($dir)) {
+            return ['message' => 'Der Ordner für die SQLite-Datenbank ist nicht beschreibbar.'] + $out;
+        }
+        $ver = class_exists(\SQLite3::class) ? (string)(\SQLite3::version()['versionString'] ?? '') : '';
+        $server = 'SQLite' . ($ver !== '' ? ' ' . $ver : '');
+        $tables = 0;
+        $has = false;
+        if (is_file($c['path'])) {
+            try {
+                $pdo = new \PDO('sqlite:' . $c['path'], null, null, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+                $st = $pdo->prepare("SELECT name FROM sqlite_master WHERE type='table' AND substr(name,1,?)=?");
+                $st->execute([strlen($c['prefix']), $c['prefix']]);
+                foreach ($st->fetchAll(\PDO::FETCH_COLUMN) as $n) {
+                    $tables++;
+                    $has = $has || $n === $c['prefix'] . 'options';
+                }
+            } catch (\Throwable) {
+                return ['message' => 'Die vorhandene SQLite-Datei lässt sich nicht lesen.'] + $out;
+            }
+        }
+        return ['ok' => true, 'message' => $has ? 'SQLite bereit. Mit dem Präfix „' . $c['prefix'] . '“ gibt es bereits WordPress-Tabellen – sie werden nicht überschrieben.' : 'SQLite bereit – kein Datenbankserver nötig.', 'server' => $server, 'wp_tables' => $tables, 'needs_empty' => $has];
     }
 
     /** Standard-Präfix für neue Installationen (unterscheidet sich vom Präfix der WordPress-Schicht des CMS „wp_“). */
@@ -231,10 +294,16 @@ final class DbConfig
 
     private function savePrefixOnly(string $prefix): void
     {
+        $this->writeEngineJson(['prefix' => $prefix]);
+    }
+
+    /** @param array<string,string> $d */
+    private function writeEngineJson(array $d): void
+    {
         $this->engine->protect();
         $f = $this->engine->stateDir() . '/db.json';
         $tmp = $f . '.' . bin2hex(random_bytes(4)) . '.tmp';
-        if (@file_put_contents($tmp, json_encode(['prefix' => $prefix]), LOCK_EX) === false) {
+        if (@file_put_contents($tmp, json_encode($d), LOCK_EX) === false) {
             throw new \RuntimeException('Die Datenbank-Angaben konnten nicht gespeichert werden.');
         }
         @chmod($tmp, 0600);
@@ -247,6 +316,9 @@ final class DbConfig
     /** Eingaben der Verwaltung mit der gemeinsamen Datenbank zusammenführen: ist sie vorhanden, zählt nur das Präfix. @param array<string,mixed> $in @return array<string,mixed> */
     public function withShared(array $in): array
     {
+        if ((string)($in['driver'] ?? '') === 'sqlite') {   // SQLite ist eine eigene Datei der Engine, unabhängig von der Datenbank des CMS
+            return $in;
+        }
         $sh = $this->shared();
         if ($sh === null) {
             return $in;
@@ -257,6 +329,14 @@ final class DbConfig
 
     public function save(array $cfg): void
     {
+        if ((string)($cfg['driver'] ?? '') === 'sqlite') {   // SQLite: nur Treiber und Präfix merken (keine Zugangsdaten)
+            $v = $this->validate($cfg);
+            if (!$v['ok']) {
+                throw new \RuntimeException($v['message']);
+            }
+            $this->writeEngineJson(['driver' => 'sqlite', 'prefix' => $v['cfg']['prefix']]);
+            return;
+        }
         $v = $this->validate($this->withShared($cfg));
         if (!$v['ok']) {
             throw new \RuntimeException($v['message']);
@@ -288,6 +368,10 @@ final class DbConfig
     /** Vollständige Angaben (nur für die Engine selbst): gemeinsame Verbindung + eigenes Präfix; sonst die ältere, vollständige db.json. */
     public function get(): ?array
     {
+        if ($this->isSqlite()) {
+            $v = $this->validate(['driver' => 'sqlite', 'prefix' => $this->enginePrefix() ?? self::DEFAULT_PREFIX]);
+            return $v['ok'] ? $v['cfg'] : null;
+        }
         $sh = $this->shared();
         if ($sh !== null) {
             $v = $this->validate($this->withShared([]));
@@ -300,14 +384,17 @@ final class DbConfig
     public function redacted(): ?array
     {
         $c = $this->get();
-        return $c === null ? null : ['host' => $c['host'], 'name' => $c['name'], 'user' => $c['user'], 'prefix' => $c['prefix'], 'has_password' => $c['pass'] !== '', 'shared' => $this->shared() !== null];
+        if ($c !== null && ($c['driver'] ?? '') === 'sqlite') {
+            return ['driver' => 'sqlite', 'host' => '', 'name' => 'SQLite', 'user' => '', 'prefix' => $c['prefix'], 'has_password' => false, 'shared' => false];
+        }
+        return $c === null ? null : ['driver' => 'mysql', 'host' => $c['host'], 'name' => $c['name'], 'user' => $c['user'], 'prefix' => $c['prefix'], 'has_password' => $c['pass'] !== '', 'shared' => $this->shared() !== null];
     }
 
     /** Zustand der gemeinsamen Datenbank für die Verwaltung (ohne Passwort). @return array{shared:bool,legacy:bool,cms_prefix:string,default_prefix:string,suggest_prefix:string} */
     public function overview(): array
     {
         $sh = $this->shared();
-        return ['shared' => $sh !== null, 'legacy' => $sh === null && $this->legacy() !== null, 'cms_prefix' => $sh['cms_prefix'] ?? '', 'default_prefix' => $this->defaultPrefix(), 'suggest_prefix' => $this->enginePrefix() ?? $this->defaultPrefix(), 'site' => $this->siteId()];
+        return ['shared' => $sh !== null, 'legacy' => $sh === null && $this->legacy() !== null, 'cms_prefix' => $sh['cms_prefix'] ?? '', 'default_prefix' => $this->defaultPrefix(), 'suggest_prefix' => $this->enginePrefix() ?? $this->defaultPrefix(), 'site' => $this->siteId(), 'sqlite_available' => extension_loaded('pdo_sqlite'), 'mysql_available' => class_exists(\mysqli::class), 'driver' => $this->isSqlite() ? 'sqlite' : ($sh !== null || $this->legacy() !== null ? 'mysql' : '')];
     }
 
     /** Schlüssel und Salze von WordPress: einmal erzeugen, geschützt speichern. @return array<string,string> */

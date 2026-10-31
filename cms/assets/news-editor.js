@@ -212,7 +212,7 @@ function rowHtml(a){
     ${a.image_url?'<img src="'+esc(a.image_url)+'" alt="" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--border);background:var(--surface2);" onerror="this.outerHTML=\'<div style=&quot;width:52px;height:52px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);&quot;><i class=&quot;fas fa-image&quot;></i></div>\'">':'<div style="width:52px;height:52px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);"><i class="fas fa-image"></i></div>'}
     <div style="min-width:0;">
       <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px;">${a.featured==1?'<span style="color:var(--accent)"><i class="fas fa-star"></i></span>':''}<b style="color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px;">${esc(a.title)}</b>${statusBadge(a)}</div>
-      ${!showTrash&&a.slug?'<div style="font-size:.66rem;color:var(--muted);font-family:monospace;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">/#news/'+esc(a.slug)+'</div>':''}
+      ${!showTrash&&a.slug?'<div style="font-size:.66rem;color:var(--muted);font-family:monospace;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(postLinks[String(a.id)]?postLinks[String(a.id)].replace(location.origin,''):'/'+a.slug+'/')+'</div>':''}
       <div style="font-size:.7rem;color:var(--muted);">${esc(a.category||'News')} · ${showTrash?'Gelöscht: '+fmt(a.deleted_at):fmt(a.published_at||a.created_at)} · ${esc(a.author||'')}${a.views?' · <i class="fas fa-eye"></i> '+a.views:''}</div>
       ${a.excerpt?'<div style="font-size:.76rem;color:var(--dim);margin-top:5px;line-height:1.45;">'+esc(a.excerpt)+'</div>':''}
     </div>
@@ -223,7 +223,7 @@ function rowHtml(a){
         (a.can_edit!==false?
           '<button class="btn-g" onclick="NewsMagazine.edit('+a.id+')" title="Bearbeiten"><i class="fas fa-pen"></i></button>'
           +'<button class="btn-g" onclick="NewsMagazine.startQuickEdit('+a.id+')" title="Schnellbearbeitung"><i class="fas fa-bolt"></i></button>'
-          +(a.status==='published'?'<a class="btn-g" href="/#news/'+encodeURIComponent(a.slug||'')+'" target="_blank" rel="noopener" title="Ansehen" style="text-decoration:none"><i class="fas fa-eye"></i></a>':'')
+          +(a.status==='published'?'<a class="btn-g" href="'+esc(postUrl(a))+'" target="_blank" rel="noopener" title="Ansehen" style="text-decoration:none"><i class="fas fa-eye"></i></a>':'')
           +'<button class="btn-g" onclick="NewsMagazine.duplicate('+a.id+')" title="Duplizieren"><i class="fas fa-clone"></i></button>'
           +(canEdit?'<button class="btn-d" onclick="NewsMagazine.del('+a.id+')" title="In den Papierkorb"><i class="fas fa-trash"></i></button>':'')
           :'<span style="font-size:.68rem;color:var(--muted)" title="Nur der Autor oder ein Admin darf diesen Beitrag verwalten"><i class="fas fa-lock"></i></span>')
@@ -305,6 +305,8 @@ async function applyBulk(){
     load();
   }catch(e){say(e.message,'error');}
 }
+let postLinks={};
+const postUrl=a=>postLinks[String(a.id)]||('/?p='+encodeURIComponent(a.id));
 async function load(){
   const h=document.getElementById('newsList'); if(h)h.innerHTML='<div class="empty"><i class="fas fa-spinner fa-spin"></i>Lade Beiträge…</div>';
   currentPage=1;
@@ -315,6 +317,7 @@ async function load(){
     updateTrashToggle();
     renderTagSuggestions();
     renderCategoryManager();
+    if(!showTrash)api('wp_news_links').then(r=>{postLinks=r.links||{};renderListBody()}).catch(()=>{});
   }catch(e){if(h)h.innerHTML='<div class="empty" style="color:#ff8080"><i class="fas fa-triangle-exclamation"></i>'+esc(e.message)+'</div>';}
 }
 function updateTrashToggle(){
@@ -410,7 +413,7 @@ function editorHtml(){
 function mount(){
   if(mounted){load();return;} mounted=true;
   const host=document.getElementById('newsMagazineHost'); if(!host)return;
-  host.innerHTML=`<div class="th"><div><div class="tt"><i class="fas fa-newspaper" style="color:var(--accent)"></i>News & Magazin</div><div style="font-size:.72rem;color:var(--muted);margin-top:3px">Beiträge werden direkt unter <code>/cms/data/news.json</code> gespeichert.</div></div><div class="d-flex gap-2"><a class="btn-g" href="/rss.php" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-rss"></i> RSS</a><a class="btn-g" href="/#news" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-eye"></i> News ansehen</a><a class="btn-g" href="api.php?action=news_export&_tok=${encodeURIComponent(cmsNewsToken())}" style="text-decoration:none"><i class="fas fa-file-export"></i> Exportieren</a><button id="newsImportBtn" class="btn-g" onclick="NewsMagazine.importPrompt()" title="Beiträge aus einer Exportdatei (JSON) übernehmen"><i class="fas fa-file-import"></i> Importieren</button><button id="newsTrashToggle" class="btn-g" onclick="NewsMagazine.toggleTrash()"><i class="fas fa-trash"></i> Papierkorb</button><button id="newsNewBtn" class="btn-a" onclick="NewsMagazine.newArticle()"><i class="fas fa-plus"></i> Neuer Beitrag</button></div></div>
+  host.innerHTML=`<div class="th"><div><div class="tt"><i class="fas fa-newspaper" style="color:var(--accent)"></i>News & Magazin</div><div style="font-size:.72rem;color:var(--muted);margin-top:3px">Beiträge werden direkt unter <code>/cms/data/news.json</code> gespeichert.</div></div><div class="d-flex gap-2"><a class="btn-g" href="/rss.xml" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-rss"></i> RSS</a><a class="btn-g" href="/#news" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-eye"></i> News ansehen</a><a class="btn-g" href="api.php?action=news_export&_tok=${encodeURIComponent(cmsNewsToken())}" style="text-decoration:none"><i class="fas fa-file-export"></i> Exportieren</a><button id="newsImportBtn" class="btn-g" onclick="NewsMagazine.importPrompt()" title="Beiträge aus einer Exportdatei (JSON) übernehmen"><i class="fas fa-file-import"></i> Importieren</button><button id="newsTrashToggle" class="btn-g" onclick="NewsMagazine.toggleTrash()"><i class="fas fa-trash"></i> Papierkorb</button><button id="newsNewBtn" class="btn-a" onclick="NewsMagazine.newArticle()"><i class="fas fa-plus"></i> Neuer Beitrag</button></div></div>
   <div class="card"><div style="display:flex;align-items:flex-start;gap:12px;"><div style="width:38px;height:38px;border-radius:10px;background:rgba(255,206,0,.1);display:grid;place-items:center;color:var(--accent)"><i class="fas fa-bullhorn"></i></div><div><b style="color:#fff">${esc(ELVADO_P.name+' Redaktion')}</b><div style="color:var(--dim);font-size:.78rem;line-height:1.55;margin-top:3px;">Beiträge hier erstellen, als Entwurf vorbereiten oder veröffentlichen. Veröffentlichte Meldungen erscheinen automatisch ${'auf deiner Website und im Feed'}.</div></div></div></div>
   ${categoryManagerHtml()}
   ${editorHtml()}

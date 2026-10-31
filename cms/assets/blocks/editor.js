@@ -89,7 +89,7 @@
     }
     /* ───── Aktionen ───── */
     function insertAt(list,index,name,attrs,focus){
-      const b=E.newBlock(name,attrs);list.splice(index,0,b);st.sel=b.id;renderAll();structural();if(focus!==false)setTimeout(()=>focusBlock(b.id),0);return b;
+      const b=E.newBlock(name,attrs);list.splice(index,0,b);st.sel=b.id;renderAll();structural();if(focus!==false)focusBlock(b.id);return b;
     }
     function remove(id){
       const r=find(id);if(!r)return;const prev=r.list[r.i-1]||r.list[r.i+1]||null;r.list.splice(r.i,1);
@@ -214,18 +214,18 @@
             const sp=splitAt(hostEl);b[key]=sp.before;
             const nb=E.newBlock('paragraph',{html:sp.after});
             // Überschrift: Enter am Ende → neuer Absatz; Absatz: teilt in zwei Absätze
-            rr.list.splice(rr.i+1,0,nb);st.sel=nb.id;renderAll();structural();setTimeout(()=>focusBlock(nb.id),0);
+            rr.list.splice(rr.i+1,0,nb);st.sel=nb.id;renderAll();structural();focusBlock(nb.id);
           }return;
         }
         if(e.key==='Enter'&&o.list){ // leeres letztes Listenelement beendet die Liste
           const li=(getSelection().anchorNode||{}).nodeType===3?getSelection().anchorNode.parentElement.closest('li'):(getSelection().anchorNode||{}).closest&&getSelection().anchorNode.closest('li');
-          if(li&&li.textContent.trim()===''&&li===hostEl.lastElementChild){e.preventDefault();li.remove();b[key]=hostEl.innerHTML;const nb=E.newBlock('paragraph');rr.list.splice(rr.i+1,0,nb);st.sel=nb.id;renderAll();structural();setTimeout(()=>focusBlock(nb.id),0)}
+          if(li&&li.textContent.trim()===''&&li===hostEl.lastElementChild){e.preventDefault();li.remove();b[key]=hostEl.innerHTML;const nb=E.newBlock('paragraph');rr.list.splice(rr.i+1,0,nb);st.sel=nb.id;renderAll();structural();focusBlock(nb.id)}
           return;
         }
         if(e.key==='Backspace'&&atStart(hostEl)&&!o.list){
           const empty=hostEl.textContent.trim()==='';
           if(empty&&(b.name==='paragraph'||b.name==='heading')&&!(rr.list.length===1&&rr.list===st.blocks)){e.preventDefault();remove(b.id);return}
-          if(!empty&&(b.name==='paragraph')&&rr.list[rr.i-1]&&rr.list[rr.i-1].name==='paragraph'){e.preventDefault();const pv=rr.list[rr.i-1];const len=pv.html||'';pv.html=(pv.html||'')+b.html;rr.list.splice(rr.i,1);st.sel=pv.id;renderAll();structural();setTimeout(()=>focusBlock(pv.id,true),0);return}
+          if(!empty&&(b.name==='paragraph')&&rr.list[rr.i-1]&&rr.list[rr.i-1].name==='paragraph'){e.preventDefault();const pv=rr.list[rr.i-1];const len=pv.html||'';pv.html=(pv.html||'')+b.html;rr.list.splice(rr.i,1);st.sel=pv.id;renderAll();structural();focusBlock(pv.id,true);return}
           if(!empty&&b.name==='heading'){e.preventDefault();transform(b,'paragraph');return}
         }
         if(e.key==='ArrowUp'&&atStart(hostEl)){const pv=prevFocusable(b.id);if(pv){e.preventDefault();focusBlock(pv,true)}}
@@ -249,7 +249,7 @@
       const c=inserterContent(name=>{closePop();insertAt(list,index,name)});popup(anchor,c);setTimeout(()=>c.focusSearch(),0);
     }
     function openSlash(b,hostEl,q){
-      const c=inserterContent(name=>{closePop();const r=find(b.id);if(!r)return;const nb=E.newBlock(name);nb.id=b.id;r.list[r.i]=nb;renderAll();structural();setTimeout(()=>focusBlock(nb.id),0)},q);
+      const c=inserterContent(name=>{closePop();const r=find(b.id);if(!r)return;const nb=E.newBlock(name);nb.id=b.id;r.list[r.i]=nb;renderAll();structural();focusBlock(nb.id)},q);
       st.slash={b,hostEl,c};popup(hostEl,c);st.slash={b,hostEl,c};const it=c.querySelector('.epb-ins-item');it&&it.classList.add('is-active');
     }
     function slashKey(e){

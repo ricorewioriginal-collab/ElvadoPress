@@ -4,6 +4,7 @@
 // Integrationsteil nur mit: WPE_TEST_ZIP=<wordpress-X.Y.Z.zip> WPE_TEST_DB="host|name|benutzer|passwort" (leere Datenbank, Präfix wptest_); sonst wird er übersprungen.
 declare(strict_types=1);
 require __DIR__ . '/../cms/src/autoload.php';
+require_once __DIR__ . '/wpe-test-db.php';
 use Elvado\Wp\{Engine, ContentService, CoreInstaller, DbConfig, Bridge};
 use Elvado\Wp\Adapter\{NativeAdapter, WordPressAdapter};
 
@@ -159,7 +160,7 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
     $r = (new CoreInstaller($eng))->install($zip, $m[1], sha1_file($zip));
     t('Echter Core eingespielt', $r['ok'], $r['message']);
     $db = new DbConfig($eng);
-    $cfg = ['host' => $h, 'name' => $name, 'user' => $u, 'pass' => $pw, 'prefix' => 'wptest_'];
+    $cfg = wpe_test_cfg($eng, $dbs, 'wptest_');
     $tr = $db->test($cfg);
     t('Datenbank erreichbar und leer', $tr['ok'] && !$tr['needs_empty'], $tr['message']);
     if ($r['ok'] && $tr['ok']) {
@@ -168,8 +169,8 @@ if ($zip === '' || $dbs === '' || !is_file($zip)) {
         $out = []; exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' --child ' . escapeshellarg("$tmp/wp") . ' 2>&1', $out, $rc);
         foreach ($out as $l) { echo $l . "\n"; }
         t('Kindprozess (echtes WordPress) erfolgreich', $rc === 0);
-        $mysqli = @new mysqli($h === 'localhost' ? '127.0.0.1' : explode(':', $h)[0], $u, $pw, $name, (int)(explode(':', $h)[1] ?? 3306));
-        if (!$mysqli->connect_errno) {   // Aufräumen: Testtabellen entfernen
+        $mysqli = wpe_test_is_sqlite($dbs) ? null : @new mysqli($h === 'localhost' ? '127.0.0.1' : explode(':', $h)[0], $u, $pw, $name, (int)(explode(':', $h)[1] ?? 3306));
+        if ($mysqli && !$mysqli->connect_errno) {   // Aufräumen: Testtabellen entfernen
             $res = $mysqli->query("SHOW TABLES LIKE 'wptest\\_%'");
             while ($res && ($row = $res->fetch_row())) { $mysqli->query('DROP TABLE `' . $mysqli->real_escape_string($row[0]) . '`'); }
         }

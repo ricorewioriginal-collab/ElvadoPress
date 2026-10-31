@@ -7,7 +7,9 @@ if (!\Elvado\Wp\Bridge::booted()) {
     $__wpe = \Elvado\Wp\Bridge::prepare($GLOBALS['elvado_wpe_engine'], $GLOBALS['elvado_wpe_db'], (array)($GLOBALS['elvado_wpe_opts'] ?? []));
     $table_prefix = $__wpe['prefix'];
     require $__wpe['settings'];
-    \Elvado\Wp\Bridge::restore($__wpe['snapshot']);
+    if (empty($GLOBALS['elvado_wpe_opts']['front'])) {   // Website-Auslieferung: WordPress behält seine Umgebung (UTC, Superglobale) bis zum Ende der Anfrage
+        \Elvado\Wp\Bridge::restore($__wpe['snapshot']);
+    }
     \Elvado\Wp\Bridge::done($GLOBALS['elvado_wpe_engine']);
     unset($__wpe);
 }

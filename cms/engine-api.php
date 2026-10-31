@@ -665,6 +665,49 @@ if ($elvadoEngineAction === 'engine_mode') {
     }
     elvado_json(['status' => $m['ok'] ? 'ok' : 'error', 'message' => $m['message']] + elvado_wpe_status($elvadoEngine, $elvadoEngineDb), $m['ok'] ? 200 : 422);
 }
+if ($elvadoEngineAction === 'engine_front') {   // Website mit echtem WordPress ausliefern (aktives WordPress-Theme, WordPress-Plugins) – jederzeit umschaltbar
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        elvado_json(['status' => 'error', 'message' => 'Diese Aktion verlangt POST.'], 405);
+    }
+    $on = !empty($elvadoEngineB['on']);
+    if ($on) {   // WordPress braucht ein Theme: fehlt das aktive (der Core bringt keins mit – wp-content bleibt bei ElvadoPress), das Standard-Theme von wordpress.org einspielen
+        if (!$elvadoEngine->isActive()) {
+            elvado_json(['status' => 'error', 'message' => 'Zuerst die WordPress-Engine aktivieren.'], 422);
+        }
+        $GLOBALS['elvado_wpe_engine'] = $elvadoEngine;
+        $GLOBALS['elvado_wpe_db'] = $elvadoEngineDb;
+        $GLOBALS['elvado_wpe_opts'] = [];
+        elvado_wpe_guard_output();
+        require __DIR__ . '/wp-engine-boot.php';
+        if (!\Elvado\Wp\Bridge::booted()) {
+            elvado_json(['status' => 'error', 'message' => 'WordPress ließ sich nicht starten.'], 500);
+        }
+        if ((string)get_option('permalink_structure') === '') {   // sprechende Adressen wie in ElvadoPress (/beitragsname/, /feed/, /wp-json/)
+            update_option('permalink_structure', '/%postname%/');
+            flush_rewrite_rules(false);
+        }
+        $elvadoLang = elvado_wpe_language((string)(elvado_system_config()['language'] ?? 'de'));   // gleiche Sprache wie ElvadoPress (Sprachpaket von wordpress.org)
+        if (!wp_get_theme()->exists()) {
+            @set_time_limit(300);
+            try {
+                $elvadoExt = new \Elvado\Wp\ExtensionService(new \Elvado\Wp\Adapter\WordPressExtensionAdapter(), new \Elvado\Wp\ExtensionInstaller($elvadoEngine), $elvadoEngine, $elvadoActor);
+                $elvadoSlug = defined('WP_DEFAULT_THEME') ? (string)WP_DEFAULT_THEME : 'twentytwentyfive';
+                if (!is_dir(get_theme_root() . '/' . $elvadoSlug)) {
+                    $elvadoExt->installFromDirectory('theme', $elvadoSlug);
+                }
+                $elvadoExt->activate('theme', $elvadoSlug);
+                $elvadoEngineLog('Standard-Theme ' . $elvadoSlug . ' für WordPress eingespielt');
+            } catch (\Throwable $e) {
+                elvado_json(['status' => 'error', 'message' => 'WordPress hat kein nutzbares Theme und das Standard-Theme ließ sich nicht einspielen: ' . $e->getMessage() . ' Bitte unter Plugins → WordPress-Plugins ein Theme installieren.'], 422);
+            }
+        }
+    }
+    $m = $elvadoEngine->setFront($on);
+    if ($m['ok']) {
+        $elvadoEngineLog('Website-Auslieferung durch WordPress ' . ($on ? 'eingeschaltet' : 'ausgeschaltet'));
+    }
+    elvado_json(['status' => $m['ok'] ? 'ok' : 'error', 'message' => $m['ok'] ? ($on ? 'Die Website wird jetzt von WordPress ausgeliefert (aktives WordPress-Theme und Plugins).' . (isset($elvadoLang) && !$elvadoLang['ok'] ? ' ' . $elvadoLang['message'] : '') : 'Die Website wird wieder von ElvadoPress ausgeliefert.') : $m['message']] + elvado_wpe_status($elvadoEngine, $elvadoEngineDb), $m['ok'] ? 200 : 422);
+}
 if ($elvadoEngineAction === 'engine_remove') {
     if (empty($elvadoEngineB['confirm'])) {
         elvado_json(['status' => 'error', 'message' => 'Bitte das Entfernen bestätigen.'], 400);

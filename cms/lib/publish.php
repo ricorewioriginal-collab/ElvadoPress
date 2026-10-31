@@ -22,9 +22,11 @@ function elvado_ensure_dirs(): void {
     elvado_protect_dir(dirname(__DIR__).'/data');elvado_protect_dir(dirname(__DIR__).'/backups');
 }
 require_once __DIR__.'/tools.php';
+if(!function_exists('elvado_read_json')){   // auch in brand.php (je nach Ladereihenfolge)
 function elvado_read_json(string $file, array $fallback=[]): array {
     if(!is_file($file))return $fallback;
-    $j=json_decode((string)file_get_contents($file),true); return is_array($j)?$j:$fallback;
+    $j=json_decode((string)@file_get_contents($file),true); return is_array($j)?$j:$fallback;
+}
 }
 function elvado_write_atomic(string $file, string $content): void {
     $dir=dirname($file); if(!is_dir($dir)&&!@mkdir($dir,0755,true))throw new RuntimeException('Ordner nicht beschreibbar: '.$dir);

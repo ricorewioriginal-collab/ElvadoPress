@@ -10,6 +10,7 @@
       .then(function(r){return r.json().catch(function(){return{status:'error',message:'Unerwartete Antwort'};});}).then(function(d){if(d.status!=='ok'&&!d.message)d.message='Fehler';return d;});
   }
   function status(){   // das Promise (nicht erst das Ergebnis) merken: sonst startet jede DOM-Änderung bis zur Antwort eine neue Anfrage
+    if(!tok())return Promise.resolve({status:'error',usable:false,message:'Nicht angemeldet'});   // vor der Anmeldung keine Anfragen (sonst eine 401 je DOM-Änderung)
     if(!st)st=call('status').then(function(d){if(d.status!=='ok')st=null;return d;},function(e){st=null;throw e;});
     return st;
   }

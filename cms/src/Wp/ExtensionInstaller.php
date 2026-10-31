@@ -8,7 +8,7 @@ namespace Elvado\Wp;
 
 final class ExtensionInstaller
 {
-    public const EXT = ['php', 'js', 'mjs', 'css', 'scss', 'less', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'ico', 'bmp', 'html', 'htm', 'txt', 'md', 'markdown', 'xml', 'xsl', 'xslt',
+    public const EXT = ['php', 'js', 'mjs', 'copy', 'css', 'scss', 'less', 'json', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'ico', 'bmp', 'html', 'htm', 'txt', 'md', 'markdown', 'xml', 'xsl', 'xslt',
         'po', 'pot', 'mo', 'csv', 'yml', 'yaml', 'woff', 'woff2', 'ttf', 'otf', 'eot', 'map', 'mp3', 'ogg', 'mp4', 'webm', 'pdf', 'twig', 'mustache', 'tpl', 'lock', 'dist'];
     public const NAMES = ['LICENSE', 'license', 'LICENCE', 'COPYING', 'readme', 'README', 'CHANGELOG', 'NOTICE', 'VERSION', 'Makefile'];
     public const MAX_TOTAL = 157_286_400;   // 150 MB entpackt
@@ -23,9 +23,10 @@ final class ExtensionInstaller
 
     /**
      * @param bool $overwrite vorhandene Fassung ersetzen (Update); sonst Fehler, wenn schon installiert
+     * @param string|null $targetRoot Zielordner statt wp-content/plugins bzw. themes
      * @return array{ok:bool,message:string,slug:string,name:string,version:string,files:int,skipped:int,replaced:bool}
      */
-    public function install(string $kind, string $zipFile, bool $overwrite = false): array
+    public function install(string $kind, string $zipFile, bool $overwrite = false, ?string $targetRoot = null): array
     {
         $fail = fn(string $m): array => ['ok' => false, 'message' => $m, 'slug' => '', 'name' => '', 'version' => '', 'files' => 0, 'skipped' => 0, 'replaced' => false];
         if (!ExtensionSource::validKind($kind)) {
@@ -41,7 +42,7 @@ final class ExtensionInstaller
         if ($zip->open($zipFile) !== true) {
             return $fail('Das Paket ist kein lesbares ZIP-Archiv.');
         }
-        $root = $this->targetDir($kind);
+        $root = $targetRoot ?? $this->targetDir($kind);   // eigener Zielordner nur für Engine-Bausteine (z. B. SQLite-Integration außerhalb von wp-content)
         $stage = $root . '/.staging-' . bin2hex(random_bytes(6));
         $closed = false;
         try {

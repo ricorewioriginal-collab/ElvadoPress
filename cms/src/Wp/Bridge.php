@@ -173,10 +173,24 @@ final class Bridge
         $def('ELVADO_ENGINE_SAFE', $safe);
         $def('WP_HOME', $site);
         $def('WP_SITEURL', $site);
+        if (($cfg['driver'] ?? 'mysql') === 'sqlite') {   // ohne Datenbankserver: offizielle SQLite-Integration über den Drop-in wp-content/db.php (SqliteIntegration)
+            $sq = new SqliteIntegration($e);
+            if (!$sq->present()) {
+                throw new \RuntimeException('Die SQLite-Integration der WordPress-Engine fehlt. Bitte unter System → WordPress-Engine erneut einrichten.');
+            }
+            if (!is_dir(dirname($cfg['path']))) {
+                @mkdir(dirname($cfg['path']), 0750, true);
+            }
+            $def('DB_ENGINE', 'sqlite');
+            $def('DB_PATH', $cfg['path']);
+            $def('ELVADO_SQLITE_IMPL', $sq->dir());
+        } else {
+            $def('DB_ENGINE', 'mysql');   // ein vorhandener SQLite-Drop-in bleibt damit wirkungslos
+        }
         $def('DB_NAME', $cfg['name']);
         $def('DB_USER', $cfg['user']);
         $def('DB_PASSWORD', $cfg['pass']);
-        $def('DB_HOST', $cfg['host']);
+        $def('DB_HOST', $cfg['host'] !== '' ? $cfg['host'] : 'localhost');
         $def('DB_CHARSET', 'utf8mb4');
         $def('DB_COLLATE', '');
         foreach ($db->keys() as $k => $v) {
@@ -188,7 +202,7 @@ final class Bridge
         $def('AUTOMATIC_UPDATER_DISABLED', true);    // Updates laufen über das Update-Center von ElvadoPress
         $def('WP_AUTO_UPDATE_CORE', false);
         $def('WP_MEMORY_LIMIT', '256M');
-        $def('WP_USE_THEMES', false);
+        $def('WP_USE_THEMES', !empty($opts['themes']));   // nur bei der Website-Auslieferung durch WordPress (wp-engine-front.php)
         if (!empty($opts['installing'])) {
             $def('WP_INSTALLING', true);
         }
@@ -257,6 +271,10 @@ final class Bridge
             wp_delete_post((int)$pid, true);
         }
         update_option('wp_page_for_privacy_policy', 0);
+        update_option('permalink_structure', '/%postname%/');   // sprechende Adressen wie in ElvadoPress (/beitragsname/)
+        if (function_exists('flush_rewrite_rules')) {
+            flush_rewrite_rules(false);
+        }
         wp_update_term((int)get_option('default_category'), 'category', ['name' => 'Allgemein', 'slug' => 'allgemein']);   // deutsche Standard-Kategorie statt „Uncategorized“
         foreach ((array)$wpdb->get_col("SELECT comment_ID FROM {$wpdb->comments}") as $cid) {
             wp_delete_comment((int)$cid, true);
