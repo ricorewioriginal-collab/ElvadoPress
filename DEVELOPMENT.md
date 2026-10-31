@@ -43,6 +43,14 @@ Plugin-System: Nach jeder Änderung in `cms/official-plugins/<id>/` zuerst `php 
 
 Für eine konkrete Änderung bevorzugt nur die betroffenen `scripts/test-*.php` plus ggf. Smoke-Test ausführen. CI führt Syntaxprüfung, Smoke-Test und alle Tests aus.
 
+## Browser-Tests (Playwright)
+Echte Klickwege in Verwaltung und Website (Anmeldung, alle Bereiche ohne JS-Fehler, Block-Editor, Beitrag veröffentlichen, Feed, Live Builder, Mehrsprachigkeit, englische Verwaltung, optional Ein-Klick-WordPress):
+```sh
+pip install playwright && python -m playwright install chromium
+python3 scripts/e2e/e2e.py                    # E2E_WORDPRESS=1: zusätzlich echtes WordPress (Netz nötig); E2E_CHROME=<pfad>: eigenes Chrome
+```
+Lokaler Entwicklungsserver wie Apache: `php -S 127.0.0.1:8080 -t . scripts/e2e/router.php`. CI führt die Browser-Tests und alle Engine-Tests gegen echtes WordPress (SQLite und MariaDB) aus.
+
 ## React-Bündel
 Quellen in `frontend/`; nach Änderungen `cd frontend && npm install && npm run build` (schreibt `cms/assets/react/`, wird eingecheckt). Das CMS selbst braucht keinen Build.
 
