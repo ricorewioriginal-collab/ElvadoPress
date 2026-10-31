@@ -62,7 +62,7 @@ jobs:
       - name: Engine-Tests mit echtem WordPress
         run: |
           fail=0
-          tests="content media-users nav-widgets-blocks extensions migration api sqlite"
+          tests="content media-users nav-widgets-blocks extensions migration api sqlite sandbox"
           for t in $tests; do
             echo "== test-wp-engine-$t"
             if ! php "scripts/test-wp-engine-$t.php" > "$RUNNER_TEMP/out.txt" 2>&1; then echo "FEHLGESCHLAGEN: $t"; tail -30 "$RUNNER_TEMP/out.txt"; fail=1; else tail -2 "$RUNNER_TEMP/out.txt"; fi

@@ -126,6 +126,15 @@ final class Bridge
         }
         $core = $e->corePath();
         $cfg = $db->get();
+        $ov = $GLOBALS['elvado_wpe_db_override'] ?? null;   // Sandbox (lib/wp-real-sandbox.php): eigene Datenbankdatei bzw. eigenes Tabellenpräfix
+        if (is_array($cfg) && is_array($ov)) {
+            if (isset($ov['path']) && ($cfg['driver'] ?? '') === 'sqlite') {
+                $cfg['path'] = (string)$ov['path'];
+            }
+            if (isset($ov['prefix']) && preg_match('/^[a-z][a-z0-9]{0,18}_$/', (string)$ov['prefix'])) {
+                $cfg['prefix'] = (string)$ov['prefix'];
+            }
+        }
         if ($core === null || $cfg === null) {
             throw new \RuntimeException('Die WordPress-Engine ist nicht vollständig eingerichtet (Core oder Datenbank fehlt).');
         }
