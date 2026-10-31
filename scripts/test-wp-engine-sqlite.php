@@ -48,6 +48,18 @@ if (($argv[1] ?? '') === '--child') {
         $twoId = (int)$wpdb->get_var("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_elvado_source_id' AND meta_value = 'post:8'");
         t('Änderungen werden übernommen, Gelöschtes wandert in den Papierkorb', $r2['updated'] === 1 && $r2['trashed'] === 1 && get_post($one->ID)->post_title === 'Live Eins neu' && get_post_status($twoId) === 'trash', json_encode($r2));
         t('Zeitzone von ElvadoPress bleibt nach dem Abgleich unverändert', date_default_timezone_get() === 'UTC');
+        // Übernahme aus der bisherigen Schicht: nach der ersten nur Geändertes – Änderungen direkt in WordPress bleiben erhalten
+        require_once __DIR__ . '/../cms/lib/wpengine.php';
+        @mkdir("$tmp/cms/data/.wp", 0755, true);
+        $wo = fn(array $o) => file_put_contents("$tmp/cms/data/.wp/options.json", json_encode(array_map(fn($v) => ['v' => serialize($v), 'a' => 'yes'], $o)));
+        $wo(['elvado_t_a' => 'eins', 'elvado_t_b' => 'x', 'active_plugins' => []]);
+        delete_option('elvado_adopt_snap');
+        $eng = $GLOBALS['elvado_wpe_engine'];
+        elvado_wpe_adopt_site($eng, true);
+        update_option('elvado_t_a', 'in-wordpress-geaendert');
+        $wo(['elvado_t_a' => 'eins', 'elvado_t_b' => 'y', 'active_plugins' => []]);
+        $ad = elvado_wpe_adopt_site($eng, true);
+        t('Erneute Übernahme kopiert nur Geändertes', get_option('elvado_t_a') === 'in-wordpress-geaendert' && get_option('elvado_t_b') === 'y' && $ad['options'] === 1 && $ad['theme'] === '', json_encode($ad));
     }
     echo "KIND: " . ($fail ? "$fail Fehler" : "$n von $n bestanden") . "\n";
     exit($fail ? 1 : 0);

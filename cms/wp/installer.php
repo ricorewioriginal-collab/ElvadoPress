@@ -179,6 +179,7 @@ function elvado_wpi_activate_theme(string $slug): ?string {
     $themes=array_column(elvado_wpi_list_themes(),null,'slug');
     if(!isset($themes[$slug]))return 'Theme nicht gefunden';
     if(!empty($themes[$slug]['error']))return $themes[$slug]['error'];
+    if(defined('ELVADO_WP_REAL')){ switch_theme($slug);return null; }   // echtes WordPress: Theme wechseln wie WordPress selbst (Hooks, Theme-Einstellungen); die Auslieferung steuert die Engine
     update_option('stylesheet',$slug);update_option('template',$themes[$slug]['parent']?:$slug);
     $f=ELVADO_WP_DATA.'/front-on';if(!is_dir(ELVADO_WP_DATA))@mkdir(ELVADO_WP_DATA,0775,true);
     if(@file_put_contents($f,gmdate('c'))===false)return 'Aktivierung konnte nicht gespeichert werden (Schreibrechte für cms/data/.wp prüfen).';
