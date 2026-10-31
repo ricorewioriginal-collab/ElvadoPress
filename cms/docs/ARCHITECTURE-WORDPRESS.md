@@ -133,3 +133,6 @@ Bei aktiver Auslieferung durch WordPress (nicht Sandbox, Demo, weitere Websites)
 
 ## Inhalte und Kommentare (Stufe E5)
 ElvadoPress bleibt führende Datenquelle für Beiträge, Seiten, Medien und Kommentare – viele Teile (Apps, Alexa, RSS, Assistent, SEO, Lovable-Feed) lesen `news.json`, `site.json`, `comments.json` und `cms/media`. `Migration\LiveSync` überträgt Änderungen beim nächsten Seitenaufruf nach WordPress, inklusive Kommentaren (`_elvado_comment_id`) und dem Kommentar-Status der Beiträge. Neue Besucher-Kommentare auf der WordPress-Website schreibt der Hook `wp_insert_comment` (Engine-Schicht) nach `comments.json`; Freigabe und Löschen erfolgen in der ElvadoPress-Verwaltung.
+
+## Customizer, Baukasten und Vorschau (Stufe E6)
+Customizer- und Baukasten-Aktionen laufen auf echtem WordPress; das bearbeitete Theme wird vor dem Start über vorbelegte Filter (`$wp_filter['pre_option_stylesheet'|'pre_option_template']`, `elvado_wpra_use_theme`) eingeschaltet, `elvado_wpc_real_option` liest weiter das wirklich aktive Theme. Vorschau-Schlüssel signiert ElvadoPress selbst (`elvado_wpra_preview_sig`, Geheimnis von `lib/components.php`), damit `cms/wp-engine-front.php` sie vor dem Start von WordPress prüfen kann; dort werden Entwürfe angewendet, die Vorschau-Brücke eingebunden und Cache, Statistik und Plugins-Ausgabefilter übersprungen.

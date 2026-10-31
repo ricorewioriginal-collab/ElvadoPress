@@ -1,12 +1,13 @@
 <?php
 // Website-Auslieferung durch echtes WordPress (WordPress-Engine, Schalter „Website mit WordPress ausliefern“ unter System → WordPress-Engine).
 // Wird von cms/wp-front.php im globalen Gültigkeitsbereich eingebunden, bevor die WordPress-Nachbildung lädt. Greift nur, wenn die Engine aktiv ist und der Schalter an ist;
-// sonst kehrt die Datei sofort zurück und ElvadoPress liefert die Website wie bisher aus. Nicht für Vorschauen, Sandbox, Demo und weitere Websites (Multisite).
+// sonst kehrt die Datei sofort zurück und ElvadoPress liefert die Website wie bisher aus. Nicht für Sandbox, Demo und weitere Websites (Multisite).
+// Vorschauen (Theme-Vorschau, Customizer-Entwurf, Live Builder) zeigt ebenfalls echtes WordPress (signierte Schlüssel, siehe lib/wp-real-admin.php).
 //
 // Aufgaben: statische Core-Dateien (wp-includes, wp-admin/css|js|images) aus dem gesperrten Core-Ordner ausliefern, wp-login/wp-admin zur ElvadoPress-Verwaltung umleiten,
 // Besucher-Endpunkte (admin-ajax, admin-post, wp-comments-post) an WordPress geben und alle übrigen Adressen mit dem aktiven WordPress-Theme ausliefern.
 if (!isset($cmsDir) || !empty($sbx) || (isset($siteId) && $siteId !== '') || is_file($cmsDir . '/lib/demo.json')
-    || isset($_GET['elvado_wp_preview']) || isset($_GET['elvado_ep_preview']) || isset($_COOKIE['elvado_wp_preview']) || isset($_GET['elvado_wp_login'])) {
+    || isset($_GET['elvado_wp_login'])) {
     return;
 }
 require_once $cmsDir . '/lib/wpengine.php';
@@ -68,16 +69,72 @@ try {
     }
 } catch (Throwable $e) {
 }
+// Vorschau: Live Builder (signierter Schlüssel, Bereich „Website“) und Theme-Vorschau/Customizer-Entwurf (signierter Schlüssel → Cookie, 15 Minuten)
+require_once $cmsDir . '/lib/wp-real-admin.php';
+$elvadoFrontEp = false;
+if (isset($_GET['elvado_ep_preview']) && is_string($_GET['elvado_ep_preview'])) {
+    require_once $cmsDir . '/lib/components.php';
+    $elvadoFrontEp = elvado_components_preview_ok($_GET['elvado_ep_preview'], 'site:website', $siteData);
+}
+if (($_GET['elvado_wp_preview'] ?? '') === 'off') {
+    foreach (['elvado_wp_preview', 'elvado_wp_draft'] as $elvadoFrontC) {
+        setcookie($elvadoFrontC, '', ['expires' => 1, 'path' => '/']);
+    }
+    header('Location: /', true, 302);
+    exit;
+}
+$elvadoFrontPvTok = $elvadoFrontEp ? (string)($_GET['elvado_wp_preview'] ?? '') : (string)($_GET['elvado_wp_preview'] ?? $_COOKIE['elvado_wp_preview'] ?? '');
+$elvadoFrontPreview = $elvadoFrontPvTok !== '' ? elvado_wpra_preview_ok($siteData, $elvadoFrontPvTok) : '';
+if ($elvadoFrontPreview !== '' && !elvado_wpra_use_theme($cmsDir, $elvadoFrontPreview)) {
+    $elvadoFrontPreview = '';
+}
+if ($elvadoFrontPreview !== '' && isset($_GET['elvado_wp_preview'])) {
+    setcookie('elvado_wp_preview', $elvadoFrontPvTok, ['expires' => (int)explode('.', $elvadoFrontPvTok)[1], 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+}
+$elvadoFrontIsPreview = $elvadoFrontPreview !== '' || $elvadoFrontEp;
+if ($elvadoFrontIsPreview) {
+    header('Cache-Control: no-store');
+    header('X-Robots-Tag: noindex, nofollow');
+}
 // Native Plugins (Essentials) wie bei der bisherigen Auslieferung: Start (z. B. Sicherheits-Header), frühe Anfragen (Seiten-Cache liefert ohne Start von WordPress aus)
 require_once $cmsDir . '/lib/nplugins.php';
 elvado_np_boot();
-elvado_np_do('front_request', $elvadoFrontNpUri, $elvadoFrontNpPath, $elvadoFrontMethod);
+if (!$elvadoFrontIsPreview) {   // Vorschauen nie aus dem Seiten-Cache
+    elvado_np_do('front_request', $elvadoFrontNpUri, $elvadoFrontNpPath, $elvadoFrontMethod);
+}
 $GLOBALS['elvado_wpe_engine'] = $elvadoFrontEngine;
 $GLOBALS['elvado_wpe_db'] = new \Elvado\Wp\DbConfig($elvadoFrontEngine);
 $GLOBALS['elvado_wpe_opts'] = ['themes' => true, 'front' => true];
 require $cmsDir . '/wp-engine-boot.php';
 elvado_wpe_after_boot($elvadoFrontEngine);
 elvado_np_do('wp_ready');   // native Plugins registrieren jetzt ihre WordPress-Hooks und Shortcodes (z. B. [elvado_form])
+// Vorschau-Brücke für Live Builder/Customizer und ungespeicherte Customizer-Entwürfe (nur mit gültigem Vorschau-Schlüssel, nichts wird gespeichert)
+$elvadoFrontLiveCz = false;
+if ($elvadoFrontPreview !== '') {
+    add_action('wp_footer', static function (): void {
+        echo '<script src="/cms/assets/preview-bridge.js?v=1" defer></script>' . "\n";
+    }, 99);
+    $elvadoFrontDraft = (string)($_GET['elvado_wp_draft'] ?? $_COOKIE['elvado_wp_draft'] ?? '');
+    if (preg_match('/^[a-f0-9]{32}$/', $elvadoFrontDraft)) {
+        require_once $cmsDir . '/lib/wp-real-compat.php';
+        require_once $cmsDir . '/wp/customizer-api.php';
+        $elvadoFrontLiveCz = true;
+        $elvadoFrontDd = elvado_wpc_draft_load($elvadoFrontDraft, $elvadoFrontPreview);
+        if ($elvadoFrontDd !== null) {
+            elvado_wpc_draft_apply($elvadoFrontDd);
+        }
+        if (isset($_GET['elvado_wp_draft'])) {
+            setcookie('elvado_wp_draft', $elvadoFrontDraft, ['expires' => time() + 900, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+        }
+    }
+} elseif (is_file($siteData . '/.wp/customize-changesets/future.idx')) {   // geplante Customizer-Änderungen
+    try {
+        require_once $cmsDir . '/lib/wp-real-compat.php';
+        require_once $cmsDir . '/wp/customizer-api.php';
+        elvado_wpc_cs_run_due();
+    } catch (Throwable $e) {
+    }
+}
 $elvadoFrontEntry = ['/wp-admin/admin-ajax.php' => 'wp-admin/admin-ajax.php', '/wp-admin/admin-post.php' => 'wp-admin/admin-post.php', '/wp-comments-post.php' => 'wp-comments-post.php'][$elvadoFrontPath] ?? '';
 if ($elvadoFrontEntry !== '') {
     require ABSPATH . $elvadoFrontEntry;
@@ -175,16 +232,23 @@ if ($elvadoFrontHtml && $elvadoFrontMethod === 'GET') {
         } catch (Throwable $e) {
         }
     }
-    $elvadoFrontBody = (string)elvado_np_filter('front_output', $elvadoFrontBody, $elvadoFrontStatus);   // Plugins: SEO, Leistung, Statistik
+    if (!$elvadoFrontIsPreview) {
+        $elvadoFrontBody = (string)elvado_np_filter('front_output', $elvadoFrontBody, $elvadoFrontStatus);   // Plugins: SEO, Leistung, Statistik
+    }
+    if ($elvadoFrontLiveCz && ($elvadoFrontP = strripos($elvadoFrontBody, '</body>')) !== false) {
+        $elvadoFrontBody = substr($elvadoFrontBody, 0, $elvadoFrontP) . elvado_wpc_live_script() . substr($elvadoFrontBody, $elvadoFrontP);
+    }
     // Live Builder (themeunabhängig): veröffentlichte Gestaltung des Bereichs „Website“ (site:website)
-    if ($elvadoFrontStatus === 200 && is_file($siteData . '/layouts/site__website.json')) {
+    if ($elvadoFrontStatus === 200 && ($elvadoFrontEp || is_file($siteData . '/layouts/site__website.json'))) {
         try {
             require_once $cmsDir . '/lib/components.php';
-            $elvadoFrontBody = elvado_components_inject($elvadoFrontBody, 'site:website', [], $siteData);
+            $elvadoFrontBody = elvado_components_inject($elvadoFrontBody, 'site:website', $elvadoFrontEp ? $_GET : [], $siteData);
         } catch (Throwable $e) {
         }
     }
 }
-elvado_np_do('front_response', $elvadoFrontStatus, $elvadoFrontNpPath, $elvadoFrontType);
+if (!$elvadoFrontIsPreview) {
+    elvado_np_do('front_response', $elvadoFrontStatus, $elvadoFrontNpPath, $elvadoFrontType);   // z. B. Statistik (Vorschauen zählen nicht)
+}
 echo $elvadoFrontBody;
 exit;

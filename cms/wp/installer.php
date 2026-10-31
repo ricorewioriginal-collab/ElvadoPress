@@ -187,7 +187,7 @@ function elvado_wpi_activate_theme(string $slug): ?string {
 }
 function elvado_wpi_deactivate_theme(): void { $f=ELVADO_WP_DATA.'/front-on';if(is_file($f))@unlink($f); }
 /** Signierter Vorschau-Schlüssel (15 Minuten) für wp-front.php. */
-function elvado_wpi_preview_token(string $slug, ?int $now=null, int $ttl=900): string { $exp=($now??time())+$ttl;return $slug.'.'.$exp.'.'.hash_hmac('sha256',$slug.'|'.$exp,wp_salt('preview')); }
+function elvado_wpi_preview_token(string $slug, ?int $now=null, int $ttl=900): string { $exp=($now??time())+$ttl;if(defined('ELVADO_WP_REAL'))return $slug.'.'.$exp.'.'.elvado_wpra_preview_sig(dirname(ELVADO_WP_DATA),$slug,$exp);   /* echtes WordPress: geprüft in cms/wp-engine-front.php */return $slug.'.'.$exp.'.'.hash_hmac('sha256',$slug.'|'.$exp,wp_salt('preview')); }
 
 /* ───────── Updates (WordPress.org) ───────── */
 /** Neueste Version eines Plugins/Themes im WordPress-Verzeichnis (6 Stunden zwischengespeichert); null = nicht gefunden/nicht erreichbar. */

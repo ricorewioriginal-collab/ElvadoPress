@@ -75,8 +75,8 @@ function elvado_wpc_items(): array {
     $bgSup=get_theme_support('custom-background');$hdSup=get_theme_support('custom-header');
     $bgDef=is_array($bgSup)?(string)($bgSup[0]['default-color']??''):'';$hdDef=is_array($hdSup)?(string)($hdSup[0]['default-text-color']??''):'';
     $coreOk=['blogname'=>true,'blogdescription'=>true,'background_color'=>(bool)$bgSup,'background_image'=>(bool)$bgSup,'header_image'=>(bool)$hdSup,'header_textcolor'=>$hdSup&&(!is_array($hdSup)||($hdSup[0]['header-text']??true))];
-    foreach($m->controls as $c){
-        $s=$c->setting_obj();if(!$s)continue;$id=(string)$s->id;
+    foreach($m->controls() as $c){   // echtes WordPress: Einstellung als Eigenschaft $setting, die Nachbildung als setting_obj()
+        $s=method_exists($c,'setting_obj')?$c->setting_obj():($c->setting instanceof WP_Customize_Setting?$c->setting:null);if(!$s)continue;$id=(string)$s->id;
         if(in_array($id,['custom_logo','site_icon'],true)||str_starts_with($id,'nav_menu')||$c->type==='hidden')continue;   // Logo/Icon pflegt das CMS (Branding), Menüs unten
         if(in_array($id,ELVADO_WPC_CORE,true)&&empty($coreOk[$id]))continue;
         $type=elvado_wpc_type($c,$id);
@@ -145,7 +145,7 @@ function elvado_wpc_describe(string $slug): array {
         $sid=$it['section']!==''?$it['section']:'elvado_other';
         if($sid==='title_tagline'&&in_array($it['id'],['blogname','blogdescription'],true))continue;
         if(!isset($secs[$sid])){
-            $sec=$m->sections[$sid]??null;
+            $sec=$m->get_section($sid);
             $title=['elvado_menus'=>'Menüs','static_front_page'=>'Startseiten-Einstellungen','custom_css'=>'Zusätzliches CSS','colors'=>'Farben','header_image'=>'Header-Medien','background_image'=>'Hintergrundbild'][$sid]??($sec?elvado_wpc_text((string)$sec->title):($sid==='elvado_other'?'Weitere Einstellungen':ucfirst($sid)));
             $secs[$sid]=['id'=>$sid,'title'=>$title!==''?$title:ucfirst($sid),'description'=>$sec?elvado_wpc_text((string)$sec->description):($sid==='elvado_menus'?'Welches CMS-Menü an welcher Stelle des Themes erscheint. Die Einträge pflegst du im CMS unter „Menüs“.':''),'priority'=>$sec?(int)$sec->priority:160,'controls'=>[]];
         }
