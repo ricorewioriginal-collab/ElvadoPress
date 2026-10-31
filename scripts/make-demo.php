@@ -7,7 +7,8 @@ foreach(array_slice($argv,2) as $a)if(str_starts_with($a,'--minutes='))$min=(int
 if($dir===''||!is_file($dir.'/cms/lib/demo.php')){ fwrite(STDERR,"Aufruf: php scripts/make-demo.php <Paketordner> [--minutes=10]\n");exit(2); }
 require_once $dir.'/cms/lib/demo.php';
 $engine=null;
-foreach(array_slice($argv,2) as $a)if(str_starts_with($a,'--engine=')){   // --engine="host|datenbank|benutzer|passwort[|präfix]": die Demo läuft mit echtem WordPress (eigene, leere Datenbank nur für die Demo)
+foreach(array_slice($argv,2) as $a)if($a==='--engine=sqlite'){ $engine=['driver'=>'sqlite']; }   // --engine=sqlite: echtes WordPress mit SQLite (Datenbankdatei unter cms/data, beim Zurücksetzen aus der Sicherung wiederhergestellt)
+elseif(str_starts_with($a,'--engine=')){   // --engine="host|datenbank|benutzer|passwort[|präfix]": die Demo läuft mit echtem WordPress (eigene, leere Datenbank nur für die Demo)
     [$h,$n,$u,$p,$pre]=array_pad(explode('|',substr($a,9)),5,'');
     $engine=['host'=>$h?:'localhost','name'=>$n,'user'=>$u,'pass'=>$p,'prefix'=>$pre?:'wpdemo_'];
 }

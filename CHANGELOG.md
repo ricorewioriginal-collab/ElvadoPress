@@ -11,6 +11,11 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### Weitere Websites und Demo auf echtem WordPress (Stufe E7b)
+- **Weitere Websites (Multisite):** Jede Website bekommt ihr eigenes echtes WordPress (eigener Zustand und eigene SQLite-Datenbank unter ihren Daten bzw. eigenes Präfix in der gemeinsamen MySQL-Datenbank, gemeinsamer Core). Einrichtung wie bei der Hauptwebsite (automatisch beim Öffnen der Verwaltung dieser Website); Medien-Adressen der Website werden umgeschrieben.
+- **Demo mit echtem WordPress:** `php scripts/make-demo.php <ordner> --engine=sqlite`. Beim ersten Öffnen der Verwaltung richtet sich WordPress ein und liefert die Demo-Website aus; der eingerichtete Stand wird gesichert und bei jedem Zurücksetzen sofort wiederhergestellt.
+- **Fehler behoben:** Nach dem Umschalten der Auslieferung (ElvadoPress ↔ WordPress) lieferte der Seiten-Cache noch alte Seiten aus. Jetzt wird er geleert; Theme-Wechsel in der Verwaltung leeren ihn ebenfalls.
+
 ### Echte WordPress-Verwaltung (Stufe E7a)
 - **„WordPress-Verwaltung öffnen“** (Plugins → WordPress-Plugins und die Editoren): Superadmins öffnen die echte WordPress-Verwaltung (wp-admin) angemeldet per Einmal-Schlüssel (2 Minuten gültig, einmal nutzbar). Dort stehen alle Einstellungsseiten von Plugins, der Block-Editor und Seiten-Builder wie Elementor zur Verfügung. Ohne Anmeldung führt wp-admin zur ElvadoPress-Anmeldung.
 

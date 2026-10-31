@@ -17,8 +17,7 @@ const ELVADO_WPRA_ACTIONS = ['wp_plugins', 'wp_plugin_search', 'wp_plugin_instal
 /** Gilt die Verwaltung auf echtem WordPress für diese Anfrage? */
 function elvado_wpra_applies(string $action, string $cmsDir): bool
 {
-    if (!in_array($action, ELVADO_WPRA_ACTIONS, true) || !empty($_GET['sandbox']) || defined('ELVADO_WP_SANDBOX') || is_file($cmsDir . '/lib/demo.json')
-        || is_file($cmsDir . '/data/sites.json') && (string)($_GET['site'] ?? '') !== '') {
+    if (!in_array($action, ELVADO_WPRA_ACTIONS, true) || !empty($_GET['sandbox']) || defined('ELVADO_WP_SANDBOX') || is_file($cmsDir . '/lib/demo.json')) {
         return false;
     }
     if (function_exists('elvado_wp_boot')) {   // die bisherige Schicht ist schon geladen: beides geht nicht in einem Prozess
@@ -130,6 +129,9 @@ function elvado_wpra_after(): void
     require_once __DIR__ . '/wp-real-compat.php';
     $admins = get_users(['role' => 'administrator', 'number' => 1, 'fields' => 'ID']);
     wp_set_current_user((int)($admins[0] ?? 0));   // Rechteprüfungen von WordPress und Plugins (die Verwaltung hat den Superadmin bereits geprüft)
+    if (function_exists('elvado_np_do')) {
+        elvado_np_do('wp_ready');   // native Plugins registrieren ihre WordPress-Hooks (z. B. Seiten-Cache leeren bei Theme-Wechsel)
+    }
     if (!defined('ELVADO_WP_VERSION')) {
         define('ELVADO_WP_VERSION', (string)$GLOBALS['wp_version']);
     }
