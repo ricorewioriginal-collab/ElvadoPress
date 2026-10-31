@@ -103,6 +103,10 @@
   async function pagesLoad(){
     coreStatus();
     try{var d=await get('wp_admin_menu');menu=d.groups||[]}catch(e){$('wpMenu').innerHTML='<span class="hint">'+esc(e.message)+'</span>';return}
+    if(d.wpadmin){   // echtes WordPress: Plugin-Seiten in der echten WordPress-Verwaltung (Anmeldung per Einmal-Schlüssel)
+      $('wpMenu').innerHTML='<button class="btn" id="wpAdminOpen"><i class="fab fa-wordpress"></i> WordPress-Verwaltung öffnen</button> <span class="hint">Einstellungsseiten der Plugins findest du dort im Menü.</span>';
+      $('wpAdminOpen').onclick=function(){openEditor('index.php')};return;
+    }
     var grp={},order=[];
     menu.forEach(function(g){if(g.label==='options.php')return;g.items.forEach(function(it){var k=it.plugin||('~'+g.label);if(!grp[k]){var pl=plugins.filter(function(p){return String(p.file).split('/')[0]===it.plugin})[0];grp[k]={label:pl?pl.name:g.label,items:[]};order.push(k)}grp[k].items.push(it)})});
     $('wpMenu').innerHTML=order.length?order.map(function(k){return '<div style="width:100%;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><b style="min-width:150px;font-size:.8rem">'+esc(grp[k].label)+'</b>'+grp[k].items.map(function(it){return '<button class="btn-g" data-pg="'+esc(it.slug)+'" style="padding:4px 10px;font-size:.78rem">'+esc(it.title)+'</button>'}).join('')+'</div>'}).join(''):'<span class="hint">Aktive Plugins ohne eigene Seiten. Aktiviere ein Plugin, um seine Einstellungen hier zu sehen.</span>';

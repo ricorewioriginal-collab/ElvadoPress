@@ -11,6 +11,9 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### Echte WordPress-Verwaltung (Stufe E7a)
+- **„WordPress-Verwaltung öffnen“** (Plugins → WordPress-Plugins und die Editoren): Superadmins öffnen die echte WordPress-Verwaltung (wp-admin) angemeldet per Einmal-Schlüssel (2 Minuten gültig, einmal nutzbar). Dort stehen alle Einstellungsseiten von Plugins, der Block-Editor und Seiten-Builder wie Elementor zur Verfügung. Ohne Anmeldung führt wp-admin zur ElvadoPress-Anmeldung.
+
 ### Customizer, Baukasten und Vorschau auf echtem WordPress (Stufe E6)
 - **Customizer** (Design → Customizer): liest die Einstellungen aus dem echten `WP_Customize_Manager` des Themes (Kern- und Theme-Einstellungen), speichert direkt in WordPress; Entwürfe und geplante Änderungen funktionieren weiter.
 - **Vorschau:** Theme-Vorschau, Customizer-Entwurf und Live-Builder-Vorschau zeigt echtes WordPress (signierte Schlüssel, nie aus dem Seiten-Cache, nicht in der Statistik).

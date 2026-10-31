@@ -138,6 +138,11 @@ def run(browser, base, shots, tmp):
     st, html, _ = http('GET', base + pv)
     st2, html2, _ = http('GET', base + '/?nc=3')
     check('Customizer-Vorschau auf echtem WordPress (Entwurf nur in der Vorschau)', '<title>Vorschau E2E' in html and 'preview-bridge.js' in html and 'Vorschau E2E' not in html2, pv)
+    # Echte WordPress-Verwaltung (Plugin-Einstellungen) per Einmal-Schlüssel aus ElvadoPress
+    sso = page.evaluate("cmsApi('wp_session_open',{to:'options-general.php'}).then(d=>d.url)")
+    wpa = browser.new_page(); wpa.goto(base + sso); wpa.wait_for_timeout(1500)
+    check('Echte WordPress-Verwaltung öffnet sich angemeldet aus ElvadoPress', 'Allgemein' in wpa.title() and '/wp-admin/options-general.php' in wpa.url, wpa.url)
+    wpa.screenshot(path=os.path.join(shots, 'wp-admin.png')); wpa.close()
     page.evaluate("cmsApi('wp_settings_save',{group:'general',values:{blogname:'E2E Testseite'}})")
     tok = page.evaluate("sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')")
 

@@ -36,8 +36,31 @@ if (preg_match('#^/(wp-includes|wp-admin/(?:css|js|images))/([A-Za-z0-9._/-]+)$#
     echo 'Nicht gefunden';
     exit;
 }
-// Anmeldung und Verwaltung gehören zu ElvadoPress
-if ($elvadoFrontPath === '/wp-login.php' || preg_match('#^/wp-admin(/(?!admin-ajax\.php$|admin-post\.php$).*)?$#', $elvadoFrontPath)) {
+// Anmeldung gehört zu ElvadoPress. Die echte WordPress-Verwaltung (wp-admin, z. B. Einstellungsseiten von Plugins) öffnen Superadmins aus ElvadoPress heraus
+// („In WordPress öffnen“, Einmal-Schlüssel elvado_sso); ohne WordPress-Anmeldung führt sie zur ElvadoPress-Anmeldung.
+if ($elvadoFrontPath === '/wp-login.php') {
+    if (($_GET['action'] ?? '') === 'logout') {
+        foreach (array_keys($_COOKIE) as $elvadoFrontC) {
+            if (str_starts_with((string)$elvadoFrontC, 'wordpress_')) {
+                foreach (['/', '/wp-admin', '/wp-content/plugins'] as $elvadoFrontCp) {
+                    setcookie((string)$elvadoFrontC, '', ['expires' => 1, 'path' => $elvadoFrontCp]);
+                }
+            }
+        }
+    }
+    header('Location: /cms/', true, 302);
+    exit;
+}
+$elvadoFrontAdmin = '';
+if (preg_match('#^/wp-admin(?:/((?:network/|user/)?[a-z0-9-]+\.php)?)?/?$#', $elvadoFrontPath, $elvadoFrontAm) && !in_array($elvadoFrontAm[1] ?? '', ['admin-ajax.php', 'admin-post.php'], true)) {
+    $elvadoFrontAdmin = ($elvadoFrontAm[1] ?? '') !== '' ? $elvadoFrontAm[1] : 'index.php';
+    if (!is_file($elvadoFrontEngine->corePath() . 'wp-admin/' . $elvadoFrontAdmin) || in_array(basename($elvadoFrontAdmin), ['load-scripts.php', 'load-styles.php', 'install.php', 'setup-config.php', 'upgrade.php'], true)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Nicht gefunden';
+        exit;
+    }
+} elseif (str_starts_with($elvadoFrontPath, '/wp-admin/') && !in_array($elvadoFrontPath, ['/wp-admin/admin-ajax.php', '/wp-admin/admin-post.php'], true)) {
     header('Location: /cms/', true, 302);
     exit;
 }
@@ -92,6 +115,15 @@ if ($elvadoFrontPreview !== '' && isset($_GET['elvado_wp_preview'])) {
     setcookie('elvado_wp_preview', $elvadoFrontPvTok, ['expires' => (int)explode('.', $elvadoFrontPvTok)[1], 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
 }
 $elvadoFrontIsPreview = $elvadoFrontPreview !== '' || $elvadoFrontEp;
+$elvadoFrontSso = '';
+if ($elvadoFrontAdmin !== '') {   // WordPress-Verwaltung: Kontext vor dem Start festlegen (is_admin(), $pagenow), keine zusammengefassten Skripte (load-scripts.php)
+    define('WP_ADMIN', true);
+    define('CONCATENATE_SCRIPTS', false);
+    $_SERVER['PHP_SELF'] = $_SERVER['SCRIPT_NAME'] = '/wp-admin/' . $elvadoFrontAdmin;
+    $elvadoFrontSso = elvado_wpra_sso_consume($siteData, (string)($_GET['elvado_sso'] ?? ''));
+    $elvadoFrontIsPreview = true;   // nie Seiten-Cache, keine Statistik
+    header('Cache-Control: no-store');
+}
 if ($elvadoFrontIsPreview) {
     header('Cache-Control: no-store');
     header('X-Robots-Tag: noindex, nofollow');
@@ -108,6 +140,22 @@ $GLOBALS['elvado_wpe_opts'] = ['themes' => true, 'front' => true];
 require $cmsDir . '/wp-engine-boot.php';
 elvado_wpe_after_boot($elvadoFrontEngine);
 elvado_np_do('wp_ready');   // native Plugins registrieren jetzt ihre WordPress-Hooks und Shortcodes (z. B. [elvado_form])
+if ($elvadoFrontAdmin !== '') {
+    if ($elvadoFrontSso !== '') {   // Einmal-Schlüssel: als WordPress-Administrator anmelden (Benutzer gleichen Namens, sonst der erste Administrator)
+        $elvadoFrontU = get_user_by('login', $elvadoFrontSso);
+        if (!$elvadoFrontU || !user_can($elvadoFrontU, 'manage_options')) {
+            $elvadoFrontAdmins = get_users(['role' => 'administrator', 'number' => 1]);
+            $elvadoFrontU = $elvadoFrontAdmins[0] ?? null;
+        }
+        if ($elvadoFrontU) {
+            wp_set_auth_cookie((int)$elvadoFrontU->ID, false, is_ssl());
+        }
+        header('Location: ' . remove_query_arg('elvado_sso'), true, 302);
+        exit;
+    }
+    require ABSPATH . 'wp-admin/' . $elvadoFrontAdmin;
+    exit;
+}
 // Vorschau-Brücke für Live Builder/Customizer und ungespeicherte Customizer-Entwürfe (nur mit gültigem Vorschau-Schlüssel, nichts wird gespeichert)
 $elvadoFrontLiveCz = false;
 if ($elvadoFrontPreview !== '') {
