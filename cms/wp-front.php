@@ -1,11 +1,11 @@
 <?php
-// Front-Controller der WordPress-Theme-Laufzeit: liefert die Website mit einem WordPress-Theme (PHP) aus.
-// Aktiv, wenn die Datei cms/data/.wp/front-on existiert (Aktivieren eines WordPress-Themes im CMS) oder ein gültiger Vorschau-Schlüssel mitgegeben wird.
-// Aufruf über index.php (Startseite) und die Umschreibregel in .htaccess (alle weiteren nicht vorhandenen Pfade).
+// Front-Controller der Website: echtes WordPress liefert sie aus (cms/wp-engine-front.php, eingerichtet unter System → WordPress-Engine).
+// Davor: Demo-Betrieb, Sandbox (geheimer Link, eigene Datenbank) und weitere Websites (Multisite). Ist WordPress (noch) nicht eingerichtet, gibt es Feed,
+// robots.txt, Weiterleitungen/404-Seite der Werkzeuge und sonst eine Hinweisseite. Aufruf über index.php (Startseite) und die Umschreibregel in .htaccess.
 declare(strict_types=1);
 $cmsDir=__DIR__;$root=dirname(__DIR__);
 if(is_file($cmsDir.'/lib/demo.json')){ require_once $cmsDir.'/lib/demo.php';elvado_demo_boot();elvado_demo_guard_front((string)parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH));ob_start('elvado_demo_inject'); }   // Demo-Betrieb
-/* Sandbox: geheimer Link (?elvado_sbx=<Schlüssel>) → Cookie; eigene Optionen/Themes, nur lesend, nicht indexierbar (siehe wp/sandbox.php) */
+/* Sandbox: geheimer Link (?elvado_sbx=<Schlüssel>) → Cookie; eigene WordPress-Datenbank, nur lesend, nicht indexierbar (lib/wp-real-sandbox.php) */
 $sbx=false;
 $sbxTok=(string)($_GET['elvado_sbx']??$_COOKIE['elvado_sbx']??'');
 $sbxReal=false;
@@ -23,124 +23,43 @@ if($sbxTok!==''){   // echtes WordPress liefert aus: Sandbox = Kopie der WordPre
         else{ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden';exit; }
     }
 }
-if($sbxTok!==''&&!$sbxReal){
-    require_once $cmsDir.'/wp/sandbox.php';
-    if($sbxTok==='off'){ foreach(['elvado_sbx','elvado_wp_preview','elvado_wp_draft'] as $c)setcookie($c,'',['expires'=>1,'path'=>'/']);header('Location: /');http_response_code(302);exit; }
-    if(elvado_sbx_token_ok($sbxTok)){
-        elvado_sbx_enter();$sbx=true;header('X-Robots-Tag: noindex, nofollow',true);header('Cache-Control: no-store');
-        if(isset($_GET['elvado_sbx']))setcookie('elvado_sbx',$sbxTok,['expires'=>time()+14*86400,'path'=>'/','httponly'=>true,'samesite'=>'Lax']);
-        if(!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD'],true)){ http_response_code(405);header('Content-Type: text/plain; charset=utf-8');echo 'Die Sandbox ist schreibgeschützt.';exit; }
-    }elseif(isset($_COOKIE['elvado_sbx'])&&!isset($_GET['elvado_sbx'])){ setcookie('elvado_sbx','',['expires'=>1,'path'=>'/']);header('Location: '.str_replace(["\r","\n"],'',(string)($_SERVER['REQUEST_URI']??'/')));http_response_code(302);exit; }   // Sandbox gelöscht/Link erneuert → altes Cookie ablegen
-    else{ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden';exit; }
+if($sbxTok!==''&&!$sbxReal){   // ohne echtes WordPress gibt es keine Sandbox: altes Cookie ablegen
+    if(isset($_COOKIE['elvado_sbx']))setcookie('elvado_sbx','',['expires'=>1,'path'=>'/']);
+    if(isset($_GET['elvado_sbx'])){ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden';exit; }
 }
 /* Weitere Website (Multisite, lib/sites.php): Domain → eigene Daten und eigene WordPress-Ablage (Themes/Optionen), Medien-Adressen siehe unten. Ohne Registry bleibt alles wie bisher. */
 $siteId='';$siteData=$cmsDir.'/data';
 if(!$sbx&&is_file($cmsDir.'/data/sites.json')){
     try{ require_once $cmsDir.'/lib/sites.php';$siteId=elvado_site_current();if($siteId!==''){ $siteData=elvado_site_dir('data',$siteId);if(!defined('ELVADO_WP_DATA'))define('ELVADO_WP_DATA',$siteData.'/.wp');if(!defined('ELVADO_MEDIA_DIR'))define('ELVADO_MEDIA_DIR',elvado_site_dir('media',$siteId)); } }catch(Throwable $e){ $siteId='';$siteData=$cmsDir.'/data'; }
 }
-$flag=$siteData.'/.wp/front-on';
-require $cmsDir.'/wp-engine-front.php';   // echtes WordPress liefert die Website aus (nur wenn unter System → WordPress-Engine eingeschaltet; sonst sofort zurück)
-require_once $cmsDir.'/wp/load.php';
+require $cmsDir.'/wp-engine-front.php';   // echtes WordPress liefert die Website aus (kehrt nur zurück, wenn es nicht eingerichtet bzw. ausgeschaltet ist)
 
-/* Vorschau: signierter, 15 Minuten gültiger Schlüssel (?elvado_wp_preview=<theme>.<ablauf>.<signatur>) → Cookie */
-$preview='';
-if(($_GET['elvado_wp_preview']??'')==='off'){ setcookie('elvado_wp_preview','',['expires'=>1,'path'=>'/']);setcookie('elvado_wp_draft','',['expires'=>1,'path'=>'/']);header('Location: /');http_response_code(302);exit; }
-// Live-Builder-Vorschau der Website (signierter Schlüssel): zeigt immer das aktive Theme, auch wenn noch ein Cookie einer Theme-Vorschau besteht
-$epPv=false;
-if(isset($_GET['elvado_ep_preview'])&&is_string($_GET['elvado_ep_preview'])){ try{ require_once $cmsDir.'/lib/components.php';$epPv=elvado_components_preview_ok($_GET['elvado_ep_preview'],'site:website',$cmsDir.'/data'); }catch(Throwable $e){} }
-$tok=$epPv?(string)($_GET['elvado_wp_preview']??''):(string)($_GET['elvado_wp_preview']??$_COOKIE['elvado_wp_preview']??'');
-if($tok!==''&&preg_match('/^([a-z0-9_-]{1,80})\.(\d{9,11})\.([a-f0-9]{64})$/',$tok,$m)&&(int)$m[2]>time()&&hash_equals(hash_hmac('sha256',$m[1].'|'.$m[2],wp_salt('preview')),$m[3])){
-    $preview=$m[1];
-    if(isset($_GET['elvado_wp_preview']))setcookie('elvado_wp_preview',$tok,['expires'=>(int)$m[2],'path'=>'/','httponly'=>true,'samesite'=>'Lax']);
-    $GLOBALS['elvado_wp_preview_theme']=$preview;
-    add_action('wp_footer',function(){ echo '<script src="/cms/assets/preview-bridge.js?v=1" defer></script>'."\n"; },99);   // Vorschau-Brücke für den Live Builder (nur mit gültigem Vorschau-Schlüssel)
-    $parent=$preview;foreach(array_map(fn($rt)=>$rt['dir'].'/'.$preview,elvado_wp_theme_roots()) as $d)if(is_file($d.'/style.css')){ $h=get_file_data($d.'/style.css',['Template'=>'Template']);if($h['Template']!==''&&preg_match('/^[a-z0-9_-]{1,80}$/',$h['Template']))$parent=$h['Template'];break; }
-    add_filter('pre_option_stylesheet',fn()=>$preview);add_filter('pre_option_template',fn()=>$parent);
-}
-// Customizer-Vorschau: ungespeicherte Entwurfswerte (nur mit gültigem Vorschau-Schlüssel, 15 Minuten, nichts wird gespeichert)
-$liveCz=false;
-if($preview!==''){
-    $dr=(string)($_GET['elvado_wp_draft']??$_COOKIE['elvado_wp_draft']??'');
-    if(preg_match('/^[a-f0-9]{32}$/',$dr)){
-        require_once $cmsDir.'/wp/customizer-api.php';$liveCz=true;
-        $dd=elvado_wpc_draft_load($dr,$preview);if($dd!==null)elvado_wpc_draft_apply($dd);
-        if(isset($_GET['elvado_wp_draft']))setcookie('elvado_wp_draft',$dr,['expires'=>time()+900,'path'=>'/','httponly'=>true,'samesite'=>'Lax']);
-    }
-}
-if($sbx&&$preview===''&&!is_file(ELVADO_WP_DATA.'/front-on')){ header('Content-Type: text/html; charset=utf-8');echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sandbox</title><body style="font:16px system-ui;max-width:34rem;margin:15vh auto;padding:0 1rem"><h1>Sandbox</h1><p>In der Sandbox ist kein WordPress-Theme aktiv – so käme es auch live: das Portal-Design.</p><p>Im CMS unter <b>Design → Sandbox</b> kannst du ein Theme aktivieren.</p><p><a href="/?elvado_sbx=off">Sandbox verlassen</a></p>';exit; }
-if(!is_file($flag)&&$preview===''&&!$sbx){
-    http_response_code(404);
-    try{require_once $root.'/cms/lib/tools.php';elvado_notfound_handle($root);}catch(Throwable $e){header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden';}
+// WordPress liefert (noch) nicht aus: Feed und robots.txt aus den ElvadoPress-Daten, Weiterleitungen/404 der Werkzeuge, sonst Hinweisseite
+$path=(string)parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH);
+try{ require_once $cmsDir.'/lib/tools.php';elvado_maint_gate($root); }catch(Throwable $e){}
+$site=json_decode((string)@file_get_contents($siteData.'/site.json'),true)?:[];
+if($path==='/rss.xml'){
+    header('Content-Type: application/rss+xml; charset=utf-8');
+    try{ require_once $cmsDir.'/lib/publish.php';require_once $cmsDir.'/lib/feeds.php';
+        if(isset($site['rss']['enabled'])&&empty($site['rss']['enabled'])){ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Der RSS-Feed ist ausgeschaltet.';exit; }
+        echo elvado_rss_xml($site);
+    }catch(Throwable $e){ http_response_code(503);header('Content-Type: text/plain; charset=utf-8');echo 'Der Feed ist gerade nicht verfügbar.'; }
     exit;
 }
-try{require_once $cmsDir.'/lib/tools.php';if($preview===''&&!$sbx)elvado_maint_gate($root);}catch(Throwable $e){}
-$GLOBALS['ELVADO_SITE']=json_decode((string)@file_get_contents($siteData.'/site.json'),true)?:[];
-try{ require_once $cmsDir.'/lib/seo.php';require_once $cmsDir.'/lib/brand.php'; }catch(Throwable $e){}
-require_once $cmsDir.'/wp/router.php';
-require_once $cmsDir.'/wp/session.php';
-
-$uri=(string)($_SERVER['REQUEST_URI']??'/');
-$reqPath=(string)parse_url($uri,PHP_URL_PATH);
-// Mehrsprachige Website (lib/multilang.php): /en/… liefert die englischen Beiträge; der Rest der Auslieferung sieht den Pfad ohne Sprachpräfix
-$npUri=$uri;$npPath=$reqPath;   // Plugins (z. B. Seiten-Cache) sehen die vollständige Adresse mit Sprachpräfix
-try{
-    require_once $cmsDir.'/lib/multilang.php';$mlCfg=elvado_ml_config((array)$GLOBALS['ELVADO_SITE']);
-    if($mlCfg['enabled']&&!$sbx){
-        [$mlLang,$mlPath]=elvado_ml_detect($reqPath,$mlCfg);
-        if($mlLang!==$mlCfg['default']){ $mlQ=(string)parse_url($uri,PHP_URL_QUERY);$uri=$mlPath.($mlQ!==''?'?'.$mlQ:'');$reqPath=$mlPath;$_SERVER['REQUEST_URI']=$uri; }
-        $GLOBALS['elvado_ml']=['lang'=>$mlLang,'cfg'=>$mlCfg];
-    }
-}catch(Throwable $e){}
-// Native Plugins (Essentials): laden, geplante Aufgaben, frühe Anfragen (z. B. Seiten-Cache, Weiterleitungen) – siehe cms/lib/nplugins.php
-require_once $cmsDir.'/lib/nplugins.php';
-if($preview===''&&!$sbx){ elvado_np_boot();elvado_np_do('front_request',$npUri,$npPath,(string)($_SERVER['REQUEST_METHOD']??'GET')); }
-// Wechsel vom CMS: Einmal-Token gegen Sitzungs-Cookie tauschen und auf die saubere Adresse weiterleiten
-if(isset($_GET['elvado_wp_login'])){
-    $ok=elvado_wp_sess_token_consume((string)$_GET['elvado_wp_login']);
-    $clean=preg_replace('/([?&])elvado_wp_login=[^&]*&?/','$1',$uri);$clean=rtrim((string)$clean,'?&');
-    if($ok)header('Set-Cookie: '.elvado_wp_sess_cookie_issue(),false);
-    header('Cache-Control: no-store');header('Location: '.($ok?$clean:'/cms/'));http_response_code(302);exit;
+if(preg_match('#^/(feed|rss)(/|\.xml|\.php)?$#',$path)){ header('Location: /rss.xml',true,302);exit; }
+if($path==='/robots.txt'){
+    $pub=!str_starts_with(strtolower(trim((string)($site['seo']['robots']??'index,follow'))),'noindex');
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "User-agent: *\n".($pub?"Disallow: /cms/data/\nDisallow: /cms/backups/\nDisallow: /cms/plugins/\nAllow: /\n":"Disallow: /\n");
+    exit;
 }
-$sess=elvado_wp_sess_check();$GLOBALS['elvado_wp_sess_user']=$sess!==null;
-elvado_wp_boot(['theme'=>true,'user'=>$sess?:null,'admin'=>$sess!==null&&str_starts_with($reqPath,'/wp-admin/')]);
-if(!empty($GLOBALS['elvado_ml']))elvado_ml_hooks();   // Sprache, Adressen, hreflang, Sprachumschalter
-if($preview===''&&is_file(ELVADO_WP_DATA.'/customize-changesets/future.idx')){ try{ require_once $cmsDir.'/wp/customizer-api.php';elvado_wpc_cs_run_due(); }catch(Throwable $e){} }   // geplante Customizer-Änderungen
-if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){ $GLOBALS['elvado_wp_raw_body']=(string)file_get_contents('php://input',false,null,0,1048576);}
-$GLOBALS['elvado_wp_req_headers']=['Content-Type'=>(string)($_SERVER['CONTENT_TYPE']??''),'Accept'=>(string)($_SERVER['HTTP_ACCEPT']??''),'X-WP-Nonce'=>(string)($_SERVER['HTTP_X_WP_NONCE']??''),'X-HTTP-Method-Override'=>(string)($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']??'')];
-$r=elvado_wp_dispatch($uri,(string)($_SERVER['REQUEST_METHOD']??'GET'),$_GET,$_POST);
-if($preview===''&&!$sbx)elvado_np_tick();   // geplante Plugin-Aufgaben erst nach dem Laden von WordPress und Theme (sonst würde ein früher Start der WordPress-Schicht das Theme aussperren)
-if($r['status']===404&&$preview===''){
-    // Weiterleitungen aus dem CMS (Werkzeuge) haben Vorrang vor der 404-Seite des Themes; unbekannte Pfade werden protokolliert
-    try{
-        $dataDir=$siteData;$path=(string)parse_url($uri,PHP_URL_PATH);
-        $rules=elvado_tools_read(elvado_tools_dir($dataDir).'/redirects.json',['rules'=>[]])['rules']??[];$hit=is_array($rules)?elvado_redirect_match($rules,$path):null;
-        if($hit){ $code=(int)($hit['code']??301);if($code===410){ http_response_code(410);header('Content-Type: text/plain; charset=utf-8');echo 'Diese Seite wurde dauerhaft entfernt.';exit; } header('Location: '.str_replace(["\r","\n"],'',(string)$hit['to']),true,$code);exit; }
-        elvado_404_log($dataDir,$path,(string)($_SERVER['HTTP_REFERER']??''));
-    }catch(Throwable $e){}
+if($path!=='/'&&$path!==''){
+    http_response_code(404);
+    try{ elvado_notfound_handle($root); }catch(Throwable $e){ header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden'; }
+    exit;
 }
-if($preview===''&&$r['status']===200&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&($loc=elvado_wp_canonical_redirect($uri))!==null){ header('Location: '.str_replace(["\r","\n"],'',$loc),true,301);exit; }   // alte Beitrags-Adresse → eingestellte Link-Form
-http_response_code($r['status']);
-foreach($r['headers'] as $k=>$v)header($k.': '.str_replace(["\r","\n"],'',(string)$v));
-if($preview!=='')header('Cache-Control: no-store');elseif($r['status']===200&&($r['headers']['Content-Type']??'')!==''&&($_SERVER['REQUEST_METHOD']??'GET')==='GET')header('Cache-Control: no-cache, must-revalidate');
-$body=$r['body'];
-if($siteId!==''&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false)$body=str_replace('/cms/media/','/cms/sites/'.$siteId.'/media/',$body);   // Medien dieser Website liegen in cms/sites/<kennung>/media
-// App-Modus (Baukasten-App): Kopf und Fuß der Website in der App ausblenden (siehe lib/appmode.php)
-if($preview===''&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false){
-    try{
-        require_once $cmsDir.'/lib/appmode.php';$am=elvado_appmode_detect();
-        if($am!==null){
-            header('Vary: User-Agent, Cookie',false);
-            require_once $cmsDir.'/lib/apps.php';
-            if(elvado_appmode_hide($am,elvado_apps_own($siteData),(array)$GLOBALS['ELVADO_SITE']))$body=elvado_appmode_inject($body,true);
-        }
-    }catch(Throwable $e){}
-}
-if($liveCz&&$r['status']===200&&is_string($body)&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).elvado_wpc_live_script().substr($body,$p);
-if($sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&($p=strripos($body,'</body>'))!==false)$body=substr($body,0,$p).'<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:7px 12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">Sandbox – nicht öffentlich <a href="/?elvado_sbx=off" style="color:#fff;text-decoration:underline">Sandbox verlassen</a></div>'.substr($body,$p);
-if($preview===''&&!$sbx&&is_string($body)&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false)$body=elvado_np_filter('front_output',$body,(int)$r['status']);   // Plugins: SEO, Leistung, Statistik, Sicherheits-Header
-// Live Builder (themeunabhängig): veröffentlichte Gestaltung, geänderte Texte und Reihenfolge der Bereich „Website“ (site:website); nur wenn etwas gespeichert ist oder eine signierte Vorschau läuft
-if(!$sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&(isset($_GET['elvado_ep_preview'])||is_file($siteData.'/layouts/site__website.json'))){
-    try{ require_once $cmsDir.'/lib/components.php';$body=elvado_components_inject($body,'site:website',$_GET,$siteData); }catch(Throwable $e){}
-}
-elvado_np_do('front_response',(int)$r['status'],$npPath,(string)($r['headers']['Content-Type']??'text/html'));
-echo $body;
+http_response_code(503);header('Retry-After: 300');header('Content-Type: text/html; charset=utf-8');header('Cache-Control: no-store');
+$name=htmlspecialchars((string)($site['portal']['site_name']??'Website'),ENT_QUOTES,'UTF-8');
+echo '<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>'.$name.'</title>'
+    .'<body style="font:16px/1.5 system-ui,sans-serif;max-width:36rem;margin:15vh auto;padding:0 1rem"><h1>'.$name.'</h1><p>Die Website wird gerade eingerichtet.</p>'
+    .'<p style="color:#666">Betreiber: Melde dich in der <a href="/cms/">Verwaltung</a> an – WordPress wird dabei automatisch eingerichtet (System → WordPress-Engine).</p></body></html>';

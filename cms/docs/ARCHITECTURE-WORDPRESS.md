@@ -1,6 +1,6 @@
 # Architektur: ElvadoPress mit echter WordPress-Engine
 
-Stand Phase 11 (Tests, Sicherheit, Performance, Dokumentation). Die WordPress-Engine ist **standardmäßig aus**; ohne Aktivierung ändert sich an ElvadoPress und an öffentlichen Seiten nichts.
+Seit Stufe E7 (Version 1.4.0) ist echtes WordPress die einzige WordPress-Laufzeit: ElvadoPress richtet es automatisch ein und lässt die Website davon ausliefern. Die frühere Nachbildung (`cms/wp/core` …) ist entfernt.
 
 ## Schichten
 ```
@@ -139,3 +139,6 @@ Customizer- und Baukasten-Aktionen laufen auf echtem WordPress; das bearbeitete 
 
 ## Echte WordPress-Verwaltung (Stufe E7a)
 `/wp-admin/…` wird bei Auslieferung durch WordPress von `cms/wp-engine-front.php` an die echten wp-admin-Dateien gegeben (`WP_ADMIN`, `CONCATENATE_SCRIPTS=false`, `$_SERVER['PHP_SELF']`). Die Anmeldung erfolgt nur aus ElvadoPress heraus: `wp_session_open` erzeugt einen Einmal-Schlüssel (sha256-Dateiname, 120 s), der beim ersten Aufruf das WordPress-Anmelde-Cookie des passenden bzw. ersten Administrators setzt. `wp-login.php` führt weiterhin zur ElvadoPress-Anmeldung (Abmelden löscht die WordPress-Cookies).
+
+## Nachbildung entfernt (Stufe E7d)
+`cms/wp/core`, `wp-admin`, `wp-includes`, `load.php`, `router.php`, `rest.php`, `sandbox.php` u. a. sind gelöscht; in `cms/wp/` bleiben nur Verwaltungsbausteine, die mit dem echten Core arbeiten (`installer`, `settings-api`, `links-api`, `customizer-api`, `autoupdate`). `cms/api.php` antwortet auf `wp_*`-Aktionen ohne eingerichtete Engine mit 409 (`engine:false`), `cms/wp-front.php` liefert vor der Einrichtung nur RSS, robots.txt, 404 und den Hinweis „Die Website wird gerade eingerichtet“. Übernommene Funktionen: eingebaute Shortcodes und Assistenten-Widget (`cms/lib/wp-shortcodes.php`), KI-Verbinder (`cms/lib/wp-ai-connectors.php`), beide geladen von der Engine-Schicht. Offizielle Plugins lesen die Link-Struktur aus WordPress (`get_option` bzw. `elvado_wpra_live_option`); die SEO-Sitemap wird ohne laufendes WordPress beim nächsten Seitenaufruf erzeugt. Tests mit echtem WordPress laufen über `scripts/wpe-render.php` (Schritte in eigenen PHP-Prozessen) bzw. `scripts/wpe-test-site.php` (HTTP-Einrichtung).

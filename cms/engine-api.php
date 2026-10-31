@@ -107,7 +107,12 @@ if ($elvadoEngineAction === 'engine_demo_setup') {
     elvado_json(['status' => 'ok', 'message' => 'Die Demo-Engine ist eingerichtet und aktiv.'] + elvado_wpe_status($elvadoEngine, $elvadoEngineDb));
 }
 if ($elvadoEngineAction === 'engine_core') {
-    $r = elvado_wpe_install_core($elvadoEngine, (string)($elvadoEngineB['version'] ?? ''));
+    // source=bundle: das mitgelieferte Paket aus dem Release-ZIP verwenden (ohne Download; z. B. ohne Internet oder für Tests)
+    $elvadoBundle = ($elvadoEngineB['source'] ?? '') === 'bundle' ? elvado_wpe_bundle($elvadoEngine, 'wordpress') : '';
+    if (($elvadoEngineB['source'] ?? '') === 'bundle' && $elvadoBundle === '') {
+        elvado_json(['status' => 'error', 'message' => 'Es liegt kein mitgeliefertes WordPress-Paket vor (cms/wp-engine/bundle/).'], 404);
+    }
+    $r = elvado_wpe_install_core($elvadoEngine, (string)($elvadoEngineB['version'] ?? ''), $elvadoBundle);
     if ($r['ok']) {
         $elvadoEngineLog('WordPress ' . $r['version'] . ' eingespielt');
     }
@@ -694,6 +699,9 @@ if ($elvadoEngineAction === 'engine_front') {   // Website mit echtem WordPress 
         $elvadoLang = elvado_wpe_sync_site();   // gleiche Sprache (Sprachpaket von wordpress.org) und Zeitzone wie ElvadoPress
         @set_time_limit(600);
         $elvadoAdopt = elvado_wpe_adopt_site($elvadoEngine);   // Theme, Theme-Einstellungen, Widgets, Optionen und Plugins der bisherigen Schicht übernehmen (einmalig)
+        $elvadoOptF = dirname($elvadoEngine->stateDir()) . '/.wp/options.json';   // vorgemerkte Einstellungen sind damit übernommen (kein erneuter Abgleich beim ersten Seitenaufruf)
+        clearstatcache(true, $elvadoOptF);
+        update_option('elvado_opts_fp', is_file($elvadoOptF) ? filemtime($elvadoOptF) . ':' . filesize($elvadoOptF) : '-', false);
         if (!get_option('elvado_migrated')) {   // einmalig alles übernehmen: Benutzer, Medien, Begriffe, Beiträge, Seiten, Menüs (mit Sicherung)
             try {
                 $elvadoMigRun = (new \Elvado\Wp\Migration\Migrator(__DIR__, __DIR__ . '/data', $elvadoEngine->stateDir(), $elvadoActor))->run();

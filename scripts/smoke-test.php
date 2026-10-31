@@ -59,25 +59,31 @@ $pw='Teststark-Passwort-42';
 $r=http('POST',"$B/cms/install.php",['csrf'=>$m[1]??'','do'=>'install','site_name'=>'Mein Test-Radio','language'=>'de','timezone'=>'Europe/Berlin','username'=>'chef','display_name'=>'Chefredaktion','email'=>'chef@example.test','password'=>$pw,'password2'=>$pw,'db_driver'=>'none','sample'=>'1']);
 t('Einrichtung abgeschlossen',$r['code']===200&&(stripos($r['body'],'abgeschlossen')!==false),substr(strip_tags($r['body']),0,300));
 t('Sperrdatei vorhanden',is_file($pkg.'/cms/data/install.lock'));
-t('Neutrales Theme eingeschaltet',is_file($pkg.'/cms/data/.wp/front-on'));
-$opts=json_decode((string)@file_get_contents($pkg.'/cms/data/.wp/options.json'),true)?:[];
-t('Theme „elvado-classic“ gewählt',isset($opts['stylesheet']['v'])&&@unserialize($opts['stylesheet']['v'])==='elvado-classic');
 
-/* Website */
+/* Website vor der Einrichtung von WordPress: Hinweisseite, Feed und 404 kommen aus ElvadoPress */
 $r=http('GET',"$B/");
-t('Startseite wird vom Theme ausgeliefert',$r['code']===200&&str_contains($r['body'],'Mein Test-Radio'),'HTTP '.$r['code']);
+t('Vor der Einrichtung von WordPress: Hinweisseite (503) mit eigenem Namen',$r['code']===503&&str_contains($r['body'],'Mein Test-Radio')&&str_contains($r['body'],'/cms/'),'HTTP '.$r['code']);
 t('Startseite ohne RicoReWi-Inhalte',!preg_match('/ricorewi|anmacha|senderwelt/i',$r['body']));
 $r=http('GET',"$B/cms/rss.php");
 t('RSS-Feed: eigener Titel und eigene Beiträge',$r['code']===200&&str_contains($r['body'],'<title>Mein Test-Radio – News &amp; Magazin</title>')&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),substr($r['body'],0,600));
 t('RSS-Feed ohne RicoReWi-Inhalte (Generator-Angabe folgt dem Produktnamen des Pakets)',!preg_match('/ricorewi|anmacha|senderwelt/i',(string)preg_replace('~<generator>.*?</generator>~s','',$r['body'])));
-$r=http('GET',"$B/willkommen/");
-t('Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),'HTTP '.$r['code']);
 $r=http('GET',"$B/gibt-es-nicht/");
 t('Unbekannte Adresse → 404',$r['code']===404);
 
 /* Verwaltung */
 $r=http('POST',"$B/cms/api.php?action=login",['__json'=>json_encode(['username'=>'chef','password'=>$pw])],['Content-Type: application/json']);
 $login=json_decode($r['body'],true)?:[];$tok=(string)($login['token']??'');
+// Echtes WordPress (nur mit WPE_TEST_ZIP, z. B. in der CI): einrichten wie bei der ersten Anmeldung (Core aus dem Paket, SQLite, Auslieferung) und die Website prüfen
+require_once __DIR__.'/wpe-test-site.php';$wpOn=false;
+if(wpe_test_site_available()){
+    $ws=wpe_test_site_setup($B,$tok,$pkg);$wpOn=$ws['ok'];t('WordPress einrichten (wie bei der ersten Anmeldung)',$wpOn,$ws['message']);
+    if($wpOn){
+        $r=http('GET',"$B/",[],[],true);
+        t('Startseite wird von echtem WordPress mit dem neutralen Theme ausgeliefert',$r['code']===200&&str_contains($r['body'],'Mein Test-Radio')&&str_contains($r['body'],'/cms/themes/elvado-classic'),'HTTP '.$r['code'].' '.substr(strip_tags($r['body']),0,200).' '.(preg_match('~/cms/themes/[a-z-]*~',$r['body'],$mm)?$mm[0]:'-'));
+        $r=http('GET',"$B/willkommen/",[],[],true);
+        t('Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Willkommen bei Mein Test-Radio'),'HTTP '.$r['code']);
+    }
+}else echo "Hinweis: Website mit echtem WordPress übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";
 t('Anmeldung',$tok!=='',$r['body']);
 $H=['X-ElvadoPress-Token: '.$tok];
 $g=json_decode(http('GET',"$B/cms/api.php?action=get",[],$H)['body'],true)?:[];
@@ -112,8 +118,8 @@ $prov=[];foreach($as['providers']??[] as $pr)$prov[]=['id'=>$pr['id'],'enabled'=
 $sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Test-Assistent','knowledge'=>'Wir sind Mein Test-Radio.','providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
 t('Assistent: Einstellungen speichern',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);
 /* KI-Assistent: Website-Modus, Chat-Fenster auf der Website, Modelle */
-$fr=http('GET',"$B/");
-t('Assistent: Chat-Fenster auf der Website, wenn eingeschaltet',str_contains($fr['body'],'assistant-widget.js')&&str_contains($fr['body'],'data-name="Test-Assistent"'),substr($fr['body'],-300));
+$fr=http('GET',"$B/?a=1",[],[],true);
+if($wpOn)t('Assistent: Chat-Fenster auf der Website, wenn eingeschaltet',str_contains($fr['body'],'assistant-widget.js')&&str_contains($fr['body'],'data-name="Test-Assistent"'),substr($fr['body'],-300));
 t('Assistent: Chat-Skript wird ausgeliefert',http('GET',"$B/cms/assets/assistant-widget.js")['code']===200);
 $sv=http('POST',"$B/cms/api.php?action=save",['__json'=>json_encode(['section'=>'assistant','value'=>['enabled'=>true,'name'=>'Berater','order_mode'=>'manual','temperature'=>0.5,'knowledge'=>'Wir sind Mein Test-Radio.','providers'=>$prov]])],array_merge($H,['Content-Type: application/json']));
 t('Assistent: Einstellungen speichern (2)',(json_decode($sv['body'],true)['status']??'')==='ok',$sv['body']);

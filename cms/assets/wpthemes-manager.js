@@ -49,8 +49,8 @@
   }
   async function unhide(slug){try{take(await call('wp_theme_unhide','',{slug:slug}));toast('Theme wieder eingeblendet.')}catch(e){toast(e.message,true)}}
   async function off(){
-    if(!confirm('WordPress-Theme-Auslieferung beenden und zur normalen CMS-Portal-Oberfläche zurückkehren?'))return;
-    try{take(await call('wp_theme_deactivate','',{}));toast('Zurück beim CMS-Portal.')}catch(e){toast(e.message,true)}
+    if(!confirm('Das neutrale Standard-Theme „ElvadoPress Classic“ aktivieren?'))return;
+    try{take(await call('wp_theme_deactivate','',{}));toast('Standard-Theme aktiviert.')}catch(e){toast(e.message,true)}
   }
   async function preview(i){
     var t=themes[i];if(!t)return;

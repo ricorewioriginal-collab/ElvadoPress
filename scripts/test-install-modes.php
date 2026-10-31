@@ -1,6 +1,7 @@
 <?php
 // Installer-Modi (Empfohlen, Minimal, Benutzerdefiniert) und Upgrade einer bestehenden Installation – über den echten Einrichtungsassistenten (HTTP, Wegwerf-Kopie des CMS).
 declare(strict_types=1);
+require_once __DIR__.'/wpe-test-site.php';
 $real=dirname(__DIR__);$n=0;$fail=0;
 require_once $real.'/cms/lib/pack.php';
 function t(string $name,bool $ok,string $info=''): void { global $n,$fail;$n++;if(!$ok){$fail++;echo "FAIL  $name".($info!==''?": $info":'')."\n";}else echo "  ok  $name\n"; }
@@ -44,10 +45,14 @@ t('Empfohlene Installation: externes Tracking ist aus, KI ohne Schlüssel nicht 
 t('Empfohlene Installation: Anmeldung funktioniert mit aktiven Plugins',$tok!=='');
 $l=api($base,'np_list',[],$tok);
 t('Empfohlene Installation: Plugin-Verwaltung liefert acht aktive offizielle Plugins und die geplanten als „nicht verfügbar“',count(array_filter($l['plugins']??[],fn($p)=>$p['status']==='active'&&$p['official']))===8&&count(array_filter($l['plugins']??[],fn($p)=>$p['status']==='planned'))===8&&($l['mode']??'')==='recommended');
-[$st,,$home]=http('GET',$base.'/');
-t('Empfohlene Installation: Website wird mit aktiven Plugins ausgeliefert',$st===200&&str_contains($home,'<html'));
-[$st2,$ck2,$sm]=http('GET',$base.'/sitemap.xml');
-t('Empfohlene Installation: Sitemap vom SEO-Plugin',$st2===200&&str_contains($sm,'<urlset'));
+if(wpe_test_site_available()){   // Website mit echtem WordPress (eingerichtet wie bei der ersten Anmeldung)
+    $ws=wpe_test_site_setup($base,$tok,$tmp);t('Empfohlene Installation: WordPress eingerichtet',$ws['ok'],$ws['message']);
+    [$st,,$home]=http('GET',$base.'/');
+    t('Empfohlene Installation: Website wird mit aktiven Plugins ausgeliefert',$st===200&&str_contains($home,'<html')&&str_contains($home,'og:title'),"HTTP $st");
+    [$st,,$home]=http('GET',$base.'/?x=1');   // geplante Aufgaben der Plugins (Sitemap) laufen nach dem Laden von WordPress
+    [$st2,$ck2,$sm]=http('GET',$base.'/sitemap.xml');
+    t('Empfohlene Installation: Sitemap vom SEO-Plugin',$st2===200&&str_contains($sm,'<urlset'),"HTTP $st2");
+}else echo "Hinweis: Website mit echtem WordPress übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";
 proc_terminate($proc);rm($tmp);
 
 // ---------- Minimal

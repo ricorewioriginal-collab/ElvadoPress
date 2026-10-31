@@ -118,3 +118,38 @@ $elvadoOwnComment = static function ($notify, $commentId) {
 };
 add_filter('notify_moderator', $elvadoOwnComment, 10, 2);
 add_filter('notify_post_author', $elvadoOwnComment, 10, 2);
+// ElvadoPress-Shortcodes ([umfrage], [faq], [karte], [kontakt], [lovable] …) und das Chat-Fenster des KI-Assistenten (cms/lib/wp-shortcodes.php)
+if (defined('ELVADO_CMS_DIR') && is_file(ELVADO_CMS_DIR . '/lib/wp-shortcodes.php')) {
+    require_once ELVADO_CMS_DIR . '/lib/wp-shortcodes.php';
+    add_action('init', 'elvado_sc_register_builtin');
+    add_action('wp_footer', 'elvado_wp_assistant_widget', 90);
+}
+// Logo aus dem ElvadoPress-Branding (Anhang von LiveSync): gilt als Theme-Logo, solange im Customizer keines gewählt ist; Adresse zeigt auf die ElvadoPress-Datei
+add_filter('theme_mod_custom_logo', static function ($v) {
+    return $v ?: (int)get_option('elvado_logo_id', 0);
+});
+add_filter('wp_get_attachment_url', static function ($url, $id) {
+    $u = (string)get_post_meta((int)$id, '_elvado_image_url', true);
+    return $u === '' ? $url : (str_starts_with($u, '/') ? home_url($u) : $u);
+}, 10, 2);
+// Suchmaschinen-Felder aus dem ElvadoPress-Editor (LiveSync): noindex, kanonische Adresse (z. B. Zweitveröffentlichung), eigener Titel
+add_filter('wp_robots', static function (array $robots): array {
+    if (is_singular() && get_post_meta((int)get_queried_object_id(), '_elvado_seo_noindex', true) === '1') {
+        $robots['noindex'] = true;
+        $robots['follow'] = true;
+        unset($robots['max-image-preview']);
+    }
+    return $robots;
+});
+add_filter('get_canonical_url', static function ($url, $post) {
+    $c = (string)get_post_meta((int)$post->ID, '_elvado_canonical', true);
+    return preg_match('~^https?://~i', $c) ? $c : $url;
+}, 10, 2);
+add_filter('pre_get_document_title', static function ($title) {
+    $t = is_singular() ? (string)get_post_meta((int)get_queried_object_id(), '_elvado_seo_title', true) : '';
+    return $t !== '' ? $t : $title;
+});
+// KI-Zentrale: Schlüssel der WordPress-Verbinder (connectors_ai_*_api_key) kommen aus der KI-Zentrale von ElvadoPress (keine zweite Kopie in WordPress)
+if (defined('ELVADO_CMS_DIR') && is_file(ELVADO_CMS_DIR . '/lib/wp-ai-connectors.php')) {
+    require_once ELVADO_CMS_DIR . '/lib/wp-ai-connectors.php';
+}

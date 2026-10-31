@@ -122,6 +122,10 @@ function elvado_wps_save(string $group, array $in): array {
 
 /** Standardwerte für Beiträge ohne Kategorie bzw. Status – liest die Option direkt (auch ohne gestartete WordPress-Schicht). */
 function elvado_wps_default(string $name, string $fallback, ?string $optionsFile=null): string {
+    if($optionsFile===null){   // echtes WordPress: Wert direkt aus der Datenbank
+        if(function_exists('get_option')&&defined('ABSPATH')){ $v=get_option($name,'');if(is_string($v)&&$v!=='')return $v; }
+        else{ require_once dirname(__DIR__).'/lib/wp-real-admin.php';$raw=elvado_wpra_live_option(dirname(__DIR__),$name);if($raw!==null){ $v=@unserialize($raw);$v=$v===false&&$raw!=='b:0;'?$raw:$v;if(is_string($v)&&$v!=='')return $v; } }
+    }
     $file=$optionsFile??(defined('ELVADO_WP_DATA')?ELVADO_WP_DATA:__DIR__.'/../data/.wp').'/options.json';
     $all=is_file($file)?json_decode((string)@file_get_contents($file),true):null;
     if(is_array($all)&&isset($all[$name]['v'])){ $v=@unserialize((string)$all[$name]['v']);if(is_string($v)&&$v!=='')return $v; }

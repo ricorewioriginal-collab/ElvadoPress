@@ -1,5 +1,5 @@
 /* Alle Inhalte (CMS → Inhalte): CMS-Beiträge, CMS-Seiten und WordPress-Seiten in einer Liste, je Quelle mit passendem Editor.
-   Server: wp_content_list (scope=all), wp_bridge_set, wp_session_open in cms/api.php; Liste und Schreibbrücke in cms/wp/core/cms-write.php. */
+   Server: wp_content_list (scope=all), wp_bridge_set, wp_session_open in cms/api.php; Liste aus echtem WordPress. */
 (function(){
   'use strict';
   var items=[],bridge=[],parts=[],elementorOn=false;

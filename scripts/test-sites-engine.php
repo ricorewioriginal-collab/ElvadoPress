@@ -62,7 +62,7 @@ t('Core-Aufräumen: Version einer anderen Website bleibt, ungenutzte wird entfer
 // Verdrahtung
 $w = (string)file_get_contents(__DIR__ . '/../cms/lib/wpengine.php');
 t('elvado_wpe wählt den Zustandsordner der Website', str_contains($w, 'elvado_site_dir(\'data\')') && str_contains($w, "lib/sites.php"));
-$db = (string)file_get_contents(__DIR__ . '/../cms/wp/core/wpdb.php');
-t('Emulation weiterer Websites nutzt keine gemeinsamen MySQL-Tabellen', str_contains($db, "elvado_site_current()!==''"));
+$fr = (string)file_get_contents(__DIR__ . '/../cms/wp-engine-front.php');
+t('Weitere Websites werden von ihrem eigenen WordPress ausgeliefert (Medien-Adressen der Website)', !str_contains($fr, "\$siteId !== '') ||") && str_contains($fr, "'/cms/sites/' . \$siteId . '/media/'"));
 echo $fail ? "$fail von $n Prüfungen fehlgeschlagen\n" : "$n von $n Prüfungen bestanden\n";
 exit($fail ? 1 : 0);

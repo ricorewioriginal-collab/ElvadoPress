@@ -16,7 +16,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <head>
 <meta charset="UTF-8">
 <style>html.ep-i18n-wait body{visibility:hidden}</style>
-<script src="assets/i18n.js?v=2"></script>
+<script src="assets/i18n.js?v=3"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title><?=$ph('title')?></title>
@@ -184,11 +184,11 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/polls-manager.js?v=1"></script>
 <script src="assets/community-manager.js?v=2"></script>
 <script src="assets/wpplugins-manager.js?v=5"></script>
-<script src="assets/wpthemes-manager.js?v=11"></script>
+<script src="assets/wpthemes-manager.js?v=12"></script>
 <script src="assets/wp-links.js?v=2"></script>
 <script src="assets/wp-settings.js?v=2"></script><script src="assets/ml-settings.js?v=1"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
 <script src="assets/sandbox.js?v=1"></script>
-<script src="assets/design-hub.js?v=4"></script>
+<script src="assets/design-hub.js?v=5"></script>
 <script src="assets/pages-manager.js?v=1"></script>
 <script src="assets/header-builder.js?v=1"></script>
 <script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=7"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=49"></script>

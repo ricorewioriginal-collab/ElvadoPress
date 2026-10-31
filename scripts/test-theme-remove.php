@@ -2,6 +2,7 @@
 // Themes entfernen: hochgeladene löschen, Themes aus dem Code ausblenden/zurückholen, aktives und Standard-Theme geschützt – gegen einen echten PHP-Server.
 // Aufruf: php scripts/test-theme-remove.php
 declare(strict_types=1);
+require_once __DIR__ . '/wpe-test-site.php';
 $fail = 0; $n = 0;
 function t(string $name, bool $ok, string $extra = ''): void { global $fail, $n; $n++; if (!$ok) { $fail++; echo "FEHLER: $name $extra\n"; } }
 function rmrf(string $d): void { if (!is_dir($d)) return; foreach (scandir($d) as $f) { if ($f === '.' || $f === '..') continue; $p = "$d/$f"; is_dir($p) && !is_link($p) ? rmrf($p) : @unlink($p); } @rmdir($d); }
@@ -40,8 +41,12 @@ $l = api('themes_list', null, $tok);
 t('Ausgeblendete Themes werden gelistet', array_column($l['hidden_themes'] ?? [], 'id') === ['code-theme']);
 $r = api('theme_unhide', ['id' => 'code-theme'], $tok);
 t('Zurückholen blendet es wieder ein', ($r['status'] ?? '') === 'ok' && in_array('code-theme', $ids(), true) && (api('themes_list', null, $tok)['hidden_themes'] ?? []) === []);
-// WordPress-Themes (Theme-Laufzeit): Themes aus dem Code werden ausgeblendet, das Standard-Theme bleibt
+// WordPress-Themes (echtes WordPress): Themes aus dem Code werden ausgeblendet, das Standard-Theme bleibt
+$wpOn = false;
+if (wpe_test_site_available()) { $ws = wpe_test_site_setup("http://127.0.0.1:$port", $tok, $site); $wpOn = $ws['ok']; t('WordPress eingerichtet', $wpOn, $ws['message']); }
+else { echo "Hinweis: WordPress-Themes übersprungen (WPE_TEST_ZIP nicht gesetzt).\n"; t('Ohne WordPress: WordPress-Bereiche melden, dass WordPress noch einzurichten ist', (api('wp_themes', null, $tok)['engine'] ?? null) === false); }
 $wl = fn() => array_column(api('wp_themes', null, $tok)['themes'] ?? [], 'slug');
+if ($wpOn) {
 $before = $wl();
 t('WordPress-Themes werden gelistet (mitgelieferte vorhanden)', in_array('elvado-classic', $before, true) && in_array('elvado-band', $before, true), json_encode($before));
 $r = api('wp_theme_delete', ['slug' => 'elvado-classic'], $tok);
@@ -51,6 +56,7 @@ t('WordPress: mitgeliefertes Theme wird ausgeblendet (Dateien bleiben)', ($r['st
 t('WordPress: Ausgeblendete werden gelistet', in_array('elvado-band', array_column(api('wp_themes', null, $tok)['hidden_themes'] ?? [], 'slug'), true));
 api('wp_theme_unhide', ['slug' => 'elvado-band'], $tok);
 t('WordPress: Zurückholen blendet es wieder ein', in_array('elvado-band', $wl(), true));
+}
 t('Unbekanntes Theme: 404', (api('theme_delete', ['id' => 'gibt-es-nicht'], $tok)['status'] ?? '') === 'error');
 t('Ohne Anmeldung nichts', (api('theme_delete', ['id' => 'code-theme'])['status'] ?? '') === 'error' && is_dir("$cms/themes/code-theme"));
 $ui = (string)file_get_contents(__DIR__ . '/../cms/assets/theme-manager.js');

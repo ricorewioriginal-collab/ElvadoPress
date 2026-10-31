@@ -97,14 +97,10 @@ function elvado_install_clean(array $in): array {
  * Bei Fehlern werden Konfiguration, Zugang, site.json und news.json auf den Stand vorher zurückgesetzt und die Sperre wieder entfernt.
  * @return array{ok:bool,message:string}
  */
-/** Neutrales Standard-Theme einschalten (Theme „elvado-classic“); schlägt still fehl, die Einrichtung bleibt gültig – das Theme lässt sich später im CMS wählen. */
+/** Neutrales Standard-Theme: echtes WordPress startet beim Einrichten (automatisch bei der ersten Anmeldung eines Superadmins) mit „elvado-classic“,
+    solange nichts anderes vorgemerkt ist (elvado_wpe_adopt_site). Hier ist deshalb nichts mehr zu tun. */
 function elvado_install_default_theme(): bool {
-    try{
-        $cms=dirname(__DIR__);
-        require_once $cms.'/wp/load.php';require_once $cms.'/wp/installer.php';
-        elvado_wp_boot(['theme'=>false]);
-        return elvado_wpi_activate_theme('elvado-classic')===null;
-    }catch(Throwable $e){ return false; }
+    return true;
 }
 function elvado_install_run(array $c,array $ctx): array {
     if(!elvado_install_needed())return ['ok'=>false,'message'=>'Die Einrichtung ist nicht (mehr) möglich.'];

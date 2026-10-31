@@ -4,8 +4,8 @@
 // <meta robots>) und Sitemap (cms/lib/seo.php). Aufruf: php scripts/test-news-fields.php
 declare(strict_types=1);
 $tmp=sys_get_temp_dir().'/elvado-nf-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');mkdir($tmp.'/wp-content/themes');mkdir($tmp.'/themes-native');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');define('ELVADO_DATA_DIR',$tmp.'/cms');
-$_SERVER['HTTP_HOST']='example.test';$_SERVER['REMOTE_ADDR']='203.0.113.5';define('ELVADO_WP_TEST_NATIVE',dirname(__DIR__).'/cms/themes');
+define('ELVADO_DATA_DIR',$tmp.'/cms');
+$_SERVER['HTTP_HOST']='example.test';$_SERVER['REMOTE_ADDR']='203.0.113.5';
 $base=['status'=>'published','published_at'=>'2026-01-10 10:00:00','created_at'=>'2026-01-10 10:00:00','author'=>'Anna','category'=>'News','excerpt'=>'x'];
 $news=[
  $base+['id'=>1,'slug'=>'normal','title'=>'Normal','body_html'=>'<p>Text eins</p>'],
@@ -18,8 +18,7 @@ $news=[
 file_put_contents($tmp.'/cms/news.json',json_encode($news));
 $site=['portal'=>['site_name'=>'Test'],'comments'=>['enabled'=>true,'require_approval'=>true],'seo'=>['enabled'=>true,'canonical_base'=>'https://example.test','index_news'=>true],'pages'=>[],'menus'=>['top'=>[],'bottom'=>[]]];
 file_put_contents($tmp.'/cms/site.json',json_encode($site));
-require __DIR__.'/_testdb.php';
-require __DIR__.'/../cms/wp/load.php';require __DIR__.'/../cms/wp/router.php';
+require_once __DIR__.'/wpe-render.php';
 require_once __DIR__.'/../cms/lib/publish.php';require_once __DIR__.'/../cms/lib/seo.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
@@ -37,20 +36,18 @@ t('Kommentare: unbekannter Wert → default; offen bleibt offen',elvado_news_seo
 t('noindex: ohne Angabe falsch',elvado_news_seo_fields([])['noindex']===false&&elvado_news_seo_fields(['noindex'=>''])['noindex']===false);
 t('Canonical: nur gültige http(s)-Adressen',elvado_news_seo_fields(['canonical_url'=>'javascript:alert(1)'])['canonical_url']===''&&elvado_news_seo_fields(['canonical_url'=>'kein url'])['canonical_url']===''&&elvado_news_seo_fields(['canonical_url'=>'ftp://x.example/a'])['canonical_url']===''&&elvado_news_seo_fields(['canonical_url'=>'http://ok.example/a'])['canonical_url']==='http://ok.example/a');
 
-// ── Kommentarstatus im WordPress-Beitrag
-$post=fn(array $a)=>elvado_wp_cms_news_post($a);
-t('WP: Kommentare Standard = offen, „closed“ = geschlossen, „open“ = offen',$post($news[0])->comment_status==='open'&&$post($news[3])->comment_status==='closed'&&$post($news[4])->comment_status==='open');
-t('WP: Beitragsfelder landen am Beitrag (elvado_data)',($post($news[1])->elvado_data['noindex']??false)===true&&$post($news[2])->elvado_data['canonical_url']==='https://original.example/artikel?a=1&b=2');
-
-// ── Ausgabe im Kopfbereich des Beitrags
-update_option('permalink_structure','/%postname%/');elvado_wp_boot(['theme'=>true]);
-@mkdir(ELVADO_WP_DATA,0775,true);touch(ELVADO_WP_DATA.'/front-on');
-function head_of(string $slug): string { $r=elvado_wp_dispatch('/'.$slug.'/','GET',[],[]);return (string)($r['body']??''); }
-$h1=head_of('normal');$h2=head_of('versteckt');$h3=head_of('zweitveroeffentlichung');
-t('Seite lädt (Beitrag gefunden)',str_contains($h1,'Text eins')&&str_contains($h2,'Text zwei')&&str_contains($h3,'Text drei'));
-t('Canonical: Standard ist die eigene Adresse',(bool)preg_match('#<link rel="canonical" href="[^"]*/normal/?"#',$h1));
-t('Canonical: eigene kanonische Adresse (Zweitveröffentlichung) wird ausgegeben, & escaped',str_contains($h3,'<link rel="canonical" href="https://original.example/artikel?a=1&#038;b=2"')||str_contains($h3,'<link rel="canonical" href="https://original.example/artikel?a=1&amp;b=2"'));
-t('noindex: nur beim markierten Beitrag, mit follow',str_contains($h2,'<meta name="robots" content="noindex,follow"')&&!str_contains($h1,'noindex')&&!str_contains($h3,'noindex'));
+// ── Ausgabe mit echtem WordPress: Kommentarstatus, Felder am Beitrag, Kopfbereich (canonical, robots)
+$env=wpe_render_env(['news.json'=>$news,'site.json'=>$site]);
+if($env){
+    $st=(array)wpe_render_php($env,'$o=[];foreach(["normal","versteckt","zweitveroeffentlichung","zu","auf"] as $sl){ $p=get_posts(["name"=>$sl,"post_type"=>"post","numberposts"=>1])[0]??null;$o[$sl]=$p?[$p->comment_status,get_post_meta($p->ID,"_elvado_seo_noindex",true),get_post_meta($p->ID,"_elvado_canonical",true)]:null; }$out=$o;');
+    t('WP: Kommentare Standard = offen, „closed“ = geschlossen, „open“ = offen',($st['normal'][0]??'')==='open'&&($st['zu'][0]??'')==='closed'&&($st['auf'][0]??'')==='open',json_encode($st));
+    t('WP: Beitragsfelder landen am Beitrag',($st['versteckt'][1]??'')==='1'&&($st['zweitveroeffentlichung'][2]??'')==='https://original.example/artikel?a=1&b=2');
+    $h1=wpe_render_get($env,'/normal/')['body'];$h2=wpe_render_get($env,'/versteckt/')['body'];$h3=wpe_render_get($env,'/zweitveroeffentlichung/')['body'];
+    t('Seite lädt (Beitrag gefunden)',str_contains($h1,'Text eins')&&str_contains($h2,'Text zwei')&&str_contains($h3,'Text drei'));
+    t('Canonical: Standard ist die eigene Adresse',(bool)preg_match('#<link rel="canonical" href="[^"]*/normal/?"#',$h1));
+    t('Canonical: eigene kanonische Adresse (Zweitveröffentlichung) wird ausgegeben, & escaped',str_contains($h3,'<link rel="canonical" href="https://original.example/artikel?a=1&#038;b=2"')||str_contains($h3,'<link rel="canonical" href="https://original.example/artikel?a=1&amp;b=2"'));
+    t('noindex: nur beim markierten Beitrag, mit follow',(bool)preg_match("#<meta name='robots' content='[^']*noindex, follow#",$h2)&&!str_contains($h1,'noindex')&&!str_contains($h3,'noindex'),substr((string)strstr($h2,"name='robots'"),0,120));
+}else echo "Hinweis: Ausgabe mit echtem WordPress übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";
 
 // ── Sitemap
 elvado_seo_generate($site,$news,$tmp);

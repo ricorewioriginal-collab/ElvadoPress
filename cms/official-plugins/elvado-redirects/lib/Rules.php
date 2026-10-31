@@ -131,11 +131,11 @@ final class Rules
     {
         $st = '/%postname%/';
         try {
-            if (function_exists('elvado_wp_boot')) {
-                elvado_wp_boot(['theme' => true]);
-            }
-            if (function_exists('elvado_wp_link_structure')) {
-                $st = elvado_wp_link_structure();
+            if (function_exists('get_option')) {   // echtes WordPress läuft in dieser Anfrage
+                $st = (string)get_option('permalink_structure', '');
+            } elseif (is_file($this->np->cmsDir() . '/lib/wp-real-admin.php')) {   // sonst direkt aus der WordPress-Datenbank
+                require_once $this->np->cmsDir() . '/lib/wp-real-admin.php';
+                $st = elvado_wpra_live_option($this->np->cmsDir(), 'permalink_structure') ?? $st;
             }
         } catch (\Throwable) {
         }

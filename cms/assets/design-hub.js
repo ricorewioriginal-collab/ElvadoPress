@@ -8,7 +8,7 @@
     var wp=window.WpThemes&&WpThemes.state?WpThemes.state():{front:false,name:''};
     var portal=window.ThemeManager&&ThemeManager.activeName?ThemeManager.activeName():'';
     if(wp.front&&wp.name){
-      box.innerHTML='<div class="dg-active-in"><i class="fab fa-wordpress"></i><div><div class="hint">Aktives Design</div><b>'+esc(wp.name)+'</b> <span class="dg-badge wp">WordPress-Theme</span><div class="hint">Deine Website wird mit diesem WordPress-Theme ausgeliefert.</div></div><button class="btn-g" onclick="WpThemes.off()"><i class="fas fa-rotate-left"></i> Zurück zum Portal-Design</button></div>';
+      box.innerHTML='<div class="dg-active-in"><i class="fab fa-wordpress"></i><div><div class="hint">Aktives Design</div><b>'+esc(wp.name)+'</b> <span class="dg-badge wp">WordPress-Theme</span><div class="hint">Deine Website wird mit diesem WordPress-Theme ausgeliefert.</div></div><button class="btn-g" onclick="WpThemes.off()"><i class="fas fa-rotate-left"></i> Standard-Theme aktivieren</button></div>';
     }else{
       box.innerHTML='<div class="dg-active-in"><i class="fas fa-palette"></i><div><div class="hint">Aktives Design</div><b>'+esc(portal||'…')+'</b> <span class="dg-badge">Portal-Design</span><div class="hint">Radio-Player, Community und Layout bleiben erhalten.</div></div></div>';
     }

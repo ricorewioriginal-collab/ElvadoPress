@@ -111,6 +111,9 @@ $elvadoFrontPreview = $elvadoFrontPvTok !== '' ? elvado_wpra_preview_ok($siteDat
 if ($elvadoFrontPreview !== '' && !elvado_wpra_use_theme($cmsDir, $elvadoFrontPreview)) {
     $elvadoFrontPreview = '';
 }
+if ($elvadoFrontPreview !== '') {
+    $GLOBALS['elvado_wp_preview_theme'] = $elvadoFrontPreview;   // Themes zeigen in der geprüften Vorschau ihren Entwurf (z. B. Baukasten-Layout aus dem Live Builder)
+}
 if ($elvadoFrontPreview !== '' && isset($_GET['elvado_wp_preview'])) {
     setcookie('elvado_wp_preview', $elvadoFrontPvTok, ['expires' => (int)explode('.', $elvadoFrontPvTok)[1], 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
 }
@@ -189,6 +192,15 @@ if ($elvadoFrontEntry !== '') {
     require ABSPATH . $elvadoFrontEntry;
     exit;
 }
+if (!wp_get_theme()->exists() && wp_get_theme('elvado-classic')->exists()) {   // aktives Theme fehlt (gelöscht/umbenannt, z. B. nach einem Update): Standard-Theme statt leerer Seite
+    switch_theme('elvado-classic');
+    $elvadoFrontEngine->log('Aktives Theme fehlte – Standard-Theme „elvado-classic“ aktiviert');
+    if (!headers_sent()) {
+        header('Location: ' . (string)($_SERVER['REQUEST_URI'] ?? '/'), true, 302);
+        header('Cache-Control: no-store');
+        exit;
+    }
+}
 if (!wp_get_theme()->exists()) {   // ohne Theme bliebe die Seite leer
     http_response_code(503);
     header('Content-Type: text/html; charset=utf-8');
@@ -201,7 +213,9 @@ try {
     $elvadoOptFile = $siteData . '/.wp/options.json';
     clearstatcache(true, $elvadoOptFile);
     $elvadoOptFp = is_file($elvadoOptFile) ? filemtime($elvadoOptFile) . ':' . filesize($elvadoOptFile) : '-';
-    if ((string)get_option('elvado_opts_fp', '') !== $elvadoOptFp) {
+    if ((string)get_option('elvado_opts_fp', '') !== $elvadoOptFp && $elvadoOptFp === '-') {   // nichts vorgemerkt: nur merken
+        update_option('elvado_opts_fp', $elvadoOptFp, false);
+    } elseif ((string)get_option('elvado_opts_fp', '') !== $elvadoOptFp) {
         elvado_wpe_adopt_site($elvadoFrontEngine, true);
         update_option('elvado_opts_fp', $elvadoOptFp, false);
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !headers_sent()) {   // neues Theme/neue Plugins greifen erst beim nächsten Start von WordPress

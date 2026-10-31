@@ -5,7 +5,7 @@ ElvadoPress ist das eigenständige CMS mit optionalen Radio-Erweiterungen. **Hau
 ## Funktionsarten
 | Art | Wo entwickelt |
 |---|---|
-| CMS (Beiträge, Seiten, WordPress-Schicht, Benutzer, Formulare, Community …) | ElvadoPress |
+| CMS (Beiträge, Seiten, WordPress-Engine, Benutzer, Formulare, Community …) | ElvadoPress |
 | Erweiterungen (App-Baukasten, Alexa-Skill, KI-Assistent) | ElvadoPress |
 | Radio (Sender, Player, Sendeplan) | nicht im Kern, später optionales Plugin |
 

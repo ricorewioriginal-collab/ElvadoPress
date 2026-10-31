@@ -1,4 +1,4 @@
-/* Chat-Fenster des KI-Assistenten für die öffentliche Website (eigenständiges CMS). Wird per wp_footer eingebunden (cms/wp/core/ext/assistant-widget.php).
+/* Chat-Fenster des KI-Assistenten für die öffentliche Website (eigenständiges CMS). Wird per wp_footer eingebunden (cms/lib/wp-shortcodes.php).
    Einstellungen kommen als data-Attribute des Script-Tags; Fragen gehen an die öffentliche Aktion assistant_chat. Kein externes Skript, keine Cookies. */
 (function(){
   'use strict';

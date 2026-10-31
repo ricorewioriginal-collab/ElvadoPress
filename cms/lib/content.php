@@ -193,8 +193,9 @@ function elvado_gitconfig_pull(array $site,array &$man,bool $baseline): array {
         if($sec==='theme'&&is_string($d['wordpress']??null)&&$d['wordpress']!==''){   // WordPress-Theme (Ordner cms/themes/<slug>/ mit style.css) aktivieren
             $slug=preg_replace('/[^a-z0-9_-]/','',strtolower((string)$d['wordpress']));
             try{
-                if(!function_exists('elvado_wpi_activate_theme')){require_once dirname(__DIR__).'/wp/load.php';require_once dirname(__DIR__).'/wp/installer.php';}
-                $e=elvado_wpi_activate_theme($slug);
+                if(function_exists('elvado_wpi_activate_theme'))$e=elvado_wpi_activate_theme($slug);   // WordPress läuft in dieser Anfrage
+                else{ require_once __DIR__.'/wp-real-admin.php';   // sonst vormerken: WordPress übernimmt das Theme beim nächsten Seitenaufruf
+                $e=is_file(dirname(__DIR__).'/themes/'.$slug.'/style.css')||is_file(dirname(__DIR__).'/wp-content/themes/'.$slug.'/style.css')?(elvado_wpra_inbox_set(elvado_data_dir(),['stylesheet'=>$slug])?null:'nicht speicherbar'):'Theme nicht gefunden'; }
                 if($e===null)$applied[]='wordpress-theme:'.$slug;else $errors[]='theme.json: WordPress-Theme „'.$slug.'“: '.$e;
             }catch(\Throwable $ex){$errors[]='theme.json: WordPress-Theme „'.$slug.'“ konnte nicht aktiviert werden';}
             $man['config'][$sec]=$h;continue;

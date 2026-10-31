@@ -2,7 +2,7 @@
 // Prüft das Baukasten-Theme (elvado-baukasten): Abschnitte der Startseite, Reihenfolge, Customizer-Werte, Bereinigung. Aufruf: php scripts/test-baukasten.php
 declare(strict_types=1);
 $tmp=sys_get_temp_dir().'/elvado-bk-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/cms');mkdir($tmp.'/wp-content/themes');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');$_SERVER['HTTP_HOST']='example.test';$_SERVER['REMOTE_ADDR']='203.0.113.5';
+$_SERVER['HTTP_HOST']='example.test';$_SERVER['REMOTE_ADDR']='203.0.113.5';
 $themesSrc=__DIR__.'/../cms/wp-content/themes';
 $news=[];
 for($i=1;$i<=5;$i++)$news[]=['id'=>$i,'slug'=>"beitrag-$i",'title'=>"Beitrag $i".($i===2?' <script>alert(1)</script>':''),'category'=>$i%2?'News':'Events','tags'=>$i<3?'musik, radio':'','excerpt'=>"Auszug $i",'body_html'=>"<p>Inhalt von Beitrag $i [forum]</p>",'status'=>'published','published_at'=>"2026-0$i-10 10:00:00",'author'=>'Anna Autor','image_url'=>$i===1?'/img/a.jpg':''];
@@ -10,17 +10,14 @@ file_put_contents($tmp.'/cms/news.json',json_encode($news));
 file_put_contents($tmp.'/cms/site.json',json_encode(['portal'=>['site_name'=>'Mein Radio','tagline'=>'Hör rein'],'comments'=>['enabled'=>true,'require_approval'=>true],'branding'=>['portal_logo'=>'/logo.png'],
  'menus'=>['top'=>[['id'=>'m1','label'=>'Start','target'=>'system:start','enabled'=>true,'parent_id'=>''],['id'=>'m2','label'=>'Über uns','target'=>'page:ueber','enabled'=>true,'parent_id'=>''],['id'=>'m3','label'=>'Sender','target'=>'system:sender','enabled'=>true,'parent_id'=>'']],'bottom'=>[['id'=>'b1','label'=>'Impressum','target'=>'url:https://example.com/impressum','enabled'=>true,'parent_id'=>'']]],
  'pages'=>[['id'=>'ueber','slug'=>'ueber-uns','title'=>'Über uns','type'=>'custom','enabled'=>true,'blocks_before'=>[['type'=>'html','html'=>'<p>Wir sind ein Radio.</p>']],'blocks_after'=>[]],['id'=>'sender','type'=>'system','system_target'=>'sender','enabled'=>true,'headline'=>'Unsere Sender','intro'=>'Alle Sender im Überblick.','blocks_before'=>[],'blocks_after'=>[]]]]));
-mkdir($tmp.'/themes-native');
-// das mitgelieferte Standard-Theme bereitstellen
-define('ELVADO_WP_TEST_NATIVE',dirname(__DIR__).'/cms/themes');
-require __DIR__."/_testdb.php";
-require __DIR__.'/../cms/wp/load.php';require __DIR__.'/../cms/wp/router.php';
+require_once __DIR__.'/wpe-render.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-function page(string $uri): array { return elvado_wp_dispatch($uri,'GET',[],[]); }
-$GLOBALS['ELVADO_SITE']=json_decode((string)file_get_contents($tmp.'/cms/site.json'),true);
-update_option('stylesheet','elvado-baukasten');update_option('template','elvado-baukasten');
-elvado_wp_boot(['theme'=>true]);
+// Ausgabe mit echtem WordPress: der Ablauf läuft mit gestartetem WordPress, jede Seite in einem eigenen Prozess (wie echte Seitenaufrufe)
+$env=wpe_render_env(['news.json'=>(string)file_get_contents($tmp.'/cms/news.json'),'site.json'=>(string)file_get_contents($tmp.'/cms/site.json')]);
+if(!$env){ echo "Hinweis: übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";system('rm -rf '.escapeshellarg($tmp));echo "0 von 0 Prüfungen bestanden\n";exit(0); }
+wpe_render_php($env,"switch_theme('elvado-baukasten');");
+$body=<<<'BODY'
 t('Theme aktiv',get_stylesheet()==='elvado-baukasten');
 $r=page('/');
 t('Startseite 200',$r['status']===200,(string)$r['status']);
@@ -47,7 +44,7 @@ $s=page('/beitrag-1/');
 t('Beitrag mit Seitenleistenraster',$s['status']===200&&str_contains($s['body'],'site-content')&&str_contains($s['body'],'<h1 class="entry-title">Beitrag 1</h1>'));
 foreach(['/ueber-uns/','/category/news/','/?s=Beitrag','/gibtsnicht/'] as $u){ $x=page($u);t("Unterseite $u",in_array($x['status'],[200,404],true)&&str_contains($x['body'],'site-footer'),(string)$x['status']); }
 // Customizer kennt die Baukasten-Einstellungen
-require_once __DIR__.'/../cms/wp/customizer-api.php';
+require_once ELVADO_CMS_DIR.'/lib/wp-real-compat.php';require_once ELVADO_CMS_DIR.'/wp/customizer-api.php';
 $ids=array_keys(elvado_wpc_items()['items']);
 t('Customizer: Abschnittspositionen und Farben',in_array('slot_1',$ids,true)&&in_array('slot_8',$ids,true)&&in_array('color_accent',$ids,true)&&in_array('custom_css',$ids,true),implode(',',array_slice($ids,0,5)));
 $res=elvado_wpc_save(['slot_2'=>'features','color_accent'=>'#00ff00','content_width'=>'900']);
@@ -89,9 +86,11 @@ update_option('sidebars_widgets',['sidebar-1'=>[],'array_version'=>3]);
 t('Ohne aktive Widgets kein Raster, auch wenn eingeschaltet',!str_contains(page('/')['body'],'bk-home-grid'));
 set_theme_mod('home_sidebar',false);
 // Erweiterbarkeit: Plugin-Haken je Abschnitt
-$hk=[];add_action('elvado_bk_after_section',function($sec) use(&$hk){ $hk[]=$sec['type']; });add_action('elvado_bk_after_sections',function(){ echo '<!--bk-plugin-->'; });
+$hookCode=<<<'PHP'
+$GLOBALS['hk']=[];add_action('elvado_bk_after_section',function($sec){ $GLOBALS['hk'][]=$sec['type']; });add_action('elvado_bk_after_sections',function(){ echo '<!--bk-plugin--><!--hk:'.implode(',',$GLOBALS['hk']).'-->'; });
+PHP;
 elvado_bk_save_layout(elvado_bk_clean_layout([['type'=>'text','props'=>['body'=>'Hallo']],['type'=>'cta','props'=>['title'=>'X']]]));
-$bq=page('/')['body'];t('Plugin-Haken je Abschnitt und am Ende',$hk===['text','cta']&&str_contains($bq,'<!--bk-plugin-->'));
+$bq=page('/',$hookCode)['body'];t('Plugin-Haken je Abschnitt und am Ende',str_contains($bq,'<!--hk:text,cta-->')&&str_contains($bq,'<!--bk-plugin-->'));
 // Entwurf (Live Builder): nur in der geprüften Vorschau sichtbar, öffentlich unverändert; Veröffentlichen/Verwerfen
 elvado_bk_save_layout(elvado_bk_clean_layout([['type'=>'text','props'=>['title'=>'Öffentlich','body'=>'A']]]));
 t('Ohne Entwurf kein Entwurfsstand',elvado_bk_draft_layout()===null);
@@ -99,7 +98,7 @@ $dr=elvado_bk_save_draft([['type'=>'text','props'=>['title'=>'Nur Entwurf','body
 t('Entwurf gespeichert und bereinigt',count($dr)===1&&elvado_bk_draft_layout()[0]['props']['title']==='Nur Entwurf');
 t('Öffentlich bleibt der veröffentlichte Stand',elvado_bk_active_layout()[0]['props']['title']==='Öffentlich'&&str_contains(page('/')['body'],'Öffentlich')&&!str_contains(page('/')['body'],'Nur Entwurf'));
 $GLOBALS['elvado_wp_preview_theme']='elvado-baukasten';
-t('Geprüfte Vorschau zeigt den Entwurf',elvado_bk_active_layout()[0]['props']['title']==='Nur Entwurf'&&str_contains(page('/')['body'],'Nur Entwurf'));
+t('Geprüfte Vorschau zeigt den Entwurf',elvado_bk_active_layout()[0]['props']['title']==='Nur Entwurf'&&str_contains(page('/',"\$GLOBALS['elvado_wp_preview_theme']='elvado-baukasten';")['body'],'Nur Entwurf'));
 $GLOBALS['elvado_wp_preview_theme']='anderes-theme';
 t('Vorschau eines anderen Themes zeigt den Entwurf nicht',elvado_bk_active_layout()[0]['props']['title']==='Öffentlich');
 unset($GLOBALS['elvado_wp_preview_theme']);
@@ -120,7 +119,7 @@ t('Geräte-CSS und geräteabhängige Hero-Höhe',str_contains($hv,'<style id="bk
 t('Zeitfenster, Zielgruppe und „kein Gerät“ blenden aus',!str_contains($hv,'Zukunft')&&!str_contains($hv,'Nur Mitglieder')&&!str_contains($hv,'Nirgends'));
 t('Das Schema des Themes kommt aus der Registry (die acht eigenen zuerst, dann native Komponenten)',elvado_bk_schema()===elvado_bk_registry()->legacySchema(elvado_bk_supported())&&array_slice(array_keys(elvado_bk_schema()),0,8)===ELVADO_BK_TYPES&&isset(elvado_bk_schema()['button'],elvado_bk_schema()['columns'])&&!isset(elvado_bk_schema()['header'],elvado_bk_schema()['footer'],elvado_bk_schema()['form']));
 // Phase 7: native und WordPress-Komponenten im Baukasten, Layout-Speicher (Entwurf, Fassungen, Termin)
-add_shortcode('etest',fn($a)=>'<i>SC-OK</i>');
+add_shortcode('etest',fn($a)=>'<i>SC-OK</i>');$scCode="add_shortcode('etest',fn(\$a)=>'<i>SC-OK</i>');";
 $mix=elvado_bk_clean_layout([
   ['id'=>'c1','type'=>'columns','props'=>['columns'=>2],'children'=>[['id'=>'k1','type'=>'button','props'=>['label'=>'Los','url'=>'/x']],['id'=>'k2','type'=>'text','props'=>['title'=>'Im Container','body'=>'<p>Kind</p>']],['type'=>'header','props'=>['title'=>'Nein']]]],
   ['id'=>'b1','type'=>'button','props'=>['label'=>'Einzeln','url'=>'javascript:x','style'=>'outline']],['id'=>'s1','type'=>'wp_shortcode','props'=>['shortcode'=>'[etest foo="1"]']],['id'=>'s2','type'=>'wp_shortcode','props'=>['shortcode'=>'kein shortcode']],
@@ -129,7 +128,7 @@ $mix=elvado_bk_clean_layout([
 $types=array_column($mix,'type');
 t('Nicht unterstützte Komponenten (Header, Footer, Formular) fallen heraus',!in_array('header',$types,true)&&!in_array('footer',$types,true)&&!in_array('form',$types,true)&&in_array('columns',$types,true)&&in_array('wp_shortcode',$types,true));
 t('Kinder: nur ausgebbare bleiben, Header-Kind fällt heraus',array_column($mix[0]['children'],'type')===['button','text']);
-elvado_bk_save_layout($mix);$hm=page('/')['body'];
+elvado_bk_save_layout($mix);$hm=page('/',$scCode)['body'];
 t('Native Komponenten werden vom Theme ausgegeben (Button maskiert, javascript: entfernt)',str_contains($hm,'class="ep-btn ep-btn-outline" href="#">Einzeln</a>')&&!str_contains($hm,'javascript:'));
 t('Spalten mit Kindern (Button und Baukasten-Text im Container)',preg_match('/ep-c-columns.*ep-c-button.*Los.*bk-text.*Im Container/s',$hm)===1);
 t('Shortcode und Block werden mit WordPress ausgegeben, ungültiger Shortcode nicht',str_contains($hm,'<i>SC-OK</i>')&&str_contains($hm,'BLOCK-OK')&&!str_contains($hm,'kein shortcode'));
@@ -149,5 +148,7 @@ update_option('elvado_bk_layout',elvado_bk_clean_layout([['id'=>'alt','type'=>'t
 t('Ältere Installationen (Option) werden weiter gelesen, solange nichts über den Speicher veröffentlicht wurde',elvado_bk_saved_layout()[0]['props']['title']==='Altbestand'&&str_contains(page('/')['body'],'Altbestand'));
 elvado_bk_save_layout([['id'=>'neu','type'=>'text','props'=>['title'=>'Neu im Speicher','body'=>'x']]]);
 t('Danach hat der Speicher Vorrang',elvado_bk_saved_layout()[0]['props']['title']==='Neu im Speicher');
+BODY;
+foreach(wpe_render_suite($env,$body) as [$nm,$ok,$ex])t($nm,$ok,$ex);
 system('rm -rf '.escapeshellarg($tmp));
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

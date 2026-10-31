@@ -3,7 +3,7 @@ declare(strict_types=1);
 // cms/src/Wp/Bridge.php – Brücke zum echten WordPress-Core: Konstanten setzen und WordPress im selben PHP-Prozess starten (ohne Theme, ohne Weitergabe an wp-admin).
 //
 // Der Start muss im globalen Gültigkeitsbereich passieren (wp-settings.php setzt globale Variablen) – darum die kleine Datei cms/wp-engine-boot.php, die von der API auf oberster Ebene
-// eingebunden wird. Die Nachbildung (cms/wp) und der echte Core schließen sich in einer Anfrage aus (gleiche Funktionsnamen); der übrige ElvadoPress-Code kollidiert nicht.
+// eingebunden wird. Der übrige ElvadoPress-Code kollidiert nicht mit den Funktionsnamen des Cores.
 // WordPress verändert beim Start Superglobale (Schrägstriche) und die Zeitzone (UTC): beides wird gesichert und danach wiederhergestellt, damit ElvadoPress unverändert weiterläuft.
 
 namespace Elvado\Wp;
@@ -112,7 +112,7 @@ final class Bridge
     /** @return bool Läuft echtes WordPress bereits in dieser Anfrage? */
     public static function booted(): bool
     {
-        return defined('ABSPATH') && function_exists('wp_count_posts') && function_exists('add_action') && !function_exists('elvado_wp_boot');
+        return defined('ABSPATH') && function_exists('wp_count_posts') && function_exists('add_action');
     }
 
     /**
@@ -121,9 +121,6 @@ final class Bridge
      */
     public static function prepare(Engine $e, DbConfig $db, array $opts = []): array
     {
-        if (function_exists('elvado_wp_boot')) {
-            throw new \RuntimeException('Die WordPress-Nachbildung ist in dieser Anfrage bereits geladen – echtes WordPress kann nicht zusätzlich starten.');
-        }
         $core = $e->corePath();
         $cfg = $db->get();
         $ov = $GLOBALS['elvado_wpe_db_override'] ?? null;   // Sandbox (lib/wp-real-sandbox.php): eigene Datenbankdatei bzw. eigenes Tabellenpräfix

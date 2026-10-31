@@ -33,7 +33,7 @@
           <div class="sbx-banner" id="sbxBanner" hidden><i class="fas fa-flask"></i> Du bearbeitest die <b>Sandbox</b>. Die Live-Seite bleibt unverändert, bis du die Sandbox live stellst.</div>
           <div class="dg-head"><b>WordPress-Themes</b><span class="hint">Echte WordPress-Themes (PHP, klassisch oder Block-Themes) liefern die ganze Website aus. Beiträge, Seiten, Menüs und Widgets aus dem CMS erscheinen darin.</span></div>
           <div id="wtState" class="hint" style="margin:6px 0"></div>
-          <div style="margin-bottom:8px"><button class="btn-g" id="wtOff" onclick="WpThemes.off()" hidden><i class="fas fa-rotate-left"></i> Zurück zum Portal-Design</button> <span id="wtInstCount" hidden></span></div>
+          <div style="margin-bottom:8px"><button class="btn-g" id="wtOff" onclick="WpThemes.off()" hidden><i class="fas fa-rotate-left"></i> Standard-Theme aktivieren</button> <span id="wtInstCount" hidden></span></div>
           <div id="wtInst" class="dg-wpgrid"></div>
           <div id="wtHidden" class="card" style="margin-top:12px" hidden></div>
           <div class="danger-note" style="margin:10px 0 0"><i class="fas fa-shield-halved"></i> WordPress-Themes sind fremder PHP-Code und laufen mit den Rechten des CMS. Nutze die Vorschau, bevor du aktivierst.</div>

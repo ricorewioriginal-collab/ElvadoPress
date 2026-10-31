@@ -2,6 +2,7 @@
 // Zusammenspiel der Funktionen auf einer echten Installation (Einrichtungsassistent, HTTP, Wegwerf-Kopie): Plugins ↔ Inhalte ↔ Website ↔ Alexa ↔ Assistent ↔ Apps ↔ Weiterleitungen ↔ Backup.
 // Aufruf: php scripts/test-integration.php
 declare(strict_types=1);
+require_once __DIR__.'/wpe-test-site.php';
 $real=dirname(__DIR__);$n=0;$fail=0;
 function t(string $name,bool $ok,string $info=''): void { global $n,$fail;$n++;if(!$ok){$fail++;echo "FAIL  $name".($info!==''?": $info":'')."\n";}else echo "  ok  $name\n"; }
 function rm(string $d): void { if(!is_dir($d)||is_link($d)){@unlink($d);return;}foreach(scandir($d)?:[] as $f)if($f!=='.'&&$f!=='..')rm($d.'/'.$f);@rmdir($d); }
@@ -37,6 +38,9 @@ register_shutdown_function(function() use($tmp,&$proc){ if(is_resource($proc))pr
 t('Einrichtung (Empfohlen) läuft durch',str_contains($html,'Die Einrichtung ist abgeschlossen'),substr(strip_tags($html),0,200));
 $tok=(string)(api($base,'login',['username'=>'admin1','password'=>'Sehr-gutes-Passwort-42'])['token']??'');
 t('Anmeldung liefert lokalen Token',str_starts_with($tok,'local_'));
+$wpOn=false;
+if(wpe_test_site_available()){ $ws=wpe_test_site_setup($base,$tok,$tmp);$wpOn=$ws['ok'];t('WordPress eingerichtet (wie bei der ersten Anmeldung)',$wpOn,$ws['message']); }
+else echo "Hinweis: Website mit echtem WordPress übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";
 t('Zugriff und Produktangaben stimmen (kein Fremdbezug in der Antwort)',(function() use($base,$tok){ $a=get($base,'access',$tok);return ($a['status']??'')==='ok'&&!preg_match('/ricorewi|anmacha|senderwelt|control.?center/i',json_encode($a)); })());
 
 // ---------- Radio-Plugin ↔ Plugin-Verwaltung ↔ Website
@@ -47,19 +51,19 @@ t('Radio-Einstellungen werden gespeichert',($s['status']??'')==='ok',json_encode
 $art=api($base,'news_save',['title'=>'Radio und Formular','slug'=>'radio-test','status'=>'published','body_html'=>'<p>[elvado_radio station="mein-radio"]</p><p>[elvado_radio_now station="mein-radio"]</p><p>[elvado_radio_schedule]</p><p>[elvado_form id="kontakt"]</p>','excerpt'=>'Test'],$tok);
 t('Beitrag mit Shortcodes wird gespeichert',($art['status']??'')==='ok',json_encode($art));
 [$st,,$page]=http('GET',$base.'/radio-test/');
-t('Website liefert den Beitrag aus',$st===200,"HTTP $st");
-t('Shortcode Player: Audio-Element mit https-Stream, Stream erst nach Klick',str_contains($page,'<audio controls preload="none" src="https://stream.example.org/live.mp3"'));
-t('Shortcode „Jetzt läuft“ und Sendeplan werden ersetzt (nicht als Rohtext)',str_contains($page,'Rund um die Uhr')&&!str_contains($page,'[elvado_radio_now')&&!str_contains($page,'[elvado_radio_schedule'));
-t('Kein Rohtext anderer Shortcodes auf der Seite',!str_contains($page,'[elvado_radio '));
+if($wpOn)t('Website liefert den Beitrag aus',$st===200,"HTTP $st");
+if($wpOn)t('Shortcode Player: Audio-Element mit https-Stream, Stream erst nach Klick',str_contains($page,'<audio controls preload="none" src="https://stream.example.org/live.mp3"'));
+if($wpOn)t('Shortcode „Jetzt läuft“ und Sendeplan werden ersetzt (nicht als Rohtext)',str_contains($page,'Rund um die Uhr')&&!str_contains($page,'[elvado_radio_now')&&!str_contains($page,'[elvado_radio_schedule'));
+if($wpOn)t('Kein Rohtext anderer Shortcodes auf der Seite',!str_contains($page,'[elvado_radio '));
 
 // ---------- Weiterleitungen (Plugin) ↔ Beitragsadresse
 $id=(int)($art['article']['id']??($art['id']??0));
 if($id<=0){ foreach((array)(get($base,'news_list',$tok)['articles']??get($base,'news_list',$tok)['items']??[]) as $x)if(($x['slug']??'')==='radio-test')$id=(int)$x['id']; }
 $mv=api($base,'news_save',['id'=>$id,'title'=>'Radio und Formular','slug'=>'radio-neu','status'=>'published','body_html'=>'<p>[elvado_radio station="mein-radio"]</p>','excerpt'=>'Test'],$tok);
 [$st,,,$loc]=http('GET',$base.'/radio-test/');
-t('Geänderte Beitragsadresse: alte Adresse leitet automatisch weiter (Plugin Redirects)',in_array($st,[301,302],true)&&str_contains($loc,'radio-neu'),"HTTP $st → $loc");
+if($wpOn)t('Geänderte Beitragsadresse: alte Adresse leitet automatisch weiter (Plugin Redirects)',in_array($st,[301,302],true)&&str_contains($loc,'radio-neu'),"HTTP $st → $loc");
 [$st]=http('GET',$base.'/radio-neu/');
-t('Neue Adresse ist erreichbar',$st===200,"HTTP $st");
+if($wpOn)t('Neue Adresse ist erreichbar',$st===200,"HTTP $st");
 
 // ---------- Alexa ↔ Assistent ↔ Website
 $sv=api($base,'save',['section'=>'alexa','value'=>['topics'=>['oeffnung'=>['title'=>'Öffnungszeiten','text'=>'Wir haben Montag bis Freitag von neun bis achtzehn Uhr geöffnet.']]]],$tok);
@@ -90,14 +94,12 @@ $bad=get($base,'app_config','','&brand=unbekannt&platform=windows&version=1');
 t('App-Startabfrage mit unbekannter Marke bleibt gültig',($bad['status']??'')==='ok');
 
 // ---------- Robustheit: aktives Theme fehlt (gelöscht/umbenannt, z. B. nach einem Update) → Standard-Theme statt leerer Seite
-$of=$tmp.'/cms/data/.wp/options.json';
-if(is_file($of)){
-    $orig=(string)file_get_contents($of);
-    file_put_contents($of,str_replace('elvado-classic','gibt-es-nicht',$orig));
-    [$st,,$hb]=http('GET',$base.'/radio-neu/');
-    t('Fehlendes aktives Theme: Website fällt auf das Standard-Theme zurück (keine leere Seite)',$st===200&&str_contains($hb,'<html')&&str_contains($hb,'<audio'),"HTTP $st, ".strlen($hb).' Bytes');
-    file_put_contents($of,$orig);
-}else t('Optionsdatei der WordPress-Schicht vorhanden',false,$of);
+if($wpOn){
+    api($base,'wp_theme_activate',['slug'=>'elvado-band'],$tok);rename($tmp.'/cms/themes/elvado-band',$tmp.'/cms/themes/elvado-band.weg');
+    [$st,,$hb]=http('GET',$base.'/radio-neu/');if($st===302)[$st,,$hb]=http('GET',$base.'/radio-neu/');
+    t('Fehlendes aktives Theme: Website fällt auf das Standard-Theme zurück (keine leere Seite)',$st===200&&str_contains($hb,'/cms/themes/elvado-classic')&&str_contains($hb,'<audio'),"HTTP $st, ".strlen($hb).' Bytes');
+    rename($tmp.'/cms/themes/elvado-band.weg',$tmp.'/cms/themes/elvado-band');
+}
 
 // ---------- Sicherheit der Schnittstellen
 t('Verwaltungsaktionen ohne Anmeldung werden abgewiesen',(function() use($base){ foreach(['apps_overview','alexa_get','np_list','system_get','app_build_state'] as $a){ [$st]=http('GET',$base.'/cms/api.php?action='.$a);if($st!==401)return false; } return true; })());
@@ -110,9 +112,9 @@ t('Backup-Plugin liefert Übersicht',isset($bk['blocks']),json_encode($bk));
 
 // ---------- Konsistenz der Navigation
 $c1=api($base,'wp_theme_customize',['slug'=>'elvado-baukasten'],$tok);$c2=api($base,'wp_theme_customize',['slug'=>'elvado-classic'],$tok);$k1=api($base,'wp_bk_get',[],$tok);
-t('Customizer/Live Builder: ein nur bearbeitetes Theme gilt nicht als aktiv (sonst „veröffentlicht“, obwohl die Website ein anderes Theme zeigt)',($c1['active']??null)===false&&($c2['active']??null)===true&&($k1['active']??null)===false,json_encode([$c1['active']??null,$c2['active']??null,$k1['active']??null]));
+if($wpOn)t('Customizer/Live Builder: ein nur bearbeitetes Theme gilt nicht als aktiv (sonst „veröffentlicht“, obwohl die Website ein anderes Theme zeigt)',($c1['active']??null)===false&&($c2['active']??null)===true&&($k1['active']??null)===false,json_encode([$c1['active']??null,$c2['active']??null,$k1['active']??null]));
 api($base,'wp_theme_activate',['slug'=>'elvado-baukasten'],$tok);$c3=api($base,'wp_theme_customize',['slug'=>'elvado-baukasten'],$tok);$k2=api($base,'wp_bk_get',[],$tok);
-t('Customizer/Live Builder: nach dem Aktivieren gilt das Theme als aktiv',($c3['active']??null)===true&&($k2['active']??null)===true,json_encode([$c3['active']??null,$k2['active']??null]));
+if($wpOn)t('Customizer/Live Builder: nach dem Aktivieren gilt das Theme als aktiv',($c3['active']??null)===true&&($k2['active']??null)===true,json_encode([$c3['active']??null,$k2['active']??null]));
 api($base,'wp_theme_activate',['slug'=>'elvado-classic'],$tok);
 [$stNo]=http('GET',$base.'/cms/api.php?action=admin_links_get');
 t('Eigene Menülinks: ohne Anmeldung nicht lesbar',$stNo===401,"HTTP $stNo");
