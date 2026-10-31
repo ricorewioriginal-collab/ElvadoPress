@@ -11,6 +11,11 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### Verwaltung auf echtem WordPress (Stufe E4)
+- **Plugins, Themes und Einstellungen direkt im echten Core:** Liefert WordPress die Website aus, laufen die Bereiche WordPress-Plugins (installieren, aktivieren, deaktivieren, löschen, Updates, Übersetzungen), Themes (installieren, aktivieren, löschen/ausblenden), Einstellungen (Allgemein, Schreiben, Lesen, Diskussion, Medien), Startseite und Link-Struktur gegen echtes WordPress und seine Datenbank. Änderungen gelten sofort, ohne Umweg über die bisherige Schicht. Titel, Untertitel, Kommentare, Feed, Sichtbarkeit, Zeitzone und Sprache bleiben zusätzlich in ElvadoPress gespeichert.
+- **Keine überschriebenen Änderungen mehr:** Die Übernahme aus der bisherigen Schicht (Customizer, Widgets) kopiert nach der ersten Übernahme nur noch, was sich dort geändert hat.
+- Beitragslinks der Verwaltung kommen direkt aus WordPress; gerade gespeicherte Beiträge werden sofort übernommen.
+
 ### ElvadoPress-Funktionen auf der WordPress-Website (Stufe E3)
 - **Essentials wirken auch bei Auslieferung durch WordPress:** Sicherheits-Header, SEO-Angaben, Seiten-Cache, Statistik, Formular- und Radio-Shortcodes, geplante Plugin-Aufgaben, Weiterleitungen und 404-Protokoll aus der Verwaltung, App-Modus und Live-Builder-Gestaltung des Bereichs „Website“.
 - **Creator-Theme:** Die Link-in-Bio-Seite `/links/` funktioniert auf echtem WordPress (Theme-Version 1.0.1).

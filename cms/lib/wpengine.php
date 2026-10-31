@@ -332,7 +332,21 @@ function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
     }
     // Technische Optionen des Cores, IDs anderer Datenbanken und Geheimnisse werden nie übernommen
     $never = '~^(siteurl|home|db_version|initial_db_version|db_upgraded|cron|rewrite_rules|[a-z0-9_]*user_roles|active_plugins|recently_activated|uninstall_plugins|auth_key|auth_salt|logged_in_key|logged_in_salt|nonce_key|nonce_salt|secret_key|secure_auth_key|secure_auth_salt|page_on_front|page_for_posts|nav_menu_locations|default_category|wp_page_for_privacy_policy|fresh_site|elvado_wp_.*|_transient_.*|_site_transient_.*|can_compress_scripts|WPLANG|timezone_string|gmt_offset|stylesheet|template|current_theme)$~';
+    // Nach der ersten Übernahme nur noch übernehmen, was sich in der bisherigen Schicht seitdem geändert hat – Änderungen direkt in WordPress
+    // (Verwaltung auf echtem WordPress, lib/wp-real-admin.php) werden so nicht überschrieben.
+    $snap = get_option('elvado_adopt_snap');
+    $first = !is_array($snap);
+    $snap = $first ? [] : $snap;
+    $newSnap = [];
+    $changed = static function (string $name, $v) use (&$snap, &$newSnap, $first): bool {
+        $h = md5(serialize($v));
+        $newSnap[$name] = $h;
+        return $first || ($snap[$name] ?? '') !== $h;
+    };
     foreach ($opts as $name => $v) {
+        if (!$changed($name, $v)) {
+            continue;
+        }
         if (preg_match($never, $name)) {
             $out['skipped'][] = $name;
             continue;
@@ -351,7 +365,8 @@ function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
     // Theme: das bisher aktive Theme der Website, sonst das neutrale Standard-Theme von ElvadoPress
     $want = (string)($opts['stylesheet'] ?? '');
     $front = is_file($data . '/.wp/front-on');
-    foreach ([$front ? $want : '', 'elvado-classic'] as $slug) {
+    $themeChanged = $changed('stylesheet', $want) || $changed('front-on', $front);
+    foreach ($themeChanged ? [$front ? $want : '', 'elvado-classic'] : [] as $slug) {
         if ($slug !== '' && wp_get_theme($slug)->exists()) {
             $t = wp_get_theme($slug);
             update_option('template', $t->get_template());
@@ -362,6 +377,7 @@ function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
     }
     // Plugins, die in der bisherigen Schicht aktiv waren
     $act = array_values(array_filter(array_map('strval', (array)($opts['active_plugins'] ?? [])), static fn($p) => preg_match('~^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)?\.php$~', $p) === 1));
+    $act = array_values(array_filter($act, static fn($p) => $changed('plugin:' . $p, true)));   // nur neu aktivierte; in WordPress deaktivierte bleiben aus
     if ($act) {
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
         foreach ($act as $p) {
@@ -373,6 +389,7 @@ function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
             }
         }
     }
+    update_option('elvado_adopt_snap', $newSnap, false);
     update_option('elvado_adopted', time(), false);
     $e->log('Einstellungen übernommen: ' . $out['options'] . ' Optionen, Theme ' . ($out['theme'] ?: '–') . ', Plugins ' . count($out['plugins']));
     return $out;

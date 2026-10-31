@@ -127,6 +127,14 @@ def run(browser, base, shots, tmp):
         json.dump({'rules': [{'from': '/alte-adresse/', 'to': '/', 'code': 301}]}, f)
     st, html, _ = http('GET', base + '/alte-adresse/')
     check('Weiterleitung aus der Verwaltung greift auf echtem WordPress', st == 200 and '/cms/themes/elvado-' in html, st)
+    # Verwaltung auf echtem WordPress: Theme wechseln und Einstellungen speichern wirken sofort auf die WordPress-Website
+    before = page.evaluate("cmsApi('wp_themes').then(d=>d.active)")
+    page.evaluate("cmsApi('wp_theme_activate',{slug:'elvado-band'})")
+    page.evaluate("cmsApi('wp_settings_save',{group:'general',values:{blogname:'E2E Echt'}})")
+    st, html, _ = http('GET', base + '/?nc=2')
+    check('Theme und Titel aus der Verwaltung gelten direkt in WordPress', '/cms/themes/elvado-band' in html and '<title>E2E Echt' in html, before)
+    page.evaluate(f"cmsApi('wp_theme_activate',{{slug:{json.dumps(before)}}})")
+    page.evaluate("cmsApi('wp_settings_save',{group:'general',values:{blogname:'E2E Testseite'}})")
     tok = page.evaluate("sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')")
 
     # Jeder Bereich öffnet ohne JavaScript-Fehler
@@ -152,7 +160,7 @@ def run(browser, base, shots, tmp):
     href = page.evaluate("(()=>{const r=[...document.querySelectorAll('#newsList .news-admin-row')].find(r=>r.innerText.includes('E2E Beitrag'));const a=r&&r.querySelector('a[title=\"Ansehen\"]');return a?a.href:''})()")
     check('Beitragsliste verlinkt die echte Beitragsadresse', href.startswith(base + '/') and '#news' not in href, href)
     st, html, _ = http('GET', href or base + '/')
-    check('Veröffentlichter Beitrag erscheint auf der Website', st == 200 and 'Zweiter Absatz.' in html, st)
+    check('Veröffentlichter Beitrag erscheint auf der Website', st == 200 and 'Zweiter Absatz.' in html, f'{st} {href}')
     page.screenshot(path=os.path.join(shots, 'beitrag.png'))
 
     # Feed und robots.txt
