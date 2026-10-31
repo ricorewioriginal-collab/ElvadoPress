@@ -695,16 +695,25 @@ if($action==='admin_links_get'||$action==='admin_links_save'){   // eigene Links
     try{elvado_json(['status'=>'ok','links'=>elvado_admin_links_save($dataDir,$b['links']??null)]);}
     catch(InvalidArgumentException $e){elvado_json(['status'=>'error','message'=>$e->getMessage()],400);}
 }
+if($action==='ml_get'||$action==='ml_save'){   // mehrsprachige Website (lib/multilang.php)
+    require_once __DIR__.'/lib/multilang.php';
+    if($action==='ml_save'){ elvado_auth(true);$site['multilang']=elvado_ml_clean(elvado_body());if(function_exists('elvado_np_do'))elvado_np_do('content_saved','settings');elvado_write_atomic($siteFile,json_encode($site,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");elvado_log_activity($activityLogFile,elvado_auth(true),'ml_save','Mehrsprachigkeit '.(!empty($site['multilang']['enabled'])?'eingeschaltet':'ausgeschaltet').' ('.implode(', ',$site['multilang']['languages']).')'); }
+    else elvado_auth(false);
+    elvado_json(['status'=>'ok','config'=>elvado_ml_config($site),'available'=>ELVADO_ML_LANGS]);
+}
 if($action==='admin_prefs_get'||$action==='admin_prefs_save'){   // persönliche Einstellungen der Verwaltung (Design), pro Benutzer, nicht pro Browser
     $u=elvado_auth(false);$pf=$dataDir.'/.prefs/admin.json';$all=is_file($pf)?json_decode((string)@file_get_contents($pf),true):[];$all=is_array($all)?$all:[];$name=(string)($u['user']??'');
     if($name==='')elvado_json(['status'=>'error','message'=>'Kein Benutzer'],400);
     if($action==='admin_prefs_save'){
-        $b=elvado_body();$t=(string)($b['theme']??'');if(!in_array($t,['neon','light','dark','auto'],true))elvado_json(['status'=>'error','message'=>'Unbekanntes Design'],400);
-        $all[$name]=['theme'=>$t];$dir=dirname($pf);if(!is_dir($dir)&&!@mkdir($dir,0775,true)&&!is_dir($dir))elvado_json(['status'=>'error','message'=>'Ordner nicht beschreibbar'],500);
+        $b=elvado_body();$cur=is_array($all[$name]??null)?$all[$name]:[];   // Design und Sprache der Verwaltung lassen sich einzeln speichern
+        if(array_key_exists('theme',$b)){ $t=(string)$b['theme'];if(!in_array($t,['neon','light','dark','auto'],true))elvado_json(['status'=>'error','message'=>'Unbekanntes Design'],400);$cur['theme']=$t; }
+        if(array_key_exists('lang',$b)){ $l=(string)$b['lang'];if(!in_array($l,['de','en'],true))elvado_json(['status'=>'error','message'=>'Unbekannte Sprache'],400);$cur['lang']=$l; }
+        if(!array_key_exists('theme',$b)&&!array_key_exists('lang',$b))elvado_json(['status'=>'error','message'=>'Nichts zu speichern'],400);
+        $all[$name]=$cur;$dir=dirname($pf);if(!is_dir($dir)&&!@mkdir($dir,0775,true)&&!is_dir($dir))elvado_json(['status'=>'error','message'=>'Ordner nicht beschreibbar'],500);
         if(!is_file($dir.'/.htaccess'))@file_put_contents($dir.'/.htaccess',"Require all denied\n<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n");
         elvado_write_atomic($pf,json_encode($all,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
     }
-    elvado_json(['status'=>'ok','theme'=>(string)($all[$name]['theme']??'')]);
+    elvado_json(['status'=>'ok','theme'=>(string)($all[$name]['theme']??''),'lang'=>(string)($all[$name]['lang']??'')]);
 }
 if($action==='media_alt_save'){elvado_auth(false);$b=elvado_body();try{elvado_json(['status'=>'ok']+elvado_media_alt_save((string)($b['id']??''),(string)($b['alt']??'')));}catch(RuntimeException $e){elvado_json(['status'=>'error','message'=>$e->getMessage()],$e->getCode()>=400?$e->getCode():400);}}
 if($action==='media_library_list'){elvado_auth(false);elvado_json(['status'=>'ok','items'=>elvado_media_library_items($site)]);}
@@ -1159,7 +1168,8 @@ if(str_starts_with($action,'wp_')){
         unset($r['ok']);elvado_json(['status'=>'ok']+$r);
     }
     if($action==='wp_news_links'){   // echte Website-Adressen der CMS-Beiträge (gemäß Link-Struktur) für „Ansehen“ in der Beitragsliste
-        $links=[];if(function_exists('elvado_wp_cms_posts'))foreach(elvado_wp_cms_posts() as $p)$links[(string)$p->ID]=(string)get_permalink($p);
+        require_once __DIR__.'/lib/multilang.php';$mlc=elvado_ml_config($site);   // übersetzte Beiträge liegen unter /<sprache>/…
+        $links=[];if(function_exists('elvado_wp_cms_posts'))foreach(elvado_wp_cms_posts() as $p)$links[(string)$p->ID]=elvado_ml_url((string)get_permalink($p),elvado_ml_article_lang((array)($p->elvado_data??[]),$mlc['default']),$mlc);
         elvado_json(['status'=>'ok','links'=>$links]);
     }
     if($action==='wp_permalinks'||$action==='wp_permalinks_save'){
@@ -1764,7 +1774,7 @@ if($action==='news_public'){
     elvado_json(['status'=>'ok','articles'=>array_slice($published,0,$limit),'external_sources'=>count(array_filter((array)($site['feed_sources']??[]),fn($s)=>!empty($s['enabled'])))]);
 }
 $newsAuth=null;
-if(in_array($action,['news_list','news_get','news_save','news_quick_edit','news_delete','news_thumbnail_upload','news_trash_list','news_restore','news_delete_permanent','news_bulk_action','news_category_rename','news_revisions_list','news_revision_restore','news_duplicate','news_export','news_import','news_tags','news_tag_change'],true))$newsAuth=elvado_auth(false);
+if(in_array($action,['news_translate','news_list','news_get','news_save','news_quick_edit','news_delete','news_thumbnail_upload','news_trash_list','news_restore','news_delete_permanent','news_bulk_action','news_category_rename','news_revisions_list','news_revision_restore','news_duplicate','news_export','news_import','news_tags','news_tag_change'],true))$newsAuth=elvado_auth(false);
 if($action==='news_list')elvado_json(['status'=>'ok','articles'=>array_values(array_map(fn($a)=>$a+['can_edit'=>elvado_news_can_edit($a,$newsAuth),'views'=>elvado_news_view_count($newsViews,(int)($a['id']??0))],array_filter($news,fn($a)=>empty($a['deleted_at'])))),'can_edit'=>true]);
 if($action==='news_trash_list')elvado_json(['status'=>'ok','articles'=>array_values(array_map(fn($a)=>$a+['can_edit'=>elvado_news_can_edit($a,$newsAuth)],array_filter($news,fn($a)=>!empty($a['deleted_at'])))),'can_edit'=>true]);
 if($action==='news_tags'){
@@ -1899,6 +1909,26 @@ if($action==='news_category_rename'){
     elvado_log_activity($activityLogFile,$newsAuth,'news_category_rename','Kategorie „'.$old.'“ in „'.$new.'“ umbenannt ('.$affected.' Beitrag/Beiträge aktualisiert)');
     elvado_json(['status'=>'ok','categories'=>$cats,'affected'=>$affected]);
 }
+if($action==='news_translate'){   // Übersetzung eines Beitrags als Entwurf anlegen (gleiche Übersetzungsgruppe, andere Sprache)
+    require_once __DIR__.'/lib/multilang.php';$mlc=elvado_ml_config($site);
+    $b=elvado_body();$id=(int)($b['id']??0);$to=strtolower(substr((string)($b['lang']??''),0,2));$src=null;foreach($news as $a)if((int)($a['id']??0)===$id){$src=$a;break;}
+    if($src===null)elvado_json(['status'=>'error','message'=>'Beitrag nicht gefunden'],404);
+    if(!elvado_news_can_edit($src,$newsAuth))elvado_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);
+    if(!in_array($to,$mlc['languages'],true))elvado_json(['status'=>'error','message'=>'Diese Sprache ist für die Website nicht eingeschaltet (Einstellungen → Mehrsprachigkeit).'],422);
+    $group=(string)($src['translation_group']??'');if($group===''){ $group='g'.bin2hex(random_bytes(6));foreach($news as &$a)if((int)($a['id']??0)===$id)$a['translation_group']=$group;unset($a); }
+    $have=elvado_ml_translations($news,$src+['translation_group'=>$group],$mlc['default']);
+    if(isset($have[$to]))elvado_json(['status'=>'ok','id'=>(int)$have[$to]['id'],'existing'=>true]);
+    $newId=1;foreach($news as $a)$newId=max($newId,(int)($a['id']??0)+1);$now=date('Y-m-d H:i:s');
+    $copy=$src;$copy['id']=$newId;$copy['lang']=$to;$copy['translation_group']=$group;$copy['status']='draft';$copy['featured']=0;
+    $copy['slug']=elvado_news_unique_slug($news,$newId,elvado_slug((string)($src['slug']??'beitrag').'-'.$to));
+    $copy['published_at']=(string)($src['published_at']??$now);$copy['created_at']=$now;$copy['updated_at']=$now;
+    $copy['author']=$newsAuth['display_name']??($src['author']??elvado_product_title());$copy['author_user']=$newsAuth['user']??'';unset($copy['deleted_at']);
+    $news[]=$copy;
+    elvado_write_atomic($newsFile,json_encode($news,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
+    elvado_np_do('content_saved','news');
+    elvado_log_activity($activityLogFile,$newsAuth,'news_translate','Übersetzung ('.strtoupper($to).') von „'.($src['title']??'').'“ angelegt');
+    elvado_json(['status'=>'ok','id'=>$newId,'article'=>$copy]);
+}
 if($action==='news_duplicate'){
     $b=elvado_body();$id=(int)($b['id']??0);$src=null;foreach($news as $a)if((int)($a['id']??0)===$id){$src=$a;break;}
     if($src===null)elvado_json(['status'=>'error','message'=>'Beitrag nicht gefunden'],404);
@@ -1922,7 +1952,7 @@ if($action==='news_save'){
     if($existing!==null&&!elvado_news_can_edit($existing,$newsAuth))elvado_json(['status'=>'error','message'=>'Keine Berechtigung für diesen Beitrag'],403);
     $slug=elvado_slug((string)(($b['slug']??'')!==''?$b['slug']:($existing['slug']??$b['title']??'news')));
     $slug=elvado_news_unique_slug($news,$id,$slug);   // Adresse eindeutig halten
-    $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?($b['image_mode']??'thumbnail'):'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>elvado_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>elvado_news_date($b['published_at']??'',$now),'body_html'=>elvado_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??elvado_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'updated_at'=>$now,'created_at'=>$now]+elvado_news_seo_fields($b);
+    $article=['id'=>$id,'slug'=>$slug,'title'=>mb_substr(trim((string)($b['title']??'')),0,255),'category'=>mb_substr((string)($b['category']??'News'),0,80),'excerpt'=>mb_substr((string)($b['excerpt']??''),0,600),'image_url'=>mb_substr((string)($b['image_url']??''),0,1200),'image_mode'=>in_array(($b['image_mode']??'thumbnail'),['thumbnail','article','both','none'],true)?($b['image_mode']??'thumbnail'):'thumbnail','external_url'=>mb_substr((string)($b['external_url']??''),0,1200),'video_url'=>mb_substr((string)($b['video_url']??''),0,1200),'tags'=>mb_substr((string)($b['tags']??''),0,800),'embed_html'=>elvado_safe_html((string)($b['embed_html']??'')),'status'=>($b['status']??'draft')==='published'?'published':'draft','featured'=>!empty($b['featured'])?1:0,'published_at'=>elvado_news_date($b['published_at']??'',$now),'body_html'=>elvado_safe_html((string)($b['body_html']??'')),'author'=>$existing['author']??($newsAuth['display_name']??elvado_product_title()),'author_user'=>$existing['author_user']??($newsAuth['user']??''),'updated_at'=>$now,'created_at'=>$now]+elvado_news_seo_fields($b)+elvado_news_ml_fields($b,$existing);
     if($existing!==null)elvado_news_save_revision($revisionsFile,$id,$existing);
     if($existing!==null&&(string)($existing['slug']??'')!==''&&(string)$existing['slug']!==$slug)elvado_np_do('slug_changed','news',(string)$existing['slug'],$slug);   // Plugins (Weiterleitungen) reagieren auf geänderte Adressen
     elvado_np_do('content_saved','news');

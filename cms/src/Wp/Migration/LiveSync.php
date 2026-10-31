@@ -74,10 +74,20 @@ final class LiveSync
         $src = new NativeAdapter($this->cmsDir, $this->dataDir);
         $seen = [];
         $c = ['created' => 0, 'updated' => 0, 'trashed' => 0];
+        $defLang = '';   // mehrsprachige Website: WordPress zeigt nur die Beiträge der Standardsprache (Übersetzungen bleiben in ElvadoPress)
+        if (is_file($this->cmsDir . '/lib/multilang.php')) {
+            require_once $this->cmsDir . '/lib/multilang.php';
+            $site = is_file($this->dataDir . '/site.json') ? json_decode((string)@file_get_contents($this->dataDir . '/site.json'), true) : [];
+            $mc = elvado_ml_config(is_array($site) ? $site : []);
+            $defLang = $mc['enabled'] ? $mc['default'] : '';
+        }
         foreach (['post', 'page'] as $type) {
             for ($p = 1; $p <= 500; $p++) {
                 $r = $src->items($type, ['status' => 'all', 'per_page' => 100, 'page' => $p]);
                 foreach ($r['items'] as $it) {
+                    if ($defLang !== '' && (string)($it['lang'] ?? '') !== '' && (string)$it['lang'] !== $defLang) {
+                        continue;   // Übersetzung – wird nicht übernommen (eine bereits übernommene wandert in den Papierkorb)
+                    }
                     $key = $type . ':' . $it['id'];
                     $seen[$key] = true;
                     $status = (string)$it['status'] === 'scheduled' && strtotime((string)$it['date']) <= time() ? 'published' : (string)$it['status'];

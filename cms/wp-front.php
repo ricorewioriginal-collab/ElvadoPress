@@ -66,9 +66,19 @@ require_once $cmsDir.'/wp/session.php';
 
 $uri=(string)($_SERVER['REQUEST_URI']??'/');
 $reqPath=(string)parse_url($uri,PHP_URL_PATH);
+// Mehrsprachige Website (lib/multilang.php): /en/… liefert die englischen Beiträge; der Rest der Auslieferung sieht den Pfad ohne Sprachpräfix
+$npUri=$uri;$npPath=$reqPath;   // Plugins (z. B. Seiten-Cache) sehen die vollständige Adresse mit Sprachpräfix
+try{
+    require_once $cmsDir.'/lib/multilang.php';$mlCfg=elvado_ml_config((array)$GLOBALS['ELVADO_SITE']);
+    if($mlCfg['enabled']&&!$sbx){
+        [$mlLang,$mlPath]=elvado_ml_detect($reqPath,$mlCfg);
+        if($mlLang!==$mlCfg['default']){ $mlQ=(string)parse_url($uri,PHP_URL_QUERY);$uri=$mlPath.($mlQ!==''?'?'.$mlQ:'');$reqPath=$mlPath;$_SERVER['REQUEST_URI']=$uri; }
+        $GLOBALS['elvado_ml']=['lang'=>$mlLang,'cfg'=>$mlCfg];
+    }
+}catch(Throwable $e){}
 // Native Plugins (Essentials): laden, geplante Aufgaben, frühe Anfragen (z. B. Seiten-Cache, Weiterleitungen) – siehe cms/lib/nplugins.php
 require_once $cmsDir.'/lib/nplugins.php';
-if($preview===''&&!$sbx){ elvado_np_boot();elvado_np_do('front_request',$uri,$reqPath,(string)($_SERVER['REQUEST_METHOD']??'GET')); }
+if($preview===''&&!$sbx){ elvado_np_boot();elvado_np_do('front_request',$npUri,$npPath,(string)($_SERVER['REQUEST_METHOD']??'GET')); }
 // Wechsel vom CMS: Einmal-Token gegen Sitzungs-Cookie tauschen und auf die saubere Adresse weiterleiten
 if(isset($_GET['elvado_wp_login'])){
     $ok=elvado_wp_sess_token_consume((string)$_GET['elvado_wp_login']);
@@ -78,6 +88,7 @@ if(isset($_GET['elvado_wp_login'])){
 }
 $sess=elvado_wp_sess_check();$GLOBALS['elvado_wp_sess_user']=$sess!==null;
 elvado_wp_boot(['theme'=>true,'user'=>$sess?:null,'admin'=>$sess!==null&&str_starts_with($reqPath,'/wp-admin/')]);
+if(!empty($GLOBALS['elvado_ml']))elvado_ml_hooks();   // Sprache, Adressen, hreflang, Sprachumschalter
 if($preview===''&&is_file(ELVADO_WP_DATA.'/customize-changesets/future.idx')){ try{ require_once $cmsDir.'/wp/customizer-api.php';elvado_wpc_cs_run_due(); }catch(Throwable $e){} }   // geplante Customizer-Änderungen
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){ $GLOBALS['elvado_wp_raw_body']=(string)file_get_contents('php://input',false,null,0,1048576);}
 $GLOBALS['elvado_wp_req_headers']=['Content-Type'=>(string)($_SERVER['CONTENT_TYPE']??''),'Accept'=>(string)($_SERVER['HTTP_ACCEPT']??''),'X-WP-Nonce'=>(string)($_SERVER['HTTP_X_WP_NONCE']??''),'X-HTTP-Method-Override'=>(string)($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']??'')];
@@ -116,5 +127,5 @@ if($preview===''&&!$sbx&&is_string($body)&&($_SERVER['REQUEST_METHOD']??'GET')==
 if(!$sbx&&$r['status']===200&&is_string($body)&&stripos((string)($r['headers']['Content-Type']??'text/html'),'html')!==false&&(isset($_GET['elvado_ep_preview'])||is_file($siteData.'/layouts/site__website.json'))){
     try{ require_once $cmsDir.'/lib/components.php';$body=elvado_components_inject($body,'site:website',$_GET,$siteData); }catch(Throwable $e){}
 }
-elvado_np_do('front_response',(int)$r['status'],$reqPath,(string)($r['headers']['Content-Type']??'text/html'));
+elvado_np_do('front_response',(int)$r['status'],$npPath,(string)($r['headers']['Content-Type']??'text/html'));
 echo $body;

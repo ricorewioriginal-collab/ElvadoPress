@@ -211,7 +211,7 @@ function rowHtml(a){
     <input type="checkbox" class="news-row-check" data-id="${a.id}" ${selectedIds.has(a.id)?'checked':''} onchange="NewsMagazine.toggleSelect(${a.id},this.checked)" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer;">
     ${a.image_url?'<img src="'+esc(a.image_url)+'" alt="" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--border);background:var(--surface2);" onerror="this.outerHTML=\'<div style=&quot;width:52px;height:52px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);&quot;><i class=&quot;fas fa-image&quot;></i></div>\'">':'<div style="width:52px;height:52px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted);"><i class="fas fa-image"></i></div>'}
     <div style="min-width:0;">
-      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px;">${a.featured==1?'<span style="color:var(--accent)"><i class="fas fa-star"></i></span>':''}<b style="color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px;">${esc(a.title)}</b>${statusBadge(a)}</div>
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:4px;">${a.featured==1?'<span style="color:var(--accent)"><i class="fas fa-star"></i></span>':''}<b style="color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:520px;">${esc(a.title)}</b>${statusBadge(a)}${ML&&ML.enabled?'<span class="hint" style="border:1px solid var(--border);border-radius:6px;padding:0 6px;font-size:.66rem" title="Sprache">'+esc((a.lang||ML.default).toUpperCase())+'</span>':''}</div>
       ${!showTrash&&a.slug?'<div style="font-size:.66rem;color:var(--muted);font-family:monospace;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(postLinks[String(a.id)]?postLinks[String(a.id)].replace(location.origin,''):'/'+a.slug+'/')+'</div>':''}
       <div style="font-size:.7rem;color:var(--muted);">${esc(a.category||'News')} · ${showTrash?'Gelöscht: '+fmt(a.deleted_at):fmt(a.published_at||a.created_at)} · ${esc(a.author||'')}${a.views?' · <i class="fas fa-eye"></i> '+a.views:''}</div>
       ${a.excerpt?'<div style="font-size:.76rem;color:var(--dim);margin-top:5px;line-height:1.45;">'+esc(a.excerpt)+'</div>':''}
@@ -317,6 +317,7 @@ async function load(){
     updateTrashToggle();
     renderTagSuggestions();
     renderCategoryManager();
+    if(ML===null)loadMl();
     if(!showTrash)api('wp_news_links').then(r=>{postLinks=r.links||{};renderListBody()}).catch(()=>{});
   }catch(e){if(h)h.innerHTML='<div class="empty" style="color:#ff8080"><i class="fas fa-triangle-exclamation"></i>'+esc(e.message)+'</div>';}
 }
@@ -389,6 +390,10 @@ function editorHtml(){
         <details class="card editor-box np-panel"><summary><i class="fas fa-comments"></i> Diskussion</summary>
           <label class="news-lbl">Kommentare für diesen Beitrag</label>
           <select id="newsComments" class="fc w-100"><option value="default">Wie in den Kommentar-Einstellungen</option><option value="open">Immer erlauben</option><option value="closed">Geschlossen</option></select>
+        </details>
+        <details class="card editor-box np-panel" id="newsLangBox" style="display:none" open><summary><i class="fas fa-language"></i> Sprache &amp; Übersetzungen</summary>
+          <label class="news-lbl">Sprache dieses Beitrags</label><select id="newsLang" class="fc w-100"></select>
+          <div id="newsTranslations" style="margin-top:8px"></div>
         </details>
         <details class="card editor-box np-panel"><summary><i class="fas fa-magnifying-glass-chart"></i> Suchmaschinen &amp; Teilen</summary>
           <label class="news-lbl">SEO-Titel</label><input id="newsSeoTitle" class="fc w-100" maxlength="70" placeholder="Standard: Beitragstitel">
@@ -567,6 +572,7 @@ function openEditor(a){
   document.getElementById('newsComments').value=['open','closed'].includes(a?.comments)?a.comments:'default';
   document.getElementById('newsNoindex').checked=!!a?.noindex;
   document.getElementById('newsCanonical').value=a?.canonical_url||'';
+  currentArticle=a||null;renderLang();
   setBody(a?.body_html||'');
   slugPreview();updateInfo();
   renderThumbPreview();
@@ -604,8 +610,27 @@ async function restoreRevision(revisionId){
   }catch(e){say(e.message,'error');}
 }
 async function edit(id){try{const r=await fetch(CMS_API+'?action=news_get&id='+encodeURIComponent(id)+'&_='+Date.now(),{headers:cmsNewsHeaders(false)});const d=await r.json();if(!r.ok||d.status==='error'||d.error)throw new Error(d.message||d.error||'Fehler');openEditor(d.article);}catch(e){say(e.message,'error');}}
+/* Mehrsprachige Website: Sprache des Beitrags und verknüpfte Übersetzungen (Einstellungen → Mehrsprachigkeit) */
+let ML=null,currentArticle=null;
+const LANG_NAMES={de:'Deutsch',en:'English',fr:'Français',es:'Español',it:'Italiano',nl:'Nederlands',pl:'Polski',tr:'Türkçe',pt:'Português',da:'Dansk',sv:'Svenska',cs:'Čeština'};
+async function loadMl(){try{const d=await api('ml_get');ML=d.config||null;}catch(e){ML=null}renderLang();}
+function renderLang(){
+  const box=document.getElementById('newsLangBox');if(!box)return;
+  if(!ML||!ML.enabled){box.style.display='none';return}
+  box.style.display='';const a=currentArticle||{};const cur=a.lang||ML.default;
+  document.getElementById('newsLang').innerHTML=ML.languages.map(l=>'<option value="'+l+'"'+(l===cur?' selected':'')+'>'+esc(LANG_NAMES[l]||l)+'</option>').join('');
+  const host=document.getElementById('newsTranslations');
+  if(!currentId){host.innerHTML='<div class="hint">Nach dem ersten Speichern kannst du hier Übersetzungen anlegen.</div>';return}
+  const group=a.translation_group||'';const mine=articles.filter(x=>group&&x.translation_group===group&&x.id!==a.id);
+  host.innerHTML=ML.languages.filter(l=>l!==cur).map(l=>{const t=mine.find(x=>(x.lang||ML.default)===l);
+    return '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0"><span><b>'+l.toUpperCase()+'</b> '+(t?esc(t.title)+' <span class="hint">('+(t.status==='published'?'veröffentlicht':'Entwurf')+')</span>':'<span class="hint">noch keine Übersetzung</span>')+'</span>'
+     +(t?'<button type="button" class="btn-g" onclick="NewsMagazine.edit('+t.id+')"><i class="fas fa-pen"></i></button>':'<button type="button" class="btn-g" onclick="NewsMagazine.translate(\''+l+'\')"><i class="fas fa-plus"></i> Übersetzung anlegen</button>')+'</div>'}).join('');
+}
+async function translate(l){
+  if(!currentId)return;try{const d=await api('news_translate',{id:currentId,lang:l});await load();say(d.existing?'Übersetzung geöffnet':'Übersetzung als Entwurf angelegt – Text übersetzen und veröffentlichen','success');edit(d.id);}catch(e){say(e.message,'error')}
+}
 function collectFormData(){
-  return {id:currentId,title:val('newsTitle').trim(),category:val('newsCategory'),excerpt:val('newsExcerpt').trim(),image_url:val('newsImage').trim(),image_mode:val('newsImageMode')||'thumbnail',external_url:val('newsExternal').trim(),video_url:val('newsVideo').trim(),tags:val('newsTags').trim(),embed_html:val('newsEmbedHtml').trim(),status:val('newsStatus'),featured:checked('newsFeatured'),published_at:val('newsPublishedAt'),seo_title:val('newsSeoTitle').trim(),seo_description:val('newsSeoDescription').trim(),slug:val('newsSlug').trim(),comments:val('newsComments')||'default',noindex:checked('newsNoindex'),canonical_url:val('newsCanonical').trim(),body_html:getBody()};
+  return {id:currentId,title:val('newsTitle').trim(),category:val('newsCategory'),excerpt:val('newsExcerpt').trim(),image_url:val('newsImage').trim(),image_mode:val('newsImageMode')||'thumbnail',external_url:val('newsExternal').trim(),video_url:val('newsVideo').trim(),tags:val('newsTags').trim(),embed_html:val('newsEmbedHtml').trim(),status:val('newsStatus'),featured:checked('newsFeatured'),published_at:val('newsPublishedAt'),seo_title:val('newsSeoTitle').trim(),seo_description:val('newsSeoDescription').trim(),slug:val('newsSlug').trim(),comments:val('newsComments')||'default',noindex:checked('newsNoindex'),canonical_url:val('newsCanonical').trim(),body_html:getBody(),...(ML&&ML.enabled?{lang:val('newsLang')||ML.default}:{})};
 }
 async function save(){
   if(!canEdit)return say('Keine Redaktionsrechte','error');
@@ -729,5 +754,5 @@ function pickFeatured(){
   if(!window.StockMedia){say('Bildauswahl nicht verfügbar','error');return}
   StockMedia.open({tab:'stock',onPick:(item,info)=>{document.getElementById('newsImage').value=info.url;renderThumbPreview()}});
 }
-window.NewsMagazine={slugPreview,bodyApi:()=>be,insertImage,pickFeatured,aiFeatured,importPrompt,mount,reload:load,newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
+window.NewsMagazine={translate,slugPreview,bodyApi:()=>be,insertImage,pickFeatured,aiFeatured,importPrompt,mount,reload:()=>{ML=null;return load()},newArticle:()=>openEditor(null),edit,save,del,restore,delPermanent,toggleTrash,closeEditor,preview,duplicate,uploadThumb,openMediaPicker,pickMedia,closeMediaPicker,videoPreview,saveCommentSettings,approveComment,deleteComment,toggleCommentReply,sendCommentReply,toggleSelect,toggleSelectAll,applyBulk,onBulkOpChange,startQuickEdit,cancelQuickEdit,saveQuickEdit,toggleRevisions,restoreRevision,setSearch,setStatusFilter,setSort,goToPage,restoreAutosave,dismissAutosave,setCategories,addCategory,removeCategory,renameCategory};
 })();

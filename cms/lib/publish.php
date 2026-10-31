@@ -50,6 +50,13 @@ function elvado_news_date($v,string $fallback=''): string { $t=elvado_news_ts($v
 function elvado_news_sort_ts(array $a): int { return elvado_news_ts($a['published_at']??'')??elvado_news_ts($a['created_at']??'')??0; }
 /** Vergleich "neueste zuerst" für usort. */
 function elvado_news_cmp_desc(array $a,array $b): int { return elvado_news_sort_ts($b)<=>elvado_news_sort_ts($a); }
+/** Sprache und Übersetzungsgruppe eines Beitrags (mehrsprachige Website); fehlen die Angaben, bleiben die bisherigen erhalten. */
+function elvado_news_ml_fields(array $b, ?array $existing): array {
+    $lang=array_key_exists('lang',$b)?strtolower(substr((string)$b['lang'],0,2)):(string)($existing['lang']??'');
+    if($lang!==''&&!preg_match('/^[a-z]{2}$/',$lang))$lang='';
+    $group=(string)($existing['translation_group']??'');
+    return ($lang!==''?['lang'=>$lang]:[])+($group!==''?['translation_group'=>$group]:[]);
+}
 function elvado_news_is_live(array $a): bool {
     if (($a['status']??'draft')!=='published' || !empty($a['deleted_at'])) return false;
     $publishedAt=trim((string)($a['published_at']??''));

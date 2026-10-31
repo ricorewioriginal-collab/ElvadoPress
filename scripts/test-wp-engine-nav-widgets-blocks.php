@@ -41,7 +41,7 @@ if (($argv[1] ?? '') === '--child') {
     $saved = $nv->save($m['id'], $items);
     t('Baum gespeichert, Reihenfolge und Untermenü', count($saved) === 4 && $saved[0]['label'] === 'Über uns' && $saved[0]['type'] === 'page' && count($saved[0]['children']) === 1 && $saved[0]['children'][0]['label'] === 'Impressum' && $saved[1]['type'] === 'category' && $saved[1]['label'] === 'Radio-News' && $saved[3]['url'] === 'https://example.org/x', json_encode($saved));
     t('Einstellungen des Eintrags (Ziel, rel, Klassen bereinigt)', $saved[0]['children'][0]['target'] === '_blank' && $saved[0]['children'][0]['rel'] === 'noopener nofollow' && $saved[0]['children'][0]['classes'] === 'a b' && $saved[0]['children'][0]['url'] === '/impressum', json_encode($saved[0]['children'][0]));
-    t('Verlinkte Seite: Adresse liefert WordPress', str_contains($saved[0]['url'], 'page_id=' . $pg) && str_contains($saved[2]['url'], 'p=' . $po) && $saved[2]['object_id'] === (string)$po, $saved[0]['url'] . ' | ' . $saved[2]['url']);
+    t('Verlinkte Seite: Adresse liefert WordPress', $saved[0]['url'] === get_permalink((int)$pg) && $saved[2]['url'] === get_permalink((int)$po) && $saved[2]['object_id'] === (string)$po, $saved[0]['url'] . ' | ' . $saved[2]['url']);
     // Umbauen: verschieben, neu, entfernen
     $reorder = [$saved[3], ['id' => $saved[0]['id'], 'type' => 'page', 'object_id' => (string)$pg, 'label' => 'Wir', 'children' => [['id' => $saved[2]['id'], 'type' => 'post', 'object_id' => (string)$po, 'label' => 'Lesen']]]];
     $s2 = $nv->save($m['id'], $reorder);

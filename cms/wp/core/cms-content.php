@@ -26,7 +26,8 @@ function elvado_wp_cms_data(): array {
     if(isset($GLOBALS['elvado_wp_cms_cache']))return $GLOBALS['elvado_wp_cms_cache'];
     $dir=elvado_wp_cms_dir();$news=elvado_wp_read_json($dir.'/news.json',[]);$site=elvado_wp_read_json($dir.'/site.json',[]);
     $now=elvado_wp_cms_now();$live=[];
-    foreach($news as $a){ if(!is_array($a)||($a['status']??'draft')!=='published'||!empty($a['deleted_at']))continue; $pa=trim((string)($a['published_at']??''));if($pa!==''&&$pa>$now)continue; $live[]=$a; }
+    $ml=$GLOBALS['elvado_ml']??null;   // mehrsprachige Website: nur Beiträge der aufgerufenen Sprache
+    foreach($news as $a){ if(!is_array($a)||($a['status']??'draft')!=='published'||!empty($a['deleted_at']))continue; $pa=trim((string)($a['published_at']??''));if($pa!==''&&$pa>$now)continue; if($ml&&elvado_ml_article_lang($a,$ml['cfg']['default'])!==$ml['lang'])continue; $live[]=$a; }
     return $GLOBALS['elvado_wp_cms_cache']=['news'=>$live,'site'=>$site,'news_all'=>$news];
 }
 function elvado_wp_cms_author_id(string $name): int { return $name===''?1:(1+(crc32(mb_strtolower($name))%90000)); }

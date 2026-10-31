@@ -11,9 +11,12 @@ $pr=elvado_product();
 $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<?php $epLang=(elvado_system_config()['language']??'')==='en'?'en':'de'; ?>
+<html lang="<?=$epLang?>" data-site-lang="<?=$epLang?>">
 <head>
 <meta charset="UTF-8">
+<style>html.ep-i18n-wait body{visibility:hidden}</style>
+<script src="assets/i18n.js?v=1"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title><?=$ph('title')?></title>
@@ -155,15 +158,15 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
   </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<link rel="stylesheet" href="assets/block-editor.css?v=1"><link rel="stylesheet" href="assets/admin-themes.css?v=1"><script src="assets/admin-theme.js?v=2"></script><script src="assets/ai-center.js?v=5"></script><script src="assets/ai-media.js?v=4"></script><script src="assets/ai-builder.js?v=3"></script><script src="assets/ai-dev.js?v=2"></script><script src="assets/ai-nav.js?v=1"></script><script src="assets/customizer-extras.js?v=1"></script><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=2"></script><script src="assets/blocks/editor.js?v=2"></script>
-<script src="assets/news-editor.js?v=20"></script>
+<link rel="stylesheet" href="assets/block-editor.css?v=1"><link rel="stylesheet" href="assets/admin-themes.css?v=1"><script src="assets/admin-theme.js?v=2"></script><script src="assets/ai-center.js?v=5"></script><script src="assets/ai-media.js?v=4"></script><script src="assets/ai-builder.js?v=3"></script><script src="assets/ai-dev.js?v=2"></script><script src="assets/ai-nav.js?v=1"></script><script src="assets/customizer-extras.js?v=1"></script><script src="assets/blocks/core.js?v=1"></script><script src="assets/blocks/types.js?v=2"></script><script src="assets/blocks/editor.js?v=3"></script>
+<script src="assets/news-editor.js?v=21"></script>
 <script src="assets/stock-media.js?v=2"></script>
 <script src="assets/media-manager.js?v=8"></script>
 <script src="assets/theme-manager.js?v=13"></script>
 <script src="assets/brands-manager.js?v=5"></script><script src="assets/sites-manager.js?v=1"></script>
 <script src="assets/services-manager.js?v=1"></script>
 <script src="assets/app-build.js?v=10"></script><script src="assets/apps-manager.js?v=11"></script>
-<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=11"></script>
+<script src="assets/assistant-manager.js?v=7"></script><script src="assets/alexa-manager.js?v=12"></script>
 <script src="assets/widgets-manager.js?v=2"></script>
 <script src="assets/plugin-manager.js?v=4"></script><script src="assets/elvado-plugins.js?v=3"></script>
 <script src="assets/system-manager.js?v=3"></script>
@@ -179,19 +182,19 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/contents-manager.js?v=1"></script>
 <script src="assets/forms-manager.js?v=1"></script>
 <script src="assets/polls-manager.js?v=1"></script>
-<script src="assets/community-manager.js?v=1"></script>
+<script src="assets/community-manager.js?v=2"></script>
 <script src="assets/wpplugins-manager.js?v=4"></script>
 <script src="assets/wpthemes-manager.js?v=11"></script>
 <script src="assets/wp-links.js?v=2"></script>
-<script src="assets/wp-settings.js?v=2"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
+<script src="assets/wp-settings.js?v=2"></script><script src="assets/ml-settings.js?v=1"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>
 <script src="assets/sandbox.js?v=1"></script>
 <script src="assets/design-hub.js?v=4"></script>
 <script src="assets/pages-manager.js?v=1"></script>
 <script src="assets/header-builder.js?v=1"></script>
-<script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=4"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=48"></script>
+<script src="assets/wp-notices.js?v=1"></script><script src="assets/wp-engine.js?v=5"></script><script src="assets/sysstatus.js?v=2"></script><script src="assets/wp-extensions.js?v=1"></script><script src="assets/wp-engine-content.js?v=1"></script><script src="assets/cms-app.js?v=48"></script>
 <?php /* Erweiterungen aktiver offizieller Plugins für die ganze Verwaltung (z. B. SEO-Vorschau im Editor) */ try{ if(is_file(__DIR__.'/data/.plugins/state.json')){ require_once __DIR__.'/lib/nplugins.php';foreach(elvado_np()->globalAdminScripts() as $__s)echo '<script src="'.htmlspecialchars($__s,ENT_QUOTES).'" defer></script>'."\n"; } }catch(Throwable $__e){} ?>
 <script src="assets/cms-nav.js?v=3"></script>
-<script src="assets/cms-search.js?v=2"></script>
+<script src="assets/cms-search.js?v=3"></script>
 <script src="assets/visibility-check.js?v=1"></script><script src="assets/shell.js?v=5"></script>
 <?php foreach(glob(__DIR__.'/packs/*/admin.js')?:[] as $pf){ $pk=basename(dirname($pf)); if(preg_match('/^[a-z0-9-]{1,40}$/',$pk)&&elvado_pack_available($pk)): ?><script src="packs/<?=$pk?>/admin.js?v=<?=(int)@filemtime($pf)?>"></script><?php endif; } ?>
 </body>
