@@ -13,9 +13,9 @@ mein-theme/
 
 `theme.json` beschreibt Name, Version, Varianten, Standardwerte und Customizer-Regler.
 
-## WordPress-Kompatibilität
+## Design-Import aus einem WordPress-Theme-ZIP
 
-Ein WordPress-Theme-ZIP kann importiert werden, wenn eine `style.css` vorhanden ist.
+Vollständige WordPress-Themes werden in echtem WordPress installiert und ausgeführt (Design → Themes, siehe [WORDPRESS.md](WORDPRESS.md)). Für ein **natives** ElvadoPress-Design kann ein WordPress-Theme-ZIP zusätzlich als Design-Vorlage importiert werden, wenn eine `style.css` vorhanden ist.
 
 Das CMS übernimmt sicher:
 - Theme-Metadaten aus `style.css`
@@ -31,9 +31,9 @@ Nicht ausgeführt werden:
 - WordPress-Hooks
 - serverseitige WordPress-Plugins
 
-Warum: Ein vollständiges WordPress-PHP-Theme benötigt den WordPress-Core und dessen Laufzeit-API. ElvadoPress bleibt bewusst eigenständig und führt fremden PHP-Code nicht ungeprüft aus.
+Warum: PHP-Code eines Themes läuft nur in echtem WordPress; das native Design übernimmt nur ungefährliche Bestandteile.
 
-Das Ergebnis ist deshalb eine **WordPress-Kompatibilitätsschicht für Design und Assets**, nicht eine versteckte WordPress-Installation.
+Das Ergebnis ist ein **natives Design aus den Assets** des Themes.
 
 ## Bootstrap-Kompatibilität
 
@@ -51,7 +51,7 @@ Nicht automatisch geladen wird fremdes JavaScript aus einem ZIP. JavaScript-Erwe
 
 ## Homepage-Baukasten (Theme „ElvadoPress Baukasten“)
 
-Das mitgelieferte Theme `cms/themes/elvado-baukasten` ist ein WordPress-Theme (läuft in der WordPress-Schicht, Einstellungen als `theme_mods`) und dient als freier Baukasten für ein eigenes Design:
+Das mitgelieferte Theme `cms/themes/elvado-baukasten` ist ein WordPress-Theme (läuft in echtem WordPress, Einstellungen als `theme_mods`) und dient als freier Baukasten für ein eigenes Design:
 
 - **Startseite aus Abschnitten:** Im Live-Customizer (Design → Themes → Baukasten → *Anpassen*) lassen sich bis zu acht Positionen mit Abschnitten belegen: Hero, Textabschnitt, drei Vorteile, Bild + Text, Neueste Beiträge, Aufruf (Call to Action), eigenes HTML/Shortcodes. Jeder Typ erscheint höchstens einmal; die Reihenfolge ist frei.
 - **Visueller Editor im CMS:** Design → **Homepage-Baukasten** (`cms/views/panel-baukasten.php`, `cms/assets/home-builder.js`, API `wp_bk_get`/`wp_bk_save`). Abschnitte hinzufügen, per Drag & Drop oder Pfeilen sortieren, duplizieren, ein-/ausblenden, löschen; gleiche Typen beliebig oft (zusätzlich „Abstand“, Hintergrundvarianten, Spaltenzahl, Kategorie-Filter bei Beiträgen, Karten-Liste bei Vorteilen). Bilder aus der Mediathek oder per Upload; Vorschau (gespeicherter Stand) daneben. Das Layout liegt in der WordPress-Option `elvado_bk_layout`; ohne gespeichertes Layout gelten die acht Positionen aus dem Customizer, „Zurücksetzen“ kehrt dahin zurück. Schema und Bereinigung stehen in `cms/themes/elvado-baukasten/inc/layout.php` (eine Quelle für Editor, API und Theme).

@@ -2,7 +2,7 @@
 
 Die Bridge (`cms/src/Wp/Bridge.php`) startet den echten WordPress-Core im ElvadoPress-Prozess der Engine-API.
 
-- `prepare()`: definiert `ABSPATH`, `WP_CONTENT_DIR` (= `cms/wp-content`), Datenbank-Konstanten, Schlüssel/Salze, `DISABLE_WP_CRON`, `AUTOMATIC_UPDATER_DISABLED`, `DISALLOW_FILE_EDIT`; verweigert den Start, wenn die Emulation geladen ist.
+- `prepare()`: definiert `ABSPATH`, `WP_CONTENT_DIR` (= `cms/wp-content`), Datenbank-Konstanten, Schlüssel/Salze, `DISABLE_WP_CRON`, `AUTOMATIC_UPDATER_DISABLED`, `DISALLOW_FILE_EDIT`.
 - `snapshot()`/`restore()`: WordPress verändert `$_GET/$_POST/$_COOKIE/$_REQUEST`, Zeitzone, Fehlerstufe, `display_errors` und die mbstring-Kodierung. Diese Werte werden vor dem Start gesichert und danach wiederhergestellt.
 - `installSchema()`: richtet die Tabellen ein (`wp_install`, ohne E-Mail-Versand), legt den Benutzer `elvadopress` mit Zufallspasswort an und entfernt Beispielinhalte.
 - WordPress überschreibt globale Variablen (z. B. `$action`): Code im selben Scope nutzt präfixierte Namen (`$elvadoEngine…`).

@@ -1,15 +1,17 @@
 <?php
 // Prüft die automatischen WordPress-Updates: Einstellungen, Fälligkeit, Wiederherstellung, Syntaxprüfung, Lauf ohne Updates. Aufruf: php scripts/test-wp-autoupdate.php
 declare(strict_types=1);
-$tmp=sys_get_temp_dir().'/elvado-au-'.bin2hex(random_bytes(4));mkdir($tmp);mkdir($tmp.'/wp-content');mkdir($tmp.'/wp-content/plugins');mkdir($tmp.'/cms');
-define('WP_CONTENT_DIR',$tmp.'/wp-content');define('ELVADO_WP_DATA',$tmp.'/cms/.wp');define('ELVADO_WP_CMS_DATA',$tmp.'/cms');
-$_SERVER['HTTP_HOST']='example.test';file_put_contents($tmp.'/cms/site.json','{}');$GLOBALS['ELVADO_SITE']=[];
-require __DIR__.'/_testdb.php';
-require __DIR__.'/../cms/wp/load.php';require_once __DIR__.'/../cms/wp/autoupdate.php';
+require_once __DIR__.'/wpe-render.php';
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
-elvado_wp_boot(['theme'=>false]);
-$d=$tmp.'/cms/data';
+$env=wpe_render_env(['site.json'=>'{}']);
+if(!$env){ echo "Hinweis: übersprungen (WPE_TEST_ZIP nicht gesetzt).\n0 von 0 Prüfungen bestanden\n";exit(0); }
+$body=<<<'BODY'
+require_once ABSPATH.'wp-admin/includes/plugin.php';require_once ELVADO_CMS_DIR.'/lib/wp-real-compat.php';require_once ELVADO_CMS_DIR.'/wp/autoupdate.php';
+foreach(glob(WP_PLUGIN_DIR.'/*',GLOB_ONLYDIR)?:[] as $p)elvado_wp_rmdir($p);   // mitgelieferte Plugins (Akismet, Hello Dolly) entfernen: der Lauf soll ohne Netzwerk auskommen
+foreach(glob(WP_PLUGIN_DIR.'/*.php')?:[] as $p)@unlink($p);
+@mkdir(ELVADO_WP_DATA,0775,true);
+$d=dirname(ELVADO_WP_DATA);
 
 // Einstellungen
 $s=elvado_wpau_get();
@@ -61,5 +63,7 @@ t('Nicht installiert: Fehler ohne Netzwerkzugriff',!$r['ok']&&$r['msg']==='nicht
 $s=elvado_wpau_get();for($i=0;$i<70;$i++)$s['log'][]=['t'=>$i,'type'=>'plugin','slug'=>'a','ok'=>true];elvado_wpau_save($s);
 t('Protokoll auf 50 Einträge begrenzt',count(elvado_wpau_get()['log'])===50);
 
-system('rm -rf '.escapeshellarg($tmp));
+BODY;
+foreach(wpe_render_suite($env,$body) as [$nm,$ok,$ex])t($nm,$ok,$ex);
+
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

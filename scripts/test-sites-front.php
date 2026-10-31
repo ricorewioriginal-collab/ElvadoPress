@@ -2,6 +2,7 @@
 // Websites (Multisite), Auslieferung: Domain → eigener Inhalt, eigenes Theme-Flag, Medien-Adressen; Hauptwebsite unverändert.
 // Echter PHP-Server (php -S) mit Kopie von index.php und cms/. Aufruf: php scripts/test-sites-front.php
 declare(strict_types=1);
+require_once __DIR__ . '/wpe-test-site.php';
 $fail = 0; $n = 0;
 function t(string $name, bool $ok, string $extra = ''): void { global $fail, $n; $n++; if (!$ok) { $fail++; echo "FEHLER: $name $extra\n"; } }
 function rmrf(string $d): void { if (!is_dir($d)) return; foreach (scandir($d) as $f) { if ($f === '.' || $f === '..') continue; $p = "$d/$f"; is_dir($p) && !is_link($p) ? rmrf($p) : @unlink($p); } @rmdir($d); }
@@ -42,25 +43,38 @@ function get(string $host, string $path = '/'): array {
     $b = (string)@file_get_contents("http://127.0.0.1:$port$path", false, $ctx);
     return ['code' => (int)preg_replace('/^HTTP\/\S+ (\d+).*/', '$1', (string)($http_response_header[0] ?? 'HTTP/1.1 0')), 'body' => $b];
 }
+// Echtes WordPress je Website (wie bei der ersten Anmeldung eines Superadmins in der Verwaltung der jeweiligen Website)
+$wpOn = false;
+if (wpe_test_site_available()) {
+    file_put_contents("$cms/data/local-auth.local.php", '<?php return ' . var_export(['users' => [['username' => 'chef', 'password_hash' => password_hash('Test-Passwort-123!', PASSWORD_DEFAULT), 'role' => 'admin', 'display_name' => 'Chef', 'created_at' => date(DATE_ATOM)]]], true) . ';');
+    $lg = json_decode((string)@file_get_contents("http://127.0.0.1:$port/cms/api.php?action=login", false, stream_context_create(['http' => ['method' => 'POST', 'header' => "Content-Type: application/json\r\nOrigin: http://127.0.0.1:$port\r\n", 'content' => json_encode(['username' => 'chef', 'password' => 'Test-Passwort-123!']), 'ignore_errors' => true]])), true);
+    $tok = (string)($lg['token'] ?? '');
+    $wpOn = $tok !== '';
+    foreach (['', 'zweite', 'leer'] as $sid) {
+        $ws = wpe_test_site_setup("http://127.0.0.1:$port", $tok, $site, $sid);
+        t('WordPress eingerichtet: ' . ($sid ?: 'Hauptwebsite'), $ws['ok'], $ws['message']);
+        $wpOn = $wpOn && $ws['ok'];
+    }
+} else echo "Hinweis: Auslieferung mit echtem WordPress übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";
 $m = get('haupt.test');
 $mb = get('haupt.test', '/beitrag/');
-t('Hauptwebsite: Startseite mit eigenem Inhalt', $m['code'] === 200 && str_contains($m['body'], 'Haupt-Beitrag') && !str_contains($m['body'], 'Zweiter-Beitrag'), 'HTTP ' . $m['code']);
-t('Hauptwebsite: Medien-Adressen unverändert', str_contains($mb['body'], '/cms/media/library/a.png') && !str_contains($mb['body'], '/cms/sites/'), 'HTTP ' . $mb['code']);
+if ($wpOn) t('Hauptwebsite: Startseite mit eigenem Inhalt', $m['code'] === 200 && str_contains($m['body'], 'Haupt-Beitrag') && !str_contains($m['body'], 'Zweiter-Beitrag'), 'HTTP ' . $m['code']);
+if ($wpOn) t('Hauptwebsite: Medien-Adressen unverändert', str_contains($mb['body'], '/cms/media/library/a.png') && !str_contains($mb['body'], '/cms/sites/'), 'HTTP ' . $mb['code']);
 $z2 = get('zweite.test');
 $zb = get('zweite.test', '/beitrag/');
-t('Zweite Website: eigener Inhalt, nicht der der Hauptwebsite', $z2['code'] === 200 && str_contains($z2['body'], 'Zweiter-Beitrag') && !str_contains($z2['body'], 'Haupt-Beitrag'), 'HTTP ' . $z2['code']);
-t('Zweite Website: Medien-Adressen zeigen auf eigene Medien', str_contains($zb['body'], '/cms/sites/zweite/media/library/b.png') && !str_contains($zb['body'], '"/cms/media/'), 'HTTP ' . $zb['code']);
+if ($wpOn) t('Zweite Website: eigener Inhalt, nicht der der Hauptwebsite', $z2['code'] === 200 && str_contains($z2['body'], 'Zweiter-Beitrag') && !str_contains($z2['body'], 'Haupt-Beitrag'), 'HTTP ' . $z2['code']);
+if ($wpOn) t('Zweite Website: Medien-Adressen zeigen auf eigene Medien', str_contains($zb['body'], '/cms/sites/zweite/media/library/b.png') && !str_contains($zb['body'], '"/cms/media/'), 'HTTP ' . $zb['code']);
 $z3 = get('www.zweite.test', '/beitrag/');
-t('Zweite Website (www): Beitragsseite', $z3['code'] === 200 && str_contains($z3['body'], 'Zweiter-Beitrag'), 'HTTP ' . $z3['code']);
+if ($wpOn) t('Zweite Website (www): Beitragsseite', $z3['code'] === 200 && str_contains($z3['body'], 'Zweiter-Beitrag'), 'HTTP ' . $z3['code']);
 $rs = get('zweite.test', '/cms/rss.php');
 t('Feed der zweiten Website: eigener Beitrag', str_contains($rs['body'], 'Zweiter-Beitrag') && !str_contains($rs['body'], 'Haupt-Beitrag'), 'HTTP ' . $rs['code']);
 $rm = get('haupt.test', '/cms/rss.php');
 t('Feed der Hauptwebsite unverändert', str_contains($rm['body'], 'Haupt-Beitrag') && !str_contains($rm['body'], 'Zweiter-Beitrag'));
 $l = get('leer.test');
-t('Leere Website: wird ausgeliefert (kein Absturz), ohne Inhalte der Hauptwebsite', $l['code'] === 200 && !str_contains($l['body'], 'Haupt-Beitrag'), 'HTTP ' . $l['code']);
+if ($wpOn) t('Leere Website: wird ausgeliefert (kein Absturz), ohne Inhalte der Hauptwebsite', $l['code'] === 200 && !str_contains($l['body'], 'Haupt-Beitrag'), 'HTTP ' . $l['code']);
 elvado_site_update('zweite', ['enabled' => false]);
 $d = get('zweite.test');
-t('Deaktivierte Website: Domain fällt auf die Hauptwebsite zurück', str_contains($d['body'], 'Haupt-Beitrag'));
+if ($wpOn) t('Deaktivierte Website: Domain fällt auf die Hauptwebsite zurück', str_contains($d['body'], 'Haupt-Beitrag'));
 $serverErr = (string)@file_get_contents("$tmp/server.err");
 $serverErr = preg_replace('/^.*JIT is incompatible with third party extensions.*$/m', '', $serverErr);   // Umgebungsmeldung des CI-Runners (Erweiterung überschreibt zend_execute_ex), kein CMS-Fehler
 preg_match_all('/^.*(Fatal|Warning|Parse error).*$/m', $serverErr, $errLines);

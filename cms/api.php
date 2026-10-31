@@ -949,7 +949,7 @@ if(str_starts_with($action,'themeconf_')){
 if(str_starts_with($action,'wp_')){
     $wpUser=elvado_auth(true);
     $GLOBALS['ELVADO_SITE']=$site;
-    // Sandbox: abgetrennter Spielraum zwischen Live und Deployment (eigene Optionen und Themes, siehe wp/sandbox.php)
+    // Sandbox: abgetrennter Spielraum zwischen Live und Deployment (Kopie der WordPress-Datenbank, siehe lib/wp-real-sandbox.php)
     require_once __DIR__.'/lib/wp-real-admin.php';
     if(elvado_wpra_front_on(__DIR__)){   // echtes WordPress liefert aus: Sandbox als Kopie der WordPress-Datenbank (lib/wp-real-sandbox.php)
         require_once __DIR__.'/lib/wp-real-sandbox.php';
@@ -971,38 +971,17 @@ if(str_starts_with($action,'wp_')){
             $GLOBALS['elvado_wpe_db_override']=elvado_wprs_override($sbLive,$dataDir);
         }
     }
-    require_once __DIR__.'/wp/sandbox.php';
-    if(str_starts_with($action,'wp_sandbox')){
-        $sb=elvado_body();$sbOut=function(array $extra=[]) { $m=elvado_sbx_meta();return ['status'=>'ok','exists'=>elvado_sbx_exists(),'created'=>(string)($m['created']??''),'last_publish'=>(string)($m['last_publish']??''),'url'=>elvado_sbx_exists()?elvado_sbx_url():'','diff'=>elvado_sbx_exists()?elvado_sbx_diff():null,'backups'=>elvado_sbx_backups()]+$extra; };
-        if($action==='wp_sandbox')elvado_json($sbOut());
-        $fail=fn(string $m,int $c=422)=>elvado_json(['status'=>'error','message'=>$m],$c);
-        if($action==='wp_sandbox_create'){ $e=elvado_sbx_create();if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox angelegt');elvado_json($sbOut()); }
-        if($action==='wp_sandbox_reset'){ $e=elvado_sbx_reset();if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox auf den Live-Stand zurückgesetzt');elvado_json($sbOut()); }
-        if($action==='wp_sandbox_rotate'){ $e=elvado_sbx_rotate();if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox-Link erneuert');elvado_json($sbOut()); }
-        if($action==='wp_sandbox_delete'){ elvado_sbx_delete();elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox gelöscht');elvado_json($sbOut()); }
-        if($action==='wp_sandbox_publish'){ $r=elvado_sbx_publish();if(!$r['ok'])$fail($r['message']);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox live gestellt ('.$r['options'].' Einstellungen'.($r['themes']?', Themes: '.implode(', ',$r['themes']):'').')');elvado_json($sbOut(['published'=>$r])); }
-        if($action==='wp_sandbox_rollback'){ $e=elvado_sbx_rollback((string)($sb['backup']??''));if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Live-Stand aus Sicherung '.(string)$sb['backup'].' wiederhergestellt');elvado_json($sbOut()); }
-        $fail('Unbekannte Aktion',404);
-    }
-    if(!empty($_GET['sandbox'])&&empty($GLOBALS['elvado_wpe_db_override'])){   // Theme-Verwaltung in der Sandbox statt auf der Live-Seite
-        if(!in_array($action,['wp_themes','wp_theme_search','wp_theme_install','wp_theme_upload','wp_theme_activate','wp_theme_deactivate','wp_theme_delete','wp_theme_unhide','wp_theme_preview','wp_theme_customize','wp_theme_customize_draft','wp_theme_customize_save','wp_theme_customize_changeset'],true))elvado_json(['status'=>'error','message'=>'Diese Aktion gibt es in der Sandbox nicht.'],400);
-        if(!elvado_sbx_exists())elvado_json(['status'=>'error','message'=>'Es gibt noch keine Sandbox.'],404);
-        elvado_sbx_enter();
-    }
-    // Liefert echtes WordPress die Website aus, laufen Plugins, Themes und Einstellungen direkt gegen den echten Core (lib/wp-real-admin.php); sonst die bisherige Schicht
+    // Ohne echtes WordPress, das die Website ausliefert, gibt es keine WordPress-Bereiche (Einrichtung: System → WordPress-Engine; startet automatisch bei der Anmeldung eines Superadmins)
+    $wpNoEngine=fn()=>elvado_json(['status'=>'error','message'=>'WordPress liefert die Website noch nicht aus. Unter System → WordPress-Engine einrichten bzw. „Website mit WordPress ausliefern“ einschalten (die Einrichtung startet automatisch bei der Anmeldung eines Superadmins).','engine'=>false],409);
+    if(str_starts_with($action,'wp_sandbox')||(!empty($_GET['sandbox'])&&empty($GLOBALS['elvado_wpe_db_override'])))$wpNoEngine();
     require_once __DIR__.'/lib/wp-real-admin.php';
     $wpReal=elvado_wpra_applies($action,__DIR__);
     if($wpReal&&(str_starts_with($action,'wp_theme_customize')||str_starts_with($action,'wp_bk_'))){   // Customizer/Baukasten: das bearbeitete Theme vor dem Start einschalten
         $czPre=str_starts_with($action,'wp_bk_')?'elvado-baukasten':(string)(elvado_body()['slug']??'');
         if(!elvado_wpra_use_theme(__DIR__,$czPre))elvado_json(['status'=>'error','message'=>$czPre==='elvado-baukasten'?'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.':'Theme nicht gefunden'],404);
     }
+    if(!$wpReal)$wpNoEngine();
     if($wpReal){ $wpKeep=[$action,$site,$siteFile,$genDir,$root,$dataDir,$activityLogFile,$wpUser];elvado_wpra_prepare();require __DIR__.'/wp-engine-boot.php';[$action,$site,$siteFile,$genDir,$root,$dataDir,$activityLogFile,$wpUser]=$wpKeep;elvado_wpra_after();require_once __DIR__.'/wp/installer.php'; }   // WordPress nutzt teils dieselben globalen Namen (z. B. $action)
-    else{ require_once __DIR__.'/wp/load.php';require_once __DIR__.'/wp/installer.php';require_once __DIR__.'/wp/coreassets.php'; }
-    // Plugins registrieren ihre Hooks schon beim Laden abhängig von $_GET['page']: die gewünschte Seite vor dem Start bekanntmachen.
-    if($action==='wp_admin_page'){
-        $pre=elvado_body();$qs=[];parse_str((string)($pre['query']??''),$qs);if(strtoupper((string)($pre['method']??'GET'))==='POST'){ $pb=[];parse_str((string)($pre['body']??''),$pb);$qs=$pb+$qs; }
-        $pg=(string)($pre['page']??'');if(str_contains($pg,'&')){ [$pg,$rest]=explode('&',$pg,2);$ex=[];parse_str($rest,$ex);$qs=$ex+$qs; }$qs['page']=$pg;$_GET=$qs;$GLOBALS['plugin_page']=$pg;$GLOBALS['pagenow']='admin.php';$_REQUEST=array_merge($_REQUEST,$qs);
-    }
     // Customizer für WordPress-Themes: das gewählte Theme vor dem Start einschalten (Filter), damit seine functions.php/customize_register laufen
     $wpCz=in_array($action,['wp_theme_customize','wp_theme_customize_draft','wp_theme_customize_save','wp_theme_customize_changeset'],true);
     if($wpCz){
@@ -1010,15 +989,17 @@ if(str_starts_with($action,'wp_')){
         $czKnown=array_column(elvado_wpi_list_themes(),null,'slug');
         if(!isset($czKnown[$czSlug]))elvado_json(['status'=>'error','message'=>'Theme nicht gefunden'],404);
         if(!empty($czKnown[$czSlug]['error']))elvado_json(['status'=>'error','message'=>$czKnown[$czSlug]['error']],422);
-        if(!$wpReal)elvado_wpc_use_theme($czSlug);ob_start();
+        ob_start();
     }
     // Homepage-Baukasten (visueller Abschnitts-Editor): Layout des Themes „elvado-baukasten“ lesen/speichern (Option elvado_bk_layout)
     $wpBk=in_array($action,['wp_bk_get','wp_bk_save','wp_bk_draft','wp_bk_publish','wp_bk_discard','wp_bk_rollback','wp_bk_revisions'],true);
-    if($wpBk){ require_once __DIR__.'/wp/customizer-api.php';if(!$wpReal&&!elvado_wpc_use_theme('elvado-baukasten'))elvado_json(['status'=>'error','message'=>'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.'],404); }
-    if(!$wpReal)elvado_wp_boot(['user'=>['id'=>1,'login'=>(string)($wpUser['user']??'admin'),'name'=>(string)($wpUser['display_name']??''),'role'=>'administrator'],'admin'=>true,'theme'=>$wpCz||$wpBk||str_starts_with($action,'wp_admin_')]);
-    if(str_starts_with($action,'wp_admin_')&&!$wpReal)elvado_wp_core_register();
+    if($wpBk)require_once __DIR__.'/wp/customizer-api.php';
     // Echtes WordPress: Plugin-Seiten, Meldungen und Editoren gibt es in der echten WordPress-Verwaltung (Anmeldung über einen Einmal-Schlüssel)
-    if($wpReal&&in_array($action,['wp_session_open','wp_admin_menu','wp_admin_notices','wp_admin_page','wp_admin_ajax','wp_admin_rest','wp_core_status'],true)){
+    if(in_array($action,['wp_session_open','wp_admin_menu','wp_admin_notices','wp_admin_page','wp_admin_ajax','wp_admin_rest','wp_core_status','wp_core_install','wp_version_status','wp_version_update','wp_version_rollback','wp_bridge_set'],true)){
+        if($action==='wp_core_install')elvado_json(['status'=>'ok','message'=>'Der WordPress-Core ist vollständig vorhanden.']);
+        if($action==='wp_version_status')elvado_json(['status'=>'ok','current'=>(string)$GLOBALS['wp_version'],'update'=>false,'latest'=>'','minor'=>false,'report'=>null,'can_rollback'=>false,'engine'=>true]);
+        if(str_starts_with($action,'wp_version_'))elvado_json(['status'=>'error','message'=>'Updates des WordPress-Kerns: System → WordPress-Engine.'],410);
+        if($action==='wp_bridge_set')elvado_json(['status'=>'error','message'=>'Beiträge und Seiten pflegst du in ElvadoPress; WordPress übernimmt sie automatisch.'],410);
         if($action==='wp_admin_notices')elvado_json(['status'=>'ok','frame'=>'']);
         if($action==='wp_core_status')elvado_json(['status'=>'ok','installed'=>true,'version'=>(string)$GLOBALS['wp_version'],'zip'=>class_exists('ZipArchive'),'writable'=>true]);   // echter Core: vollständig vorhanden
         if($action==='wp_admin_menu')elvado_json(['status'=>'ok','groups'=>[],'wpadmin'=>true]);
@@ -1058,19 +1039,6 @@ if(str_starts_with($action,'wp_')){
     /* ── Updates aus dem WordPress-Verzeichnis ── */
     if($action==='wp_updates')elvado_json(['status'=>'ok','updates'=>elvado_wpi_updates($dataDir)]);
     /* ── Automatische Updates (Plugins, Themes, Sprachpakete, Kernressourcen) ── */
-    if($action==='wp_version_status'){ require_once __DIR__.'/wp/wpversion.php';elvado_json(['status'=>'ok']+elvado_wpv_status($dataDir)); }
-    if($action==='wp_version_update'){
-        require_once __DIR__.'/wp/wpversion.php';$r=elvado_wpv_update($dataDir,'all',(string)($b['version']??''));
-        if(!empty($r['ok']))elvado_log_activity($activityLogFile,$wpUser,'wp_version','WordPress-Version '.$r['version'].' übernommen');
-        if(!$r['ok'])elvado_json(['status'=>'error','message'=>$r['message']],!empty($r['none'])?409:502);
-        elvado_json(['status'=>'ok','message'=>$r['message'],'report'=>$r['report']??null]+elvado_wpv_status($dataDir));
-    }
-    if($action==='wp_version_rollback'){
-        require_once __DIR__.'/wp/wpversion.php';$r=elvado_wpv_rollback();
-        if(!$r['ok'])elvado_json(['status'=>'error','message'=>$r['message']],422);
-        elvado_log_activity($activityLogFile,$wpUser,'wp_version','WordPress-Version auf '.$r['version'].' zurückgesetzt');
-        elvado_json(['status'=>'ok','message'=>$r['message']]+elvado_wpv_status($dataDir));
-    }
     if($action==='wp_autoupdate_get'){ require_once __DIR__.'/wp/autoupdate.php';$s=elvado_wpau_get();elvado_json(['status'=>'ok','settings'=>$s,'due'=>elvado_wpau_due($s),'cron'=>is_file(dirname(__DIR__).'/cron/wp-cron.php')]); }
     if($action==='wp_autoupdate_set'){
         require_once __DIR__.'/wp/autoupdate.php';$s=elvado_wpau_set((array)($b['settings']??[]));
@@ -1103,22 +1071,14 @@ if(str_starts_with($action,'wp_')){
     }
     /* ── Plugin-Verwaltungsseiten (admin_menu, options.php, admin-post, admin-ajax) ── */
     /* ── Editoren im eigenen Tab (Elementor): Sitzungs-Token, WordPress-Seiten anlegen/listen ── */
-    if($action==='wp_session_open'){
-        require_once __DIR__.'/wp/session.php';
-        $to=elvado_wp_sess_target((string)($b['to']??''));if(!$to)elvado_json(['status'=>'error','message'=>'Ungültiges Ziel'],400);
-        if(!is_file(ELVADO_WP_DATA.'/front-on'))elvado_json(['status'=>'error','message'=>'Aktiviere zuerst ein WordPress-Theme: Der Editor zeigt die Website live an.'],409);
-        elvado_log_activity($activityLogFile,$wpUser,'wp_session','WordPress-Editor geöffnet: '.$to);
-        elvado_json(['status'=>'ok','url'=>'/wp-admin/'.$to.(str_contains($to,'?')?'&':'?').'elvado_wp_login='.elvado_wp_sess_token_issue()]);
-    }
-    // Einheitliche Sicht „Alle Inhalte“: CMS-Beiträge, CMS-Seiten und WordPress-Datenbank in einer Liste (scope=all); Schreibbrücke ein-/ausschalten
-    if($action==='wp_content_list'&&($_GET['scope']??'')==='all'){
-        elvado_json(['status'=>'ok','items'=>elvado_wp_cms_content_overview(),'elementor'=>in_array('elementor/elementor.php',(array)get_option_active_plugins(),true),'bridge'=>elvado_wp_bridge_parts(),'bridge_parts'=>ELVADO_WP_BRIDGE_PARTS]);
-    }
-    if($action==='wp_bridge_set'){
-        $parts=array_values(array_intersect(ELVADO_WP_BRIDGE_PARTS,array_map('strval',(array)($b['parts']??[]))));
-        elvado_wp_bridge_set($parts);
-        elvado_log_activity($activityLogFile,$wpUser,'wp_bridge','Schreibbrücke WordPress ↔ CMS: '.($parts?implode(', ',$parts):'aus'));
-        elvado_json(['status'=>'ok','bridge'=>elvado_wp_bridge_parts()]);
+    if($action==='wp_content_list'&&($_GET['scope']??'')==='all'){   // Inhalte-Übersicht: Beiträge/Seiten in WordPress, Herkunft ElvadoPress (Abgleich) oder WordPress
+        global $wpdb;$items=[];$users=[];
+        foreach((array)$wpdb->get_results("SELECT ID,post_title,post_status,post_type,post_modified,post_author FROM {$wpdb->posts} WHERE post_type IN ('page','post') AND post_status IN ('publish','draft','private','pending','future') ORDER BY ID DESC LIMIT 300") as $r){
+            $src=(string)get_post_meta((int)$r->ID,'_elvado_source_id',true);$uid=(int)$r->post_author;if(!isset($users[$uid])){ $u=get_userdata($uid);$users[$uid]=$u?(string)$u->display_name:''; }
+            $items[]=['key'=>($src!==''?$src:'wp:'.$r->ID),'source'=>$src===''?'wp':(str_starts_with($src,'page:')?'cms-page':'cms-news'),'id'=>(int)$r->ID,'cms_id'=>$src!==''?(string)substr($src,strpos($src,':')+1):'','type'=>(string)$r->post_type,
+                'title'=>html_entity_decode((string)$r->post_title,ENT_QUOTES,'UTF-8'),'status'=>(string)$r->post_status,'modified'=>(string)$r->post_modified,'url'=>(string)get_permalink((int)$r->ID),'author'=>$users[$uid],'elementor'=>get_post_meta((int)$r->ID,'_elementor_edit_mode',true)==='builder'];
+        }
+        elvado_json(['status'=>'ok','items'=>$items,'elementor'=>in_array('elementor/elementor.php',(array)get_option_active_plugins(),true),'bridge'=>[],'bridge_parts'=>[]]);
     }
     if($action==='wp_content_list'){
         global $wpdb;
@@ -1143,54 +1103,6 @@ if(str_starts_with($action,'wp_')){
         elvado_log_activity($activityLogFile,$wpUser,'wp_page','WordPress-Seite „'.$title.'“ angelegt');
         elvado_json(['status'=>'ok','id'=>(int)$id]);
     }
-    if($action==='wp_core_status')elvado_json(['status'=>'ok']+elvado_wp_core_status());
-    if($action==='wp_core_install'){
-        $r=elvado_wp_core_install();if(!$r['ok'])elvado_json(['status'=>'error','message'=>$r['message']],502);
-        elvado_log_activity($activityLogFile,$wpUser,'wp_core','WordPress-Kernressourcen installiert');
-        elvado_json(['status'=>'ok']+elvado_wp_core_status()+['message'=>$r['message']]);
-    }
-    if($action==='wp_admin_rest'){
-        require_once __DIR__.'/wp/admin.php';require_once __DIR__.'/wp/rest.php';
-        $GLOBALS['elvado_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ELVADOPRESS_TOKEN']??''));
-        $GLOBALS['elvado_wp_die_throws']=true;$GLOBALS['elvado_wp_serving_rest']=true;
-        $hdr=[];foreach((array)($b['headers']??[]) as $k=>$v)if(is_string($k)&&is_scalar($v))$hdr[$k]=(string)$v;
-        $path=(string)($b['path']??'');$path=preg_replace('#^.*?/wp-json#','',$path);$q=[];
-        if(str_contains($path,'?')){ [$path,$qs]=explode('?',$path,2);parse_str($qs,$q); }
-        $method=strtoupper((string)($b['method']??'GET'));
-        foreach($hdr as $k=>$v)if(strcasecmp($k,'X-HTTP-Method-Override')===0&&preg_match('/^(GET|POST|PUT|PATCH|DELETE)$/i',$v))$method=strtoupper($v);
-        $raw=(string)($b['body']??'');if(strlen($raw)>2097152)elvado_json(['status'=>'error','message'=>'Anfrage zu groß'],413);
-        $lv=ob_get_level();ob_start();
-        try{ $res=elvado_wp_rest_dispatch($method,$path,$q,$raw,$hdr); } finally { while(ob_get_level()>$lv)ob_end_clean(); }
-        elvado_json(['status'=>'ok','result'=>['status'=>$res['status'],'type'=>$res['headers']['Content-Type']??'application/json','text'=>$res['body'],'headers'=>array_intersect_key($res['headers'],array_flip(['X-WP-Total','X-WP-TotalPages','Allow']))]]);
-    }
-    if(in_array($action,['wp_admin_menu','wp_admin_page','wp_admin_ajax','wp_admin_notices'],true)){
-        require_once __DIR__.'/wp/admin.php';
-        $GLOBALS['elvado_wp_session_token']=hash('sha256',(string)($_SERVER['HTTP_X_ELVADOPRESS_TOKEN']??''));
-        if($action==='wp_admin_menu')elvado_json(['status'=>'ok','groups'=>elvado_wp_admin_menu_tree()]);
-        if($action==='wp_admin_notices'){ $nd=elvado_wp_admin_notices_doc();elvado_json(['status'=>'ok','frame'=>$nd===''?'':elvado_wp_admin_frame_store($nd)]); }   // Meldungen der WordPress-Plugins (z. B. Hello Dolly)
-        $lv=ob_get_level();$sent=false;
-        // Ein Plugin darf mit exit/die enden: das Ergebnis wird dann aus dem Puffer gebaut.
-        register_shutdown_function(function() use($lv,&$sent,$action,$b){
-            if($sent)return;$out='';while(ob_get_level()>$lv)$out=ob_get_clean().$out;
-            if(!headers_sent())header('Content-Type: application/json; charset=utf-8');
-            if($action==='wp_admin_ajax'){echo json_encode(['status'=>'ok','result'=>['status'=>200,'type'=>'text/html','text'=>$out===''?'0':$out]]);return;}
-            $red=(string)($GLOBALS['elvado_wp_admin_redirect']??'');
-            echo json_encode($red!==''?['status'=>'ok','redirect'=>$red]:['status'=>'ok','frame'=>elvado_wp_admin_frame_store(elvado_wp_admin_doc((string)($b['page']??''),$out,true)),'title'=>(string)($GLOBALS['title']??'')]);
-        });
-        ob_start();
-        if($action==='wp_admin_ajax'){
-            $u=(string)($b['url']??'');$q=(string)parse_url($u,PHP_URL_QUERY);
-            $res=elvado_wp_ajax((string)($b['method']??'POST'),$q,(string)($b['body']??''),true);
-            $sent=true;while(ob_get_level()>$lv)ob_end_clean();elvado_json(['status'=>'ok','result'=>$res]);
-        }
-        $res=elvado_wp_admin_page(['page'=>(string)($b['page']??''),'method'=>(string)($b['method']??'GET'),'body'=>(string)($b['body']??''),'query'=>(string)($b['query']??'')]);
-        $sent=true;while(ob_get_level()>$lv)ob_end_clean();
-        if(empty($res['ok']))elvado_json(['status'=>'error','message'=>(string)($res['message']??'Fehler')],404);
-        if(!empty($res['notice']))elvado_log_activity($activityLogFile,$wpUser,'wp_admin_page','WordPress-Plugin-Seite „'.(string)$b['page'].'“: '.(string)$res['notice']);
-        if(isset($res['html'])&&is_string($res['html'])){ $res['frame']=elvado_wp_admin_frame_store($res['html']).(!empty($res['frame_query'])?'&'.$res['frame_query']:'');unset($res['html'],$res['frame_query']); }
-        elvado_json(['status'=>'ok']+array_diff_key($res,['ok'=>1]));
-    }
-    /* ── WordPress-Themes (PHP) ── */
     $wpThemes=function(){ $front=defined('ELVADO_WP_REAL')||is_file(ELVADO_WP_DATA.'/front-on');$act=$front?(string)get_option('stylesheet',''):'';$l=elvado_wpi_list_themes();$hid=array_values(array_filter((array)($GLOBALS['site']['wp_themes_hidden']??[]),'is_string'));$hl=[];foreach($l as &$t){$t['active']=$t['slug']===$act;$t['hidden']=in_array($t['slug'],$hid,true)&&!$t['active'];}unset($t);foreach($l as $t)if($t['hidden'])$hl[]=['slug'=>$t['slug'],'name'=>$t['name']];$l=array_values(array_filter($l,fn($t)=>!$t['hidden']));return ['themes'=>$l,'front'=>$front,'active'=>$act,'hidden_themes'=>$hl]; };
     if($action==='wp_reading'||$action==='wp_reading_save'){
         require_once __DIR__.'/wp/links-api.php';
@@ -1252,7 +1164,7 @@ if(str_starts_with($action,'wp_')){
         }
         if($action==='wp_theme_preview'){
             if(!empty($known[$slug]['error']))elvado_json(['status'=>'error','message'=>$known[$slug]['error']],422);
-            elvado_json(['status'=>'ok','url'=>'/?'.(defined('ELVADO_WP_SANDBOX')?'elvado_sbx='.rawurlencode((string)elvado_sbx_meta()['token']).'&':(!empty($GLOBALS['elvado_wpe_db_override'])?'elvado_sbx='.rawurlencode((string)(elvado_wprs_meta($dataDir)['token']??'')).'&':'')).'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($slug)),'expires_in'=>900]);
+            elvado_json(['status'=>'ok','url'=>'/?'.(!empty($GLOBALS['elvado_wpe_db_override'])?'elvado_sbx='.rawurlencode((string)(elvado_wprs_meta($dataDir)['token']??'')).'&':'').'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($slug)),'expires_in'=>900]);
         }
         if(!empty($known[$slug]['bundled'])){   // Themes aus dem Code: nicht löschbar (kämen beim Deploy zurück) – ausblenden; das Standard-Theme bleibt als Rückfallebene
             if($slug==='elvado-classic')elvado_json(['status'=>'error','message'=>'Das Standard-Theme ist die Rückfallebene und kann nicht entfernt werden.'],422);
@@ -1261,7 +1173,7 @@ if(str_starts_with($action,'wp_')){
             $GLOBALS['site']['wp_themes_hidden']=array_values(array_unique(array_merge((array)($GLOBALS['site']['wp_themes_hidden']??[]),[$slug])));$site=$GLOBALS['site'];elvado_publish($site,$siteFile,$genDir,$root);
             elvado_log_activity($activityLogFile,$wpUser,'wp_theme_delete','WordPress-Theme „'.$slug.'“ ausgeblendet');elvado_json(['status'=>'ok','hidden'=>true]+$wpThemes());
         }
-        if(defined('ELVADO_WP_SANDBOX')&&($known[$slug]['origin']??'')!=='sandbox')elvado_json(['status'=>'error','message'=>'Dieses Theme gehört zur Live-Seite und lässt sich in der Sandbox nicht löschen.'],422);
+        if(!empty($GLOBALS['elvado_wpe_db_override']))elvado_json(['status'=>'error','message'=>'Themes teilen sich Sandbox und Live-Seite – löschen lassen sie sich nur auf der Live-Seite.'],422);
         $cur=$wpThemes();if($cur['active']===$slug||(string)get_option('template','')===$slug&&$cur['front'])elvado_json(['status'=>'error','message'=>'Das aktive Theme (oder dessen Eltern-Theme) kann nicht gelöscht werden. Erst ein anderes aktivieren.'],409);
         foreach($known as $o)if($o['parent']===$slug&&$o['slug']!==$slug)elvado_json(['status'=>'error','message'=>'Das Theme „'.$o['name'].'“ benötigt dieses Eltern-Theme.'],409);
         elvado_wp_rmdir(get_theme_root().'/'.$slug);
@@ -1271,7 +1183,7 @@ if(str_starts_with($action,'wp_')){
         // Live-Customizer: Einstellungen lesen, Entwurf für die Vorschau ablegen, Werte speichern (nur Administratoren, wie die übrigen wp_theme_*-Aktionen)
         $vals=is_array($b['values']??null)?$b['values']:[];
         $finish=function(array $out,int $code=200){ while(ob_get_level()>0)ob_end_clean();elvado_json($out,$code); };
-        $sbxQ=defined('ELVADO_WP_SANDBOX')?'elvado_sbx='.rawurlencode((string)elvado_sbx_meta()['token']).'&':(!empty($GLOBALS['elvado_wpe_db_override'])?'elvado_sbx='.rawurlencode((string)(elvado_wprs_meta($dataDir)['token']??'')).'&':'');
+        $sbxQ=!empty($GLOBALS['elvado_wpe_db_override'])?'elvado_sbx='.rawurlencode((string)(elvado_wprs_meta($dataDir)['token']??'')).'&':'';
         $prevUrl=function(string $id) use($czSlug,$sbxQ){ return '/?'.$sbxQ.'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($czSlug)).'&elvado_wp_draft='.$id; };
         $shareUrl=function(string $id) use($czSlug,$sbxQ){ return '/?'.$sbxQ.'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($czSlug,null,7*86400)).'&elvado_wp_draft='.$id; };
         if($action==='wp_theme_customize'){
@@ -1333,7 +1245,10 @@ if(str_starts_with($action,'wp_')){
         $l=elvado_bk_save_layout($b['layout']);elvado_log_activity($activityLogFile,$wpUser,'wp_bk','Homepage-Baukasten gespeichert ('.count($l).' Abschnitte)');
         elvado_json($bkOut($l));
     }
-    if($action==='wp_theme_deactivate'){elvado_wpi_deactivate_theme();elvado_log_activity($activityLogFile,$wpUser,'wp_theme_deactivate','WordPress-Theme-Auslieferung beendet (CMS-Portal aktiv)');elvado_json(['status'=>'ok']+$wpThemes());}
+    if($action==='wp_theme_deactivate'){   // „Zurück zum Standard“: das neutrale ElvadoPress-Theme aktivieren (eine Website ohne Theme gibt es mit echtem WordPress nicht)
+        $err=elvado_wpi_activate_theme('elvado-classic');if($err!==null)elvado_json(['status'=>'error','message'=>$err],422);
+        elvado_log_activity($activityLogFile,$wpUser,'wp_theme_deactivate','Standard-Theme „elvado-classic“ aktiviert');elvado_json(['status'=>'ok']+$wpThemes());
+    }
     $file=(string)($b['file']??'');
     if($action==='wp_plugin_activate'){
         $r=activate_plugin($file);if(is_wp_error($r))elvado_json(['status'=>'error','message'=>$r->get_error_message()],422);

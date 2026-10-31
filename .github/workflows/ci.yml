@@ -17,7 +17,14 @@ jobs:
           extensions: curl, zip, mbstring, pdo_sqlite, gd, :imagick
       - name: PHP-Syntax prüfen
         run: find cms scripts -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
-      - name: Testinstallation (Einrichtung, Verwaltung, Radio-Erweiterungen)
+      - name: WordPress und SQLite-Integration laden (Website-Prüfungen laufen mit echtem WordPress)
+        run: |
+          V=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/ | php -r '$d=json_decode(stream_get_contents(STDIN),true);echo $d["offers"][0]["version"];')
+          curl -fsSLo "$RUNNER_TEMP/wordpress.zip" "https://downloads.wordpress.org/release/wordpress-$V.zip"
+          curl -fsSLo "$RUNNER_TEMP/sqlite.zip" "https://downloads.wordpress.org/plugin/sqlite-database-integration.zip"
+          echo "WPE_TEST_ZIP=$RUNNER_TEMP/wordpress.zip" >> "$GITHUB_ENV"
+          echo "WPE_TEST_SQLITE_ZIP=$RUNNER_TEMP/sqlite.zip" >> "$GITHUB_ENV"
+      - name: Testinstallation (Einrichtung, Verwaltung, Website mit echtem WordPress)
         run: php scripts/smoke-test.php
       - name: Alle Tests
         run: |

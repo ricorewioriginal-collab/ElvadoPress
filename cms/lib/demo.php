@@ -188,17 +188,13 @@ function elvado_demo_seed_site(array $ctx,array $c): void {
         $site['portal']['tagline']='Das erweiterbare CMS für Websites aller Art';
         $site['portal']['footer_text']='ElvadoPress – freie Software (GPL-2.0-or-later) · Live-Demo, wird alle '.(int)$c['minutes'].' Minuten zurückgesetzt';
         elvado_write_atomic($ctx['siteFile'],json_encode($site,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");
-        // Theme und Layout über die WordPress-Schicht
-        require_once $cms.'/wp/load.php';require_once $cms.'/wp/installer.php';
-        if(!function_exists('update_option'))elvado_wp_boot(['theme'=>false]);
-        if(elvado_wpi_activate_theme('elvado-baukasten')!==null)return;
-        require_once $cms.'/themes/elvado-baukasten/inc/layout.php';
-        elvado_bk_save_layout(elvado_demo_layout($c));
-        foreach(['color_accent'=>'#2f7bff','content_width'=>1180,'home_sidebar'=>true,'sidebar_pos'=>'right','sidebar_width'=>300] as $k=>$v)set_theme_mod($k,$v);
-        // Seitenleiste mit Demo-Widgets (Logo, Zugang, Suche, Funktionen, Neueste Beiträge, Kategorien, Schlagwörter, Seiten, Themes, Archiv, GitHub)
+        // Theme, Theme-Einstellungen und Widgets für WordPress vormerken (übernimmt die Engine beim nächsten Seitenaufruf), Startseiten-Layout im ElvadoPress-Speicher
+        require_once $cms.'/lib/wp-real-admin.php';require_once $cms.'/lib/components.php';require_once $cms.'/src/autoload.php';
+        $st=elvado_components_store(dirname($ctx['siteFile']));$actor=new \Elvado\Wp\Actor('demo','admin');
+        $st->saveDraft('home',elvado_demo_layout($c),$actor,'',true);$st->publish('home',$actor,'');
         $w=elvado_demo_widgets($c);
-        foreach($w['options'] as $opt=>$val)update_option($opt,$val);
-        update_option('sidebars_widgets',['sidebar-1'=>$w['sidebars'],'wp_inactive_widgets'=>[],'array_version'=>3]);
+        elvado_wpra_inbox_set(dirname($ctx['siteFile']),['stylesheet'=>'elvado-baukasten','theme_mods_elvado-baukasten'=>['color_accent'=>'#2f7bff','content_width'=>1180,'home_sidebar'=>true,'sidebar_pos'=>'right','sidebar_width'=>300]]
+            +$w['options']+['sidebars_widgets'=>['sidebar-1'=>$w['sidebars'],'wp_inactive_widgets'=>[],'array_version'=>3]]);
     }catch(Throwable $e){}
 }
 

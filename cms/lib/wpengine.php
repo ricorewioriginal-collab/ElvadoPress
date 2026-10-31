@@ -365,7 +365,8 @@ function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
     // Theme: das bisher aktive Theme der Website, sonst das neutrale Standard-Theme von ElvadoPress
     $want = (string)($opts['stylesheet'] ?? '');
     $front = is_file($data . '/.wp/front-on');
-    $themeChanged = $changed('stylesheet', $want) || $changed('front-on', $front);
+    $themeChanged = $changed('stylesheet', $want);
+    $themeChanged = $changed('front-on', $front) || $themeChanged;   // beide immer merken (kein Kurzschluss)
     foreach ($themeChanged ? [$front ? $want : '', 'elvado-classic'] : [] as $slug) {
         if ($slug !== '' && wp_get_theme($slug)->exists()) {
             $t = wp_get_theme($slug);

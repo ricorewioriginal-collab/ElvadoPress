@@ -78,7 +78,9 @@ Für die normale Entwicklung gibt es keinen Build-Schritt. Ein Git-Tag `v<Versio
 ## Datenbanken / Test-Umgebung
 Das CMS arbeitet primär dateibasiert. Datenbankdetails: `cms/docs/DATABASE.md`.
 
-Echtes WordPress in den Engine-Tests: `WPE_TEST_ZIP=<wordpress-X.Y.Z.zip>` plus `WPE_TEST_DB="host|name|benutzer|passwort"` (leere MySQL/MariaDB-Datenbank) **oder** `WPE_TEST_DB=sqlite` (ohne Datenbankserver; SQLite-Integration aus `WPE_TEST_SQLITE_ZIP` oder von wordpress.org). `scripts/test-wp-engine-sqlite`, `test-wp-engine-sandbox.php` braucht nur `WPE_TEST_ZIP`.
+Echtes WordPress in den Engine-Tests: `WPE_TEST_ZIP=<wordpress-X.Y.Z.zip>` plus `WPE_TEST_DB="host|name|benutzer|passwort"` (leere MySQL/MariaDB-Datenbank) **oder** `WPE_TEST_DB=sqlite` (ohne Datenbankserver; SQLite-Integration aus `WPE_TEST_SQLITE_ZIP` oder von wordpress.org). `scripts/test-wp-engine-sqlite.php` braucht nur `WPE_TEST_ZIP`; `test-wp-engine-sandbox.php` nutzt `WPE_TEST_ZIP` und `WPE_TEST_DB`.
+
+Seit 1.4.0 (Nachbildung entfernt) prüfen die meisten Funktionstests (Smoke, Demo, Integration, Themes, Customizer, Einstellungen, Links, Installer, Auto-Updates, KI-Verbinder …) die Website und die WordPress-Aktionen mit echtem WordPress; sie brauchen `WPE_TEST_ZIP` (und `pdo_sqlite`, optional `WPE_TEST_SQLITE_ZIP`) und überspringen diese Prüfungen ohne die Variable. Helfer: `scripts/wpe-render.php` (Testinstallation mit SQLite, `wpe_render_php()`/`wpe_render_get()`/`wpe_render_suite()` führen jeden Schritt in einem eigenen PHP-Prozess aus) und `scripts/wpe-test-site.php` (Einrichtung über die HTTP-API wie bei der ersten Superadmin-Anmeldung).
 
 `scripts/test-db-config.php` kann zusätzliche Datenbankserver über Test-Environment-Variablen ansprechen. In Dokumentation oder Commits niemals echte Zugangsdaten hinterlegen.
 

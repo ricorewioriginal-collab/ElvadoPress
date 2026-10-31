@@ -41,6 +41,10 @@ function elvado_wp_rmdir(string $dir): void
     if (!$ok || is_link($dir)) {
         return;
     }
+    if (is_file($real)) {   // Ein-Datei-Plugin (z. B. hello.php)
+        @unlink($real);
+        return;
+    }
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($real, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $f) {
         $f->isDir() && !$f->isLink() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
     }
@@ -188,4 +192,14 @@ function elvado_wp_opts_get_raw(string $name): array
     $none = new stdClass();
     $v = get_option($name, $none);
     return $v === $none ? [false, null] : [true, $v];
+}
+
+/** Kernressourcen gab es nur in der früheren Nachbildung – echter Core ist vollständig (für automatische Updates). */
+function elvado_wp_core_status(): array
+{
+    return ['installed' => true, 'version' => (string)$GLOBALS['wp_version'], 'zip' => class_exists('ZipArchive'), 'writable' => true];
+}
+function elvado_wp_core_install(): array
+{
+    return ['ok' => true, 'message' => 'Der WordPress-Core ist vollständig vorhanden.'];
 }

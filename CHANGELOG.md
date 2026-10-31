@@ -4,6 +4,14 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 
 ## Unveröffentlicht
 
+### Nur noch echtes WordPress – Nachbildung entfernt (Stufe E7d)
+- **Die eigene WordPress-Nachbildung ist entfernt** (`cms/wp/core`, `wp-admin`, `wp-includes`, Router, REST, Sandbox der Nachbildung). ElvadoPress arbeitet ausschließlich mit echtem WordPress; bestehende Installationen werden bei der ersten Anmeldung eines Superadmins automatisch umgestellt (Inhalte, Theme, Einstellungen, Plugins).
+- **Vor der Einrichtung** zeigt die Website „Die Website wird gerade eingerichtet“ (RSS-Feed, robots.txt und 404-Seiten laufen weiter); die WordPress-Bereiche der Verwaltung weisen auf die Einrichtung hin.
+- **Übernommen nach echtem WordPress:** eingebaute Shortcodes (`[forum]`, `[umfrage]`, `[faq]`, `[countdown]`, `[karte]`, `[kontakt]`, `[newsletter]`, `[widget]` …) und das Assistenten-Widget, SEO-Felder (noindex, kanonische Adresse, Titel), Logo aus dem Branding, **KI-Verbinder** (Schlüssel der WordPress-Verbinder kommen aus der KI-Zentrale, keine Kopie in WordPress).
+- **Offizielle Plugins:** „Weiterleitungen“ liest die Link-Struktur aus WordPress; „SEO“ erzeugt die Sitemap, wenn sie aus der Verwaltung angestoßen wird, beim nächsten Aufruf der Website.
+- **Verwaltung:** „Standard-Theme aktivieren“ statt „Nachbildung“; abgelaufene Sitzungen werden nicht mehr durch eine noch laufende Anfrage von vor der Anmeldung beendet.
+- **Tests:** Rund 30 Tests der Nachbildung entfallen; die übrigen prüfen mit echtem WordPress (`WPE_TEST_ZIP`, Helfer `scripts/wpe-render.php`), neu `scripts/test-wp-ai-connectors.php`.
+
 ### Echtes WordPress als Standard (Stufe E2)
 - **Automatische Umstellung:** Beim ersten Öffnen der Verwaltung richtet ElvadoPress für einen Superadmin automatisch echtes WordPress ein (Core laden und prüfen, SQLite-Datenbank, Start, Website-Auslieferung). Ohne Internet nutzt die Einrichtung das im Release-ZIP enthaltene WordPress samt SQLite-Integration (`cms/wp-engine/bundle/`).
 - **Bestand übernommen:** Theme, Theme-Einstellungen, Widgets, Optionen und aktive WordPress-Plugins aus der bisherigen Schicht werden nach WordPress übernommen (`elvado_wpe_adopt_site`), Beiträge, Seiten und Menüs einmalig migriert. Änderungen im Design-Bereich der Verwaltung gelten sofort auch auf der WordPress-Website.

@@ -6,21 +6,20 @@
 // stellt diese Datei für echtes WordPress bereit. Nicht für Sandbox, Demo und weitere Websites (Multisite) – dort bleibt alles wie bisher.
 declare(strict_types=1);
 
-/** Aktionen, die bei aktiver Website-Auslieferung durch WordPress gegen den echten Core laufen. */
+/** Aktionen der WordPress-Bereiche (alle wp_*-Aktionen laufen gegen den echten Core; die Liste dient der Übersicht und den Tests). */
 const ELVADO_WPRA_ACTIONS = ['wp_plugins', 'wp_plugin_search', 'wp_plugin_install', 'wp_plugin_upload', 'wp_plugin_activate', 'wp_plugin_deactivate', 'wp_plugin_delete',
     'wp_themes', 'wp_theme_search', 'wp_theme_install', 'wp_theme_upload', 'wp_theme_unhide', 'wp_theme_activate', 'wp_theme_delete',
     'wp_settings', 'wp_settings_save', 'wp_reading', 'wp_reading_save', 'wp_permalinks', 'wp_permalinks_save', 'wp_news_links', 'wp_updates', 'wp_translations',
     'wp_theme_preview', 'wp_theme_customize', 'wp_theme_customize_draft', 'wp_theme_customize_save', 'wp_theme_customize_changeset',
     'wp_bk_get', 'wp_bk_save', 'wp_bk_draft', 'wp_bk_publish', 'wp_bk_discard', 'wp_bk_rollback', 'wp_bk_revisions',
-    'wp_session_open', 'wp_admin_menu', 'wp_admin_notices', 'wp_admin_page', 'wp_admin_ajax', 'wp_admin_rest', 'wp_core_status'];
+    'wp_session_open', 'wp_admin_menu', 'wp_admin_notices', 'wp_admin_page', 'wp_admin_ajax', 'wp_admin_rest', 'wp_core_status', 'wp_core_install',
+    'wp_content_list', 'wp_bridge_set', 'wp_link_targets', 'wp_page_create', 'wp_update_apply', 'wp_autoupdate_get', 'wp_autoupdate_set', 'wp_autoupdate_run', 'wp_autoupdate_tick',
+    'wp_autoupdate_rollback', 'wp_version_status', 'wp_version_update', 'wp_version_rollback', 'wp_theme_deactivate'];
 
 /** Gilt die Verwaltung auf echtem WordPress für diese Anfrage? */
 function elvado_wpra_applies(string $action, string $cmsDir): bool
 {
-    if (!in_array($action, ELVADO_WPRA_ACTIONS, true) || (!empty($_GET['sandbox']) && empty($GLOBALS['elvado_wpe_db_override'])) || defined('ELVADO_WP_SANDBOX')) {
-        return false;
-    }
-    if (function_exists('elvado_wp_boot')) {   // die bisherige Schicht ist schon geladen: beides geht nicht in einem Prozess
+    if (!str_starts_with($action, 'wp_') || (!empty($_GET['sandbox']) && empty($GLOBALS['elvado_wpe_db_override']))) {
         return false;
     }
     try {
@@ -32,6 +31,59 @@ function elvado_wpra_applies(string $action, string $cmsDir): bool
     }
 }
 
+/** Einstellungen für WordPress vormerken, wenn WordPress gerade nicht läuft (Einrichtung, Import, Demo): Ablage cms/data/.wp/options.json,
+    die die Engine beim nächsten Seitenaufruf übernimmt (elvado_wpe_adopt_site, nur Geändertes). $front: Theme-Auswahl gilt (stylesheet wird übernommen). */
+function elvado_wpra_inbox_set(string $dataDir, array $opts, bool $front = true): bool
+{
+    $dir = rtrim($dataDir, '/') . '/.wp';
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
+        return false;
+    }
+    $f = $dir . '/options.json';
+    $h = @fopen($f . '.lock', 'c');
+    if ($h) {
+        flock($h, LOCK_EX);
+    }
+    try {
+        $all = is_file($f) ? json_decode((string)file_get_contents($f), true) : [];
+        $all = is_array($all) ? $all : [];
+        foreach ($opts as $k => $v) {
+            $all[(string)$k] = ['v' => serialize($v), 'a' => 'yes'];
+        }
+        $t = $f . '.' . bin2hex(random_bytes(3)) . '.tmp';
+        $ok = @file_put_contents($t, json_encode($all, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) !== false && @rename($t, $f);
+    } finally {
+        if ($h) {
+            flock($h, LOCK_UN);
+            fclose($h);
+        }
+    }
+    if ($front) {
+        @file_put_contents($dir . '/front-on', gmdate('c'));
+    }
+    return $ok;
+}
+/** Option der Live-Website direkt aus der WordPress-Datenbank (ohne WordPress zu starten), z. B. das aktive Theme; null = nicht verfügbar. */
+function elvado_wpra_live_option(string $cmsDir, string $name): ?string
+{
+    try {
+        if (!elvado_wpra_front_on($cmsDir)) {
+            return null;
+        }
+        require_once __DIR__ . '/wp-real-sandbox.php';
+        $live = (new \Elvado\Wp\DbConfig(elvado_wpe()))->get();
+        if (!$live) {
+            return null;
+        }
+        $c = elvado_wprs_db($live, dirname(elvado_wpe()->stateDir()), false);
+        $st = $c['pdo']->prepare('SELECT option_value FROM ' . $c['prefix'] . 'options WHERE option_name = ?');
+        $st->execute([$name]);
+        $v = $st->fetchColumn();
+        return $v === false ? null : (string)$v;
+    } catch (Throwable) {
+        return null;
+    }
+}
 /** Liefert echtes WordPress die Website aus (Engine aktiv, Schalter an, Core vorhanden)? */
 function elvado_wpra_front_on(string $cmsDir): bool
 {
@@ -154,14 +206,6 @@ function elvado_wpra_after(): void
 }
 function elvado_wpra_flush_later(): void
 {
-    static $done = false;
-    if ($done) {
-        return;
-    }
-    $done = true;
-    register_shutdown_function(static function (): void {
-        global $wp_rewrite;
-        $wp_rewrite->init();
-        flush_rewrite_rules(false);
-    });
+    // Umschreibregeln beim nächsten Seitenaufruf neu erzeugen (dann mit den neuen Basen der Kategorien/Schlagwörter, wie WordPress selbst)
+    register_shutdown_function(static fn() => delete_option('rewrite_rules'));
 }

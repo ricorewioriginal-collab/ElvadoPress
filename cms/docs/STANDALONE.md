@@ -33,7 +33,7 @@ Alle sichtbaren Bezeichnungen der Verwaltung kommen zentral aus `cms/lib/product
 
 Mit nur `name` folgen Fenstertitel, Überschrift, Anmeldetext und die Generator-Angabe im RSS automatisch (Überschrift: „MeinCMS Verwaltung“). Einzeln überschreibbar: `slug`, `logo`, `title`, `heading`, `access_name`, `generator`. Leere Felder bedeuten „Standard“; „Standard wiederherstellen“ entfernt die Datei. Funktionen für Code: `elvado_product_name()`, `elvado_product_slug()`, `elvado_product_logo()`, `elvado_product_title()`, `elvado_product_heading()`, `elvado_product_generator()`.
 
-Noch nicht über diese Einstellung geführt: Markdown-Dokumentation unter `cms/docs/*.md`, Theme-Kopfzeilen, Texte der WordPress-Schicht und Inhalte, die ausdrücklich zur Marke der Website gehören (Rechtstexte, Beispielseiten).
+Noch nicht über diese Einstellung geführt: Markdown-Dokumentation unter `cms/docs/*.md`, Theme-Kopfzeilen, Texte von WordPress und Inhalte, die ausdrücklich zur Marke der Website gehören (Rechtstexte, Beispielseiten).
 
 ## Version und Update
 
@@ -54,7 +54,7 @@ Ein automatischer Updater ist bewusst nicht enthalten.
 - Wiederherstellen: Backup über die Verwaltung einspielen oder Dateien zurückkopieren; die Sperrdatei `install.lock` muss mitgesichert werden, damit der Assistent nicht erneut erscheint.
 - Betriebs- und Produktdateien werden atomar geschrieben (temporäre Datei, dann umbenennen).
 
-Siehe auch [WORDPRESS.md](WORDPRESS.md) (WordPress-Kompatibilitätsschicht) und [DATABASE.md](DATABASE.md) (Datenbanktreiber).
+Siehe auch [WORDPRESS.md](WORDPRESS.md) (echte WordPress-Engine) und [DATABASE.md](DATABASE.md) (Datenbanktreiber).
 
 ## Standalone-Paket
 

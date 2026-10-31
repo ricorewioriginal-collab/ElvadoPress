@@ -130,15 +130,7 @@ function elvado_wpau_run(string $dataDir, bool $force=false, int $max=5, int $bu
         if($s['translations']&&($changed||$force)&&microtime(true)-$start<$budget){
             $t=elvado_wpi_fetch_all_translations('de_DE');$log[]=['t'=>time(),'type'=>'translations','slug'=>'','from'=>'','to'=>'','ok'=>true,'msg'=>$t['ok'].' Sprachpaket(e) geladen'];
         }
-        if(($s['wp_core']??'off')!=='off'&&microtime(true)-$start<$budget){
-            require_once __DIR__.'/wpversion.php';
-            $r=elvado_wpv_update($dataDir,$s['wp_core']);
-            if(empty($r['none'])){ $log[]=['t'=>time(),'type'=>'wordpress','slug'=>'','from'=>'','to'=>(string)($r['version']??''),'ok'=>!empty($r['ok']),'msg'=>!empty($r['ok'])?(($r['report']['missing']??0).' von '.($r['report']['total']??0).' Funktionen unbekannt'):mb_substr((string)$r['message'],0,150)]; if(!empty($r['ok']))$changed=true; }
-        }
-        if($s['core_assets']&&microtime(true)-$start<$budget){
-            require_once __DIR__.'/coreassets.php';
-            if(!elvado_wp_core_status()['installed']){ $r=elvado_wp_core_install();$log[]=['t'=>time(),'type'=>'core','slug'=>'','from'=>'','to'=>'','ok'=>!empty($r['ok']),'msg'=>mb_substr((string)($r['message']??''),0,150)]; }
-        }
+        // Den WordPress-Kern aktualisiert die Engine (System → WordPress-Engine / Updates)
     }catch(Throwable $e){ $log[]=['t'=>time(),'type'=>'error','slug'=>'','from'=>'','to'=>'','ok'=>false,'msg'=>mb_substr($e->getMessage(),0,150)]; }
     $cur=elvado_wpau_get();$cur['last_run']=time();$cur['log']=array_slice(array_merge($cur['log'],$log),-50);elvado_wpau_save($cur);
     $res['items']=$log;flock($fh,LOCK_UN);fclose($fh);

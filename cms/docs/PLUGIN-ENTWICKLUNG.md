@@ -6,11 +6,11 @@ Dieses Dokument beschreibt das **native Plugin-System** (Verzeichnis `cms/src/Pl
 | --- | --- | --- |
 | **Native offizielle Plugins** („Essentials“ und weitere) | `cms/official-plugins/<id>/` → installiert nach `cms/plugins/<id>/` | Server-PHP + Browser-Skripte, nur aus dem offiziellen Release, vom Server verifiziert. Diese Anleitung. |
 | **Frontend-/Admin-Plugins** (JavaScript) | `cms/plugins/<id>/` per ZIP-Upload | Reine JS/CSS-Plugins ohne Server-PHP – siehe [PLUGINS.md](PLUGINS.md). |
-| **WordPress-Plugins** (Kompatibilitätsschicht) | `cms/wp-content/plugins/` | Echte WordPress-Plugins, Verwaltung unter *Plugins › WordPress-Plugins*, siehe [WORDPRESS.md](WORDPRESS.md). Davon unberührt. |
+| **WordPress-Plugins** (echtes WordPress) | `cms/wp-content/plugins/` | Echte WordPress-Plugins, Verwaltung unter *Plugins › WordPress-Plugins*, siehe [WORDPRESS.md](WORDPRESS.md). Davon unberührt. |
 
 ## Core oder Plugin?
 
-**Core bleibt** (nie in Plugins auslagern): Plugin-System, Themes und Live-Customizer, Website-/Block-Editor, Medienverwaltung, Benutzer, Rollen und Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit (Login, Sitzungen, geschützte Datenordner, Eingabebereinigung), Installer, die KI-Infrastruktur (KI-Zentrale, Gateway, Modellkataloge, Bild-/Video-Erzeugung, Website-Generator), WordPress-Kompatibilitätsschicht, vorhandene Weiterleitungs-Engine (`cms/lib/tools.php`), einfacher Wartungsmodus.
+**Core bleibt** (nie in Plugins auslagern): Plugin-System, Themes und Live-Customizer, Website-/Block-Editor, Medienverwaltung, Benutzer, Rollen und Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit (Login, Sitzungen, geschützte Datenordner, Eingabebereinigung), Installer, die KI-Infrastruktur (KI-Zentrale, Gateway, Modellkataloge, Bild-/Video-Erzeugung, Website-Generator), WordPress-Engine (echtes WordPress), vorhandene Weiterleitungs-Engine (`cms/lib/tools.php`), einfacher Wartungsmodus.
 
 **Plugin wird**, was optional ist oder neue Fähigkeiten zusätzlich bringt. Ein Plugin **erweitert** den Core über Hooks, es dupliziert ihn nicht:
 
@@ -97,7 +97,7 @@ $np->api('overview', fn() => ['blocks' => [...]]);   // API-Aktion für die Plug
 | Hook | Art | Wann | Argumente |
 | --- | --- | --- | --- |
 | `boot` | Aktion | beim Start jeder API-/Website-Anfrage | – |
-| `wp_ready` | Aktion | WordPress-Schicht samt Theme geladen – hier `add_action`/`add_filter`/`add_shortcode` registrieren | – |
+| `wp_ready` | Aktion | echtes WordPress samt Theme geladen – hier `add_action`/`add_filter`/`add_shortcode` registrieren | – |
 | `front_request` | Aktion | Website-Anfrage, vor WordPress (darf `exit`, z. B. Cache) | `$uri, $path, $method` |
 | `front_output` | Filter | fertige HTML-Seite (GET, nicht Vorschau) | `$html, $status` |
 | `front_response` | Aktion | vor der Ausgabe; auch bei Cache-Treffern | `$status, $path, $contentType` |

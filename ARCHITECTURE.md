@@ -3,7 +3,7 @@
 Diese Datei ist die kompakte Architekturübersicht für Entwicklungs-Sessions. Fachdetails bleiben in `cms/docs/`.
 
 ## Systembild
-ElvadoPress ist ein serverseitiges PHP-CMS ohne erforderlichen Build-Schritt. Die Verwaltung läuft unter `/cms/`; Browser-JavaScript spricht die zentrale PHP-API an. Inhalte werden primär dateibasiert gespeichert. Optional kann ein Datenbankspiegel bzw. die WordPress-Kompatibilitätsschicht SQLite/MySQL/MariaDB nutzen; PostgreSQL wird für den Inhalts-Spiegel unterstützt.
+ElvadoPress ist ein serverseitiges PHP-CMS ohne erforderlichen Build-Schritt. Die Verwaltung läuft unter `/cms/`; Browser-JavaScript spricht die zentrale PHP-API an. Inhalte werden primär dateibasiert gespeichert. Die Website liefert echtes WordPress aus (WordPress-Engine, SQLite oder MySQL/MariaDB); ElvadoPress bleibt führend für die Inhalte. PostgreSQL wird für den Inhalts-Spiegel unterstützt.
 
 ## Hauptkomponenten
 - **Öffentliche Auslieferung:** Root-`index.php`, CMS-Publishing/Theme-Schicht, RSS/Sitemap/Robots.
@@ -11,7 +11,7 @@ ElvadoPress ist ein serverseitiges PHP-CMS ohne erforderlichen Build-Schritt. Di
 - **API:** `cms/api.php?action=...` bündelt Verwaltungs- und Datenaktionen.
 - **Fachlogik:** `cms/lib/*.php` für Auth, Datenbank, Inhalte, Branding, Community, Backups, Apps, KI-Assistent, Demo usw.
 - **Native Plugins (Essentials):** `cms/src/Plugin/` (Manager, Manifest, Hooks, Context), Paketbibliothek `cms/official-plugins/` mit prüfsummenbasiertem Katalog, installiert nach `cms/plugins/`, Zustand `cms/data/.plugins/`; Erweiterungspunkte im Core über `cms/lib/nplugins.php` (`elvado_np_do`/`elvado_np_filter`). Server-PHP läuft nur für offizielle, unveränderte Plugins. Core vs. Plugin und Entwicklerdoku: `cms/docs/PLUGIN-ENTWICKLUNG.md`.
-- **Themes/Plugins/WordPress-Schicht:** Erweiterbarkeit und Kompatibilität; Fachdetails in `cms/docs/THEMES.md`, `PLUGINS.md`, `WORDPRESS.md`.
+- **Themes/Plugins/WordPress-Engine:** Erweiterbarkeit über echtes WordPress (`cms/src/Wp/`, Verwaltungsbausteine `cms/wp/`); Fachdetails in `cms/docs/THEMES.md`, `PLUGINS.md`, `WORDPRESS.md`, `ARCHITECTURE-WORDPRESS.md`.
 - **Tests/Packaging:** `scripts/`, CI und Release-Workflows.
 
 ## Datenfluss
@@ -27,7 +27,7 @@ Lokaler CMS-Zugang mit serverseitig gespeicherten Passwort-Hashes und lokalen Si
 ## Storage / Datenbank
 - Standard: JSON/Dateien unter `cms/data/`; Markdown-Spiegel für Seiten/Inhalte.
 - Optionaler Spiegel: SQLite, MySQL/MariaDB, PostgreSQL.
-- WordPress-`$wpdb`-Schicht: SQLite oder MySQL/MariaDB; bei PostgreSQL bleibt diese Schicht bei SQLite.
+- WordPress-Datenbank: SQLite (Standard) oder MySQL/MariaDB; bei PostgreSQL nutzt WordPress SQLite.
 - Zugangsdaten liegen in lokalen, nicht zu commitenden Dateien. Details: `cms/docs/DATABASE.md`.
 
 ## APIs

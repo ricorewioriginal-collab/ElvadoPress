@@ -19,15 +19,15 @@
 
 ## WordPress-Engine / Umstrukturierung (Stand Phase 11)
 - **Bereich:** `cms/src/Wp/`, `cms/engine-api.php`, Live Builder, Migration
-- **Status:** Engine, Dienste/Adapter, Komponenten-Registry, Live Builder, Migration (Trockenlauf, echter Lauf, Rückbau) und Pakete sind umgesetzt und getestet (auch mit echtem WordPress 7.1.3 + MariaDB). Die Engine ist **standardmäßig aus**.
+- **Status:** Engine, Dienste/Adapter, Komponenten-Registry, Live Builder, Migration (Trockenlauf, echter Lauf, Rückbau) und Pakete sind umgesetzt und getestet (auch mit echtem WordPress 7.1.3 + MariaDB). Die Engine ist seit 1.4.0 die einzige WordPress-Laufzeit und wird automatisch eingerichtet.
 - **Noch offen (bewusst nicht als fertig deklariert):**
-  - Die bisherigen Panels (Beiträge, Seiten, Medien, Benutzer, Menüs, Widgets) arbeiten weiter mit den nativen Daten bzw. der Emulation `cms/wp`; das **Umschalten auf die Engine** und danach das **Entfernen der Emulation** (Ziel: nur noch echter Core) steht aus. Die Migration schaltet nicht um; sie wurde in einer Produktivumgebung noch nie ausgeführt.
+  - Die bisherigen Panels (Beiträge, Seiten, Medien, Benutzer, Menüs, Widgets) arbeiten mit den nativen Daten (ElvadoPress bleibt führend); `LiveSync` überträgt sie nach WordPress. Die Emulation `cms/wp` ist seit 1.4.0 entfernt. Die Migration schaltet nicht um; sie wurde in einer Produktivumgebung noch nie ausgeführt.
   - Die REST-API (`cms/rest.php`, Version 1) und Systemstatus/Update-Center (System → Systemstatus, Updates) sind seit Phase 11b vorhanden; offen: Schreiben von Medien-Metadaten/Menüs/Begriffen per REST, Core-/Plugin-Updates direkt aus dem Update-Center einspielen (derzeit nur Anzeige bzw. über die vorhandenen Verwaltungen).
   - Layouts je Seite/Beitrag (`page:*`, `post:*`) haben noch keine Oberfläche; Header/Footer/Navigation bestehender Frontends sind nur über Pakete (gebundene Bereiche) steuerbar.
   - Widget-Bereiche lassen sich nur mit klassischen Themes sinnvoll testen; Werkzeugleisten-Aktionen der Vorschau-Brücke sind nicht per Klick getestet.
   - Migration: Inhalte werden als HTML übernommen (kein Umbau in Blöcke), Widgets müssen von Hand eingerichtet werden, Papierkorb wird nicht übernommen.
   - Verwaltungs-Oberfläche: Zähler-Abzeichen an „Plugins“/„Updates“ und ein Menüpunkt „Automatisierung“ fehlen mangels Funktion.
-- **Nächste Untersuchung:** Panels auf die Engine umstellen, danach die Emulation entfernen.
+- **Erledigt (1.4.0):** Verwaltung, Website, Sandbox, Multisite und Demo laufen auf echtem WordPress; die Emulation `cms/wp` ist entfernt.
 
 ## Mehrere eigenständige Websites (Multisite)
 - Grundlage steht (`cms/lib/sites.php`, `scripts/test-sites.php`, `cms/docs/MULTISITE.md`), ist aber noch **nicht eingebunden**: Auslieferung, Verwaltung (Website-Umschalter, Bereich „Websites“), WordPress-Emulation und -Engine je Website folgen in Stufen (siehe Dokument). Bis dahin ändert sich am Betrieb nichts.
@@ -42,6 +42,8 @@
 - **Assistent:** Nutzt zusätzlich die aktiven Themen des Alexa-Skills als Wissen. Eigenes Wissen über die Apps der Website hat er nicht (Betreiber können es im Feld „Wissen“ ergänzen).
 
 ## WordPress-Auslieferung, SQLite, Mehrsprachigkeit (Stand 31.10.2026)
+- **Ohne eingerichtetes WordPress** (z. B. kein Superadmin hat sich seit dem Update angemeldet, kein Netz und kein Bündel) zeigt die Website nur „Die Website wird gerade eingerichtet“; RSS und robots.txt laufen weiter. Die WordPress-Bereiche der Verwaltung melden dann „WordPress liefert die Website noch nicht aus …“.
+- **SEO-Sitemap:** Aus der Verwaltung angestoßen („Sitemap jetzt erzeugen“, Veröffentlichen) wird sie beim nächsten Aufruf der Website erzeugt, weil WordPress in der Verwaltungsanfrage nicht läuft.
 - **Website mit WordPress ausliefern:** übernommen werden Beiträge, Seiten, Menüs (einmalig), Theme, Theme-Einstellungen, Widgets und Optionen der Verwaltung (bei jeder Änderung). Plugins, Themes und Einstellungen laufen direkt gegen WordPress (Stufe E4). Customizer, Baukasten und Vorschauen laufen ebenfalls auf echtem WordPress (Stufe E6). Sandbox und Einstellungsseiten von WordPress-Plugins nutzen noch die bisherige Schicht (Übernahme nur von Geändertem). „Zurück zum Portal-Design“ wirkt bei Auslieferung durch WordPress nicht – dafür die Auslieferung unter System → WordPress-Engine ausschalten. Plugins, die bei der Aktivierung umleiten, melden in der Verwaltung ggf. einen Fehler, sind aber aktiv. Nicht für weitere Websites (Multisite) und nicht in der Demo.
 - **SQLite:** nutzt die offizielle Integration (wordpress.org). Einzelne Plugins mit sehr MySQL-spezifischem SQL können damit Fehler zeigen – dann MySQL/MariaDB verwenden.
 - **Verwaltung auf Englisch:** übersetzt werden feste Texte der Oberfläche (rund 2 200 Einträge). Meldungen, die aus Teilen zusammengesetzt werden, und sehr lange Hilfetexte bleiben teilweise deutsch. Neue Texte müssen in `cms/assets/i18n/en.json` ergänzt werden.

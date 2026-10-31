@@ -5,7 +5,7 @@
 // (15 Minuten gültig, nur zusammen mit einem gültigen Vorschau-Schlüssel wirksam) – gespeichert wird erst beim Veröffentlichen.
 // Aufruf aus cms/api.php (wp_theme_customize*) und cms/wp-front.php (Entwurf in der Vorschau anwenden).
 
-/** Das gewählte Theme für diese Anfrage einschalten (Filter vor elvado_wp_boot, wie in wp-front.php bei der Vorschau). false = unbekannt/defekt. */
+/** Das gewählte Theme für diese Anfrage einschalten (vorbelegte Filter vor dem Start von WordPress, wie in wp-engine-front.php bei der Vorschau). false = unbekannt/defekt. */
 function elvado_wpc_use_theme(string $slug): bool {
     if(!preg_match('/^[a-z0-9_-]{1,80}$/',$slug))return false;
     $parent=$slug;$found=false;

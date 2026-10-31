@@ -2,6 +2,7 @@
 // Baut das eigenständige CMS als öffentliche Testinstanz (--demo) und prüft Demo-Betrieb: automatische Einrichtung, Anmeldung mit dem Demo-Zugang,
 // gesperrte Aktionen, Banner, Rücksetzen nach Ablauf des Zeitfensters (10 Minuten, hier durch Zurückdatieren) und gesperrte Mail. Aufruf: php scripts/test-demo.php
 declare(strict_types=1);
+require_once __DIR__.'/wpe-test-site.php';
 $root=dirname(__DIR__);
 $fail=0;$n=0;
 function t(string $name,bool $ok,string $extra=''): void { global $fail,$n; $n++; if(!$ok){$fail++;echo "FEHLER: $name $extra\n";} }
@@ -14,12 +15,17 @@ if(is_file($root.'/scripts/build-standalone.php')){
 }else{
     exec('cp -a '.escapeshellarg($root).' '.escapeshellarg($pkg).' 2>&1',$o,$rc);
     if($rc===0){ rmrf($pkg.'/.git'); foreach(glob($pkg.'/cms/data/*')?:[] as $f)if(basename($f)!=='.htaccess'&&!str_ends_with($f,'.example'))exec('rm -rf '.escapeshellarg($f));
-        exec('php '.escapeshellarg($root.'/scripts/make-demo.php').' '.escapeshellarg($pkg).' 2>&1',$o,$rc); }
+        exec('php '.escapeshellarg($root.'/scripts/make-demo.php').' '.escapeshellarg($pkg).(wpe_test_site_available()?' --engine=sqlite':'').' 2>&1',$o,$rc); }
 }
 t('Demo-Paket entsteht',$rc===0,implode("\n",$o));
 foreach(['cms/lib/demo.json','cms/lib/demo.php','cms/assets/demo.js','demo/index.html','cms/demo-state/.htaccess'] as $x)t("Im Demo-Paket: $x",is_file("$pkg/$x"));
 $cfg=json_decode((string)@file_get_contents("$pkg/cms/lib/demo.json"),true)?:[];
 t('Zeitfenster 10 Minuten',($cfg['minutes']??0)===10);
+$wpOn=wpe_test_site_available();
+if($wpOn){   // Demo mit echtem WordPress (SQLite): Core aus dem Test-ZIP, SQLite-Integration aus dem Bündel
+    file_put_contents("$pkg/cms/lib/demo-engine.json",json_encode(['driver'=>'sqlite','core_zip'=>(string)getenv('WPE_TEST_ZIP')]));
+    @mkdir("$pkg/cms/wp-engine/bundle",0755,true);if(is_file((string)getenv('WPE_TEST_SQLITE_ZIP')))copy((string)getenv('WPE_TEST_SQLITE_ZIP'),"$pkg/cms/wp-engine/bundle/sqlite-database-integration.zip");
+}else echo "Hinweis: Demo-Website mit echtem WordPress übersprungen (WPE_TEST_ZIP nicht gesetzt).\n";
 
 $router=$tmp.'/router.php';
 file_put_contents($router,'<?php $p=(string)parse_url($_SERVER["REQUEST_URI"],PHP_URL_PATH);$f=$_SERVER["DOCUMENT_ROOT"].$p;if($p==="/"){require $_SERVER["DOCUMENT_ROOT"]."/index.php";return true;}if(is_dir($f)&&is_file($f."/index.html")){header("Content-Type: text/html");readfile($f."/index.html");return true;}if(str_starts_with($p,"/cms/")||is_file($f))return false;require $_SERVER["DOCUMENT_ROOT"]."/cms/wp-front.php";return true;');
@@ -37,26 +43,34 @@ $B="http://127.0.0.1:$port";
 
 /* Erste Anfrage richtet die Demo selbst ein */
 $r=http('GET',"$B/");
-t('Startseite sofort eingerichtet (kein Assistent)',$r['code']===200&&str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'Live-Demo'),'HTTP '.$r['code'].' '.substr(strip_tags($r['body']),0,120));
+t('Erste Anfrage richtet die Demo ein (Hinweisseite, bis WordPress bereit ist)',in_array($r['code'],[200,503],true)&&str_contains($r['body'],'ElvadoPress'),'HTTP '.$r['code']);
+if($wpOn){   // wie beim ersten Öffnen der Verwaltung: Demo-Engine einrichten und die Website mit WordPress ausliefern
+    $lg=http('POST',"$B/cms/api.php?action=login",['username'=>$cfg['user'],'password'=>$cfg['password']]);$dt=(string)($lg['json']['token']??'');
+    $ds=http('POST',"$B/cms/engine-api.php?action=engine_demo_setup",[],['X-ElvadoPress-Token: '.$dt]);
+    $df=http('POST',"$B/cms/engine-api.php?action=engine_front",['on'=>true],['X-ElvadoPress-Token: '.$dt]);
+    t('Demo-Engine eingerichtet und Website mit WordPress',($ds['json']['status']??'')==='ok'&&($df['json']['status']??'')==='ok',substr($ds['body'],0,200).' '.substr($df['body'],0,200));
+    $r=http('GET',"$B/");
+}
+if($wpOn)t('Startseite sofort eingerichtet (kein Assistent)',$r['code']===200&&str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'Live-Demo'),'HTTP '.$r['code'].' '.substr(strip_tags($r['body']),0,120));
 t('Demo-Leiste im HTML der Website',str_contains($r['body'],'window.ELVADO_DEMO')&&str_contains($r['body'],'/cms/assets/demo.js'));
 t('Sperrdatei und Zustand vorhanden',is_file("$pkg/cms/data/install.lock")&&is_file("$pkg/cms/demo-state/state.json"));
 $st=json_decode((string)file_get_contents("$pkg/cms/demo-state/state.json"),true)?:[];
 t('Zeitfenster läuft (≈10 Minuten)',abs(((int)($st['started']??0)+600)-(time()+600))<30&&($st['resets']??0)===1,json_encode($st));
 $r=http('GET',"$B/willkommen/");
-t('Beispielbeitrag der Einrichtung erreichbar',$r['code']===200,'HTTP '.$r['code']);
+if($wpOn)t('Beispielbeitrag der Einrichtung erreichbar',$r['code']===200,'HTTP '.$r['code']);
 $r=http('GET',"$B/die-demo-ist-die-homepage/");
-t('Demo-Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Homepage-Baukasten'),'HTTP '.$r['code']);
+if($wpOn)t('Demo-Beispielbeitrag erreichbar',$r['code']===200&&str_contains($r['body'],'Homepage-Baukasten'),'HTTP '.$r['code']);
 /* Die Demo-Website ist die ElvadoPress-Homepage (Baukasten-Theme, Layout, Seiten, Menü) */
 $h=http('GET',"$B/");
-t('Homepage: Baukasten-Abschnitte (Hero, Karten, Text, Beiträge, Aufruf)',str_contains($h['body'],'bk-hero')&&substr_count($h['body'],'bk-features')>=1&&str_contains($h['body'],'bk-posts')&&str_contains($h['body'],'bk-cta')&&str_contains($h['body'],'<h1>ElvadoPress</h1>'),substr(strip_tags($h['body']),0,200));
-t('Homepage: Produkttexte und Demo-Zugang',str_contains($h['body'],'Homepage-Baukasten')&&str_contains($h['body'],'Updates mit Rückschritt')&&str_contains($h['body'],'Vier Themes')&&str_contains($h['body'],'ElvadoPress-Demo1')&&str_contains($h['body'],'/cms/?demo=1'));
-t('Homepage: Seitenleiste mit Demo-Widgets (Logo, Zugang, Suche, Funktionen, Beiträge, Kategorien, Schlagwörter, Seiten, Themes, Archiv, GitHub)',str_contains($h['body'],'bk-home-grid')&&str_contains($h['body'],'id="sidebar"')&&substr_count($h['body'],'class="widget ')>=10&&str_contains($h['body'],'widget_search')&&str_contains($h['body'],'widget_tag_cloud')&&str_contains($h['body'],'widget_categories')&&str_contains($h['body'],'Das kann ElvadoPress')&&str_contains($h['body'],'Live-Demo')&&str_contains($h['body'],'Vier Themes'),(string)substr_count($h['body'],'class="widget '));
-t('Homepage: ElvadoPress-Logo in Kopf und Seitenleiste',str_contains($h['body'],'custom-logo')&&substr_count($h['body'],'/cms/assets/brand/elvadopress-logo.png')>=2&&is_file("$pkg/cms/assets/brand/elvadopress-logo.png")&&is_file("$pkg/cms/assets/demo/homepage-builder.svg"));
-t('Homepage: Hero über die ganze Breite vor der Seitenleiste',strpos($h['body'],'bk-hero')!==false&&strpos($h['body'],'bk-hero')<strpos($h['body'],'bk-home-grid'));
+if($wpOn)t('Homepage: Baukasten-Abschnitte (Hero, Karten, Text, Beiträge, Aufruf)',str_contains($h['body'],'bk-hero')&&substr_count($h['body'],'bk-features')>=1&&str_contains($h['body'],'bk-posts')&&str_contains($h['body'],'bk-cta')&&str_contains($h['body'],'<h1>ElvadoPress</h1>'),substr(strip_tags($h['body']),0,200));
+if($wpOn)t('Homepage: Produkttexte und Demo-Zugang',str_contains($h['body'],'Homepage-Baukasten')&&str_contains($h['body'],'Updates mit Rückschritt')&&str_contains($h['body'],'Vier Themes')&&str_contains($h['body'],'ElvadoPress-Demo1')&&str_contains($h['body'],'/cms/?demo=1'));
+if($wpOn)t('Homepage: Seitenleiste mit Demo-Widgets (Logo, Zugang, Suche, Funktionen, Beiträge, Kategorien, Schlagwörter, Seiten, Themes, Archiv, GitHub)',str_contains($h['body'],'bk-home-grid')&&str_contains($h['body'],'id="sidebar"')&&substr_count($h['body'],'class="widget ')>=10&&str_contains($h['body'],'widget_search')&&str_contains($h['body'],'widget_tag_cloud')&&str_contains($h['body'],'widget_categories')&&str_contains($h['body'],'Das kann ElvadoPress')&&str_contains($h['body'],'Live-Demo')&&str_contains($h['body'],'Vier Themes'),(string)substr_count($h['body'],'class="widget '));
+if($wpOn)t('Homepage: ElvadoPress-Logo in Kopf und Seitenleiste',str_contains($h['body'],'custom-logo')&&substr_count($h['body'],'/cms/assets/brand/elvadopress-logo.png')>=2&&is_file("$pkg/cms/assets/brand/elvadopress-logo.png")&&is_file("$pkg/cms/assets/demo/homepage-builder.svg"));
+if($wpOn)t('Homepage: Hero über die ganze Breite vor der Seitenleiste',strpos($h['body'],'bk-hero')!==false&&strpos($h['body'],'bk-hero')<strpos($h['body'],'bk-home-grid'));
 $sp=http('GET',"$B/funktionen/");
-t('Unterseite mit Seitenleiste und Widgets',$sp['code']===200&&str_contains($sp['body'],'id="sidebar"')&&str_contains($sp['body'],'widget_search'));
-t('Homepage: Menü mit Seiten',str_contains($h['body'],'Funktionen')&&str_contains($h['body'],'Themes')&&str_contains($h['body'],'Selbst betreiben'));
-foreach(['funktionen','themes','demo','selbst-betreiben'] as $sl){ $pg=http('GET',"$B/$sl/");t("Seite /$sl/ erreichbar",$pg['code']===200&&strlen(strip_tags($pg['body']))>300,'HTTP '.$pg['code']); }
+if($wpOn)t('Unterseite mit Seitenleiste und Widgets',$sp['code']===200&&str_contains($sp['body'],'id="sidebar"')&&str_contains($sp['body'],'widget_search'));
+if($wpOn)t('Homepage: Menü mit Seiten',str_contains($h['body'],'Funktionen')&&str_contains($h['body'],'Themes')&&str_contains($h['body'],'Selbst betreiben'));
+if($wpOn)foreach(['funktionen','themes','demo','selbst-betreiben'] as $sl){ $pg=http('GET',"$B/$sl/");t("Seite /$sl/ erreichbar",$pg['code']===200&&strlen(strip_tags($pg['body']))>300,'HTTP '.$pg['code']); }
 t('Keine RicoReWi-Inhalte auf der Demo-Homepage',!stripos(str_replace('github.com/ricorewioriginal-collab/ElvadoPress','',$h['body']),'ricorewi')&&!stripos($h['body'],'anmacha'));
 $r=http('GET',"$B/demo/");
 t('Info-Seite erreichbar',$r['code']===200&&str_contains($r['body'],'Live-Demo'));
@@ -105,7 +119,7 @@ t('Beitrag mit Editor-Zeitformat gespeichert',($r['json']['status']??'')==='ok',
 $nl=http('GET',"$B/cms/api.php?action=news_list",null,$H);$saved=null;foreach(($nl['json']['articles']??$nl['json']['news']??$nl['json']['items']??[]) as $x)if(($x['title']??'')==='Zeitformat-Test')$saved=$x;
 t('Veröffentlichungszeit wird als "Y-m-d H:i:s" gespeichert',is_array($saved)&&preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',(string)($saved['published_at']??'')),json_encode($saved['published_at']??null));
 $pub=http('GET',"$B/zeitformat-test/");
-t('Beitrag mit Editor-Zeitformat ist öffentlich sichtbar',$pub['code']===200,'HTTP '.$pub['code']);
+if($wpOn)t('Beitrag mit Editor-Zeitformat ist öffentlich sichtbar',$pub['code']===200,'HTTP '.$pub['code']);
 t('Mailversand ist in der Demo aus',(function() use($pkg){ $c='<?php define("ELVADO_DEMO",true);require "'.$pkg.'/cms/lib/mail.php";var_dump(elvado_send_mail("a@example.test","s","b","x@example.test"));'; exec('php -r '.escapeshellarg(substr($c,6)).' 2>&1',$o);return trim(implode('',$o))==='bool(false)'; })());
 
 /* Rücksetzen nach Ablauf */
@@ -120,9 +134,9 @@ t('Alte Sitzung nach Rücksetzen ungültig',$r['code']===401,'HTTP '.$r['code'])
 $r=http('GET',"$B/mein-demo-beitrag/");
 t('Eigener Beitrag nach Rücksetzen weg',$r['code']===404,'HTTP '.$r['code']);
 $r=http('GET',"$B/die-demo-ist-die-homepage/");
-t('Beispielinhalt nach Rücksetzen wieder da',$r['code']===200);
+if($wpOn)t('Beispielinhalt nach Rücksetzen wieder da',$r['code']===200);
 $r=http('GET',"$B/");
-t('Homepage nach Rücksetzen wieder im Ausgangszustand',str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'<h1>ElvadoPress</h1>'));
+if($wpOn)t('Homepage nach Rücksetzen wieder im Ausgangszustand',str_contains($r['body'],'bk-hero')&&str_contains($r['body'],'<h1>ElvadoPress</h1>'));
 $r=http('POST',"$B/cms/api.php?action=login",['username'=>$cfg['user'],'password'=>$cfg['password']]);
 t('Anmeldung nach Rücksetzen möglich',($r['json']['status']??'')==='ok');
 $errs=array_values(array_filter(explode("\n",(string)@file_get_contents($tmp.'/server.log')),fn($l)=>preg_match('/PHP (Fatal|Parse|Warning|Notice|Deprecated)/',$l)&&!str_contains($l,'JIT is incompatible')));

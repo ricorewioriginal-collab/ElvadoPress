@@ -211,8 +211,8 @@ $pb = (string)file_get_contents(__DIR__ . '/../cms/assets/preview-bridge.js');
 $lbJs = (string)file_get_contents(__DIR__ . '/../cms/assets/live-builder.js');
 t('Brücke: nur Eltern-Fenster und gleiche Herkunft, Schlüssel für Befehle', str_contains($pb, 'e.source!==PARENT||e.origin!==ORIGIN') && str_contains($pb, 'd.token!==token') && str_contains($pb, 'PARENT.postMessage(m,ORIGIN)') && !str_contains($pb, "postMessage(m,'*')") && !str_contains($pb, 'eval('));
 t('Builder: nur der Vorschau-Frame, gleiche Herkunft, Schlüssel; kein „*“ als Ziel', str_contains($lbJs, 'e.source!==f.contentWindow||e.origin!==location.origin') && str_contains($lbJs, 'd.token!==bridge.token') && !str_contains($lbJs, ",'*')") && str_contains($lbJs, 'getRandomValues'));
-$wf = (string)file_get_contents(__DIR__ . '/../cms/wp-front.php');
-t('Brücke wird nur mit gültigem Vorschau-Schlüssel eingebunden', preg_match('/elvado_wp_preview_theme.*preview-bridge\.js/s', $wf) === 1 && substr_count($wf, 'preview-bridge.js') === 1);
+$wf = (string)file_get_contents(__DIR__ . '/../cms/wp-engine-front.php');
+t('Brücke wird nur mit gültigem Vorschau-Schlüssel eingebunden', preg_match('/elvado_wpra_preview_ok.*if \(\$elvadoFrontPreview !== \'\'\) \{\s*add_action\(\'wp_footer\'.*preview-bridge\.js/s', $wf) === 1 && substr_count($wf, 'preview-bridge.js') === 1);
 // Änderungsprotokoll je Fassung (Live Builder dokumentiert jede Änderung)
 $store->saveDraft('home', [['type' => 'text', 'props' => ['title' => 'Vier']]], $adm);
 $p4 = $store->publish('home', $adm, 'Titel', ['Text – Titel: «Drei» → «Vier»', '<b>Fett</b> Zeile', '', str_repeat('x', 300)]);

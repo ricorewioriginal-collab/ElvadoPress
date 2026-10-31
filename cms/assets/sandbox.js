@@ -1,4 +1,4 @@
-/* Sandbox (CMS → Design): Spielraum zwischen Live und Deployment. Server: wp_sandbox_* in cms/api.php, cms/wp/sandbox.php.
+/* Sandbox (CMS → Design): Spielraum zwischen Live und Deployment. Server: wp_sandbox_* in cms/api.php, cms/lib/wp-real-sandbox.php.
    Die Theme-Verwaltung (WpThemes) wechselt über Sandbox.mode(true) auf die Sandbox (Anfragen mit &sandbox=1). */
 (function(){
   'use strict';

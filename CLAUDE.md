@@ -12,7 +12,7 @@ Für neue Claude-Code-Sessions in dieser Reihenfolge lesen:
 Nicht automatisch das gesamte Repository neu analysieren.
 
 ## Projekt und Zweck
-ElvadoPress ist ein eigenständiges, erweiterbares PHP-CMS für Websites mit Themes, Plugins, visueller Verwaltung, Datei-Storage, optionalem Datenbankspiegel und WordPress-Kompatibilitätsschicht. Optionale neutrale Erweiterungen umfassen App-Baukasten, Alexa-Skill-Baukasten und KI-Assistent. ElvadoPress ist ein allgemeines CMS; Radio-Funktionen sind kein Standard.
+ElvadoPress ist ein eigenständiges, erweiterbares PHP-CMS für Websites mit Themes, Plugins, visueller Verwaltung, Datei-Storage, optionalem Datenbankspiegel und echter WordPress-Engine. Optionale neutrale Erweiterungen umfassen App-Baukasten, Alexa-Skill-Baukasten und KI-Assistent. ElvadoPress ist ein allgemeines CMS; Radio-Funktionen sind kein Standard.
 
 Dieses Repository ist die **Hauptquelle des CMS**. ElvadoPress ist unabhängig; es gibt keinen Sync mit anderen Projekten.
 
@@ -23,19 +23,19 @@ Dieses Repository ist die **Hauptquelle des CMS**. ElvadoPress ist unabhängig; 
 - `cms/views/`: Panels der Verwaltung.
 - `cms/assets/`: Browser-JavaScript, Styles und ElvadoPress-Branding.
 - `cms/data/`: Laufzeitdaten; primär JSON/Dateien, optional SQLite/MySQL/MariaDB/PostgreSQL-Spiegel.
-- `cms/themes/` und Plugin-/WordPress-Schicht: Darstellung und Erweiterbarkeit.
+- `cms/themes/`, Plugins und echte WordPress-Engine (`cms/src/Wp/`, Verwaltungsbausteine `cms/wp/`): Darstellung und Erweiterbarkeit.
 - `scripts/`: Smoke-, Funktions-, Demo- und Build-Tests.
 - Details: [ARCHITECTURE.md](ARCHITECTURE.md), [PROJECT_MAP.md](PROJECT_MAP.md), `cms/docs/`.
 
 ## Was wohin gehört
 | Art | Beispiele | Repository |
 |---|---|---|
-| **CMS** | Beiträge, Seiten, Medien, Kommentare, Einstellungen, WordPress-Schicht, Themes/Plugins, Benutzer, Formulare, Community, Demo-Betrieb | **hier** |
+| **CMS** | Beiträge, Seiten, Medien, Kommentare, Einstellungen, WordPress-Engine, Themes/Plugins, Benutzer, Formulare, Community, Demo-Betrieb | **hier** |
 | **Erweiterungen** (neutral) | App-Baukasten, Alexa-Skill-Baukasten, KI-Assistent – mit eigenen Inhalten des Betreibers | **hier** |
 | **Radio** | Radio-Seiten, Player, Sendeplan, Radio-Widgets | **nicht im Kern**; später optionales Plugin „Elvado Radio / Audio“ |
 
 ## Core oder Plugin (verbindlich)
-- **Core bleibt:** Plugin-System, Themes/Customizer, Block-Editor, Medien, Benutzer/Rollen/Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit, Installer, KI-Infrastruktur (KI-Zentrale, Gateway, Bild/Video, Website-Generator), WordPress-Schicht, vorhandene Weiterleitungs-Engine.
+- **Core bleibt:** Plugin-System, Themes/Customizer, Block-Editor, Medien, Benutzer/Rollen/Rechte, Update-System, API-Grundsystem, grundlegende Sicherheit, Installer, KI-Infrastruktur (KI-Zentrale, Gateway, Bild/Video, Website-Generator), WordPress-Engine, vorhandene Weiterleitungs-Engine.
 - **Plugin (Essentials) erweitert den Core** über Hooks (`cms/lib/nplugins.php`) und dupliziert keine Core-Funktion. Offizielle Plugins liegen in `cms/official-plugins/<id>/`; nach jeder Änderung `php scripts/build-official-plugins.php` ausführen (Prüfsummen-Katalog, Vertrauensanker – ohne passende Prüfsumme läuft das Plugin nicht).
 - Server-PHP führen nur offizielle, unveränderte Plugins aus; hochgeladene ZIP-Plugins bleiben JavaScript-only. Native Plugins, WordPress-Kompatibilität und JS-Plugins strikt getrennt halten.
 - Neue Plugin-Funktionen: keine Telemetrie, keine automatisch aktivierten externen Dienste, keine Schlüssel in Repository oder Logs, Eingaben serverseitig validieren, Tests in `scripts/test-essentials.php`/`test-nplugins.php`. Entwicklerdoku: `cms/docs/PLUGIN-ENTWICKLUNG.md`.

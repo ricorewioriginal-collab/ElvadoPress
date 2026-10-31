@@ -17,8 +17,10 @@ function elvado_tc_registry(): array {
 }
 function elvado_tc_entry(string $id): ?array { $r=elvado_tc_registry();return $r[$id]??null; }
 function elvado_tc_file(string $dataDir,string $id): string { return elvado_tools_dir($dataDir).'/themeconf-'.preg_replace('/[^a-z0-9_-]/','',$id).'.json'; }
-/** Liefert das Theme dieses Namens gerade die Website aus? (WordPress-Theme-Laufzeit: Flag front-on + Option stylesheet) */
+/** Liefert das Theme dieses Namens gerade die Website aus? (echtes WordPress: Option stylesheet in der Datenbank; vorgemerkt: cms/data/.wp) */
 function elvado_tc_theme_active(string $dataDir,string $theme): bool {
+    require_once __DIR__.'/wp-real-admin.php';
+    $live=elvado_wpra_live_option(dirname(__DIR__),'stylesheet');if($live!==null)return $live===$theme;
     $wp=rtrim($dataDir,'/').'/.wp';if(!is_file($wp.'/front-on'))return false;
     $o=json_decode((string)@file_get_contents($wp.'/options.json'),true);
     $v=is_array($o)&&isset($o['stylesheet']['v'])?@unserialize((string)$o['stylesheet']['v']):false;

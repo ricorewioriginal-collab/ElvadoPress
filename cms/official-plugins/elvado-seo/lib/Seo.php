@@ -340,11 +340,9 @@ final class Seo
     public function generate(): array
     {
         try {
-            if (function_exists('elvado_wp_boot')) {
-                elvado_wp_boot(['theme' => true]);   // mit Theme: ein früher Start ohne Theme würde ihn für den Rest der Anfrage festschreiben
-            }
-            if (!class_exists('WP_Query')) {
-                return ['ok' => false, 'message' => 'Die WordPress-Schicht ist nicht verfügbar.', 'count' => 0];
+            if (!class_exists('WP_Query')) {   // WordPress läuft in dieser Anfrage nicht (Verwaltung): beim nächsten Seitenaufruf erzeugen (tick)
+                @touch($this->flag());
+                return ['ok' => true, 'message' => 'Die Sitemap wird beim nächsten Aufruf der Website erzeugt.', 'count' => 0];
             }
             $urls = [];
             $q = new \WP_Query(['post_type' => ['post', 'page'], 'post_status' => 'publish', 'posts_per_page' => 5000, 'no_found_rows' => true, 'orderby' => 'modified', 'order' => 'DESC', 'ignore_sticky_posts' => true]);

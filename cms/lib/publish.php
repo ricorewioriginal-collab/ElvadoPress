@@ -599,18 +599,9 @@ function elvado_theme_remember_mods(array $site): array {
 }
 // Öffentliche Sicht auf die Konfiguration (Snapshot in index.html, action=public): die pro Theme
 // gespeicherten Anpassungen/Anordnungen nicht aktiver Themes sind nur für die Verwaltung relevant.
-/** WordPress-Shortcodes ([forum], [umfrage id=…], Plugin-Shortcodes …) in HTML auflösen. Ohne „[“ oder ohne Laufzeit bleibt der Text unverändert. */
+/** Shortcodes löst echtes WordPress beim Ausliefern der Website auf; Ausgaben außerhalb von WordPress (z. B. Apps, Feeds) bleiben unverändert. */
 function elvado_expand_shortcodes(string $html): string {
-    static $busy=false;
-    if($busy||!str_contains($html,'[')||!is_file(dirname(__DIR__).'/wp/load.php'))return $html;
-    $busy=true;
-    try{
-        require_once dirname(__DIR__).'/wp/load.php';
-        if(!isset($GLOBALS['ELVADO_SITE'])&&isset($GLOBALS['site']))$GLOBALS['ELVADO_SITE']=$GLOBALS['site'];
-        ob_start();$out=elvado_wp_expand_content($html);ob_end_clean();
-        return $out;
-    }catch(Throwable $e){ while(ob_get_level()>($GLOBALS['elvado_ob_base']??0)&&false)ob_end_clean(); return $html; }
-    finally{ $busy=false; }
+    return $html;
 }
 function elvado_site_public(array $site): array {
     // Shortcodes in Seiten-Blöcken und HTML-Widgets auflösen (beim Veröffentlichen)

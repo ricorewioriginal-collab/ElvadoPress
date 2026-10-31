@@ -5,7 +5,7 @@ Menü **KI & Lovable → KI-Zentrale** (`cms/assets/ai-center.js`, `cms/views/pa
 - **Speicher:** `cms/data/.ai/gateway.json` (gesperrter Ordner, Rechte 0600). Das ist der einzige Ort für Schlüssel.
 - **Gemeinsame Anbieterliste:** `cms/lib/ai-providers.json` (OpenAI-kompatible Vorgaben) wird vom Gateway *und* vom KI-Assistenten gelesen; native Schnittstellen (Claude, Gemini) und EvoLink stehen in `AiGatewayService::catalog()`.
 - **KI-Assistent** (Website-Chat, `cms/lib/assistant.php`): legt nur Verhalten, Reihenfolge und Modellwahl fest; Schlüssel und eigene Anbieter kommen zur Laufzeit aus der Zentrale (`elvado_assistant_with_central()`, nie in `site.json` gespeichert). Schlüssel, die früher im Assistenten standen, gelten weiter, bis „Alte Schlüssel übernehmen“ (`ai_migrate_legacy`) sie in die Zentrale verschiebt.
-- **WordPress-Verbinder** (`cms/wp/core/ext/ai-central.php`): `get_option('connectors_ai_<anbieter>_api_key')` liefert den zentralen Schlüssel, Speichern in der WP-Oberfläche schreibt dorthin.
+- **WordPress-Verbinder** (`cms/lib/wp-ai-connectors.php`, geladen von der Engine-Schicht in echtem WordPress): `get_option('connectors_ai_<anbieter>_api_key')` liefert den zentralen Schlüssel, Speichern in der WP-Oberfläche schreibt dorthin.
 - Dienste ohne Schlüssel (Pollinations, LLM7) sind im Gateway standardmäßig **aus** (Eingaben gehen an Dritte); im Assistenten bleiben sie wie bisher an.
 - Neue Aktionen: `ai_test`, `ai_models`, `ai_migrate_legacy`; `ai_generate` akzeptiert `purpose`.
 

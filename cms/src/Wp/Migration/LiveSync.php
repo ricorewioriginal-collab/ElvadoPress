@@ -127,6 +127,7 @@ final class LiveSync
             }
         }
         $c['comments'] = $this->syncComments($this->createdMap($seen));
+        $this->syncLogo();
         // In ElvadoPress gelöscht oder im Papierkorb: in WordPress ebenfalls in den Papierkorb (nicht endgültig löschen)
         foreach ($map as $key => $wpId) {
             if (!isset($seen[$key]) && preg_match('/^(post|page):/', $key) && get_post_status($wpId) && get_post_status($wpId) !== 'trash') {
@@ -135,6 +136,34 @@ final class LiveSync
             }
         }
         return $c;
+    }
+
+    /** Logo der Website (ElvadoPress → Branding) als Anhang, den Themes über the_custom_logo() zeigen (Filter in mu/elvado-engine.php). */
+    private function syncLogo(): void
+    {
+        $site = is_file($this->dataDir . '/site.json') ? json_decode((string)@file_get_contents($this->dataDir . '/site.json'), true) : [];
+        $url = (string)(is_array($site) ? ($site['branding']['portal_logo'] ?? '') : '');
+        $id = (int)get_option('elvado_logo_id', 0);
+        if ($url === '' || !preg_match('~^(https://|/)[^\s"<>]+\.(png|jpe?g|gif|webp|svg)(\?.*)?$~i', $url)) {
+            if ($id > 0) {
+                wp_delete_post($id, true);
+                delete_option('elvado_logo_id');
+            }
+            return;
+        }
+        if ($id > 0 && get_post($id) !== null && (string)get_post_meta($id, '_elvado_image_url', true) === $url) {
+            return;
+        }
+        $ext = strtolower((string)pathinfo((string)parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $mime = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp', 'svg' => 'image/svg+xml'][$ext] ?? 'image/png';
+        if ($id <= 0 || get_post($id) === null) {
+            $id = (int)wp_insert_attachment(['post_title' => 'Logo', 'post_mime_type' => $mime, 'post_status' => 'inherit', 'guid' => $url]);
+            update_option('elvado_logo_id', $id, false);
+        } else {
+            wp_update_post(['ID' => $id, 'post_mime_type' => $mime, 'guid' => $url]);
+        }
+        update_post_meta($id, '_wp_attached_file', 'elvado-logo.' . $ext);
+        update_post_meta($id, '_elvado_image_url', $url);
     }
 
     /** source_id → WordPress-ID für alle abgeglichenen Inhalte (auch die eben angelegten). @param array<string,bool> $seen */
@@ -150,7 +179,7 @@ final class LiveSync
         return $m;
     }
 
-    /** Kommentare und Kommentar-Status der Beiträge abgleichen. @param array<string,int> $map @return int geänderte Kommentare */
+    /** Kommentare, Kommentar-Status und Suchmaschinen-Felder der Beiträge abgleichen. @param array<string,int> $map @return int geänderte Kommentare */
     private function syncComments(array $map): int
     {
         $read = fn(string $f) => is_file($f) ? (json_decode((string)@file_get_contents($f), true) ?: []) : [];
@@ -159,7 +188,10 @@ final class LiveSync
         $n = 0;
         foreach ($read($this->dataDir . '/news.json') as $a) {
             $wpId = $map['post:' . (int)($a['id'] ?? 0)] ?? 0;
-            if ($wpId > 0) {
+            if ($wpId > 0) {   // Suchmaschinen-Felder des Beitrags (noindex, kanonische Adresse, SEO-Titel/-Beschreibung) – ausgegeben über Filter in mu/elvado-engine.php
+                foreach (['_elvado_seo_noindex' => !empty($a['noindex']) ? '1' : '', '_elvado_canonical' => (string)($a['canonical_url'] ?? ''), '_elvado_seo_title' => (string)($a['seo_title'] ?? ''), '_elvado_seo_description' => (string)($a['seo_description'] ?? '')] as $mk => $mv) {
+                    $mv !== '' ? update_post_meta($wpId, $mk, $mv) : delete_post_meta($wpId, $mk);
+                }
                 $mode = (string)($a['comments'] ?? 'default');
                 $open = $mode === 'open' || ($mode === 'default' && $enabled) ? 'open' : 'closed';
                 if (get_post_field('comment_status', $wpId) !== $open) {

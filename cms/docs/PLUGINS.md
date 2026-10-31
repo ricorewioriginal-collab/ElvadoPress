@@ -4,7 +4,7 @@
 
 Native ElvadoPress-Plugins dieser API erweitern die Website und Verwaltung in einer bewusst eingeschränkten Laufzeit, ohne beliebigen serverseitigen PHP-Code auszuführen.
 
-> **Wichtig:** Diese API ist nicht mit WordPress-Plugins gleichzusetzen. Die WordPress-Kompatibilitätsschicht besitzt einen eigenen Plugin-Laufzeitpfad. Ebenso dürfen zukünftige, von ElvadoPress selbst ausgelieferte serverseitige Essentials nicht einfach als ungeprüfte Drittanbieter-ZIPs in diese eingeschränkte API eingeordnet werden. Für vertrauenswürdige serverseitige Erweiterungen muss zuerst ein eigenes Berechtigungs-, Signatur-/Vertrauens- und Update-Modell festgelegt werden.
+> **Wichtig:** Diese API ist nicht mit WordPress-Plugins gleichzusetzen. Echtes WordPress (WordPress-Engine) besitzt einen eigenen Plugin-Laufzeitpfad. Ebenso dürfen zukünftige, von ElvadoPress selbst ausgelieferte serverseitige Essentials nicht einfach als ungeprüfte Drittanbieter-ZIPs in diese eingeschränkte API eingeordnet werden. Für vertrauenswürdige serverseitige Erweiterungen muss zuerst ein eigenes Berechtigungs-, Signatur-/Vertrauens- und Update-Modell festgelegt werden.
 
 ## ZIP-Struktur
 
