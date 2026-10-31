@@ -124,3 +124,6 @@ Schalter `engine_front` (Zustand `front` in `state.json`, nur bei aktiver Engine
 - **Themes:** `Bridge` definiert `ELVADO_THEMES_DIR`; die Engine-Schicht registriert das Verzeichnis (`register_theme_directory`) und liefert Theme-Dateien unter `/cms/themes/…` aus.
 - **Mehrsprachigkeit:** `wp-engine-front.php` erkennt das Sprachpräfix und entfernt es aus `REQUEST_URI`; `elvado_ml_wp_hooks()` filtert Abfragen über `_elvado_lang` und setzt Links/hreflang. `LiveSync` schreibt `_elvado_lang` und `_elvado_group`.
 - **Update-Schutz:** `TreeInstaller::PRESERVE` enthält `wp-engine`, damit CMS-Updates den Core nicht löschen.
+
+## ElvadoPress-Funktionen auf der WordPress-Website (Stufe E3)
+`cms/wp-engine-front.php` bildet die Abfolge von `wp-front.php` nach: native Plugins starten (`elvado_np_boot`), `front_request` mit der Originaladresse (Seiten-Cache kann vor dem Start von WordPress ausliefern), nach dem Start `wp_ready` (Shortcodes, WordPress-Hooks der Plugins). Die Theme-Ausgabe wird gepuffert; danach `elvado_np_tick`, bei 404 Weiterleitungen (`.tools/redirects.json`) und 404-Protokoll, App-Modus, `front_output`, Live Builder `site:website`, `front_response`.

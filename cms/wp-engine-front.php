@@ -50,6 +50,9 @@ $elvadoFrontCfg = $elvadoFrontEngine->corePath() . 'wp-config.php';
 if (!is_file($elvadoFrontCfg)) {
     @file_put_contents($elvadoFrontCfg, "<?php\n// ElvadoPress: Die Konfiguration setzt die WordPress-Engine (cms/src/Wp/Bridge.php). Diese Datei ist nur ein Platzhalter für wp-load.php.\nif (!defined('ELVADO_ENGINE_SAFE')) {\n    http_response_code(404);\n    exit;\n}\n");
 }
+$elvadoFrontNpUri = (string)($_SERVER['REQUEST_URI'] ?? '/');   // Plugins (z. B. Seiten-Cache) sehen die vollständige Adresse mit Sprachpräfix
+$elvadoFrontNpPath = $elvadoFrontPath;
+$elvadoFrontMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
 // Mehrsprachige Website: /en/… → Sprache merken und WordPress den Pfad ohne Präfix geben (Filter in lib/multilang.php, geladen von der Engine-Schicht)
 try {
     require_once $cmsDir . '/lib/multilang.php';
@@ -65,11 +68,16 @@ try {
     }
 } catch (Throwable $e) {
 }
+// Native Plugins (Essentials) wie bei der bisherigen Auslieferung: Start (z. B. Sicherheits-Header), frühe Anfragen (Seiten-Cache liefert ohne Start von WordPress aus)
+require_once $cmsDir . '/lib/nplugins.php';
+elvado_np_boot();
+elvado_np_do('front_request', $elvadoFrontNpUri, $elvadoFrontNpPath, $elvadoFrontMethod);
 $GLOBALS['elvado_wpe_engine'] = $elvadoFrontEngine;
 $GLOBALS['elvado_wpe_db'] = new \Elvado\Wp\DbConfig($elvadoFrontEngine);
 $GLOBALS['elvado_wpe_opts'] = ['themes' => true, 'front' => true];
 require $cmsDir . '/wp-engine-boot.php';
 elvado_wpe_after_boot($elvadoFrontEngine);
+elvado_np_do('wp_ready');   // native Plugins registrieren jetzt ihre WordPress-Hooks und Shortcodes (z. B. [elvado_form])
 $elvadoFrontEntry = ['/wp-admin/admin-ajax.php' => 'wp-admin/admin-ajax.php', '/wp-admin/admin-post.php' => 'wp-admin/admin-post.php', '/wp-comments-post.php' => 'wp-comments-post.php'][$elvadoFrontPath] ?? '';
 if ($elvadoFrontEntry !== '') {
     require ABSPATH . $elvadoFrontEntry;
@@ -117,6 +125,66 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && empty($_POST)) {
         }
     });
 }
+ob_start();
 wp();
 require ABSPATH . WPINC . '/template-loader.php';
+$elvadoFrontBody = (string)ob_get_clean();
+$elvadoFrontStatus = (int)http_response_code() ?: 200;
+$elvadoFrontType = 'text/html';
+foreach (headers_list() as $elvadoFrontH) {
+    if (stripos($elvadoFrontH, 'Content-Type:') === 0) {
+        $elvadoFrontType = trim(substr($elvadoFrontH, 13));
+    }
+}
+$elvadoFrontHtml = stripos($elvadoFrontType, 'html') !== false;
+elvado_np_tick();   // geplante Plugin-Aufgaben (höchstens einmal pro Minute)
+// Weiterleitungen aus der Verwaltung (Werkzeuge) haben Vorrang vor der 404-Seite des Themes; unbekannte Pfade werden protokolliert
+if ($elvadoFrontStatus === 404) {
+    try {
+        $elvadoFrontRules = elvado_tools_read(elvado_tools_dir($siteData) . '/redirects.json', ['rules' => []])['rules'] ?? [];
+        $elvadoFrontHit = is_array($elvadoFrontRules) ? elvado_redirect_match($elvadoFrontRules, $elvadoFrontNpPath) : null;
+        if ($elvadoFrontHit) {
+            $elvadoFrontCode = (int)($elvadoFrontHit['code'] ?? 301);
+            header_remove('Content-Type');
+            if ($elvadoFrontCode === 410) {
+                http_response_code(410);
+                header('Content-Type: text/plain; charset=utf-8');
+                echo 'Diese Seite wurde dauerhaft entfernt.';
+                exit;
+            }
+            header('Location: ' . str_replace(["\r", "\n"], '', (string)$elvadoFrontHit['to']), true, $elvadoFrontCode);
+            exit;
+        }
+        elvado_404_log($siteData, $elvadoFrontNpPath, (string)($_SERVER['HTTP_REFERER'] ?? ''));
+    } catch (Throwable $e) {
+    }
+}
+if ($elvadoFrontHtml && $elvadoFrontMethod === 'GET') {
+    // App-Modus (Baukasten-App): Kopf und Fuß der Website in der App ausblenden (siehe lib/appmode.php)
+    if ($elvadoFrontStatus === 200) {
+        try {
+            require_once $cmsDir . '/lib/appmode.php';
+            $elvadoFrontAm = elvado_appmode_detect();
+            if ($elvadoFrontAm !== null) {
+                header('Vary: User-Agent, Cookie', false);
+                require_once $cmsDir . '/lib/apps.php';
+                if (elvado_appmode_hide($elvadoFrontAm, elvado_apps_own($siteData), (array)(json_decode((string)@file_get_contents($siteData . '/site.json'), true) ?: []))) {
+                    $elvadoFrontBody = elvado_appmode_inject($elvadoFrontBody, true);
+                }
+            }
+        } catch (Throwable $e) {
+        }
+    }
+    $elvadoFrontBody = (string)elvado_np_filter('front_output', $elvadoFrontBody, $elvadoFrontStatus);   // Plugins: SEO, Leistung, Statistik
+    // Live Builder (themeunabhängig): veröffentlichte Gestaltung des Bereichs „Website“ (site:website)
+    if ($elvadoFrontStatus === 200 && is_file($siteData . '/layouts/site__website.json')) {
+        try {
+            require_once $cmsDir . '/lib/components.php';
+            $elvadoFrontBody = elvado_components_inject($elvadoFrontBody, 'site:website', [], $siteData);
+        } catch (Throwable $e) {
+        }
+    }
+}
+elvado_np_do('front_response', $elvadoFrontStatus, $elvadoFrontNpPath, $elvadoFrontType);
+echo $elvadoFrontBody;
 exit;

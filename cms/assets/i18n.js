@@ -47,7 +47,8 @@
   ['alert','confirm','prompt'].forEach(function(k){var o=window[k];if(typeof o!=='function')return;window[k]=function(msg){var a=Array.prototype.slice.call(arguments);if(L==='en'&&DICT)a[0]=tr(String(msg==null?'':msg));return o.apply(window,a)}});
   function set(l){if(l!=='de'&&l!=='en')return;try{localStorage.setItem(KEY,l)}catch(e){}try{if(window.cmsApi)window.cmsApi('admin_prefs_save',{lang:l}).catch(function(){})}catch(e){}if(l!==L)setTimeout(function(){location.reload()},150)}
   function pull(n){   // Wahl des Benutzers vom Server (gilt auf allen Geräten)
-    if(!window.cmsApi){if(n<20)setTimeout(function(){pull(n+1)},500);return}
+    var tk='';try{tk=sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}catch(e){}
+    if(!window.cmsApi||!tk){if(n<240)setTimeout(function(){pull(n+1)},500);return}   // erst nach der Anmeldung
     window.cmsApi('admin_prefs_get').then(function(d){var l=d&&d.lang;if((l==='de'||l==='en')&&l!==L){try{localStorage.setItem(KEY,l)}catch(e){}location.reload()}}).catch(function(){})
   }
   function picker(){return LANGS.map(function(x){return '<button type="button" data-admin-lang="'+x[0]+'" class="'+(x[0]===L?'on':'')+'">'+x[1]+'</button>'}).join('')}

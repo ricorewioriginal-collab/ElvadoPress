@@ -11,6 +11,11 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### ElvadoPress-Funktionen auf der WordPress-Website (Stufe E3)
+- **Essentials wirken auch bei Auslieferung durch WordPress:** Sicherheits-Header, SEO-Angaben, Seiten-Cache, Statistik, Formular- und Radio-Shortcodes, geplante Plugin-Aufgaben, Weiterleitungen und 404-Protokoll aus der Verwaltung, App-Modus und Live-Builder-Gestaltung des Bereichs „Website“.
+- **Creator-Theme:** Die Link-in-Bio-Seite `/links/` funktioniert auf echtem WordPress (Theme-Version 1.0.1).
+- **Fehler behoben:** Direkt nach der Anmeldung konnte eine noch vorher gestartete Anfrage die neue Sitzung verwerfen („Sitzung abgelaufen“, leere Bereiche). Jetzt beendet nur eine mit der aktuellen Sitzung gesendete Anfrage die Sitzung.
+
 ## 1.3.0 (31.10.2026)
 
 ### Echtes WordPress – auch ohne Datenbankserver
