@@ -33,6 +33,13 @@ jobs:
           VERSION="${{ steps.v.outputs.version }}"
           mkdir -p dist
           git archive --format=zip --prefix="elvadopress-${VERSION}/" -o "dist/elvadopress-${VERSION}.zip" HEAD
+          # Echtes WordPress und die SQLite-Integration mitliefern (Rückfall, falls der Server wordpress.org bei der Einrichtung nicht erreicht)
+          WPV=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/ | php -r '$d=json_decode(stream_get_contents(STDIN),true);echo $d["offers"][0]["version"];')
+          B="bundle/elvadopress-${VERSION}/cms/wp-engine/bundle"; mkdir -p "$B"
+          curl -fsSLo "$B/wordpress-${WPV}.zip" "https://downloads.wordpress.org/release/wordpress-${WPV}.zip"
+          curl -fsSL "https://downloads.wordpress.org/release/wordpress-${WPV}.zip.sha1" | grep -qx "$(sha1sum "$B/wordpress-${WPV}.zip" | cut -d' ' -f1)"
+          curl -fsSLo "$B/sqlite-database-integration.zip" "https://downloads.wordpress.org/plugin/sqlite-database-integration.zip"
+          (cd bundle && zip -qr "../dist/elvadopress-${VERSION}.zip" "elvadopress-${VERSION}")
           (cd dist && sha256sum "elvadopress-${VERSION}.zip" > "elvadopress-${VERSION}.zip.sha256")
           # App-Vorlage für den Build-Assistenten (Apps → Eigene App bauen): als eigene Release-Datei, Anleitung darin (ANLEITUNG.md)
           scripts/export-app-template.sh --zip=dist/app-template.zip

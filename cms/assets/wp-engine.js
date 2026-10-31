@@ -166,6 +166,33 @@ window.WpEngine=(()=>{
    n.innerHTML='<i class="fab fa-wordpress"></i> Die Website wird gerade von <b>echtem WordPress</b> ausgeliefert (aktives WordPress-Theme). Was du hier speicherst, übernimmt WordPress automatisch beim nächsten Seitenaufruf.';});
  }
  document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.tab[data-tab="news"],.tab[data-tab="pages"]');if(t&&tok())setTimeout(frontNotice,50);});
+ /* ElvadoPress arbeitet mit echtem WordPress: Ist es noch nicht eingerichtet (neue Installation oder Update einer älteren), richtet die erste Anmeldung
+    eines Administrators es automatisch ein – Core laden und prüfen, Datenbank (SQLite oder die MySQL-Datenbank des CMS), Start, Übernahme aller Inhalte und Einstellungen. */
+ let autoRan=false;
+ async function autoSetup(force){
+  if(DEMO()||(autoRan&&!force))return;const app=document.getElementById('cmsApp');
+  if(!tok()||!app||app.style.display==='none'||typeof CMS_IS_SA==='undefined'||!CMS_IS_SA){if(!force)setTimeout(autoSetup,1500);return}
+  autoRan=true;let st;try{st=await api('engine_status');}catch(e){return}
+  if(st.status!=='ok'||(st.engine.mode==='active'&&st.engine.front))return;
+  const ov=document.createElement('div');ov.id='wpeAuto';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+  ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(5,6,12,.82);display:flex;align-items:center;justify-content:center;padding:16px';
+  const steps=[['core','WordPress laden und prüfen'],['db','Datenbank einrichten'],['start','WordPress starten'],['front','Inhalte, Design und Einstellungen übernehmen']];
+  const draw=(cur,err)=>{ov.innerHTML='<div class="card" style="max-width:520px;width:100%"><h2 style="margin:0 0 6px"><i class="fab fa-wordpress"></i> ElvadoPress wird auf echtes WordPress umgestellt</h2><p class="hint">Einmalig, dauert meist unter einer Minute. Deine Inhalte bleiben erhalten; vorher wird eine Sicherung angelegt.</p><ol style="margin:10px 0 0 18px;line-height:1.9">'
+   +steps.map((x,i)=>'<li>'+(i<cur?'✓ ':i===cur&&!err?'<i class="fas fa-spinner fa-spin"></i> ':'')+esc(x[1])+'</li>').join('')+'</ol>'
+   +(err?'<div class="danger-note" style="margin-top:10px">'+esc(err)+'</div><div class="ap-add" style="margin-top:10px"><button class="btn-a" type="button" id="wpeAutoRetry"><i class="fas fa-rotate"></i> Erneut versuchen</button><button class="btn-g" type="button" id="wpeAutoLater">Später</button></div>':'')+'</div>';
+   const r=ov.querySelector('#wpeAutoRetry');if(r)r.onclick=()=>{ov.remove();autoSetup(true)};const l=ov.querySelector('#wpeAutoLater');if(l)l.onclick=()=>ov.remove();};
+  document.body.appendChild(ov);let i=0;
+  const step=async(n,fn)=>{i=n;draw(n);const d=await fn();if(d.status!=='ok')throw new Error(d.message||'Fehler');if(d.engine)S.st=d;return d};
+  try{
+   if(!st.engine.core_present)await step(0,()=>api('engine_core',{version:''}));
+   const ov0=st.db.overview||{};
+   if(!st.db.ready)await step(1,()=>api('engine_db_install',{db:ov0.shared?{prefix:ov0.suggest_prefix||'wpk_'}:{driver:'sqlite',prefix:ov0.suggest_prefix||'wpk_'}}));
+   const s2=await api('engine_status');if(s2.engine.mode!=='active')await step(2,()=>api('engine_mode',{mode:'active'}));
+   await step(3,()=>api('engine_front',{on:true}));
+   draw(4);setTimeout(()=>ov.remove(),1200);if(window.cmsToast)cmsToast('Echtes WordPress ist eingerichtet ✓');
+  }catch(e){draw(i,e.message||'Fehler')}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>autoSetup());else autoSetup();
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',demoBoot);else demoBoot();
  return {
   load,
@@ -186,6 +213,7 @@ window.WpEngine=(()=>{
    if(S.st.engine.mode!=='active'){d=await api('engine_mode',{mode:'active'});if(d.status!=='ok')throw new Error(d.message||'WordPress ließ sich nicht starten.');apply(d);}
    S.msg={text:'Echtes WordPress '+(S.st.engine.version||'')+' läuft jetzt im Hintergrund'+(curDrv()==='sqlite'?' (SQLite)':'')+'. Plugins und Themes aus wordpress.org findest du unter Plugins → WordPress-Plugins.'};
   }),
+  autoSetup:()=>autoSetup(true),
   front:on=>{frontAt=0;if(on&&!confirm('Die öffentliche Website wird ab sofort von WordPress ausgeliefert (aktives WordPress-Theme und Plugins). Beiträge und Seiten werden automatisch übernommen. Zurückschalten geht jederzeit. Fortfahren?'))return;run(on?'Schalte die Website auf WordPress um':'Schalte zurück',async()=>{const d=await api('engine_front',{on:!!on});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};});},
   dbTest:()=>run('Teste die Verbindung',async()=>{const d=await api('engine_db_test',{db:dbCfg()});S.msg={err:d.status!=='ok',text:d.message||''};}),
   dbInstall:()=>run('Richte WordPress ein (Tabellen anlegen)',async()=>{const d=await api('engine_db_install',{db:dbCfg()});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),

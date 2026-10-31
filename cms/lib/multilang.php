@@ -179,3 +179,80 @@ function elvado_ml_hooks(): void
         add_action('wp_footer', function () use ($links, $lang) { echo elvado_ml_switcher_html($links(), $lang, true); }, 30);
     }
 }
+
+/**
+ * Mehrsprachigkeit im echten WordPress (Website-Auslieferung durch WordPress). Geladen von der Engine-Schicht (mu/elvado-engine.php), wenn
+ * cms/wp-engine-front.php eine Sprache erkannt hat ($GLOBALS['elvado_ml']). Beiträge tragen die Meta _elvado_lang/_elvado_group (LiveSync).
+ */
+function elvado_ml_wp_hooks(): void
+{
+    $ml = $GLOBALS['elvado_ml'] ?? null;
+    if (!is_array($ml) || !function_exists('add_filter')) {
+        return;
+    }
+    $lang = $ml['lang'];
+    $cfg = $ml['cfg'];
+    $locale = ELVADO_ML_LOCALES[$lang] ?? 'en_US';
+    add_filter('locale', fn() => $locale, 50);
+    add_filter('pre_determine_locale', fn() => $locale, 50);
+    // Nur Inhalte der aufgerufenen Sprache (Inhalte ohne Sprache gehören zur Standardsprache)
+    add_action('pre_get_posts', function ($q) use ($lang, $cfg) {
+        if (is_admin() || $q->get('elvado_ml_skip')) {
+            return;
+        }
+        $pt = $q->get('post_type');
+        $pts = is_array($pt) ? $pt : ($pt === '' || $pt === null ? ['post'] : [(string)$pt]);
+        if (!array_intersect($pts, ['post', 'page', 'any'])) {   // Menüeinträge, Anhänge, Vorlagen usw. bleiben unberührt
+            return;
+        }
+        $mq = (array)$q->get('meta_query');
+        $mq[] = $lang === $cfg['default']
+            ? ['relation' => 'OR', ['key' => '_elvado_lang', 'value' => $lang], ['key' => '_elvado_lang', 'compare' => 'NOT EXISTS']]
+            : ['key' => '_elvado_lang', 'value' => $lang];
+        $q->set('meta_query', $mq);
+    });
+    if ($lang !== $cfg['default']) {
+        add_filter('home_url', function ($url, $path = '') use ($lang, $cfg) {
+            $p = ltrim((string)$path, '/');
+            if (preg_match('~^(cms|wp-content|wp-includes|wp-json|wp-admin|wp-login|wp-comments-post|wp-cron|xmlrpc|robots|' . $lang . '(/|$))~', $p) || str_contains((string)$url, '/' . $lang . '/')) {
+                return $url;
+            }
+            return elvado_ml_url((string)$url, $lang, $cfg);
+        }, 20, 2);
+    }
+    $plain = function (string $u) use ($lang, $cfg): string {
+        return $lang === $cfg['default'] ? $u : (string)preg_replace('~^(https?://[^/]+)/' . $lang . '(/|$)~', '$1/', $u);
+    };
+    $links = function () use ($lang, $cfg, $plain): array {
+        $out = [];
+        $home = $plain(home_url('/'));
+        foreach ($cfg['languages'] as $l) {
+            $out[$l] = elvado_ml_url($home, $l, $cfg);
+        }
+        if (is_singular()) {
+            $id = (int)get_queried_object_id();
+            $g = (string)get_post_meta($id, '_elvado_group', true);
+            if ($g !== '') {
+                $sib = get_posts(['post_type' => 'any', 'post_status' => 'publish', 'numberposts' => 20, 'meta_key' => '_elvado_group', 'meta_value' => $g, 'elvado_ml_skip' => 1]);
+                foreach ($sib as $p) {
+                    $l = (string)get_post_meta($p->ID, '_elvado_lang', true) ?: $cfg['default'];
+                    if (in_array($l, $cfg['languages'], true)) {
+                        $out[$l] = elvado_ml_url($plain((string)get_permalink($p)), $l, $cfg);
+                    }
+                }
+            }
+        }
+        return $out;
+    };
+    add_action('wp_head', function () use ($links, $cfg) {
+        $ls = $links();
+        foreach ($ls as $l => $u) {
+            echo '<link rel="alternate" hreflang="' . esc_attr($l) . '" href="' . esc_url($u) . '">' . "\n";
+        }
+        echo '<link rel="alternate" hreflang="x-default" href="' . esc_url($ls[$cfg['default']] ?? home_url('/')) . '">' . "\n";
+    }, 2);
+    add_shortcode('elvado_languages', fn() => elvado_ml_switcher_html($links(), $lang, false));
+    if ($cfg['switcher']) {
+        add_action('wp_footer', function () use ($links, $lang) { echo elvado_ml_switcher_html($links(), $lang, true); }, 30);
+    }
+}

@@ -170,6 +170,9 @@ final class Bridge
         $def('WPMU_PLUGIN_DIR', dirname(__DIR__) . '/Wp/mu');   // eigene Engine-Schicht; lädt danach die mu-plugins aus wp-content
         $def('WPMU_PLUGIN_URL', $site . '/cms/src/Wp/mu');
         $def('ELVADO_USER_MU_DIR', $content . '/mu-plugins');
+        $def('ELVADO_CMS_DIR', rtrim($e->cmsDir(), '/'));
+        $def('ELVADO_THEMES_DIR', rtrim($e->cmsDir(), '/') . '/themes');            // ElvadoPress-Themes (registriert in mu/elvado-engine.php)
+        $def('ELVADO_WP_DATA', dirname($e->stateDir()) . '/.wp');                   // Themes lesen ihre CMS-Daten aus dirname(ELVADO_WP_DATA)
         $def('ELVADO_ENGINE_SAFE', $safe);
         $def('WP_HOME', $site);
         $def('WP_SITEURL', $site);

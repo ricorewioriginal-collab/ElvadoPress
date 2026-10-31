@@ -45,3 +45,23 @@ add_filter('post_thumbnail_html', function ($html, $postId, $thumbId, $size, $at
     $cls = is_array($attr) && isset($attr['class']) ? (string)$attr['class'] : 'wp-post-image';
     return '<img src="' . esc_url($url) . '" class="' . esc_attr($cls) . '" alt="' . esc_attr(get_the_title((int)$postId)) . '" loading="lazy" decoding="async">';
 }, 10, 5);
+// ElvadoPress-Themes (cms/themes: Classic, Baukasten, Band, Creator) stehen im echten WordPress wie installierte Themes zur Verfügung
+if (defined('ELVADO_THEMES_DIR') && is_dir(ELVADO_THEMES_DIR)) {
+    register_theme_directory(ELVADO_THEMES_DIR);
+    add_filter('theme_root_uri', function ($uri, $siteurl = '', $stylesheet = '') {
+        $root = rtrim(str_replace('\\', '/', (string)ELVADO_THEMES_DIR), '/');
+        return rtrim(str_replace('\\', '/', (string)$uri), '/') === $root ? home_url('/cms/themes') : $uri;
+    }, 10, 3);
+}
+// Mehrsprachige Website (Sprache aus dem Pfad /en/…, erkannt in cms/wp-engine-front.php): Sprache, Inhalte, Adressen, hreflang, Umschalter
+if (!empty($GLOBALS['elvado_ml']) && defined('ELVADO_CMS_DIR') && is_file(ELVADO_CMS_DIR . '/lib/multilang.php')) {
+    require_once ELVADO_CMS_DIR . '/lib/multilang.php';
+    elvado_ml_wp_hooks();
+}
+// Keine Emoji-Grafiken vom Server s.w.org (externer Dienst, Datenschutz)
+remove_action('wp_head', 'print_emoji_detection_script', 7);
+remove_action('wp_print_styles', 'print_emoji_styles');
+remove_action('wp_enqueue_scripts', 'wp_enqueue_emoji_styles');
+remove_filter('the_content_feed', 'wp_staticize_emoji');
+remove_filter('comment_text_rss', 'wp_staticize_emoji');
+remove_filter('wp_mail', 'wp_staticize_emoji_for_email');

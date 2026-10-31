@@ -3,7 +3,7 @@ declare(strict_types=1);
 // cms/src/Update/TreeInstaller.php
 //
 // Dateiarbeit des Updates: Paket sicher entpacken und prüfen, Sicherung (Snapshot) anlegen, Dateibaum einspielen/zurückspielen, Gesundheitsprüfung.
-// „Verwalteter Baum“ = der CMS-Ordner ohne Betreiberdaten. Nie angefasst werden: data/, backups/, media/, content/, plugins/, generated/, wp-content/,
+// „Verwalteter Baum“ = der CMS-Ordner ohne Betreiberdaten. Nie angefasst werden: data/, backups/, media/, content/, plugins/, generated/, wp-content/, wp-engine/,
 // frontend/ (u. a. Lovable-Sync), demo-state/, *.local.php/json sowie – unter themes/ – alle Themes, die das Paket nicht mitbringt (eigene Themes).
 // Sicherheit (das Paket kommt aus dem Netz): keine Pfadtricks, keine Symlinks, keine versteckten Dateien (außer .htaccess), Endungs-Allowlist,
 // Mengen-/Größenlimits, alle PHP-Dateien werden vor dem Einspielen geparst (Syntaxfehler → Abbruch, ohne das Paket auszuführen).
@@ -17,7 +17,7 @@ final class TreeInstaller
     public const MAX_FILES = 8000;
     public const EXT = ['php', 'js', 'mjs', 'css', 'html', 'htm', 'json', 'md', 'txt', 'xml', 'xsl', 'sql', 'svg', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'ico', 'woff', 'woff2', 'ttf', 'otf', 'map', 'webmanifest', 'example', 'mo', 'po', 'pot', 'csv', 'mp3', 'ogg'];
     public const NAMES = ['VERSION', 'LICENSE', 'README', '.htaccess'];
-    public const PRESERVE = ['data', 'backups', 'media', 'content', 'plugins', 'generated', 'wp-content', 'frontend', 'demo-state', 'node_modules', '.git'];
+    public const PRESERVE = ['data', 'backups', 'media', 'content', 'plugins', 'generated', 'wp-content', 'wp-engine', 'frontend', 'demo-state', 'node_modules', '.git'];   // wp-engine: eingespielter WordPress-Core und SQLite-Integration
 
     public function __construct(private string $cmsRoot, private readonly string $workDir)
     {
