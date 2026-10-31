@@ -30,3 +30,18 @@ add_filter('pre_site_transient_update_core', '__return_null');
 remove_action('admin_init', '_maybe_update_core');
 remove_action('admin_init', '_maybe_update_plugins');
 remove_action('admin_init', '_maybe_update_themes');
+// Beitragsbilder aus ElvadoPress (Adresse statt Mediathek-Anhang, Meta _elvado_image_url): Themes zeigen sie wie ein normales Beitragsbild
+add_filter('has_post_thumbnail', function ($has, $post = null) {
+    return $has || ($post !== null && (string)get_post_meta(is_object($post) ? (int)$post->ID : (int)$post, '_elvado_image_url', true) !== '');
+}, 10, 2);
+add_filter('post_thumbnail_html', function ($html, $postId, $thumbId, $size, $attr) {
+    if ($html !== '' || $thumbId) {
+        return $html;
+    }
+    $url = (string)get_post_meta((int)$postId, '_elvado_image_url', true);
+    if ($url === '' || !preg_match('~^(https://|/)~', $url)) {
+        return $html;
+    }
+    $cls = is_array($attr) && isset($attr['class']) ? (string)$attr['class'] : 'wp-post-image';
+    return '<img src="' . esc_url($url) . '" class="' . esc_attr($cls) . '" alt="' . esc_attr(get_the_title((int)$postId)) . '" loading="lazy" decoding="async">';
+}, 10, 5);

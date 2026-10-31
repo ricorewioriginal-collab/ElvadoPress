@@ -66,6 +66,29 @@ if (!wp_get_theme()->exists()) {   // ohne Theme bliebe die Seite leer
     echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Website</title><body style="font:16px system-ui;max-width:640px;margin:12vh auto;padding:0 16px"><h1>Die Website wird gerade eingerichtet</h1><p>WordPress hat kein aktives Theme. Bitte in der Verwaltung unter Plugins → WordPress-Plugins ein Theme aktivieren.</p></body>';
     exit;
 }
+// Beiträge und Seiten aus der ElvadoPress-Verwaltung übernehmen, wenn sich dort etwas geändert hat (Abgleich nur bei Änderungen, siehe LiveSync)
+try {
+    (new \Elvado\Wp\Migration\LiveSync($cmsDir, $siteData))->maybeSync();
+} catch (Throwable $e) {
+    $elvadoFrontEngine->log('Abgleich mit WordPress fehlgeschlagen: ' . $e->getMessage());
+}
+// Geplante Aufgaben (z. B. geplante Beiträge): WordPress ruft sich dafür sonst selbst über HTTP auf (abgeschaltet). Nach der Antwort höchstens einmal pro Minute ausführen.
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && empty($_POST)) {
+    register_shutdown_function(static function (): void {
+        if ((int)get_option('elvado_cron_last', 0) > time() - 60 || !function_exists('wp_get_ready_cron_jobs') || wp_get_ready_cron_jobs() === []) {
+            return;
+        }
+        update_option('elvado_cron_last', time(), false);
+        if (function_exists('fastcgi_finish_request')) {
+            @fastcgi_finish_request();
+        }
+        ignore_user_abort(true);
+        try {
+            require ABSPATH . 'wp-cron.php';
+        } catch (Throwable) {
+        }
+    });
+}
 wp();
 require ABSPATH . WPINC . '/template-loader.php';
 exit;

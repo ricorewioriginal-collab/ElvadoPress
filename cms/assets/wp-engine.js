@@ -132,7 +132,7 @@ window.WpEngine=(()=>{
   h+=step(4,'Betrieb und Systemanalyse',s.steps.active,'<p class="hint">Aktivieren startet WordPress einmal zur Prüfung und merkt sich die Betriebsart. Dieser Schritt verändert die Website nicht; Inhalte und Funktionen werden in späteren Schritten schrittweise übernommen.</p>'
    +'<div class="ap-add">'+act+'<button class="btn-g" type="button" onclick="WpEngine.analyze()"'+(busy||e.mode==='off'||!s.db.ready?' disabled':'')+'><i class="fas fa-scale-balanced"></i> Systemanalyse (ElvadoPress ↔ WordPress)</button></div>'+analysis());
   if(e.mode==='active'){
-   h+=step('★','Website mit WordPress ausliefern',!!e.front,'<p class="hint">'+(e.front?'<b>An:</b> Besucher sehen die Website so, wie WordPress sie mit seinem <b>aktiven Theme und seinen Plugins</b> darstellt – mit den Inhalten aus der WordPress-Datenbank (Website → Alle Inhalte, oder per Migration übernommen).':'<b>Aus:</b> ElvadoPress liefert die Website aus (Themes und Plugins der ElvadoPress-Schicht). Eingeschaltet übernimmt echtes WordPress mit seinem aktiven Theme und seinen Plugins – inklusive Theme- und Plugin-Funktionen, die die Nachbildung nicht kennt. Inhalte kommen dann aus der WordPress-Datenbank (vorher migrieren).')+' Die ElvadoPress-Verwaltung bleibt in beiden Fällen dieselbe; zurückschalten geht jederzeit.</p>'
+   h+=step('★','Website mit WordPress ausliefern',!!e.front,'<p class="hint">'+(e.front?'<b>An:</b> Besucher sehen die Website so, wie WordPress sie mit seinem <b>aktiven Theme und seinen Plugins</b> darstellt – Beiträge und Seiten bearbeitest du weiter in ElvadoPress, jede Änderung wird automatisch nach WordPress übernommen.':'<b>Aus:</b> ElvadoPress liefert die Website aus (Themes und Plugins der ElvadoPress-Schicht). Eingeschaltet übernimmt echtes WordPress mit seinem aktiven Theme und seinen Plugins – inklusive Theme- und Plugin-Funktionen, die die Nachbildung nicht kennt. Beiträge und Seiten werden dabei automatisch übernommen und bleiben in ElvadoPress bearbeitbar.')+' Die ElvadoPress-Verwaltung bleibt in beiden Fällen dieselbe; zurückschalten geht jederzeit.</p>'
     +'<div class="ap-add"><button class="'+(e.front?'btn-g':'btn-a')+'" type="button" onclick="WpEngine.front('+(e.front?'false':'true')+')"'+dis+'><i class="fas fa-'+(e.front?'rotate-left':'globe')+'"></i> '+(e.front?'Wieder mit ElvadoPress ausliefern':'Website mit WordPress ausliefern')+'</button><a class="btn-g" href="/" target="_blank" rel="noopener" style="text-decoration:none"><i class="fas fa-arrow-up-right-from-square"></i> Website ansehen</a></div>');
   }
   h+=step(5,'Migration (Trockenlauf)',!!S.mig&&S.mig.verdict!=='blocked',migration());
@@ -156,6 +156,16 @@ window.WpEngine=(()=>{
   const tick=async()=>{try{const app=document.getElementById('cmsApp');if(!app||app.style.display==='none')return;const st=await api('engine_status');if(st.status==='ok'&&st.engine&&st.engine.mode!=='active'&&!S.busy&&!window.__epDemoBusy){window.__epDemoBusy=1;try{const d=await api('engine_demo_setup',{});if(d.status==='ok'){apply(d);if(window.cmsToast)cmsToast('Demo-Engine bereit ✓');draw()}}finally{window.__epDemoBusy=0}}}catch(e){window.__epDemoBusy=0}};
   setTimeout(tick,2500);setInterval(tick,45000);
  }
+ /* Liefert echtes WordPress die Website aus, zeigen Beiträge/Seiten der ElvadoPress-Schicht nicht mehr auf der Website: deutlicher Hinweis in diesen Bereichen */
+ let frontAt=0,frontOn=false;
+ async function frontNotice(){
+  if(Date.now()-frontAt>60000){frontAt=Date.now();try{const d=await api('engine_status');frontOn=!!(d.status==='ok'&&d.engine&&d.engine.front);}catch(e){return;}}
+  ['news','pages'].forEach(id=>{const p=document.getElementById('panel-'+id);if(!p)return;let n=p.querySelector('.wpe-front-note');
+   if(!frontOn){if(n)n.remove();return}
+   if(!n){n=document.createElement('div');n.className='hint wpe-front-note';n.style.cssText='margin:0 0 10px;padding:10px 12px;border-radius:8px;border:1px solid var(--accent);background:rgba(255,180,0,.08)';p.prepend(n);}
+   n.innerHTML='<i class="fab fa-wordpress"></i> Die Website wird gerade von <b>echtem WordPress</b> ausgeliefert (aktives WordPress-Theme). Was du hier speicherst, übernimmt WordPress automatisch beim nächsten Seitenaufruf.';});
+ }
+ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('.tab[data-tab="news"],.tab[data-tab="pages"]');if(t&&tok())setTimeout(frontNotice,50);});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',demoBoot);else demoBoot();
  return {
   load,
@@ -176,7 +186,7 @@ window.WpEngine=(()=>{
    if(S.st.engine.mode!=='active'){d=await api('engine_mode',{mode:'active'});if(d.status!=='ok')throw new Error(d.message||'WordPress ließ sich nicht starten.');apply(d);}
    S.msg={text:'Echtes WordPress '+(S.st.engine.version||'')+' läuft jetzt im Hintergrund'+(curDrv()==='sqlite'?' (SQLite)':'')+'. Plugins und Themes aus wordpress.org findest du unter Plugins → WordPress-Plugins.'};
   }),
-  front:on=>{if(on&&!confirm('Die öffentliche Website wird ab sofort von WordPress ausgeliefert (aktives WordPress-Theme, Plugins, Inhalte aus der WordPress-Datenbank). Zurückschalten geht jederzeit. Fortfahren?'))return;run(on?'Schalte die Website auf WordPress um':'Schalte zurück',async()=>{const d=await api('engine_front',{on:!!on});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};});},
+  front:on=>{frontAt=0;if(on&&!confirm('Die öffentliche Website wird ab sofort von WordPress ausgeliefert (aktives WordPress-Theme und Plugins). Beiträge und Seiten werden automatisch übernommen. Zurückschalten geht jederzeit. Fortfahren?'))return;run(on?'Schalte die Website auf WordPress um':'Schalte zurück',async()=>{const d=await api('engine_front',{on:!!on});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};});},
   dbTest:()=>run('Teste die Verbindung',async()=>{const d=await api('engine_db_test',{db:dbCfg()});S.msg={err:d.status!=='ok',text:d.message||''};}),
   dbInstall:()=>run('Richte WordPress ein (Tabellen anlegen)',async()=>{const d=await api('engine_db_install',{db:dbCfg()});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),
   mode:m=>run(m==='active'?'Starte WordPress zur Prüfung':'Schalte um',async()=>{const d=await api('engine_mode',{mode:m});apply(d);S.msg={err:d.status!=='ok',text:d.message||''};}),

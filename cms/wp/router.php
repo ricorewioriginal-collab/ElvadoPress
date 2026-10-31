@@ -162,7 +162,7 @@ function elvado_wp_dispatch(string $uri, string $method='GET', array $query=[], 
             return ['status'=>200,'headers'=>['Content-Type'=>'application/rss+xml; charset=utf-8'],'body'=>elvado_rss_xml($site)];
         }catch(Throwable $e){ return ['status'=>503,'headers'=>['Content-Type'=>'text/plain; charset=utf-8'],'body'=>'Der Feed ist gerade nicht verfügbar.']; }
     }
-    if(preg_match('#^/(feed|rss)(/|\.xml|\.php)?$#',$path))return ['status'=>301,'headers'=>['Location'=>home_url('/rss.xml')],'body'=>''];
+    if(preg_match('#^/(feed|rss)(/|\.xml|\.php)?$#',$path))return ['status'=>302,'headers'=>['Location'=>home_url('/rss.xml')],'body'=>''];
     // robots.txt (fehlt die Datei, liefert die Website eine passende aus – wie WordPress)
     if($path==='/robots.txt'){
         $pub=(string)get_option('blog_public','1')!=='0';

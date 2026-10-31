@@ -279,3 +279,25 @@ function elvado_wpe_language(string $lang): array
     update_option('WPLANG', $locale);
     return ['ok' => true, 'locale' => $locale, 'message' => ''];
 }
+
+/**
+ * Grundeinstellungen des echten WordPress an ElvadoPress angleichen (nur bei gestartetem WordPress): Sprache (mit Sprachpaket) und Zeitzone.
+ * Ohne passende Zeitzone hielte WordPress Beiträge, die ElvadoPress in Ortszeit speichert, für „geplant“.
+ * @return array{ok:bool,locale:string,message:string}
+ */
+function elvado_wpe_sync_site(): array
+{
+    if (!function_exists('update_option')) {
+        return ['ok' => false, 'locale' => '', 'message' => 'WordPress läuft nicht.'];
+    }
+    $sys = function_exists('elvado_system_config') ? elvado_system_config() : [];
+    $tz = (string)($sys['timezone'] ?? '');
+    if ($tz === '' || !in_array($tz, \DateTimeZone::listIdentifiers(), true)) {
+        $tz = (string)(ini_get('date.timezone') ?: 'UTC');
+    }
+    if (in_array($tz, \DateTimeZone::listIdentifiers(), true) && (string)get_option('timezone_string') !== $tz) {
+        update_option('timezone_string', $tz);
+        update_option('gmt_offset', '');
+    }
+    return elvado_wpe_language((string)($sys['language'] ?? 'de') ?: 'de');
+}

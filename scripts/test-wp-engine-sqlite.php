@@ -29,6 +29,26 @@ if (($argv[1] ?? '') === '--child') {
     $p = $svc->save('post', ['title' => 'Hallo SQLite', 'content' => '<p>Text</p>', 'status' => 'published', 'categories' => ['News']], true);
     t('Beitrag gespeichert und gelesen', $svc->get('post', $p['id'])['title'] === 'Hallo SQLite');
     t('Tabellen mit Präfix', count((array)$wpdb->get_col("SHOW TABLES LIKE 'wpk\\_%'")) >= 12);
+    if (($argv[3] ?? '') !== 'install') {   // laufender Abgleich ElvadoPress → WordPress (Website-Auslieferung durch WordPress)
+        update_option('timezone_string', 'Europe/Berlin');
+        $news = [['id' => 7, 'slug' => 'live-eins', 'title' => 'Live Eins', 'body_html' => '<p>A</p>', 'status' => 'published', 'category' => 'News', 'tags' => '["x","y"]', 'published_at' => date('Y-m-d H:i:s', time() - 60), 'image_url' => '/cms/media/bild.jpg'],
+            ['id' => 8, 'slug' => 'live-zwei', 'title' => 'Live Zwei', 'body_html' => '<p>B</p>', 'status' => 'draft', 'published_at' => date('Y-m-d H:i:s')]];
+        file_put_contents("$tmp/cms/data/news.json", json_encode($news));
+        $ls = new Elvado\Wp\Migration\LiveSync("$tmp/cms", "$tmp/cms/data");
+        $r = $ls->maybeSync();
+        $find = fn(string $slug) => get_posts(['name' => $slug, 'post_type' => 'post', 'post_status' => ['publish', 'draft', 'future', 'trash'], 'numberposts' => 1])[0] ?? null;
+        $one = $find('live-eins');
+        t('Abgleich legt Beiträge an (Status, Schlagwörter aus JSON-Liste)', $r['created'] === 2 && $one && $one->post_status === 'publish' && wp_get_post_tags($one->ID, ['fields' => 'names']) == ['x', 'y'], json_encode($r));
+        t('Beitragsbild aus ElvadoPress gilt als Beitragsbild', has_post_thumbnail($one) && str_contains(get_the_post_thumbnail($one), '/cms/media/bild.jpg'));
+        t('Ohne Änderung kein erneuter Abgleich', $ls->maybeSync()['changed'] === false);
+        $news[0]['title'] = 'Live Eins neu'; unset($news[1]); clearstatcache();
+        sleep(1); file_put_contents("$tmp/cms/data/news.json", json_encode(array_values($news)));
+        $r2 = $ls->maybeSync();
+        clean_post_cache($one->ID);
+        $twoId = (int)$wpdb->get_var("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_elvado_source_id' AND meta_value = 'post:8'");
+        t('Änderungen werden übernommen, Gelöschtes wandert in den Papierkorb', $r2['updated'] === 1 && $r2['trashed'] === 1 && get_post($one->ID)->post_title === 'Live Eins neu' && get_post_status($twoId) === 'trash', json_encode($r2));
+        t('Zeitzone von ElvadoPress bleibt nach dem Abgleich unverändert', date_default_timezone_get() === 'UTC');
+    }
     echo "KIND: " . ($fail ? "$fail Fehler" : "$n von $n bestanden") . "\n";
     exit($fail ? 1 : 0);
 }

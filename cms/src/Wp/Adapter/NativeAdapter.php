@@ -139,6 +139,19 @@ final class NativeAdapter implements ContentAdapter
         return trim((string)preg_replace('/[^a-z0-9]+/', '-', $s), '-');
     }
 
+    /** Schlagwörter: der Editor speichert sie als JSON-Liste ("[\"a\",\"b\"]"), ältere Daten als „a, b“. @return list<string> */
+    private static function tags(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            $list = $raw;
+        } else {
+            $s = trim((string)$raw);
+            $j = str_starts_with($s, '[') ? json_decode($s, true) : null;
+            $list = is_array($j) ? $j : (preg_split('/\s*,\s*/', $s, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+        }
+        return array_values(array_unique(array_filter(array_map(static fn($t) => trim((string)$t), $list), static fn($t) => $t !== '')));
+    }
+
     /** @return list<array<string,mixed>> */
     private function posts(): array
     {
@@ -155,7 +168,7 @@ final class NativeAdapter implements ContentAdapter
                 'content' => (string)($a['body_html'] ?? ''), 'excerpt' => (string)($a['excerpt'] ?? ''), 'status' => $status,
                 'date' => $date, 'modified' => (string)($a['updated_at'] ?? $date), 'author' => (string)($a['author'] ?? ''),
                 'categories' => ($c = trim((string)($a['category'] ?? ''))) !== '' ? [$c] : [],
-                'tags' => preg_split('/\s*,\s*/', (string)($a['tags'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [],
+                'tags' => self::tags($a['tags'] ?? ''),
                 'parent' => '', 'image' => (string)($a['image_url'] ?? ''), 'owner' => (string)($a['author_user'] ?? ''),
             ];
         }

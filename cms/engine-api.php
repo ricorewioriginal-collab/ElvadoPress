@@ -148,6 +148,10 @@ if ($elvadoEngineAction === 'engine_db_install') {
         elvado_json(['status' => 'error', 'message' => $res['message']], 422);
     }
     $elvadoEngine->save(['mode' => 'installed', 'db' => ['ready' => true, 'checked_at' => date('c'), 'prefix' => $pre['prefix'], 'server' => $pre['server']]]);
+    try {
+        elvado_wpe_sync_site();   // Zeitzone und Sprache gleich bei der Einrichtung (vor einer Migration)
+    } catch (\Throwable) {
+    }
     $elvadoEngine->log('WordPress-Tabellen angelegt (Präfix ' . $pre['prefix'] . ')');
     $elvadoEngineLog('WordPress-Datenbank eingerichtet');
     elvado_json(['status' => 'ok', 'message' => 'WordPress ist eingerichtet. Die Website selbst bleibt unverändert.'] + elvado_wpe_status($elvadoEngine, $elvadoEngineDb));
@@ -686,7 +690,7 @@ if ($elvadoEngineAction === 'engine_front') {   // Website mit echtem WordPress 
             update_option('permalink_structure', '/%postname%/');
             flush_rewrite_rules(false);
         }
-        $elvadoLang = elvado_wpe_language((string)(elvado_system_config()['language'] ?? 'de'));   // gleiche Sprache wie ElvadoPress (Sprachpaket von wordpress.org)
+        $elvadoLang = elvado_wpe_sync_site();   // gleiche Sprache (Sprachpaket von wordpress.org) und Zeitzone wie ElvadoPress
         if (!wp_get_theme()->exists()) {
             @set_time_limit(300);
             try {
@@ -702,11 +706,19 @@ if ($elvadoEngineAction === 'engine_front') {   // Website mit echtem WordPress 
             }
         }
     }
+    if ($on) {   // Inhalte der ElvadoPress-Verwaltung sofort übernehmen (danach automatisch bei jeder Änderung)
+        try {
+            $elvadoSync = (new \Elvado\Wp\Migration\LiveSync(__DIR__, __DIR__ . '/data'))->sync();
+            update_option(\Elvado\Wp\Migration\LiveSync::OPTION, (new \Elvado\Wp\Migration\LiveSync(__DIR__, __DIR__ . '/data'))->fingerprint(), false);
+        } catch (\Throwable $e) {
+            elvado_json(['status' => 'error', 'message' => 'Die Inhalte ließen sich nicht in WordPress übernehmen: ' . $e->getMessage()], 500);
+        }
+    }
     $m = $elvadoEngine->setFront($on);
     if ($m['ok']) {
         $elvadoEngineLog('Website-Auslieferung durch WordPress ' . ($on ? 'eingeschaltet' : 'ausgeschaltet'));
     }
-    elvado_json(['status' => $m['ok'] ? 'ok' : 'error', 'message' => $m['ok'] ? ($on ? 'Die Website wird jetzt von WordPress ausgeliefert (aktives WordPress-Theme und Plugins).' . (isset($elvadoLang) && !$elvadoLang['ok'] ? ' ' . $elvadoLang['message'] : '') : 'Die Website wird wieder von ElvadoPress ausgeliefert.') : $m['message']] + elvado_wpe_status($elvadoEngine, $elvadoEngineDb), $m['ok'] ? 200 : 422);
+    elvado_json(['status' => $m['ok'] ? 'ok' : 'error', 'message' => $m['ok'] ? ($on ? 'Die Website wird jetzt von WordPress ausgeliefert (aktives WordPress-Theme und Plugins). Beiträge und Seiten bearbeitest du weiter hier; Änderungen erscheinen automatisch.' . (isset($elvadoSync) && ($elvadoSync['created'] + $elvadoSync['updated']) > 0 ? ' Übernommen: ' . ($elvadoSync['created'] + $elvadoSync['updated']) . ' Inhalte.' : '') . (isset($elvadoLang) && !$elvadoLang['ok'] ? ' ' . $elvadoLang['message'] : '') : 'Die Website wird wieder von ElvadoPress ausgeliefert.') : $m['message']] + elvado_wpe_status($elvadoEngine, $elvadoEngineDb), $m['ok'] ? 200 : 422);
 }
 if ($elvadoEngineAction === 'engine_remove') {
     if (empty($elvadoEngineB['confirm'])) {
