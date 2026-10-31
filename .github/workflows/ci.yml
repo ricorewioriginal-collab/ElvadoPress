@@ -27,3 +27,72 @@ jobs:
             if ! php "$t" > "$RUNNER_TEMP/out.txt" 2>&1; then echo "FEHLGESCHLAGEN: $t"; tail -20 "$RUNNER_TEMP/out.txt"; fail=1; else tail -1 "$RUNNER_TEMP/out.txt"; fi
           done
           exit $fail
+
+  # Echtes WordPress: alle Engine-Tests gegen den aktuellen WordPress-Core – mit SQLite (ohne Datenbankserver) und mit MariaDB
+  wordpress:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [ sqlite, mariadb ]
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: wptest
+        ports: [ '3306:3306' ]
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: curl, zip, mbstring, pdo_sqlite, mysqli, gd, :imagick
+      - name: WordPress und SQLite-Integration laden
+        run: |
+          V=$(curl -fsS https://api.wordpress.org/core/version-check/1.7/ | php -r '$d=json_decode(stream_get_contents(STDIN),true);echo $d["offers"][0]["version"];')
+          curl -fsSLo "$RUNNER_TEMP/wordpress.zip" "https://downloads.wordpress.org/release/wordpress-$V.zip"
+          curl -fsSLo "$RUNNER_TEMP/sqlite.zip" "https://downloads.wordpress.org/plugin/sqlite-database-integration.zip"
+          echo "WPE_TEST_ZIP=$RUNNER_TEMP/wordpress.zip" >> "$GITHUB_ENV"
+          echo "WPE_TEST_SQLITE_ZIP=$RUNNER_TEMP/sqlite.zip" >> "$GITHUB_ENV"
+          if [ "${{ matrix.db }}" = "sqlite" ]; then echo "WPE_TEST_DB=sqlite" >> "$GITHUB_ENV"; else echo "WPE_TEST_DB=127.0.0.1:3306|wptest|root|root" >> "$GITHUB_ENV"; fi
+          echo "WordPress $V"
+      - name: Engine-Tests mit echtem WordPress
+        run: |
+          fail=0
+          tests="content media-users nav-widgets-blocks extensions migration api sqlite"
+          for t in $tests; do
+            echo "== test-wp-engine-$t"
+            if ! php "scripts/test-wp-engine-$t.php" > "$RUNNER_TEMP/out.txt" 2>&1; then echo "FEHLGESCHLAGEN: $t"; tail -30 "$RUNNER_TEMP/out.txt"; fail=1; else tail -2 "$RUNNER_TEMP/out.txt"; fi
+          done
+          exit $fail
+
+  # Browser-Tests (Playwright): echte Klickwege in Verwaltung und Website, inklusive Ein-Klick-Einrichtung von echtem WordPress
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: curl, zip, mbstring, pdo_sqlite, gd, :imagick
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Playwright installieren
+        run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: Browser-Tests
+        env:
+          E2E_WORDPRESS: '1'
+          E2E_SHOTS: ${{ runner.temp }}/shots
+        run: python scripts/e2e/e2e.py
+      - name: Bildschirmfotos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-screenshots
+          path: ${{ runner.temp }}/shots
+          if-no-files-found: ignore

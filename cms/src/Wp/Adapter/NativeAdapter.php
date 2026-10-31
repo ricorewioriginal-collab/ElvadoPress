@@ -31,7 +31,7 @@ final class NativeAdapter implements ContentAdapter
             if (($c = trim((string)($a['category'] ?? ''))) !== '') {
                 $cats[mb_strtolower($c)] = 1;
             }
-            foreach (preg_split('/\s*,\s*/', (string)($a['tags'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $t) {
+            foreach (self::tags($a['tags'] ?? '') as $t) {
                 $tags[mb_strtolower($t)] = 1;
             }
         }
