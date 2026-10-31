@@ -6,6 +6,9 @@ declare(strict_types=1);
 // übernimmt der nächste Seitenaufruf die Änderungen in WordPress: neue Einträge anlegen, geänderte aktualisieren, gelöschte in den Papierkorb legen.
 // Zuordnung über die Meta _elvado_source_id (wie die Migration), Änderungserkennung über _elvado_source_hash. Inhalte, die nicht aus ElvadoPress stammen
 // (z. B. direkt in WordPress angelegt), bleiben unberührt. Nur bei gestartetem WordPress aufrufen.
+// Kommentare: ElvadoPress führt sie (comments.json, Freigabe in der Verwaltung). Freigegebene und wartende Kommentare stehen in WordPress (Meta _elvado_comment_id);
+// neue Kommentare von Besuchern der WordPress-Website schreibt die Engine-Schicht (mu/elvado-engine.php) nach comments.json. Offen/geschlossen folgt den
+// Einstellungen von ElvadoPress (Kommentare an/aus, je Beitrag Standard/offen/geschlossen).
 
 namespace Elvado\Wp\Migration;
 
@@ -24,7 +27,7 @@ final class LiveSync
     public function fingerprint(): string
     {
         $parts = [];
-        foreach ([$this->dataDir . '/news.json', $this->dataDir . '/site.json'] as $f) {
+        foreach ([$this->dataDir . '/news.json', $this->dataDir . '/site.json', $this->dataDir . '/comments.json'] as $f) {
             clearstatcache(true, $f);
             $parts[] = is_file($f) ? filemtime($f) . ':' . filesize($f) : '-';
         }
@@ -62,7 +65,7 @@ final class LiveSync
         }
     }
 
-    /** @return array{created:int,updated:int,trashed:int} */
+    /** @return array{created:int,updated:int,trashed:int,comments:int} */
     private function run(): array
     {
         global $wpdb;
@@ -123,6 +126,7 @@ final class LiveSync
                 }
             }
         }
+        $c['comments'] = $this->syncComments($this->createdMap($seen));
         // In ElvadoPress gelöscht oder im Papierkorb: in WordPress ebenfalls in den Papierkorb (nicht endgültig löschen)
         foreach ($map as $key => $wpId) {
             if (!isset($seen[$key]) && preg_match('/^(post|page):/', $key) && get_post_status($wpId) && get_post_status($wpId) !== 'trash') {
@@ -131,5 +135,81 @@ final class LiveSync
             }
         }
         return $c;
+    }
+
+    /** source_id → WordPress-ID für alle abgeglichenen Inhalte (auch die eben angelegten). @param array<string,bool> $seen */
+    private function createdMap(array $seen): array
+    {
+        global $wpdb;
+        $m = [];
+        foreach ((array)$wpdb->get_results("SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_elvado_source_id'", ARRAY_A) as $row) {
+            if (isset($seen[(string)$row['meta_value']])) {
+                $m[(string)$row['meta_value']] = (int)$row['post_id'];
+            }
+        }
+        return $m;
+    }
+
+    /** Kommentare und Kommentar-Status der Beiträge abgleichen. @param array<string,int> $map @return int geänderte Kommentare */
+    private function syncComments(array $map): int
+    {
+        $read = fn(string $f) => is_file($f) ? (json_decode((string)@file_get_contents($f), true) ?: []) : [];
+        $site = $read($this->dataDir . '/site.json');
+        $enabled = !empty($site['comments']['enabled']);
+        $n = 0;
+        foreach ($read($this->dataDir . '/news.json') as $a) {
+            $wpId = $map['post:' . (int)($a['id'] ?? 0)] ?? 0;
+            if ($wpId > 0) {
+                $mode = (string)($a['comments'] ?? 'default');
+                $open = $mode === 'open' || ($mode === 'default' && $enabled) ? 'open' : 'closed';
+                if (get_post_field('comment_status', $wpId) !== $open) {
+                    global $wpdb;
+                    $wpdb->update($wpdb->posts, ['comment_status' => $open], ['ID' => $wpId]);
+                    clean_post_cache($wpId);
+                }
+            }
+        }
+        $have = [];   // ElvadoPress-ID → WordPress-Kommentar
+        foreach (get_comments(['meta_key' => '_elvado_comment_id', 'status' => 'all', 'number' => 0, 'type' => 'comment']) as $wc) {
+            $have[(int)get_comment_meta((int)$wc->comment_ID, '_elvado_comment_id', true)] = $wc;
+        }
+        $src = array_values(array_filter((array)$read($this->dataDir . '/comments.json'), 'is_array'));
+        usort($src, fn($x, $y) => (int)($x['parent_id'] ?? 0) <=> (int)($y['parent_id'] ?? 0));   // Antworten nach ihren Eltern
+        $seen = [];
+        foreach ($src as $cm) {
+            $id = (int)($cm['id'] ?? 0);
+            $wpPost = $map['post:' . (int)($cm['article_id'] ?? 0)] ?? 0;
+            if ($id <= 0 || $wpPost <= 0) {
+                continue;
+            }
+            $seen[$id] = true;
+            $parent = (int)($cm['parent_id'] ?? 0);
+            $data = ['comment_post_ID' => $wpPost, 'comment_author' => (string)($cm['name'] ?? ''), 'comment_content' => (string)($cm['text'] ?? ''),
+                'comment_approved' => ($cm['status'] ?? '') === 'approved' ? 1 : 0, 'comment_parent' => $parent > 0 && isset($have[$parent]) ? (int)$have[$parent]->comment_ID : 0,
+                'comment_date' => (string)($cm['created_at'] ?? current_time('mysql')), 'user_id' => 0, 'comment_type' => 'comment'];
+            $data['comment_date_gmt'] = get_gmt_from_date($data['comment_date']);
+            $wc = $have[$id] ?? null;
+            if ($wc === null) {
+                $GLOBALS['elvado_livesync_comment'] = true;   // kein Rückweg nach comments.json
+                $new = wp_insert_comment($data);
+                unset($GLOBALS['elvado_livesync_comment']);
+                if ($new) {
+                    add_comment_meta((int)$new, '_elvado_comment_id', $id, true);
+                    $have[$id] = get_comment((int)$new);
+                    $n++;
+                }
+            } elseif ((string)$wc->comment_content !== $data['comment_content'] || (int)$wc->comment_approved !== $data['comment_approved'] || (int)$wc->comment_post_ID !== $wpPost
+                || (string)$wc->comment_author !== $data['comment_author'] || (int)$wc->comment_parent !== $data['comment_parent']) {
+                wp_update_comment(['comment_ID' => (int)$wc->comment_ID] + $data);
+                $n++;
+            }
+        }
+        foreach ($have as $id => $wc) {   // in ElvadoPress gelöscht
+            if (!isset($seen[$id]) && $wc) {
+                wp_delete_comment((int)$wc->comment_ID, true);
+                $n++;
+            }
+        }
+        return $n;
     }
 }

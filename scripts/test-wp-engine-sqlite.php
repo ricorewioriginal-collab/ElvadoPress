@@ -48,6 +48,27 @@ if (($argv[1] ?? '') === '--child') {
         $twoId = (int)$wpdb->get_var("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_elvado_source_id' AND meta_value = 'post:8'");
         t('Änderungen werden übernommen, Gelöschtes wandert in den Papierkorb', $r2['updated'] === 1 && $r2['trashed'] === 1 && get_post($one->ID)->post_title === 'Live Eins neu' && get_post_status($twoId) === 'trash', json_encode($r2));
         t('Zeitzone von ElvadoPress bleibt nach dem Abgleich unverändert', date_default_timezone_get() === 'UTC');
+        // Kommentare: ElvadoPress → WordPress (freigegeben/wartend, Antworten, Löschen) und Besucher-Kommentare aus WordPress → comments.json
+        $news2 = json_decode((string)file_get_contents("$tmp/cms/data/news.json"), true);
+        $news2[0]['comments'] = 'open';
+        file_put_contents("$tmp/cms/data/news.json", json_encode($news2));
+        file_put_contents("$tmp/cms/data/comments.json", json_encode([['id' => 1, 'article_id' => 7, 'parent_id' => 0, 'name' => 'Ana', 'text' => 'Toll!', 'status' => 'approved', 'created_at' => date('Y-m-d H:i:s')],
+            ['id' => 2, 'article_id' => 7, 'parent_id' => 1, 'name' => 'Redaktion', 'text' => 'Danke', 'is_staff' => true, 'status' => 'approved', 'created_at' => date('Y-m-d H:i:s')],
+            ['id' => 3, 'article_id' => 7, 'parent_id' => 0, 'name' => 'Bob', 'text' => 'Wartet', 'status' => 'pending', 'created_at' => date('Y-m-d H:i:s')]]));
+        clearstatcache(); $r3 = $ls->maybeSync();
+        $wc = []; foreach (get_comments(['post_id' => $one->ID, 'status' => 'all']) as $x) { $wc[$x->comment_content] = $x; }
+        t('Kommentare aus ElvadoPress stehen in WordPress (Status, Antwort, Kommentare offen)', $r3['comments'] === 3 && count($wc) === 3 && (int)$wc['Toll!']->comment_approved === 1 && (int)$wc['Wartet']->comment_approved === 0
+            && (int)$wc['Danke']->comment_parent === (int)$wc['Toll!']->comment_ID && comments_open($one->ID), json_encode($r3));
+        $vid = wp_new_comment(['comment_post_ID' => $one->ID, 'comment_author' => 'Gast Eins', 'comment_author_email' => 'g@example.invalid', 'comment_author_url' => '', 'comment_content' => 'Von der Website', 'comment_type' => 'comment'], true);
+        $store = json_decode((string)file_get_contents("$tmp/cms/data/comments.json"), true);
+        $last = end($store);
+        t('Besucher-Kommentar aus WordPress landet wartend in ElvadoPress', is_int($vid) && $last['text'] === 'Von der Website' && $last['article_id'] === 7 && $last['status'] === 'pending'
+            && (int)get_comment($vid)->comment_approved === 0 && (int)get_comment_meta($vid, '_elvado_comment_id', true) === (int)$last['id'], json_encode($last));
+        $store = array_values(array_filter($store, fn($c) => $c['id'] !== 1));
+        foreach ($store as &$c) { if ($c['id'] === $last['id']) { $c['status'] = 'approved'; } } unset($c);
+        sleep(1); file_put_contents("$tmp/cms/data/comments.json", json_encode($store)); clearstatcache();
+        $ls->maybeSync();
+        t('Freigabe und Löschen in ElvadoPress wirken in WordPress', (int)get_comment($vid)->comment_approved === 1 && count(get_comments(['post_id' => $one->ID, 'status' => 'all'])) === 3);
         // Übernahme aus der bisherigen Schicht: nach der ersten nur Geändertes – Änderungen direkt in WordPress bleiben erhalten
         require_once __DIR__ . '/../cms/lib/wpengine.php';
         @mkdir("$tmp/cms/data/.wp", 0755, true);
@@ -67,6 +88,7 @@ if (($argv[1] ?? '') === '--child') {
 
 $tmp = sys_get_temp_dir() . '/wpe-sqlite-' . bin2hex(random_bytes(4));
 @mkdir("$tmp/cms/data", 0755, true); @mkdir("$tmp/cms/wp-content", 0755, true);
+@symlink(realpath(__DIR__ . '/../cms/lib'), "$tmp/cms/lib");   // Engine-Schicht nutzt die ElvadoPress-Bibliothek (Kommentare, Mehrsprachigkeit)
 $e = new Engine("$tmp/cms", "$tmp/cms/data");
 $db = new DbConfig($e);
 

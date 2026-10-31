@@ -11,6 +11,10 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### Kommentare in beide Richtungen (Stufe E5)
+- **Kommentare auf der WordPress-Website:** Besucher kommentieren über das WordPress-Theme; der Kommentar landet in ElvadoPress (Verwaltung → Kommentare, Glocke) und wartet je nach Einstellung auf Freigabe. Freigeben, Antworten und Löschen in ElvadoPress wirken beim nächsten Seitenaufruf in WordPress; freigegebene Kommentare und Antworten der Redaktion erscheinen im Theme.
+- Kommentare offen/geschlossen folgt den ElvadoPress-Einstellungen (an/aus, je Beitrag Standard/offen/geschlossen). Keine doppelten WordPress-Mails für ElvadoPress-Beiträge.
+
 ### Verwaltung auf echtem WordPress (Stufe E4)
 - **Plugins, Themes und Einstellungen direkt im echten Core:** Liefert WordPress die Website aus, laufen die Bereiche WordPress-Plugins (installieren, aktivieren, deaktivieren, löschen, Updates, Übersetzungen), Themes (installieren, aktivieren, löschen/ausblenden), Einstellungen (Allgemein, Schreiben, Lesen, Diskussion, Medien), Startseite und Link-Struktur gegen echtes WordPress und seine Datenbank. Änderungen gelten sofort, ohne Umweg über die bisherige Schicht. Titel, Untertitel, Kommentare, Feed, Sichtbarkeit, Zeitzone und Sprache bleiben zusätzlich in ElvadoPress gespeichert.
 - **Keine überschriebenen Änderungen mehr:** Die Übernahme aus der bisherigen Schicht (Customizer, Widgets) kopiert nach der ersten Übernahme nur noch, was sich dort geändert hat.
