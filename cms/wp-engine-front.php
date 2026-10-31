@@ -6,7 +6,7 @@
 //
 // Aufgaben: statische Core-Dateien (wp-includes, wp-admin/css|js|images) aus dem gesperrten Core-Ordner ausliefern, wp-login/wp-admin zur ElvadoPress-Verwaltung umleiten,
 // Besucher-Endpunkte (admin-ajax, admin-post, wp-comments-post) an WordPress geben und alle übrigen Adressen mit dem aktiven WordPress-Theme ausliefern.
-if (!isset($cmsDir) || !empty($sbx)
+if (!isset($cmsDir) || (!empty($sbx) && empty($GLOBALS['elvado_wpe_db_override']))
     || isset($_GET['elvado_wp_login'])) {
     return;
 }
@@ -114,7 +114,8 @@ if ($elvadoFrontPreview !== '' && !elvado_wpra_use_theme($cmsDir, $elvadoFrontPr
 if ($elvadoFrontPreview !== '' && isset($_GET['elvado_wp_preview'])) {
     setcookie('elvado_wp_preview', $elvadoFrontPvTok, ['expires' => (int)explode('.', $elvadoFrontPvTok)[1], 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
 }
-$elvadoFrontIsPreview = $elvadoFrontPreview !== '' || $elvadoFrontEp;
+$elvadoFrontSbx = !empty($sbx);   // Sandbox: eigene Datenbank (wp-front.php), nie Cache/Statistik, Hinweisleiste
+$elvadoFrontIsPreview = $elvadoFrontPreview !== '' || $elvadoFrontEp || $elvadoFrontSbx;
 $elvadoFrontSso = '';
 if ($elvadoFrontAdmin !== '') {   // WordPress-Verwaltung: Kontext vor dem Start festlegen (is_admin(), $pagenow), keine zusammengefassten Skripte (load-scripts.php)
     define('WP_ADMIN', true);
@@ -285,6 +286,9 @@ if ($elvadoFrontHtml && $elvadoFrontMethod === 'GET') {
     }
     if (!$elvadoFrontIsPreview) {
         $elvadoFrontBody = (string)elvado_np_filter('front_output', $elvadoFrontBody, $elvadoFrontStatus);   // Plugins: SEO, Leistung, Statistik
+    }
+    if ($elvadoFrontSbx && ($elvadoFrontP = strripos($elvadoFrontBody, '</body>')) !== false) {
+        $elvadoFrontBody = substr($elvadoFrontBody, 0, $elvadoFrontP) . '<div style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;font:600 13px/1.3 system-ui,sans-serif;padding:7px 12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">Sandbox – nicht öffentlich <a href="/?elvado_sbx=off" style="color:#fff;text-decoration:underline">Sandbox verlassen</a></div>' . substr($elvadoFrontBody, $elvadoFrontP);
     }
     if ($elvadoFrontLiveCz && ($elvadoFrontP = strripos($elvadoFrontBody, '</body>')) !== false) {
         $elvadoFrontBody = substr($elvadoFrontBody, 0, $elvadoFrontP) . elvado_wpc_live_script() . substr($elvadoFrontBody, $elvadoFrontP);

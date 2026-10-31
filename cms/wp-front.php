@@ -8,7 +8,22 @@ if(is_file($cmsDir.'/lib/demo.json')){ require_once $cmsDir.'/lib/demo.php';elva
 /* Sandbox: geheimer Link (?elvado_sbx=<Schlüssel>) → Cookie; eigene Optionen/Themes, nur lesend, nicht indexierbar (siehe wp/sandbox.php) */
 $sbx=false;
 $sbxTok=(string)($_GET['elvado_sbx']??$_COOKIE['elvado_sbx']??'');
-if($sbxTok!==''){
+$sbxReal=false;
+if($sbxTok!==''){   // echtes WordPress liefert aus: Sandbox = Kopie der WordPress-Datenbank (lib/wp-real-sandbox.php)
+    require_once $cmsDir.'/lib/wp-real-admin.php';
+    if(elvado_wpra_front_on($cmsDir)){
+        require_once $cmsDir.'/lib/wp-real-sandbox.php';$sbxReal=true;
+        if($sbxTok==='off'){ foreach(['elvado_sbx','elvado_wp_preview','elvado_wp_draft'] as $c)setcookie($c,'',['expires'=>1,'path'=>'/']);header('Location: /');http_response_code(302);exit; }
+        if(elvado_wprs_token_ok($cmsDir.'/data',$sbxTok)){
+            $sbx=true;header('X-Robots-Tag: noindex, nofollow',true);header('Cache-Control: no-store');
+            if(isset($_GET['elvado_sbx']))setcookie('elvado_sbx',$sbxTok,['expires'=>time()+14*86400,'path'=>'/','httponly'=>true,'samesite'=>'Lax']);
+            if(!in_array($_SERVER['REQUEST_METHOD']??'GET',['GET','HEAD'],true)){ http_response_code(405);header('Content-Type: text/plain; charset=utf-8');echo 'Die Sandbox ist schreibgeschützt.';exit; }
+            $GLOBALS['elvado_wpe_db_override']=elvado_wprs_override((new \Elvado\Wp\DbConfig(elvado_wpe()))->get()??[],$cmsDir.'/data');
+        }elseif(isset($_COOKIE['elvado_sbx'])&&!isset($_GET['elvado_sbx'])){ setcookie('elvado_sbx','',['expires'=>1,'path'=>'/']);header('Location: '.str_replace(["\r","\n"],'',(string)($_SERVER['REQUEST_URI']??'/')));http_response_code(302);exit; }
+        else{ http_response_code(404);header('Content-Type: text/plain; charset=utf-8');echo 'Seite nicht gefunden';exit; }
+    }
+}
+if($sbxTok!==''&&!$sbxReal){
     require_once $cmsDir.'/wp/sandbox.php';
     if($sbxTok==='off'){ foreach(['elvado_sbx','elvado_wp_preview','elvado_wp_draft'] as $c)setcookie($c,'',['expires'=>1,'path'=>'/']);header('Location: /');http_response_code(302);exit; }
     if(elvado_sbx_token_ok($sbxTok)){

@@ -78,7 +78,7 @@ Für die normale Entwicklung gibt es keinen Build-Schritt. Ein Git-Tag `v<Versio
 ## Datenbanken / Test-Umgebung
 Das CMS arbeitet primär dateibasiert. Datenbankdetails: `cms/docs/DATABASE.md`.
 
-Echtes WordPress in den Engine-Tests: `WPE_TEST_ZIP=<wordpress-X.Y.Z.zip>` plus `WPE_TEST_DB="host|name|benutzer|passwort"` (leere MySQL/MariaDB-Datenbank) **oder** `WPE_TEST_DB=sqlite` (ohne Datenbankserver; SQLite-Integration aus `WPE_TEST_SQLITE_ZIP` oder von wordpress.org). `scripts/test-wp-engine-sqlite.php` braucht nur `WPE_TEST_ZIP`.
+Echtes WordPress in den Engine-Tests: `WPE_TEST_ZIP=<wordpress-X.Y.Z.zip>` plus `WPE_TEST_DB="host|name|benutzer|passwort"` (leere MySQL/MariaDB-Datenbank) **oder** `WPE_TEST_DB=sqlite` (ohne Datenbankserver; SQLite-Integration aus `WPE_TEST_SQLITE_ZIP` oder von wordpress.org). `scripts/test-wp-engine-sqlite`, `test-wp-engine-sandbox.php` braucht nur `WPE_TEST_ZIP`.
 
 `scripts/test-db-config.php` kann zusätzliche Datenbankserver über Test-Environment-Variablen ansprechen. In Dokumentation oder Commits niemals echte Zugangsdaten hinterlegen.
 

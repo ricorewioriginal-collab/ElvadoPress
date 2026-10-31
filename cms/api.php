@@ -950,6 +950,27 @@ if(str_starts_with($action,'wp_')){
     $wpUser=elvado_auth(true);
     $GLOBALS['ELVADO_SITE']=$site;
     // Sandbox: abgetrennter Spielraum zwischen Live und Deployment (eigene Optionen und Themes, siehe wp/sandbox.php)
+    require_once __DIR__.'/lib/wp-real-admin.php';
+    if(elvado_wpra_front_on(__DIR__)){   // echtes WordPress liefert aus: Sandbox als Kopie der WordPress-Datenbank (lib/wp-real-sandbox.php)
+        require_once __DIR__.'/lib/wp-real-sandbox.php';
+        $sbLive=(new \Elvado\Wp\DbConfig(elvado_wpe()))->get()??[];
+        if(str_starts_with($action,'wp_sandbox')){
+            $sb=elvado_body();$fail=fn(string $m,int $c=422)=>elvado_json(['status'=>'error','message'=>$m],$c);
+            $sbOut=function(array $extra=[]) use($dataDir,$sbLive){ $ex=elvado_wprs_exists($dataDir);$m=elvado_wprs_meta($dataDir);$df=null;if($ex){ try{ $df=elvado_wprs_diff($sbLive,$dataDir); }catch(Throwable $e){} }
+                return ['status'=>'ok','exists'=>$ex,'created'=>(string)($m['created']??''),'last_publish'=>(string)($m['last_publish']??''),'url'=>$ex?elvado_wprs_url($dataDir):'','diff'=>$df,'backups'=>elvado_wprs_backups($dataDir)]+$extra; };
+            if($action==='wp_sandbox')elvado_json($sbOut());
+            if($action==='wp_sandbox_create'||$action==='wp_sandbox_reset'){ if($action==='wp_sandbox_reset'&&!elvado_wprs_exists($dataDir))$fail('Es gibt noch keine Sandbox.');$e=elvado_wprs_create($sbLive,$dataDir,$action==='wp_sandbox_reset');if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox',$action==='wp_sandbox_create'?'Sandbox angelegt':'Sandbox auf den Live-Stand zurückgesetzt');elvado_json($sbOut()); }
+            if($action==='wp_sandbox_rotate'){ $e=elvado_wprs_rotate($dataDir);if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox-Link erneuert');elvado_json($sbOut()); }
+            if($action==='wp_sandbox_delete'){ elvado_wprs_delete($sbLive,$dataDir);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox gelöscht');elvado_json($sbOut()); }
+            if($action==='wp_sandbox_publish'){ $r=elvado_wprs_publish($sbLive,$dataDir);if(!$r['ok'])$fail($r['message']);try{ require_once __DIR__.'/lib/nplugins.php';elvado_np_do('content_saved'); }catch(Throwable $e){}elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Sandbox live gestellt ('.$r['options'].' Einstellungen)');elvado_json($sbOut(['published'=>$r])); }
+            if($action==='wp_sandbox_rollback'){ $e=elvado_wprs_rollback($sbLive,$dataDir,(string)($sb['backup']??''));if($e!==null)$fail($e);try{ require_once __DIR__.'/lib/nplugins.php';elvado_np_do('content_saved'); }catch(Throwable $e2){}elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Live-Stand aus Sicherung '.(string)$sb['backup'].' wiederhergestellt');elvado_json($sbOut()); }
+            $fail('Unbekannte Aktion',404);
+        }
+        if(!empty($_GET['sandbox'])){   // Theme-Verwaltung und Customizer in der Sandbox: WordPress startet mit der Sandbox-Datenbank
+            if(!elvado_wprs_exists($dataDir))elvado_json(['status'=>'error','message'=>'Es gibt noch keine Sandbox.'],404);
+            $GLOBALS['elvado_wpe_db_override']=elvado_wprs_override($sbLive,$dataDir);
+        }
+    }
     require_once __DIR__.'/wp/sandbox.php';
     if(str_starts_with($action,'wp_sandbox')){
         $sb=elvado_body();$sbOut=function(array $extra=[]) { $m=elvado_sbx_meta();return ['status'=>'ok','exists'=>elvado_sbx_exists(),'created'=>(string)($m['created']??''),'last_publish'=>(string)($m['last_publish']??''),'url'=>elvado_sbx_exists()?elvado_sbx_url():'','diff'=>elvado_sbx_exists()?elvado_sbx_diff():null,'backups'=>elvado_sbx_backups()]+$extra; };
@@ -963,7 +984,7 @@ if(str_starts_with($action,'wp_')){
         if($action==='wp_sandbox_rollback'){ $e=elvado_sbx_rollback((string)($sb['backup']??''));if($e!==null)$fail($e);elvado_log_activity($activityLogFile,$wpUser,'wp_sandbox','Live-Stand aus Sicherung '.(string)$sb['backup'].' wiederhergestellt');elvado_json($sbOut()); }
         $fail('Unbekannte Aktion',404);
     }
-    if(!empty($_GET['sandbox'])){   // Theme-Verwaltung in der Sandbox statt auf der Live-Seite
+    if(!empty($_GET['sandbox'])&&empty($GLOBALS['elvado_wpe_db_override'])){   // Theme-Verwaltung in der Sandbox statt auf der Live-Seite
         if(!in_array($action,['wp_themes','wp_theme_search','wp_theme_install','wp_theme_upload','wp_theme_activate','wp_theme_deactivate','wp_theme_delete','wp_theme_unhide','wp_theme_preview','wp_theme_customize','wp_theme_customize_draft','wp_theme_customize_save','wp_theme_customize_changeset'],true))elvado_json(['status'=>'error','message'=>'Diese Aktion gibt es in der Sandbox nicht.'],400);
         if(!elvado_sbx_exists())elvado_json(['status'=>'error','message'=>'Es gibt noch keine Sandbox.'],404);
         elvado_sbx_enter();
@@ -1231,7 +1252,7 @@ if(str_starts_with($action,'wp_')){
         }
         if($action==='wp_theme_preview'){
             if(!empty($known[$slug]['error']))elvado_json(['status'=>'error','message'=>$known[$slug]['error']],422);
-            elvado_json(['status'=>'ok','url'=>'/?'.(defined('ELVADO_WP_SANDBOX')?'elvado_sbx='.rawurlencode((string)elvado_sbx_meta()['token']).'&':'').'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($slug)),'expires_in'=>900]);
+            elvado_json(['status'=>'ok','url'=>'/?'.(defined('ELVADO_WP_SANDBOX')?'elvado_sbx='.rawurlencode((string)elvado_sbx_meta()['token']).'&':(!empty($GLOBALS['elvado_wpe_db_override'])?'elvado_sbx='.rawurlencode((string)(elvado_wprs_meta($dataDir)['token']??'')).'&':'')).'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($slug)),'expires_in'=>900]);
         }
         if(!empty($known[$slug]['bundled'])){   // Themes aus dem Code: nicht löschbar (kämen beim Deploy zurück) – ausblenden; das Standard-Theme bleibt als Rückfallebene
             if($slug==='elvado-classic')elvado_json(['status'=>'error','message'=>'Das Standard-Theme ist die Rückfallebene und kann nicht entfernt werden.'],422);
@@ -1250,7 +1271,7 @@ if(str_starts_with($action,'wp_')){
         // Live-Customizer: Einstellungen lesen, Entwurf für die Vorschau ablegen, Werte speichern (nur Administratoren, wie die übrigen wp_theme_*-Aktionen)
         $vals=is_array($b['values']??null)?$b['values']:[];
         $finish=function(array $out,int $code=200){ while(ob_get_level()>0)ob_end_clean();elvado_json($out,$code); };
-        $sbxQ=defined('ELVADO_WP_SANDBOX')?'elvado_sbx='.rawurlencode((string)elvado_sbx_meta()['token']).'&':'';
+        $sbxQ=defined('ELVADO_WP_SANDBOX')?'elvado_sbx='.rawurlencode((string)elvado_sbx_meta()['token']).'&':(!empty($GLOBALS['elvado_wpe_db_override'])?'elvado_sbx='.rawurlencode((string)(elvado_wprs_meta($dataDir)['token']??'')).'&':'');
         $prevUrl=function(string $id) use($czSlug,$sbxQ){ return '/?'.$sbxQ.'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($czSlug)).'&elvado_wp_draft='.$id; };
         $shareUrl=function(string $id) use($czSlug,$sbxQ){ return '/?'.$sbxQ.'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($czSlug,null,7*86400)).'&elvado_wp_draft='.$id; };
         if($action==='wp_theme_customize'){

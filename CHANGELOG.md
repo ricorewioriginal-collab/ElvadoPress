@@ -11,6 +11,9 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### Sandbox auf echtem WordPress (Stufe E7c)
+- **Sandbox** (Design → Themes → Sandbox): Bei Auslieferung durch WordPress ist die Sandbox eine Kopie der WordPress-Datenbank (SQLite: eigene Datei; MySQL/MariaDB: eigene Tabellen mit eigenem Präfix). Themes aktivieren, Customizer, Widgets und Link-Struktur in der Sandbox; geheimer Link, schreibgeschützt, nicht indexierbar. „Live stellen“ übernimmt die Design-Einstellungen mit Sicherung, „Zurückrollen“ stellt sie wieder her.
+
 ### Weitere Websites und Demo auf echtem WordPress (Stufe E7b)
 - **Weitere Websites (Multisite):** Jede Website bekommt ihr eigenes echtes WordPress (eigener Zustand und eigene SQLite-Datenbank unter ihren Daten bzw. eigenes Präfix in der gemeinsamen MySQL-Datenbank, gemeinsamer Core). Einrichtung wie bei der Hauptwebsite (automatisch beim Öffnen der Verwaltung dieser Website); Medien-Adressen der Website werden umgeschrieben.
 - **Demo mit echtem WordPress:** `php scripts/make-demo.php <ordner> --engine=sqlite`. Beim ersten Öffnen der Verwaltung richtet sich WordPress ein und liefert die Demo-Website aus; der eingerichtete Stand wird gesichert und bei jedem Zurücksetzen sofort wiederhergestellt.

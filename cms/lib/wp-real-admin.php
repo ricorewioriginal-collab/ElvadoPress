@@ -17,7 +17,7 @@ const ELVADO_WPRA_ACTIONS = ['wp_plugins', 'wp_plugin_search', 'wp_plugin_instal
 /** Gilt die Verwaltung auf echtem WordPress für diese Anfrage? */
 function elvado_wpra_applies(string $action, string $cmsDir): bool
 {
-    if (!in_array($action, ELVADO_WPRA_ACTIONS, true) || !empty($_GET['sandbox']) || defined('ELVADO_WP_SANDBOX') || is_file($cmsDir . '/lib/demo.json')) {
+    if (!in_array($action, ELVADO_WPRA_ACTIONS, true) || (!empty($_GET['sandbox']) && empty($GLOBALS['elvado_wpe_db_override'])) || defined('ELVADO_WP_SANDBOX')) {
         return false;
     }
     if (function_exists('elvado_wp_boot')) {   // die bisherige Schicht ist schon geladen: beides geht nicht in einem Prozess
@@ -32,6 +32,17 @@ function elvado_wpra_applies(string $action, string $cmsDir): bool
     }
 }
 
+/** Liefert echtes WordPress die Website aus (Engine aktiv, Schalter an, Core vorhanden)? */
+function elvado_wpra_front_on(string $cmsDir): bool
+{
+    try {
+        require_once $cmsDir . '/lib/wpengine.php';
+        $e = elvado_wpe();
+        return $e->front() && $e->corePath() !== null;
+    } catch (Throwable) {
+        return false;
+    }
+}
 /** Theme-Ordner vor dem Start von WordPress (Themes aus wp-content/themes und cms/themes). */
 function elvado_wpra_theme_dir(string $cmsDir, string $slug): string
 {
