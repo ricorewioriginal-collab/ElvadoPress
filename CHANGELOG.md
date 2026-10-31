@@ -2,6 +2,15 @@
 
 Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröffentlichen eines Releases (Tag `v<Version>`) angehoben.
 
+## Unveröffentlicht
+
+### Echtes WordPress als Standard (Stufe E2)
+- **Automatische Umstellung:** Beim ersten Öffnen der Verwaltung richtet ElvadoPress für einen Superadmin automatisch echtes WordPress ein (Core laden und prüfen, SQLite-Datenbank, Start, Website-Auslieferung). Ohne Internet nutzt die Einrichtung das im Release-ZIP enthaltene WordPress samt SQLite-Integration (`cms/wp-engine/bundle/`).
+- **Bestand übernommen:** Theme, Theme-Einstellungen, Widgets, Optionen und aktive WordPress-Plugins aus der bisherigen Schicht werden nach WordPress übernommen (`elvado_wpe_adopt_site`), Beiträge, Seiten und Menüs einmalig migriert. Änderungen im Design-Bereich der Verwaltung gelten sofort auch auf der WordPress-Website.
+- **ElvadoPress-Themes in WordPress:** `elvado-classic`, `elvado-baukasten`, `elvado-band` und `elvado-creator` laufen direkt in echtem WordPress (eigenes Theme-Verzeichnis `cms/themes`), inklusive Live-Builder-Layout.
+- **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
+- **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
+
 ## 1.3.0 (31.10.2026)
 
 ### Echtes WordPress – auch ohne Datenbankserver

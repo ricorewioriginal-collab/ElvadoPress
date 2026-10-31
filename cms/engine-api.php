@@ -691,6 +691,19 @@ if ($elvadoEngineAction === 'engine_front') {   // Website mit echtem WordPress 
             flush_rewrite_rules(false);
         }
         $elvadoLang = elvado_wpe_sync_site();   // gleiche Sprache (Sprachpaket von wordpress.org) und Zeitzone wie ElvadoPress
+        @set_time_limit(600);
+        $elvadoAdopt = elvado_wpe_adopt_site($elvadoEngine);   // Theme, Theme-Einstellungen, Widgets, Optionen und Plugins der bisherigen Schicht übernehmen (einmalig)
+        if (!get_option('elvado_migrated')) {   // einmalig alles übernehmen: Benutzer, Medien, Begriffe, Beiträge, Seiten, Menüs (mit Sicherung)
+            try {
+                $elvadoMigRun = (new \Elvado\Wp\Migration\Migrator(__DIR__, __DIR__ . '/data', $elvadoEngine->stateDir(), $elvadoActor))->run();
+                if (in_array((string)($elvadoMigRun['status'] ?? ''), ['done', 'partial'], true)) {
+                    update_option('elvado_migrated', (string)($elvadoMigRun['id'] ?? '1'), false);
+                }
+            } catch (\Throwable $e) {
+                $elvadoEngine->log('Übernahme beim Umschalten: ' . $e->getMessage());
+            }
+            elvado_wpe_assign_menus();
+        }
         if (!wp_get_theme()->exists()) {
             @set_time_limit(300);
             try {

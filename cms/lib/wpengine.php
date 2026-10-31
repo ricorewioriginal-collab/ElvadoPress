@@ -66,8 +66,9 @@ function elvado_wpe_install_core(Engine $e, string $version, string $localZip = 
         return $r['ok'] ? ['ok' => true, 'message' => 'WordPress ' . $m[1] . ' wurde geprüft und eingespielt.', 'version' => $m[1]] : $fail($r['message']);
     }
     $l = CoreSource::latest();
-    if (!$l['ok']) {
-        return $fail($l['message']);
+    if (!$l['ok']) {   // ohne Verbindung zu wordpress.org: mitgeliefertes Paket aus dem Release-ZIP
+        $b = elvado_wpe_bundle($e, 'wordpress');
+        return $b !== '' ? elvado_wpe_install_core($e, '', $b) : $fail($l['message']);
     }
     if ($version !== '' && $version !== $l['version']) {
         return $fail('Es lässt sich nur die aktuelle WordPress-Version (' . $l['version'] . ') einspielen.');
@@ -86,7 +87,8 @@ function elvado_wpe_install_core(Engine $e, string $version, string $localZip = 
     $zip = $e->stateDir() . '/download-' . $v . '.zip';
     $d = CoreSource::download($v, $zip, $sum['sha1']);
     if (!$d['ok']) {
-        return $fail($d['message']);
+        $b = elvado_wpe_bundle($e, 'wordpress');
+        return $b !== '' ? elvado_wpe_install_core($e, '', $b) : $fail($d['message']);
     }
     try {
         $r = (new CoreInstaller($e))->install($zip, $v, $sum['sha1']);
@@ -107,6 +109,9 @@ function elvado_wpe_pre_install(Engine $e, DbConfig $db, array $cfg): array
         $si = new SqliteIntegration($e);
         if (!$si->present()) {
             $r = $si->install();
+            if (!$r['ok'] && ($b = elvado_wpe_bundle($e, 'sqlite')) !== '') {
+                $r = $si->install($b);
+            }
             if (!$r['ok']) {
                 return ['ok' => false, 'message' => $r['message'], 'prefix' => '', 'server' => ''];
             }
@@ -300,4 +305,114 @@ function elvado_wpe_sync_site(): array
         update_option('gmt_offset', '');
     }
     return elvado_wpe_language((string)($sys['language'] ?? 'de') ?: 'de');
+}
+
+/**
+ * Einstellungen der bisherigen WordPress-Schicht (Nachbildung, cms/data/.wp/options.json) und von ElvadoPress in das echte WordPress übernehmen
+ * (nur bei gestartetem WordPress): aktives Theme samt Theme-Einstellungen, Widgets, Website-Titel, Link-Struktur und weitere Optionen sowie aktive Plugins.
+ * Einmalig (Option elvado_adopted); $force übernimmt erneut. Bei Theme-Wechsel und Plugins greift der Absturzschutz der Engine.
+ * @return array{options:int,theme:string,plugins:list<string>,skipped:list<string>}
+ */
+function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
+{
+    $out = ['options' => 0, 'theme' => '', 'plugins' => [], 'skipped' => []];
+    if (!function_exists('update_option') || (!$force && get_option('elvado_adopted'))) {
+        return $out;
+    }
+    $data = dirname($e->stateDir());
+    $raw = is_file($data . '/.wp/options.json') ? json_decode((string)@file_get_contents($data . '/.wp/options.json'), true) : [];
+    $opts = [];
+    foreach (is_array($raw) ? $raw : [] as $name => $row) {
+        if (is_string($name) && is_array($row) && isset($row['v'])) {
+            $v = @unserialize((string)$row['v'], ['allowed_classes' => false]);
+            if ($v !== false || $row['v'] === 'b:0;') {
+                $opts[$name] = $v;
+            }
+        }
+    }
+    // Technische Optionen des Cores, IDs anderer Datenbanken und Geheimnisse werden nie übernommen
+    $never = '~^(siteurl|home|db_version|initial_db_version|db_upgraded|cron|rewrite_rules|[a-z0-9_]*user_roles|active_plugins|recently_activated|uninstall_plugins|auth_key|auth_salt|logged_in_key|logged_in_salt|nonce_key|nonce_salt|secret_key|secure_auth_key|secure_auth_salt|page_on_front|page_for_posts|nav_menu_locations|default_category|wp_page_for_privacy_policy|fresh_site|elvado_wp_.*|_transient_.*|_site_transient_.*|can_compress_scripts|WPLANG|timezone_string|gmt_offset|stylesheet|template|current_theme)$~';
+    foreach ($opts as $name => $v) {
+        if (preg_match($never, $name)) {
+            $out['skipped'][] = $name;
+            continue;
+        }
+        update_option($name, $v);
+        $out['options']++;
+    }
+    $site = is_file($data . '/site.json') ? json_decode((string)@file_get_contents($data . '/site.json'), true) : [];
+    $site = is_array($site) ? $site : [];
+    if (!isset($opts['blogname']) && trim((string)($site['portal']['site_name'] ?? '')) !== '') {
+        update_option('blogname', (string)$site['portal']['site_name']);
+    }
+    if (!isset($opts['blogdescription'])) {
+        update_option('blogdescription', (string)($site['portal']['tagline'] ?? ''));
+    }
+    // Theme: das bisher aktive Theme der Website, sonst das neutrale Standard-Theme von ElvadoPress
+    $want = (string)($opts['stylesheet'] ?? '');
+    $front = is_file($data . '/.wp/front-on');
+    foreach ([$front ? $want : '', 'elvado-classic'] as $slug) {
+        if ($slug !== '' && wp_get_theme($slug)->exists()) {
+            $t = wp_get_theme($slug);
+            update_option('template', $t->get_template());
+            update_option('stylesheet', $slug);
+            $out['theme'] = $slug;
+            break;
+        }
+    }
+    // Plugins, die in der bisherigen Schicht aktiv waren
+    $act = array_values(array_filter(array_map('strval', (array)($opts['active_plugins'] ?? [])), static fn($p) => preg_match('~^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)?\.php$~', $p) === 1));
+    if ($act) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        foreach ($act as $p) {
+            if (is_file(WP_PLUGIN_DIR . '/' . $p) && !is_plugin_active($p)) {
+                $r = activate_plugin($p, '', false, true);
+                if (!is_wp_error($r)) {
+                    $out['plugins'][] = $p;
+                }
+            }
+        }
+    }
+    update_option('elvado_adopted', time(), false);
+    $e->log('Einstellungen übernommen: ' . $out['options'] . ' Optionen, Theme ' . ($out['theme'] ?: '–') . ', Plugins ' . count($out['plugins']));
+    return $out;
+}
+
+/** Mitgeliefertes Paket (Release-ZIP: cms/wp-engine/bundle/) für WordPress oder die SQLite-Integration – Rückfall ohne Internet. */
+function elvado_wpe_bundle(Engine $e, string $kind): string
+{
+    $pat = $kind === 'sqlite' ? 'sqlite-database-integration*.zip' : 'wordpress-*.zip';
+    $files = glob($e->coreRoot() . '/bundle/' . $pat) ?: [];
+    rsort($files, SORT_NATURAL);
+    return $files[0] ?? '';
+}
+
+/** Menü-Orte des aktiven Themes belegen, wenn noch keiner belegt ist (nach der Übernahme der ElvadoPress-Menüs). */
+function elvado_wpe_assign_menus(): void
+{
+    if (!function_exists('get_registered_nav_menus')) {
+        return;
+    }
+    $locs = get_registered_nav_menus();
+    $menus = wp_get_nav_menus();
+    if (!$locs || !$menus || array_filter(get_nav_menu_locations())) {
+        return;
+    }
+    $set = [];
+    $byName = [];
+    foreach ($menus as $m) {
+        $byName[mb_strtolower((string)$m->name)] = (int)$m->term_id;
+    }
+    foreach (array_keys($locs) as $loc) {   // passendes Menü nach Namen (z. B. „top“ → Hauptnavigation, „bottom“/„footer“ → Fußbereich), sonst das erste
+        $l = mb_strtolower((string)$loc);
+        $pick = 0;
+        foreach ($byName as $n => $id) {
+            if ((str_contains($l, 'foot') || str_contains($l, 'bottom')) === (str_contains($n, 'foot') || str_contains($n, 'bottom') || str_contains($n, 'unten'))) {
+                $pick = $id;
+                break;
+            }
+        }
+        $set[$loc] = $pick ?: (int)$menus[0]->term_id;
+    }
+    set_theme_mod('nav_menu_locations', $set);
 }

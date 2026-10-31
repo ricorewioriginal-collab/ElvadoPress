@@ -169,7 +169,7 @@ final class NativeAdapter implements ContentAdapter
                 'date' => $date, 'modified' => (string)($a['updated_at'] ?? $date), 'author' => (string)($a['author'] ?? ''),
                 'categories' => ($c = trim((string)($a['category'] ?? ''))) !== '' ? [$c] : [],
                 'tags' => self::tags($a['tags'] ?? ''),
-                'parent' => '', 'image' => (string)($a['image_url'] ?? ''), 'owner' => (string)($a['author_user'] ?? ''), 'lang' => (string)($a['lang'] ?? ''),
+                'parent' => '', 'image' => (string)($a['image_url'] ?? ''), 'owner' => (string)($a['author_user'] ?? ''), 'lang' => (string)($a['lang'] ?? ''), 'group' => (string)($a['translation_group'] ?? ''),
             ];
         }
         return $out;

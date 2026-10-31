@@ -169,6 +169,7 @@ $cli=$ti->cliCheck($vr);t('Echtes CMS: neuer Prozess startet api.php und meldet 
 $cli2=$ti->cliCheck('0.0.0-falsch');t('Echtes CMS: falsche erwartete Version → Fehler',$cli2['state']==='fail');
 // Verwaltete Dateien des echten CMS: keine Betreiberdaten
 $mf=array_keys($ti->managedFiles());t('Echtes CMS: verwalteter Baum enthält Code, aber keine Daten/Medien/Plugins',in_array('api.php',$mf,true)&&in_array('src/Update/UpdateService.php',$mf,true)&&!array_filter($mf,fn($x)=>preg_match('~^(data|media|plugins|backups|frontend|generated)/~',$x)));
+t('Update lässt den eingespielten WordPress-Core (wp-engine) unangetastet',\Elvado\Update\TreeInstaller::isPreserved('wp-engine/core-7.1.4/wp-settings.php')&&\Elvado\Update\TreeInstaller::isPreserved('wp-engine/sqlite-database-integration/load.php')&&!\Elvado\Update\TreeInstaller::isPreserved('lib/wpengine.php'));
 Http::useTransport(null);
 rrmdir($tmp);
 echo $fail?"$fail von $n fehlgeschlagen\n":"$n von $n Prüfungen bestanden\n";exit($fail?1:0);

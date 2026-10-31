@@ -3,7 +3,7 @@
 
 Aufruf:  python3 scripts/e2e/e2e.py            (Chromium von Playwright)
          E2E_CHROME=/usr/bin/google-chrome python3 scripts/e2e/e2e.py
-         E2E_WORDPRESS=1 …                      zusätzlich: echtes WordPress einrichten (lädt von wordpress.org) und die Website damit ausliefern
+         (braucht Zugang zu wordpress.org: die erste Anmeldung richtet echtes WordPress ein)
 Legt eine Wegwerf-Kopie des CMS an, startet `php -S` mit scripts/e2e/router.php, richtet ElvadoPress über den Einrichtungsassistenten ein
 und prüft jeden Weg auf JavaScript-Fehler. Bildschirmfotos landen in $E2E_SHOTS (Standard: <Kopie>/shots).
 """
@@ -109,6 +109,16 @@ def run(browser, base, shots, tmp):
     page.fill('#cmsLoginUser', USER); page.fill('#cmsLoginPass', PW); page.click('#cmsLoginSubmit')
     page.wait_for_selector('#cmsApp', state='visible', timeout=20000); page.wait_for_timeout(1500)
     check('Anmeldung über die Oberfläche', page.is_visible('#cmsApp'))
+    # Erste Anmeldung: ElvadoPress richtet echtes WordPress automatisch ein (Core, SQLite, Start, Übernahme)
+    for _ in range(150):
+        page.wait_for_timeout(2000)
+        if not page.evaluate("!!document.getElementById('wpeAuto')"):
+            break
+        if page.evaluate("!!document.querySelector('#wpeAuto .danger-note')"):
+            break
+    check('Automatische Einrichtung von echtem WordPress', not page.evaluate("!!document.getElementById('wpeAuto')"), page.evaluate("(document.getElementById('wpeAuto')||{}).innerText||''"))
+    st, html, _ = http('GET', base + '/?nc=0')
+    check('Website wird von echtem WordPress mit dem ElvadoPress-Theme ausgeliefert', st == 200 and '/wp-includes/' in html and '/cms/themes/elvado-' in html, st)
     tok = page.evaluate("sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')")
 
     # Jeder Bereich öffnet ohne JavaScript-Fehler
@@ -172,22 +182,9 @@ def run(browser, base, shots, tmp):
     page.screenshot(path=os.path.join(shots, 'englisch.png'))
     page.evaluate("AdminLang.set('de')"); page.wait_for_timeout(3000)
 
-    # Echtes WordPress (optional, braucht Netz)
-    if os.environ.get('E2E_WORDPRESS'):
-        errors.clear(); tab('wpengine', 3000)
-        page.click('button:has-text("WordPress mit einem Klick einrichten")')
-        for _ in range(120):
-            page.wait_for_timeout(2000)
-            if not page.evaluate("!!document.querySelector('#wpeRoot .fa-spinner')"): break
-        check('Echtes WordPress mit einem Klick (SQLite)', 'Betriebsart: Aktiv' in page.inner_text('#wpeRoot'), page.inner_text('#wpeRoot')[:200])
-        page.click('button:has-text("Website mit WordPress ausliefern")')
-        for _ in range(90):
-            page.wait_for_timeout(2000)
-            if not page.evaluate("!!document.querySelector('#wpeRoot .fa-spinner')"): break
-        st, html, _ = http('GET', base + '/?nc=3')
-        check('Website wird von echtem WordPress ausgeliefert, Inhalte übernommen', st == 200 and 'wp-includes' in html and 'E2E Beitrag' in html, st)
-        page.goto(base + '/'); page.wait_for_timeout(1500); page.screenshot(path=os.path.join(shots, 'wordpress-website.png'))
-
+    st, html, _ = http('GET', base + '/wp-json/wp/v2/posts')
+    check('REST-API des echten WordPress liefert die Beiträge', st == 200 and 'E2E Beitrag' in html, st)
+    page.goto(base + '/'); page.wait_for_timeout(1500); page.screenshot(path=os.path.join(shots, 'website.png'))
 
 if __name__ == '__main__':
     main()

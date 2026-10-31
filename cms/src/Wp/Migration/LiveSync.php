@@ -74,20 +74,17 @@ final class LiveSync
         $src = new NativeAdapter($this->cmsDir, $this->dataDir);
         $seen = [];
         $c = ['created' => 0, 'updated' => 0, 'trashed' => 0];
-        $defLang = '';   // mehrsprachige Website: WordPress zeigt nur die Beiträge der Standardsprache (Übersetzungen bleiben in ElvadoPress)
+        $defLang = 'de';   // mehrsprachige Website: Sprache und Übersetzungsgruppe als Meta (_elvado_lang, _elvado_group), ausgewertet in lib/multilang.php
         if (is_file($this->cmsDir . '/lib/multilang.php')) {
             require_once $this->cmsDir . '/lib/multilang.php';
             $site = is_file($this->dataDir . '/site.json') ? json_decode((string)@file_get_contents($this->dataDir . '/site.json'), true) : [];
             $mc = elvado_ml_config(is_array($site) ? $site : []);
-            $defLang = $mc['enabled'] ? $mc['default'] : '';
+            $defLang = $mc['default'];
         }
         foreach (['post', 'page'] as $type) {
             for ($p = 1; $p <= 500; $p++) {
                 $r = $src->items($type, ['status' => 'all', 'per_page' => 100, 'page' => $p]);
                 foreach ($r['items'] as $it) {
-                    if ($defLang !== '' && (string)($it['lang'] ?? '') !== '' && (string)$it['lang'] !== $defLang) {
-                        continue;   // Übersetzung – wird nicht übernommen (eine bereits übernommene wandert in den Papierkorb)
-                    }
                     $key = $type . ':' . $it['id'];
                     $seen[$key] = true;
                     $status = (string)$it['status'] === 'scheduled' && strtotime((string)$it['date']) <= time() ? 'published' : (string)$it['status'];
@@ -98,7 +95,9 @@ final class LiveSync
                         $in['categories'] = $it['categories'];
                         $in['tags'] = $it['tags'];
                     }
-                    $hash = md5((string)json_encode($in));
+                    $lang = (string)($it['lang'] ?? '') !== '' ? (string)$it['lang'] : $defLang;
+                    $group = (string)($it['group'] ?? '');
+                    $hash = md5((string)json_encode($in) . '|' . $lang . '|' . $group);
                     $wpId = $map[$key] ?? 0;
                     if ($wpId > 0 && get_post($wpId) !== null) {
                         if ((string)get_post_meta($wpId, '_elvado_source_hash', true) === $hash && get_post_status($wpId) !== 'trash') {
@@ -116,6 +115,8 @@ final class LiveSync
                         $c['created']++;
                     }
                     update_post_meta($wpId, '_elvado_source_hash', $hash);
+                    update_post_meta($wpId, '_elvado_lang', $lang);
+                    $group !== '' ? update_post_meta($wpId, '_elvado_group', $group) : delete_post_meta($wpId, '_elvado_group');
                 }
                 if ($p * 100 >= $r['total']) {
                     break;

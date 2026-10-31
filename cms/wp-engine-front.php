@@ -50,6 +50,21 @@ $elvadoFrontCfg = $elvadoFrontEngine->corePath() . 'wp-config.php';
 if (!is_file($elvadoFrontCfg)) {
     @file_put_contents($elvadoFrontCfg, "<?php\n// ElvadoPress: Die Konfiguration setzt die WordPress-Engine (cms/src/Wp/Bridge.php). Diese Datei ist nur ein Platzhalter für wp-load.php.\nif (!defined('ELVADO_ENGINE_SAFE')) {\n    http_response_code(404);\n    exit;\n}\n");
 }
+// Mehrsprachige Website: /en/… → Sprache merken und WordPress den Pfad ohne Präfix geben (Filter in lib/multilang.php, geladen von der Engine-Schicht)
+try {
+    require_once $cmsDir . '/lib/multilang.php';
+    $elvadoMl = elvado_ml_config((array)(json_decode((string)@file_get_contents($siteData . '/site.json'), true) ?: []));
+    if ($elvadoMl['enabled']) {
+        [$elvadoMlLang, $elvadoMlPath] = elvado_ml_detect($elvadoFrontPath, $elvadoMl);
+        if ($elvadoMlLang !== $elvadoMl['default']) {
+            $elvadoMlQ = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_QUERY);
+            $_SERVER['REQUEST_URI'] = $elvadoMlPath . ($elvadoMlQ !== '' ? '?' . $elvadoMlQ : '');
+            $elvadoFrontPath = $elvadoMlPath;
+        }
+        $GLOBALS['elvado_ml'] = ['lang' => $elvadoMlLang, 'cfg' => $elvadoMl];
+    }
+} catch (Throwable $e) {
+}
 $GLOBALS['elvado_wpe_engine'] = $elvadoFrontEngine;
 $GLOBALS['elvado_wpe_db'] = new \Elvado\Wp\DbConfig($elvadoFrontEngine);
 $GLOBALS['elvado_wpe_opts'] = ['themes' => true, 'front' => true];
@@ -68,6 +83,19 @@ if (!wp_get_theme()->exists()) {   // ohne Theme bliebe die Seite leer
 }
 // Beiträge und Seiten aus der ElvadoPress-Verwaltung übernehmen, wenn sich dort etwas geändert hat (Abgleich nur bei Änderungen, siehe LiveSync)
 try {
+    // Design-Einstellungen aus der Verwaltung (Theme, Theme-Einstellungen, Widgets, Optionen) übernehmen, wenn sie sich geändert haben
+    $elvadoOptFile = $siteData . '/.wp/options.json';
+    clearstatcache(true, $elvadoOptFile);
+    $elvadoOptFp = is_file($elvadoOptFile) ? filemtime($elvadoOptFile) . ':' . filesize($elvadoOptFile) : '-';
+    if ((string)get_option('elvado_opts_fp', '') !== $elvadoOptFp) {
+        elvado_wpe_adopt_site($elvadoFrontEngine, true);
+        update_option('elvado_opts_fp', $elvadoOptFp, false);
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && !headers_sent()) {   // neues Theme/neue Plugins greifen erst beim nächsten Start von WordPress
+            header('Location: ' . (string)($_SERVER['REQUEST_URI'] ?? '/'), true, 302);
+            header('Cache-Control: no-store');
+            exit;
+        }
+    }
     (new \Elvado\Wp\Migration\LiveSync($cmsDir, $siteData))->maybeSync();
 } catch (Throwable $e) {
     $elvadoFrontEngine->log('Abgleich mit WordPress fehlgeschlagen: ' . $e->getMessage());
