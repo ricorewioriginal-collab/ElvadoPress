@@ -65,3 +65,56 @@ remove_action('wp_enqueue_scripts', 'wp_enqueue_emoji_styles');
 remove_filter('the_content_feed', 'wp_staticize_emoji');
 remove_filter('comment_text_rss', 'wp_staticize_emoji');
 remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
+// Kommentare von Besuchern der WordPress-Website gehören zu ElvadoPress (comments.json): dort freigeben, beantworten, löschen (Verwaltung → Kommentare).
+// Der Kommentar bleibt in WordPress (wartend oder freigegeben, je nach Einstellung „Kommentare vor Veröffentlichung prüfen“) und wird über _elvado_comment_id zugeordnet.
+add_action('wp_insert_comment', function ($id, $comment) {
+    if (!empty($GLOBALS['elvado_livesync_comment']) || !defined('ELVADO_WP_DATA') || !defined('ELVADO_CMS_DIR') || !($comment instanceof WP_Comment)) {
+        return;
+    }
+    $src = (string)get_post_meta((int)$comment->comment_post_ID, '_elvado_source_id', true);
+    if (!preg_match('/^post:(\d+)$/', $src, $m) || !in_array((string)$comment->comment_type, ['', 'comment'], true)) {
+        return;
+    }
+    $data = dirname(ELVADO_WP_DATA);
+    require_once ELVADO_CMS_DIR . '/lib/publish.php';
+    $site = elvado_read_json($data . '/site.json', []);
+    $approve = array_key_exists('require_approval', (array)($site['comments'] ?? [])) && empty($site['comments']['require_approval']);
+    $file = $data . '/comments.json';
+    $h = @fopen($file . '.lock', 'c');
+    if ($h) {
+        flock($h, LOCK_EX);
+    }
+    try {
+        $all = elvado_read_json($file, []);
+        $next = 1;
+        $parent = 0;
+        foreach ($all as $c) {
+            $next = max($next, (int)($c['id'] ?? 0) + 1);
+        }
+        if ((int)$comment->comment_parent > 0) {
+            $p = (int)get_comment_meta((int)$comment->comment_parent, '_elvado_comment_id', true);
+            $parent = elvado_comment_top_parent($all, $p, (int)$m[1]) ?? 0;
+        }
+        $name = mb_substr(trim((string)$comment->comment_author), 0, 80);
+        $text = mb_substr(trim(wp_strip_all_tags((string)$comment->comment_content)), 0, 2000);
+        $all[] = ['id' => $next, 'article_id' => (int)$m[1], 'parent_id' => $parent, 'name' => $name !== '' ? $name : 'Gast', 'text' => $text, 'is_staff' => false,
+            'status' => $approve ? 'approved' : 'pending', 'created_at' => date('Y-m-d H:i:s', strtotime(get_date_from_gmt((string)$comment->comment_date_gmt)))];
+        elvado_write_atomic($file, json_encode($all, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n");
+    } finally {
+        if ($h) {
+            flock($h, LOCK_UN);
+            fclose($h);
+        }
+    }
+    add_comment_meta((int)$id, '_elvado_comment_id', $next, true);
+    wp_set_comment_status((int)$id, $approve ? 'approve' : 'hold');
+    $title = (string)get_the_title((int)$comment->comment_post_ID);
+    elvado_add_notification($data . '/notifications.json', ['type' => 'comment', 'article_id' => (int)$m[1], 'article_title' => $title, 'target_author' => '', 'comment_name' => $name, 'comment_excerpt' => mb_substr($text, 0, 140)]);
+}, 10, 2);
+// Benachrichtigung über neue Kommentare macht ElvadoPress (Glocke in der Verwaltung) – keine zusätzlichen WordPress-Mails für ElvadoPress-Beiträge
+$elvadoOwnComment = static function ($notify, $commentId) {
+    $c = get_comment((int)$commentId);
+    return $c && get_post_meta((int)$c->comment_post_ID, '_elvado_source_id', true) !== '' ? false : $notify;
+};
+add_filter('notify_moderator', $elvadoOwnComment, 10, 2);
+add_filter('notify_post_author', $elvadoOwnComment, 10, 2);
