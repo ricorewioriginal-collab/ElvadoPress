@@ -153,7 +153,7 @@ window.WpEngine=(()=>{
  async function load(){try{const d=await api('engine_status');if(d.status==='ok'){S.st=d;}else{S.msg={err:true,text:d.message||'Fehler'};}try{const m=await api('migration_report');if(m.status==='ok'&&m.report)S.mig=m.report;const q=await api('migration_runs');if(q.status==='ok')S.run=q.run;}catch(e){}}catch(e){S.msg={err:true,text:e.message};}draw();}
  async function demoBoot(){
   if(!DEMO()||window.__epDemoBoot)return;window.__epDemoBoot=1;
-  const tick=async()=>{try{const app=document.getElementById('cmsApp');if(!app||app.style.display==='none')return;const st=await api('engine_status');if(st.status==='ok'&&st.engine&&st.engine.mode!=='active'&&!S.busy&&!window.__epDemoBusy){window.__epDemoBusy=1;try{const d=await api('engine_demo_setup',{});if(d.status==='ok'){apply(d);if(window.cmsToast)cmsToast('Demo-Engine bereit ✓');draw()}}finally{window.__epDemoBusy=0}}}catch(e){window.__epDemoBusy=0}};
+  const tick=async()=>{try{const app=document.getElementById('cmsApp');if(!app||app.style.display==='none')return;const st=await api('engine_status');if(st.status==='ok'&&st.engine&&(st.engine.mode!=='active'||!st.engine.front)&&!S.busy&&!window.__epDemoBusy){window.__epDemoBusy=1;try{let d=st;if(st.engine.mode!=='active')d=await api('engine_demo_setup',{});if(d.status==='ok'&&d.engine&&d.engine.mode==='active'&&!d.engine.front)d=await api('engine_front',{on:true});if(d.status==='ok'){apply(d);if(window.cmsToast)cmsToast('Demo-Engine bereit ✓');draw()}}finally{window.__epDemoBusy=0}}}catch(e){window.__epDemoBusy=0}};
   setTimeout(tick,2500);setInterval(tick,45000);
  }
  /* Liefert echtes WordPress die Website aus, zeigen Beiträge/Seiten der ElvadoPress-Schicht nicht mehr auf der Website: deutlicher Hinweis in diesen Bereichen */

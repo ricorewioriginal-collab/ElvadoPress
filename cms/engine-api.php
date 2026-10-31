@@ -87,7 +87,8 @@ if ($elvadoEngineAction === 'engine_demo_setup') {
     if (!elvado_demo_engine_drop_tables($elvadoDc)) {
         elvado_json(['status' => 'error', 'message' => 'Die Demo-Datenbank ließ sich nicht leeren (Zugang prüfen).'], 502);
     }
-    $pre = elvado_wpe_pre_install($elvadoEngine, $elvadoEngineDb, ['host' => $elvadoDc['host'], 'name' => $elvadoDc['name'], 'user' => $elvadoDc['user'], 'pass' => $elvadoDc['pass'], 'prefix' => $elvadoDc['prefix']]);
+    $pre = elvado_wpe_pre_install($elvadoEngine, $elvadoEngineDb, $elvadoDc['driver'] === 'sqlite' ? ['driver' => 'sqlite', 'prefix' => $elvadoDc['prefix']]
+        : ['host' => $elvadoDc['host'], 'name' => $elvadoDc['name'], 'user' => $elvadoDc['user'], 'pass' => $elvadoDc['pass'], 'prefix' => $elvadoDc['prefix']]);
     if (!$pre['ok']) {
         elvado_json(['status' => 'error', 'message' => $pre['message']], 502);
     }
@@ -728,6 +729,15 @@ if ($elvadoEngineAction === 'engine_front') {   // Website mit echtem WordPress 
         }
     }
     $m = $elvadoEngine->setFront($on);
+    try {   // ausgelieferte Seiten wechseln: Seiten-Cache der Plugins (Essentials) leeren
+        require_once __DIR__ . '/lib/nplugins.php';
+        elvado_np_boot();
+        elvado_np_do('content_saved');
+    } catch (Throwable $e) {
+    }
+    if ($on && function_exists('elvado_demo_engine_snapshot')) {
+        elvado_demo_engine_snapshot();   // Demo (SQLite): eingerichtetes WordPress für das Zurücksetzen sichern
+    }
     if ($m['ok']) {
         $elvadoEngineLog('Website-Auslieferung durch WordPress ' . ($on ? 'eingeschaltet' : 'ausgeschaltet'));
     }

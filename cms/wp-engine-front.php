@@ -1,12 +1,12 @@
 <?php
 // Website-Auslieferung durch echtes WordPress (WordPress-Engine, Schalter „Website mit WordPress ausliefern“ unter System → WordPress-Engine).
 // Wird von cms/wp-front.php im globalen Gültigkeitsbereich eingebunden, bevor die WordPress-Nachbildung lädt. Greift nur, wenn die Engine aktiv ist und der Schalter an ist;
-// sonst kehrt die Datei sofort zurück und ElvadoPress liefert die Website wie bisher aus. Nicht für Sandbox, Demo und weitere Websites (Multisite).
+// sonst kehrt die Datei sofort zurück und ElvadoPress liefert die Website wie bisher aus. Nicht für die Sandbox. Die Demo nutzt es, wenn sie mit Engine (demo-engine.json) eingerichtet ist. Weitere Websites (Multisite) haben je eine eigene Engine (Zustand und Datenbank unter ihren Daten, gemeinsamer Core).
 // Vorschauen (Theme-Vorschau, Customizer-Entwurf, Live Builder) zeigt ebenfalls echtes WordPress (signierte Schlüssel, siehe lib/wp-real-admin.php).
 //
 // Aufgaben: statische Core-Dateien (wp-includes, wp-admin/css|js|images) aus dem gesperrten Core-Ordner ausliefern, wp-login/wp-admin zur ElvadoPress-Verwaltung umleiten,
 // Besucher-Endpunkte (admin-ajax, admin-post, wp-comments-post) an WordPress geben und alle übrigen Adressen mit dem aktiven WordPress-Theme ausliefern.
-if (!isset($cmsDir) || !empty($sbx) || (isset($siteId) && $siteId !== '') || is_file($cmsDir . '/lib/demo.json')
+if (!isset($cmsDir) || !empty($sbx)
     || isset($_GET['elvado_wp_login'])) {
     return;
 }
@@ -263,6 +263,9 @@ if ($elvadoFrontStatus === 404) {
         elvado_404_log($siteData, $elvadoFrontNpPath, (string)($_SERVER['HTTP_REFERER'] ?? ''));
     } catch (Throwable $e) {
     }
+}
+if ($siteId !== '' && $elvadoFrontHtml) {   // Medien dieser Website liegen in cms/sites/<kennung>/media
+    $elvadoFrontBody = str_replace('/cms/media/', '/cms/sites/' . $siteId . '/media/', $elvadoFrontBody);
 }
 if ($elvadoFrontHtml && $elvadoFrontMethod === 'GET') {
     // App-Modus (Baukasten-App): Kopf und Fuß der Website in der App ausblenden (siehe lib/appmode.php)

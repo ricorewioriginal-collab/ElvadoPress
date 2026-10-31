@@ -47,17 +47,19 @@ function elvado_demo_public(): array {
 // Die Datenbank gehört allein der Demo (alle Tabellen mit dem Präfix werden beim Zurücksetzen gelöscht). Gesperrt bleibt, was fremden Programmcode auf den gemeinsamen Server brächte:
 // Plugin-/Theme-Installation und -Upload sowie der manuelle Aufbau der Engine (Core/Datenbank) – dafür gibt es in der Demo die Aktion engine_demo_setup.
 function elvado_demo_engine_config_file(): string { return __DIR__.'/demo-engine.json'; }
-/** @return array{host:string,name:string,user:string,pass:string,prefix:string,core_zip:string}|null */
+/** @return array{driver:string,host:string,name:string,user:string,pass:string,prefix:string,core_zip:string}|null */
 function elvado_demo_engine_config(): ?array {
     static $c=false;if($c!==false)return $c;
     if(!elvado_demo_enabled())return $c=null;
     $f=elvado_demo_engine_config_file();$j=is_file($f)?json_decode((string)@file_get_contents($f),true):null;
     if(!is_array($j))return $c=null;
+    $zip0=(string)($j['core_zip']??'');if($zip0!==''&&!is_file($zip0))$zip0='';
+    if(($j['driver']??'')==='sqlite')return $c=['driver'=>'sqlite','host'=>'','name'=>'','user'=>'','pass'=>'','prefix'=>'wpk_','core_zip'=>$zip0];   // SQLite: Datenbankdatei unter cms/data (wird beim Zurücksetzen mit geleert)
     $host=(string)($j['host']??'localhost');$name=(string)($j['name']??'');$user=(string)($j['user']??'');
     $prefix=(string)($j['prefix']??'wpdemo_');
     if($name===''||$user===''||preg_match('/^[A-Za-z0-9_.:\-]{1,120}$/',$host)!==1||preg_match('/^[A-Za-z0-9_]{1,20}$/',$prefix)!==1||str_ends_with($prefix,'_')===false)return $c=null;
     $zip=(string)($j['core_zip']??'');if($zip!==''&&!is_file($zip))$zip='';
-    return $c=['host'=>$host,'name'=>$name,'user'=>$user,'pass'=>(string)($j['pass']??''),'prefix'=>$prefix,'core_zip'=>$zip];
+    return $c=['driver'=>'mysql','host'=>$host,'name'=>$name,'user'=>$user,'pass'=>(string)($j['pass']??''),'prefix'=>$prefix,'core_zip'=>$zip];
 }
 function elvado_demo_engine_enabled(): bool { return elvado_demo_engine_config()!==null; }
 /** Engine-Aktionen, die in der Demo gesperrt bleiben (der Aufbau läuft über engine_demo_setup; fremder Programmcode kommt nicht auf den Server). */
@@ -73,6 +75,7 @@ function elvado_demo_engine_allowed(string $kind,string $slug): bool {
 }
 /** Alle Tabellen der Demo-Datenbank mit dem Demo-Präfix löschen (nie andere). */
 function elvado_demo_engine_drop_tables(array $c): bool {
+    if(($c['driver']??'')==='sqlite'){ $f=elvado_data_dir().'/.wp-engine/sqlite/wordpress.sqlite';return !is_file($f)||@unlink($f); }
     if(!class_exists('mysqli'))return false;
     $host=$c['host'];$port=3306;
     if(str_contains($host,':')&&!str_starts_with($host,'/')){ [$host,$p]=explode(':',$host,2);if(ctype_digit($p))$port=(int)$p; }
@@ -121,7 +124,32 @@ function elvado_demo_reset(): bool {
     elvado_seo_generate($site,$news,$ctx['root']);
     elvado_system_config(true);
     elvado_demo_engine_reset();   // WordPress-Tabellen der Demo leeren (nur mit demo-engine.json); die Engine richtet sich beim nächsten Aufruf selbst neu ein
+    elvado_demo_engine_restore();   // mit SQLite: eingerichtetes WordPress (Website-Auslieferung) sofort wiederherstellen
     return true;
+}
+/** Demo mit SQLite: Zustand des eingerichteten WordPress (Engine-Zustand, Datenbankdatei) nach dem ersten Einschalten der Auslieferung sichern … */
+function elvado_demo_engine_snapshot(): void {
+    $c=elvado_demo_engine_config();if(!$c||$c['driver']!=='sqlite')return;
+    $src=elvado_data_dir().'/.wp-engine';$dst=elvado_demo_state_dir().'/engine-snap';
+    if(!is_file($src.'/sqlite/wordpress.sqlite'))return;
+    elvado_demo_clear_dir($dst);
+    foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::SELF_FIRST) as $f){
+        if($f->isLink())continue;$rel=substr($f->getPathname(),strlen($src)+1);
+        if(str_starts_with($rel,'sso')||str_ends_with($rel,'.lock'))continue;
+        if($f->isDir()){ @mkdir($dst.'/'.$rel,0750,true);continue; }
+        @mkdir(dirname($dst.'/'.$rel),0750,true);@copy($f->getPathname(),$dst.'/'.$rel);
+    }
+}
+/** … und beim Zurücksetzen der Demo wieder einspielen (die Website kommt sofort wieder von echtem WordPress). */
+function elvado_demo_engine_restore(): void {
+    $c=elvado_demo_engine_config();if(!$c||$c['driver']!=='sqlite')return;
+    $src=elvado_demo_state_dir().'/engine-snap';$dst=elvado_data_dir().'/.wp-engine';
+    if(!is_file($src.'/sqlite/wordpress.sqlite'))return;
+    foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::SELF_FIRST) as $f){
+        $rel=substr($f->getPathname(),strlen($src)+1);
+        if($f->isDir()){ @mkdir($dst.'/'.$rel,0750,true);continue; }
+        @mkdir(dirname($dst.'/'.$rel),0750,true);@copy($f->getPathname(),$dst.'/'.$rel);
+    }
 }
 /** Beispielbeiträge, damit Website und Verwaltung gefüllt wirken (Texte: lib/demo-content.php). */
 function elvado_demo_seed(string $newsFile,array $c): void {
