@@ -11,6 +11,11 @@ Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröff
 - **Mehrsprachige Website auch mit WordPress:** `/en/…` und weitere Sprachen, Sprachumschalter und hreflang funktionieren bei der Auslieferung durch WordPress (Beiträge mit Sprache und Übersetzungsgruppe).
 - **Fehler behoben (wichtig):** Ein CMS-Update löschte den WordPress-Core (`cms/wp-engine` fehlte in der Liste der zu erhaltenden Ordner).
 
+### Customizer, Baukasten und Vorschau auf echtem WordPress (Stufe E6)
+- **Customizer** (Design → Customizer): liest die Einstellungen aus dem echten `WP_Customize_Manager` des Themes (Kern- und Theme-Einstellungen), speichert direkt in WordPress; Entwürfe und geplante Änderungen funktionieren weiter.
+- **Vorschau:** Theme-Vorschau, Customizer-Entwurf und Live-Builder-Vorschau zeigt echtes WordPress (signierte Schlüssel, nie aus dem Seiten-Cache, nicht in der Statistik).
+- **Homepage-Baukasten:** bearbeitet und veröffentlicht das Layout auf echtem WordPress.
+
 ### Kommentare in beide Richtungen (Stufe E5)
 - **Kommentare auf der WordPress-Website:** Besucher kommentieren über das WordPress-Theme; der Kommentar landet in ElvadoPress (Verwaltung → Kommentare, Glocke) und wartet je nach Einstellung auf Freigabe. Freigeben, Antworten und Löschen in ElvadoPress wirken beim nächsten Seitenaufruf in WordPress; freigegebene Kommentare und Antworten der Redaktion erscheinen im Theme.
 - Kommentare offen/geschlossen folgt den ElvadoPress-Einstellungen (an/aus, je Beitrag Standard/offen/geschlossen). Keine doppelten WordPress-Mails für ElvadoPress-Beiträge.

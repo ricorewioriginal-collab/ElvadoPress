@@ -134,6 +134,10 @@ def run(browser, base, shots, tmp):
     st, html, _ = http('GET', base + '/?nc=2')
     check('Theme und Titel aus der Verwaltung gelten direkt in WordPress', '/cms/themes/elvado-band' in html and '<title>E2E Echt' in html, before)
     page.evaluate(f"cmsApi('wp_theme_activate',{{slug:{json.dumps(before)}}})")
+    pv = page.evaluate(f"cmsApi('wp_theme_customize_draft',{{slug:{json.dumps(before)},values:{{blogname:'Vorschau E2E'}}}}).then(d=>d.url)")
+    st, html, _ = http('GET', base + pv)
+    st2, html2, _ = http('GET', base + '/?nc=3')
+    check('Customizer-Vorschau auf echtem WordPress (Entwurf nur in der Vorschau)', '<title>Vorschau E2E' in html and 'preview-bridge.js' in html and 'Vorschau E2E' not in html2, pv)
     page.evaluate("cmsApi('wp_settings_save',{group:'general',values:{blogname:'E2E Testseite'}})")
     tok = page.evaluate("sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')")
 

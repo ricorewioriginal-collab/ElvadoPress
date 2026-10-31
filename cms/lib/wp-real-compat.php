@@ -164,3 +164,28 @@ function elvado_wp_bridge_option_write(string $option, $value): bool
     update_option($option, $v);
     return true;
 }
+
+/** Customizer des (für diese Anfrage gewählten) Themes: echter WP_Customize_Manager mit den Einstellungen des Kerns und des Themes. */
+function elvado_wp_customizer(): WP_Customize_Manager
+{
+    static $m = null;
+    if ($m) {
+        return $m;
+    }
+    require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+    $m = new WP_Customize_Manager(['messenger_channel' => null]);
+    $GLOBALS['wp_customize'] = $m;
+    try {
+        do_action('customize_register', $m);
+    } catch (Throwable $e) {
+        error_log('[ElvadoPress] customize_register: ' . $e->getMessage());
+    }
+    return $m;
+}
+/** [gefunden, Wert] einer Option, ohne Vorgabewerte. */
+function elvado_wp_opts_get_raw(string $name): array
+{
+    $none = new stdClass();
+    $v = get_option($name, $none);
+    return $v === $none ? [false, null] : [true, $v];
+}

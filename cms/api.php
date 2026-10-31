@@ -971,6 +971,10 @@ if(str_starts_with($action,'wp_')){
     // Liefert echtes WordPress die Website aus, laufen Plugins, Themes und Einstellungen direkt gegen den echten Core (lib/wp-real-admin.php); sonst die bisherige Schicht
     require_once __DIR__.'/lib/wp-real-admin.php';
     $wpReal=elvado_wpra_applies($action,__DIR__);
+    if($wpReal&&(str_starts_with($action,'wp_theme_customize')||str_starts_with($action,'wp_bk_'))){   // Customizer/Baukasten: das bearbeitete Theme vor dem Start einschalten
+        $czPre=str_starts_with($action,'wp_bk_')?'elvado-baukasten':(string)(elvado_body()['slug']??'');
+        if(!elvado_wpra_use_theme(__DIR__,$czPre))elvado_json(['status'=>'error','message'=>$czPre==='elvado-baukasten'?'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.':'Theme nicht gefunden'],404);
+    }
     if($wpReal){ $wpKeep=[$action,$site,$siteFile,$genDir,$root,$dataDir,$activityLogFile,$wpUser];elvado_wpra_prepare();require __DIR__.'/wp-engine-boot.php';[$action,$site,$siteFile,$genDir,$root,$dataDir,$activityLogFile,$wpUser]=$wpKeep;elvado_wpra_after();require_once __DIR__.'/wp/installer.php'; }   // WordPress nutzt teils dieselben globalen Namen (z. B. $action)
     else{ require_once __DIR__.'/wp/load.php';require_once __DIR__.'/wp/installer.php';require_once __DIR__.'/wp/coreassets.php'; }
     // Plugins registrieren ihre Hooks schon beim Laden abhängig von $_GET['page']: die gewünschte Seite vor dem Start bekanntmachen.
@@ -985,11 +989,11 @@ if(str_starts_with($action,'wp_')){
         $czKnown=array_column(elvado_wpi_list_themes(),null,'slug');
         if(!isset($czKnown[$czSlug]))elvado_json(['status'=>'error','message'=>'Theme nicht gefunden'],404);
         if(!empty($czKnown[$czSlug]['error']))elvado_json(['status'=>'error','message'=>$czKnown[$czSlug]['error']],422);
-        elvado_wpc_use_theme($czSlug);ob_start();
+        if(!$wpReal)elvado_wpc_use_theme($czSlug);ob_start();
     }
     // Homepage-Baukasten (visueller Abschnitts-Editor): Layout des Themes „elvado-baukasten“ lesen/speichern (Option elvado_bk_layout)
     $wpBk=in_array($action,['wp_bk_get','wp_bk_save','wp_bk_draft','wp_bk_publish','wp_bk_discard','wp_bk_rollback','wp_bk_revisions'],true);
-    if($wpBk){ require_once __DIR__.'/wp/customizer-api.php';if(!elvado_wpc_use_theme('elvado-baukasten'))elvado_json(['status'=>'error','message'=>'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.'],404); }
+    if($wpBk){ require_once __DIR__.'/wp/customizer-api.php';if(!$wpReal&&!elvado_wpc_use_theme('elvado-baukasten'))elvado_json(['status'=>'error','message'=>'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.'],404); }
     if(!$wpReal)elvado_wp_boot(['user'=>['id'=>1,'login'=>(string)($wpUser['user']??'admin'),'name'=>(string)($wpUser['display_name']??''),'role'=>'administrator'],'admin'=>true,'theme'=>$wpCz||$wpBk||str_starts_with($action,'wp_admin_')]);
     if(str_starts_with($action,'wp_admin_'))elvado_wp_core_register();
     $b=elvado_body();
@@ -1240,7 +1244,7 @@ if(str_starts_with($action,'wp_')){
         $shareUrl=function(string $id) use($czSlug,$sbxQ){ return '/?'.$sbxQ.'elvado_wp_preview='.rawurlencode(elvado_wpi_preview_token($czSlug,null,7*86400)).'&elvado_wp_draft='.$id; };
         if($action==='wp_theme_customize'){
             $cs=elvado_wpc_cs_latest($czSlug);$id=$cs?(string)$cs['id']:elvado_wpc_new_id();
-            $finish(['status'=>'ok']+elvado_wpc_describe($czSlug)+['draft'=>$id,'url'=>$prevUrl($id),'active'=>(is_file(ELVADO_WP_DATA.'/front-on')?elvado_wpc_real_option('stylesheet'):'')===$czSlug,'front'=>is_file(ELVADO_WP_DATA.'/front-on'),
+            $finish(['status'=>'ok']+elvado_wpc_describe($czSlug)+['draft'=>$id,'url'=>$prevUrl($id),'active'=>((defined('ELVADO_WP_REAL')||is_file(ELVADO_WP_DATA.'/front-on'))?elvado_wpc_real_option('stylesheet'):'')===$czSlug,'front'=>defined('ELVADO_WP_REAL')||is_file(ELVADO_WP_DATA.'/front-on'),
                 'changeset'=>$cs?['id'=>$id,'status'=>$cs['status'],'date'=>(int)$cs['date'],'values'=>$cs['values']??new stdClass,'share'=>$shareUrl($id)]:null]);
         }
         if($action==='wp_theme_customize_changeset'){

@@ -356,10 +356,10 @@ function elvado_wpe_adopt_site(Engine $e, bool $force = false): array
     }
     $site = is_file($data . '/site.json') ? json_decode((string)@file_get_contents($data . '/site.json'), true) : [];
     $site = is_array($site) ? $site : [];
-    if (!isset($opts['blogname']) && trim((string)($site['portal']['site_name'] ?? '')) !== '') {
+    if ($first && !isset($opts['blogname']) && trim((string)($site['portal']['site_name'] ?? '')) !== '') {
         update_option('blogname', (string)$site['portal']['site_name']);
     }
-    if (!isset($opts['blogdescription'])) {
+    if ($first && !isset($opts['blogdescription'])) {
         update_option('blogdescription', (string)($site['portal']['tagline'] ?? ''));
     }
     // Theme: das bisher aktive Theme der Website, sonst das neutrale Standard-Theme von ElvadoPress
