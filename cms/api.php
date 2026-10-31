@@ -995,7 +995,18 @@ if(str_starts_with($action,'wp_')){
     $wpBk=in_array($action,['wp_bk_get','wp_bk_save','wp_bk_draft','wp_bk_publish','wp_bk_discard','wp_bk_rollback','wp_bk_revisions'],true);
     if($wpBk){ require_once __DIR__.'/wp/customizer-api.php';if(!$wpReal&&!elvado_wpc_use_theme('elvado-baukasten'))elvado_json(['status'=>'error','message'=>'Das Theme „ElvadoPress Baukasten“ ist nicht installiert.'],404); }
     if(!$wpReal)elvado_wp_boot(['user'=>['id'=>1,'login'=>(string)($wpUser['user']??'admin'),'name'=>(string)($wpUser['display_name']??''),'role'=>'administrator'],'admin'=>true,'theme'=>$wpCz||$wpBk||str_starts_with($action,'wp_admin_')]);
-    if(str_starts_with($action,'wp_admin_'))elvado_wp_core_register();
+    if(str_starts_with($action,'wp_admin_')&&!$wpReal)elvado_wp_core_register();
+    // Echtes WordPress: Plugin-Seiten, Meldungen und Editoren gibt es in der echten WordPress-Verwaltung (Anmeldung über einen Einmal-Schlüssel)
+    if($wpReal&&in_array($action,['wp_session_open','wp_admin_menu','wp_admin_notices','wp_admin_page','wp_admin_ajax','wp_admin_rest','wp_core_status'],true)){
+        if($action==='wp_admin_notices')elvado_json(['status'=>'ok','frame'=>'']);
+        if($action==='wp_core_status')elvado_json(['status'=>'ok','installed'=>true,'version'=>(string)$GLOBALS['wp_version'],'zip'=>class_exists('ZipArchive'),'writable'=>true]);   // echter Core: vollständig vorhanden
+        if($action==='wp_admin_menu')elvado_json(['status'=>'ok','groups'=>[],'wpadmin'=>true]);
+        if($action!=='wp_session_open')elvado_json(['status'=>'error','message'=>'Diese Seite öffnest du in der WordPress-Verwaltung („In WordPress öffnen“).'],410);
+        $b0=elvado_body();$to=(string)($b0['to']??'index.php');
+        if(!preg_match('#^[a-z0-9-]+\.php(\?[A-Za-z0-9_=&%.\-:/+\[\]]*)?$#',$to))elvado_json(['status'=>'error','message'=>'Ungültiges Ziel'],400);
+        elvado_log_activity($activityLogFile,$wpUser,'wp_session','WordPress-Verwaltung geöffnet: '.$to);
+        elvado_json(['status'=>'ok','url'=>'/wp-admin/'.$to.(str_contains($to,'?')?'&':'?').'elvado_sso='.elvado_wpra_sso_issue(dirname(ELVADO_WP_DATA),(string)($wpUser['user']??''))]);
+    }
     $b=elvado_body();
     $wpList=function() use($dataDir){
         $act=get_option_active_plugins();$errs=(array)get_option('elvado_wp_plugin_errors',[]);$out=[];

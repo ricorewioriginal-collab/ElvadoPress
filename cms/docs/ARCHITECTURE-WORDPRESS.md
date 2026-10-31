@@ -136,3 +136,6 @@ ElvadoPress bleibt führende Datenquelle für Beiträge, Seiten, Medien und Komm
 
 ## Customizer, Baukasten und Vorschau (Stufe E6)
 Customizer- und Baukasten-Aktionen laufen auf echtem WordPress; das bearbeitete Theme wird vor dem Start über vorbelegte Filter (`$wp_filter['pre_option_stylesheet'|'pre_option_template']`, `elvado_wpra_use_theme`) eingeschaltet, `elvado_wpc_real_option` liest weiter das wirklich aktive Theme. Vorschau-Schlüssel signiert ElvadoPress selbst (`elvado_wpra_preview_sig`, Geheimnis von `lib/components.php`), damit `cms/wp-engine-front.php` sie vor dem Start von WordPress prüfen kann; dort werden Entwürfe angewendet, die Vorschau-Brücke eingebunden und Cache, Statistik und Plugins-Ausgabefilter übersprungen.
+
+## Echte WordPress-Verwaltung (Stufe E7a)
+`/wp-admin/…` wird bei Auslieferung durch WordPress von `cms/wp-engine-front.php` an die echten wp-admin-Dateien gegeben (`WP_ADMIN`, `CONCATENATE_SCRIPTS=false`, `$_SERVER['PHP_SELF']`). Die Anmeldung erfolgt nur aus ElvadoPress heraus: `wp_session_open` erzeugt einen Einmal-Schlüssel (sha256-Dateiname, 120 s), der beim ersten Aufruf das WordPress-Anmelde-Cookie des passenden bzw. ersten Administrators setzt. `wp-login.php` führt weiterhin zur ElvadoPress-Anmeldung (Abmelden löscht die WordPress-Cookies).

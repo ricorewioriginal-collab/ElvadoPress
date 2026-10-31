@@ -183,7 +183,7 @@ $ph=fn(string $k)=>elvado_product_h($pr[$k]);
 <script src="assets/forms-manager.js?v=1"></script>
 <script src="assets/polls-manager.js?v=1"></script>
 <script src="assets/community-manager.js?v=2"></script>
-<script src="assets/wpplugins-manager.js?v=4"></script>
+<script src="assets/wpplugins-manager.js?v=5"></script>
 <script src="assets/wpthemes-manager.js?v=11"></script>
 <script src="assets/wp-links.js?v=2"></script>
 <script src="assets/wp-settings.js?v=2"></script><script src="assets/ml-settings.js?v=1"></script><script src="assets/comments-manager.js?v=1"></script><script src="assets/wp-tools.js?v=1"></script>

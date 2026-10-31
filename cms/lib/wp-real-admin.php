@@ -11,7 +11,8 @@ const ELVADO_WPRA_ACTIONS = ['wp_plugins', 'wp_plugin_search', 'wp_plugin_instal
     'wp_themes', 'wp_theme_search', 'wp_theme_install', 'wp_theme_upload', 'wp_theme_unhide', 'wp_theme_activate', 'wp_theme_delete',
     'wp_settings', 'wp_settings_save', 'wp_reading', 'wp_reading_save', 'wp_permalinks', 'wp_permalinks_save', 'wp_news_links', 'wp_updates', 'wp_translations',
     'wp_theme_preview', 'wp_theme_customize', 'wp_theme_customize_draft', 'wp_theme_customize_save', 'wp_theme_customize_changeset',
-    'wp_bk_get', 'wp_bk_save', 'wp_bk_draft', 'wp_bk_publish', 'wp_bk_discard', 'wp_bk_rollback', 'wp_bk_revisions'];
+    'wp_bk_get', 'wp_bk_save', 'wp_bk_draft', 'wp_bk_publish', 'wp_bk_discard', 'wp_bk_rollback', 'wp_bk_revisions',
+    'wp_session_open', 'wp_admin_menu', 'wp_admin_notices', 'wp_admin_page', 'wp_admin_ajax', 'wp_admin_rest', 'wp_core_status'];
 
 /** Gilt die Verwaltung auf echtem WordPress für diese Anfrage? */
 function elvado_wpra_applies(string $action, string $cmsDir): bool
@@ -73,6 +74,39 @@ function elvado_wpra_preview_ok(string $dataDir, string $tok): string
         return '';
     }
     return hash_equals(elvado_wpra_preview_sig($dataDir, $m[1], (int)$m[2]), $m[3]) ? $m[1] : '';
+}
+
+/** Einmal-Schlüssel für die Anmeldung in der echten WordPress-Verwaltung (wp-admin) aus ElvadoPress heraus: 2 Minuten gültig, einmal nutzbar. */
+function elvado_wpra_sso_dir(string $dataDir): string
+{
+    return rtrim($dataDir, '/') . '/.wp-engine/sso';
+}
+function elvado_wpra_sso_issue(string $dataDir, string $user): string
+{
+    $dir = elvado_wpra_sso_dir($dataDir);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0750, true);
+    }
+    foreach (glob($dir . '/*.json') ?: [] as $f) {   // abgelaufene aufräumen
+        if (filemtime($f) < time() - 300) {
+            @unlink($f);
+        }
+    }
+    $tok = bin2hex(random_bytes(24));
+    file_put_contents($dir . '/' . hash('sha256', $tok) . '.json', json_encode(['user' => $user, 'exp' => time() + 120]), LOCK_EX);
+    @chmod($dir . '/' . hash('sha256', $tok) . '.json', 0600);
+    return $tok;
+}
+/** Benutzername oder '' (ungültig, abgelaufen oder schon benutzt). */
+function elvado_wpra_sso_consume(string $dataDir, string $tok): string
+{
+    if (!preg_match('/^[a-f0-9]{48}$/', $tok)) {
+        return '';
+    }
+    $f = elvado_wpra_sso_dir($dataDir) . '/' . hash('sha256', $tok) . '.json';
+    $d = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+    @unlink($f);
+    return is_array($d) && (int)($d['exp'] ?? 0) >= time() ? (string)($d['user'] ?? '') : '';
 }
 
 /** Vor dem Start: Engine und Optionen setzen. Den Start selbst (cms/wp-engine-boot.php) bindet cms/api.php im globalen Gültigkeitsbereich ein, wie es WordPress verlangt. */
