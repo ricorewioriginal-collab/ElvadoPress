@@ -2,7 +2,7 @@
 
 Neueste Änderungen zuerst. Die Versionsnummer (`cms/VERSION`) wird beim Veröffentlichen eines Releases (Tag `v<Version>`) angehoben.
 
-## Nicht veröffentlicht (nach 1.2.0)
+## 1.3.0 (31.10.2026)
 
 ### Echtes WordPress – auch ohne Datenbankserver
 - **SQLite für die WordPress-Engine:** Neben MySQL/MariaDB läuft echtes WordPress jetzt mit der offiziellen Erweiterung „SQLite Database Integration“ (wordpress.org) – kein Datenbankserver nötig. Die Datenbank ist eine Datei im gesperrten Ordner `cms/data/.wp-engine/sqlite/`; die Integration liegt außerhalb von `wp-content/plugins` (`cms/wp-engine/`) und wird wie Plugins geprüft. Alle Engine-Tests laufen auch mit `WPE_TEST_DB=sqlite`.
