@@ -9,7 +9,8 @@
   function set(m){try{localStorage.setItem(KEY,m)}catch(e){}apply(m);refresh();push(m)}
   function push(m){try{if(window.cmsApi)window.cmsApi('admin_prefs_save',{theme:m}).catch(function(){})}catch(e){}}
   function pull(n){   // Wahl des Benutzers vom Server holen (gilt dann auf allen Geräten); noch keine gespeichert → lokale Wahl hochladen
-    if(!window.cmsApi){if(n<20)setTimeout(function(){pull(n+1)},500);return}
+    var tk='';try{tk=sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')||''}catch(e){}
+    if(!window.cmsApi||!tk){if(n<240)setTimeout(function(){pull(n+1)},500);return}   // erst nach der Anmeldung
     window.cmsApi('admin_prefs_get').then(function(d){var t=d&&d.theme;if(t&&MODES.some(function(m){return m[0]===t})){if(t!==get()){try{localStorage.setItem(KEY,t)}catch(e){}apply(t);refresh()}}else if(get()!=='neon')push(get())}).catch(function(){})
   }
   function refresh(){var m=get();document.querySelectorAll('[data-theme-mode]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-theme-mode')===m)});var t=document.getElementById('cmsThemeBtn');if(t)t.title='Design der Verwaltung: '+(MODES.filter(function(x){return x[0]===m})[0]||MODES[0])[1]}

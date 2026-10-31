@@ -30,7 +30,14 @@ function elvado_cr_today(): string { return (string)wp_date('Y-m-d'); }
 function elvado_cr_paragraphs(string $t): string { $o='';foreach(preg_split('/\n{2,}/',trim($t)) as $p)if(trim($p)!=='')$o.='<p>'.nl2br(esc_html(trim($p))).'</p>';return $o; }
 function elvado_cr_disclosure(): string { return trim((string)(elvado_cr_cfg()['contact']['disclosure']??'')); }
 /** Ist die angefragte Adresse die Link-Seite (/links/ ohne angelegte CMS-Seite)? Der Router meldet den Pfad über den Filter elvado_wp_404_status. */
-function elvado_cr_is_links_request(): bool { return !empty($GLOBALS['elvado_cr_links_req'])&&is_404(); }
+function elvado_cr_is_links_request(): bool {
+    if(!isset($GLOBALS['elvado_cr_links_req'])){   // echtes WordPress: Adresse selbst prüfen (ohne Unterordner der Installation)
+        $p=trim((string)parse_url((string)($_SERVER['REQUEST_URI']??''),PHP_URL_PATH),'/');$h=trim((string)parse_url(home_url('/'),PHP_URL_PATH),'/');
+        if($h!==''&&str_starts_with($p.'/',$h.'/'))$p=trim(substr($p,strlen($h)),'/');
+        $GLOBALS['elvado_cr_links_req']=$p==='links';
+    }
+    return !empty($GLOBALS['elvado_cr_links_req'])&&is_404();
+}
 add_filter('elvado_wp_404_status',function($status,$path){
     $GLOBALS['elvado_cr_links_req']=trim((string)$path,'/')==='links';
     return $GLOBALS['elvado_cr_links_req']?200:$status;

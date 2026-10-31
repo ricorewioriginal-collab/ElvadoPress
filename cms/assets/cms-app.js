@@ -19,9 +19,11 @@ let CMS_REVS={};
 async function cmsApi(action,body){
  if(action==='save'&&body&&body.section&&CMS_REVS[body.section]&&!body.base_rev)body={...body,base_rev:CMS_REVS[body.section]};
  const opts=body===undefined?{headers:cmsHeaders(false)}:{method:'POST',headers:cmsHeaders(true),body:JSON.stringify(body)};
+ const sentTok=cmsToken();
  const r=await fetch(CRON+'?action='+encodeURIComponent(action)+'&_='+Date.now(),opts);
  const d=await r.json().catch(()=>({status:'error',message:'Ungültige Serverantwort'}));
- if(r.status===401&&action!=='login'&&action!=='local_auth_setup')cmsSessionExpired();
+ // Nur eine mit der aktuellen Sitzung gesendete Anfrage beendet die Sitzung (eine noch vor der Anmeldung gestartete Anfrage darf die neue Sitzung nicht verwerfen)
+ if(r.status===401&&action!=='login'&&action!=='local_auth_setup'&&sentTok!==''&&sentTok===cmsToken())cmsSessionExpired();
  if(r.status===409&&d.status==='conflict'){const e=new Error(d.message||'Konflikt');e.httpStatus=409;e.conflict=true;throw e}
  if(!r.ok||d.status==='error'){const e=new Error(d.message||'Fehler');e.httpStatus=r.status;throw e}
  if(d.revs&&typeof d.revs==='object')CMS_REVS=d.revs;

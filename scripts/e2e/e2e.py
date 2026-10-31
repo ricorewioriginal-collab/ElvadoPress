@@ -119,6 +119,14 @@ def run(browser, base, shots, tmp):
     check('Automatische Einrichtung von echtem WordPress', not page.evaluate("!!document.getElementById('wpeAuto')"), page.evaluate("(document.getElementById('wpeAuto')||{}).innerText||''"))
     st, html, _ = http('GET', base + '/?nc=0')
     check('Website wird von echtem WordPress mit dem ElvadoPress-Theme ausgeliefert', st == 200 and '/wp-includes/' in html and '/cms/themes/elvado-' in html, st)
+    # Essentials wirken auch auf der WordPress-Website: Sicherheits-Header, SEO-Angaben, Weiterleitungen aus der Verwaltung
+    st, html, hd = http('GET', base + '/?nc=1')
+    check('Essentials auf echtem WordPress (Sicherheits-Header, SEO)', hd.get('X-Content-Type-Options') == 'nosniff' and 'og:title' in html, list(hd.keys()))
+    os.makedirs(os.path.join(tmp, 'cms', 'data', '.tools'), exist_ok=True)
+    with open(os.path.join(tmp, 'cms', 'data', '.tools', 'redirects.json'), 'w') as f:
+        json.dump({'rules': [{'from': '/alte-adresse/', 'to': '/', 'code': 301}]}, f)
+    st, html, _ = http('GET', base + '/alte-adresse/')
+    check('Weiterleitung aus der Verwaltung greift auf echtem WordPress', st == 200 and '/cms/themes/elvado-' in html, st)
     tok = page.evaluate("sessionStorage.getItem('elvadopress_session_token')||localStorage.getItem('elvadopress_session_token')")
 
     # Jeder Bereich öffnet ohne JavaScript-Fehler
